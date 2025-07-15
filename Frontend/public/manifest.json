@@ -1,0 +1,21 @@
+{
+  "name": "FitTrainer Pro - Personal Training Platform",
+  "short_name": "FitTrainer",
+  "description": "Professional personal training management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+  ],
+  "categories": ["fitness", "health", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}
