@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.springframework.web.service.annotation.GetExchange;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -21,5 +22,8 @@ public class Payment {
     private String confNumer;
     private Double amount;
     private LocalDate date;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
 }

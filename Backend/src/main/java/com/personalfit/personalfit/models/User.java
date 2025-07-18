@@ -23,5 +23,7 @@ public class User {
     private UserRole role;
     @OneToMany(mappedBy = "user")
     private List<Attendance> attendances;
+    @OneToMany(mappedBy = "user")
+    private List<Payment> payments;
 
 }
