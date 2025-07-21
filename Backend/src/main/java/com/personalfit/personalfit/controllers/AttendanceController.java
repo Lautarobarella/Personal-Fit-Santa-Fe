@@ -1,6 +1,5 @@
 package com.personalfit.personalfit.controllers;
 
-import com.personalfit.personalfit.repository.AttendanceRepository;
 import com.personalfit.personalfit.services.AttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;

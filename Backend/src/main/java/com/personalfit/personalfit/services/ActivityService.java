@@ -1,6 +1,6 @@
 package com.personalfit.personalfit.services;
 
-import com.personalfit.personalfit.repository.ActivityRepository;
+import com.personalfit.personalfit.repository.IActivityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -8,6 +8,6 @@ import org.springframework.stereotype.Service;
 public class ActivityService {
 
     @Autowired
-    private ActivityRepository activityRepository;
+    private IActivityRepository activityRepository;
 
 }
