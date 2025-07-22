@@ -23,7 +23,7 @@ public class CreateUserDTO {
     private String email;
 
     @NotNull(message = "The birthday mustn't be empty")
-    private LocalDate date;
+    private LocalDate birthDate;
 
     @NotBlank(message = "The password mustn't be empty")
     private String password;
@@ -32,4 +32,7 @@ public class CreateUserDTO {
 
     @NotNull(message = "The DNI number mustn't be empty")
     private Integer dni;
+
+    @NotBlank(message = "The address mustn't be empty")
+    private String address;
 }

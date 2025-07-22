@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,6 +27,10 @@ public class User {
     private String lastName;
     private String phoneNumber;
     private String email;
+    private String avatarName; // Por ahora son las iniciales del nombre y apellido, ejemplo: Juan Pérez -> JP
+    private LocalDate joinDate; // Fecha de alta del usuario
+    private String address;
+    private LocalDate birthDate; // Fecha de nacimiento del usuario
     @Column(unique = true)
     private Integer dni;
     @Enumerated(EnumType.STRING)
@@ -34,6 +39,7 @@ public class User {
     private List<Attendance> attendances;
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
+
 
     private LocalDateTime deletedAt = null;
 

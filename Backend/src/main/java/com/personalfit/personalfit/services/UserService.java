@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +33,11 @@ public class UserService {
         userToCreate.setEmail(newUser.getEmail());
         userToCreate.setPhoneNumber(newUser.getPhoneNumber());
         userToCreate.setRole(UserRole.Client);
+        userToCreate.setAvatarName(newUser.getFirstName().substring(0, 1).toUpperCase() +
+                newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
+        userToCreate.setJoinDate(LocalDate.now());
+        userToCreate.setAddress(newUser.getAddress());
+        userToCreate.setBirthDate(newUser.getBirthDate());
         userRepository.save(userToCreate);
 
         return true;
@@ -55,6 +61,20 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public Integer getUserAge(User user) {
+        if (user.getBirthDate() == null) return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
+
+        LocalDate today = LocalDate.now();
+        Integer age = today.getYear() - user.getBirthDate().getYear();
+
+        // Ajustar si el cumpleaños aún no ha ocurrido este año
+        if (today.getDayOfYear() < user.getBirthDate().getDayOfYear()) {
+            age--;
+        }
+
+        return age;
     }
 
 }
