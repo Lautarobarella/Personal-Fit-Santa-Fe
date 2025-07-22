@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class FindByDniDTO {
+public class InFindByDniDTO {
 
     @NotNull
     private Integer dni;

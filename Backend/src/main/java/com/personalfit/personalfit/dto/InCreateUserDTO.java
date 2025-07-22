@@ -10,7 +10,7 @@ import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
-public class CreateUserDTO {
+public class InCreateUserDTO {
 
     @NotBlank(message = "The first name mustn't be empty")
     private String firstName;

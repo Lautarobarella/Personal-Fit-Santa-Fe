@@ -1,7 +1,7 @@
 package com.personalfit.personalfit.services;
 
-import com.personalfit.personalfit.dto.CreateUserDTO;
-import com.personalfit.personalfit.dto.DeleteUserDTO;
+import com.personalfit.personalfit.dto.InCreateUserDTO;
+import com.personalfit.personalfit.dto.InDeleteUserDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
 import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import com.personalfit.personalfit.models.User;
@@ -9,7 +9,6 @@ import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.utils.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,7 +20,7 @@ public class UserService {
     @Autowired
     private IUserRepository userRepository;
 
-    public Boolean createNewUser(CreateUserDTO newUser) {
+    public Boolean createNewUser(InCreateUserDTO newUser) {
         Optional<User> user = userRepository.findByDni(newUser.getDni());
 
         if (user.isPresent()) throw new UserDniAlreadyExistsException();
@@ -43,7 +42,7 @@ public class UserService {
         return true;
     }
 
-    public Boolean deleteUser(DeleteUserDTO userToDelete) {
+    public Boolean deleteUser(InDeleteUserDTO userToDelete) {
         Optional<User> user = userRepository.findByDni(userToDelete.getDni());
 
         if (!user.isPresent()) throw new NoUserWithDniException();
