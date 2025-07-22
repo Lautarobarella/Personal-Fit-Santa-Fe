@@ -12,6 +12,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import Link from "next/link"
 import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
 import { mockActivities } from "@/mocks/mockActivities"
+import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
+import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
+import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
+import { mockAttendance } from "@/mocks/mockAttendance"
+
 
 export default function ActivitiesPage() {
   const { user } = useAuth()
@@ -23,10 +28,31 @@ export default function ActivitiesPage() {
     open: false,
     activity: null,
   })
+  const [enrollDialog, setEnrollDialog] = useState<{
+    open: boolean
+    activity: (typeof mockActivities)[0] | null
+  }>({
+    open: false,
+    activity: null,
+  })
+  const [attendanceDialog, setAttendanceDialog] = useState<{
+    open: boolean
+    activity: (typeof mockActivities)[0] | null
+  }>({
+    open: false,
+    activity: null,
+  })
+  const [detailsDialog, setDetailsDialog] = useState<{
+    open: boolean
+    activity: (typeof mockActivities)[0] | null
+  }>({
+    open: false,
+    activity: null,
+  })
 
   if (!user) return null
 
-  const canManageActivities = user.role === "administrator" || user.role === "trainer"
+  const canManageActivities = user.role === "admin" || user.role === "trainer"
   const userActivities =
     user.role === "trainer" ? activities.filter((activity) => activity.trainerId === user.id) : activities
 
@@ -57,6 +83,38 @@ export default function ActivitiesPage() {
     console.log("Deleting activity:", activityId)
     // For demo purposes, we'll just close the dialog
     setDeleteDialog({ open: false, activity: null })
+  }
+
+  const handleEnrollActivity = (activity: (typeof mockActivities)[0]) => {
+    setEnrollDialog({
+      open: true,
+      activity,
+    })
+  }
+
+  const handleConfirmEnroll = (activityId: string) => {
+    // Here you would call your delete API
+    console.log("Enrolling activity:", activityId)
+    // For demo purposes, we'll just close the dialog
+    setEnrollDialog({ open: false, activity: null })
+  }
+
+  const handleAttendanceActivity = (activity: (typeof mockActivities)[0]) => {
+    setAttendanceDialog({
+      open: true,
+      activity,
+    })
+  }
+
+  const handleCloseAttendance = (activityId: string) => {
+    setAttendanceDialog({ open: false, activity: null })
+  }
+
+  const handleDetailsClick = (activity: (typeof mockActivities)[0]) => {
+    setDetailsDialog({
+      open: true,
+      activity,
+    })
   }
 
   return (
@@ -95,7 +153,9 @@ export default function ActivitiesPage() {
                       <DropdownMenuItem asChild>
                         <Link href={`/activities/${activity.id}/edit`}>Editar</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Ver Asistencia</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
+                        Ver Asistencia
+                      </DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteActivity(activity)}>
                         Eliminar
                       </DropdownMenuItem>
@@ -125,21 +185,31 @@ export default function ActivitiesPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{activity.trainer}</span>
+                  <span>{activity.trainerId}</span>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                {user.role === "client" && (
-                  <Button className="flex-1">
-                    {activity.participants.includes(user.id) ? "Inscrito" : "Inscribirse"}
+                {user.role === "client" && !activity.participants.includes(user.id) && (
+                  <Button className="flex-1" onClick={() => handleEnrollActivity(activity)}>
+                    Inscribirse
+                  </Button>
+                )}
+                {user.role === "client" && activity.participants.includes(user.id) && (
+                  <Button className="flex-1" disabled>
+                    Inscrito
                   </Button>
                 )}
                 {canManageActivities && (
                   <>
-                    <Button variant="outline" className="flex-1 bg-transparent">
+                    <Button
+                      variant="outline"
+                      className="flex-1 bg-transparent"
+                      onClick={() => handleDetailsClick(activity)}
+                    >
                       Ver Detalles
                     </Button>
+                    <Button className="flex-1">Tomar Asistencia</Button>
                   </>
                 )}
               </div>
@@ -175,6 +245,40 @@ export default function ActivitiesPage() {
           onOpenChange={(open) => setDeleteDialog({ open, activity: null })}
           activity={deleteDialog.activity}
           onDelete={handleConfirmDelete}
+        />
+      )}
+      {enrollDialog.activity && (
+        <EnrollActivityDialog
+          open={enrollDialog.open}
+          onOpenChange={(open) => setEnrollDialog({ open, activity: null })}
+          activity={enrollDialog.activity}
+          onEnroll={handleConfirmEnroll}
+        />
+      )}
+      {attendanceDialog.activity && (
+        <AttendanceActivityDialog
+          open={attendanceDialog.open}
+          onOpenChange={(open) => setAttendanceDialog({ open, activity: null })}
+          activity={attendanceDialog.activity}
+          onAttendance={handleCloseAttendance}
+        />
+      )}
+      {detailsDialog.activity && (
+        <DetailsActivityDialog
+          open={detailsDialog.open}
+          participants={mockAttendance.filter((att) => att.activityId === detailsDialog.activity?.id)}
+          onOpenChange={(open) => setDetailsDialog({ open, activity: null })}
+          activity={detailsDialog.activity}
+          onEdit={() => {
+            setDetailsDialog({ open: false, activity: null })
+            // Navigate to edit page or open edit modal
+          }}
+          onDelete={() => {
+            setDetailsDialog({ open: false, activity: null })
+            if (detailsDialog.activity) {
+              handleDeleteActivity(detailsDialog.activity)
+            }
+          }}
         />
       )}
       <BottomNav />

@@ -1,8 +1,8 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -13,97 +13,73 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Users, Loader2, AlertTriangle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-
-interface ActivityForm {
-  name: string
-  description: string
-  date: string
-  time: string
-  duration: number
-  maxParticipants: number
-  price: number
-  trainer: string
-}
-
-// Mock activity data - in real app, this would come from API
-const mockActivity = {
-  id: "1",
-  name: "Yoga Matutino",
-  description: "Clase de yoga para principiantes",
-  trainer: "Ana García",
-  trainerId: "2",
-  date: new Date("2024-01-15T09:00:00"),
-  duration: 60,
-  maxParticipants: 15,
-  currentParticipants: 12,
-  price: 25,
-  status: "active" as const,
-  participants: ["3", "4", "5"],
-}
+import { Calendar, Clock, Users, Loader2 } from "lucide-react"
+import { ActivityFormType, ActivityType } from "@/lib/types"
+import { mockActivities } from "@/mocks/mockActivities"
+import { mockUsers } from "@/mocks/mockUsers"
 
 export default function EditActivityPage({ params }: { params: { id: string } }) {
+
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [activity, setActivity] = useState(mockActivity)
-
-  const [form, setForm] = useState<ActivityForm>({
-    name: "",
-    description: "",
-    date: "",
-    time: "",
-    duration: 60,
-    maxParticipants: 10,
-    price: 0,
-    trainer: "",
-  })
-
-  const [errors, setErrors] = useState<Partial<ActivityForm>>({})
-
+  const [form, setForm] = useState<ActivityFormType>({
+      name: "",
+      description: "",
+      location: "",
+      category: "",
+      date: "",
+      time: "",
+      duration: "",
+      maxParticipants: "",
+      trainer: "",
+    })
+    
   useEffect(() => {
-    // Load activity data
+    // Buscar la actividad por ID en el mock
+    const activity = mockActivities.find((a) => a.id === params.id)
     if (activity) {
-      const activityDate = new Date(activity.date)
       setForm({
         name: activity.name,
         description: activity.description,
-        date: activityDate.toISOString().split("T")[0],
-        time: activityDate.toTimeString().slice(0, 5),
-        duration: activity.duration,
-        maxParticipants: activity.maxParticipants,
-        price: activity.price,
-        trainer: activity.trainer,
+        trainer: mockUsers.find(u => u.id === activity.trainerId)?.name || "Desconocido",
+        location: activity.location,
+        category: activity.category,
+        date: activity.date.toISOString().split("T")[0], // YYYY-MM-DD
+        time: activity.date.toISOString().split("T")[1].slice(0, 5), // HH:MM
+        duration: activity.duration.toString(),
+        maxParticipants: activity.maxParticipants.toString(),
       })
     }
-  }, [activity])
+  }, [params.id])
 
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
-    return <div>No tienes permisos para editar actividades</div>
-  }
+  const [errors, setErrors] = useState<Partial<ActivityFormType>>({})
 
-  // Check if user can edit this specific activity
-  if (user.role === "trainer" && activity.trainerId !== user.id) {
-    return <div>No tienes permisos para editar esta actividad</div>
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
+    return <div>No tienes permisos para crear actividades</div>
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ActivityForm> = {}
+    const newErrors: Partial<ActivityFormType> = {}
 
+    try {
     if (!form.name.trim()) newErrors.name = "El nombre es requerido"
     if (!form.description.trim()) newErrors.description = "La descripción es requerida"
     if (!form.date) newErrors.date = "La fecha es requerida"
     if (!form.time) newErrors.time = "La hora es requerida"
-    if (form.duration <= 0) newErrors.duration = "La duración debe ser mayor a 0"
-    if (form.maxParticipants <= 0) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (form.maxParticipants < activity.currentParticipants) {
-      newErrors.maxParticipants = `No puedes reducir la capacidad por debajo de ${activity.currentParticipants} (participantes actuales)`
-    }
-    if (form.price < 0) newErrors.price = "El precio no puede ser negativo"
+    if (form.duration) newErrors.duration = "La duración debe ser mayor a 0"
+    if (form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
     if (!form.trainer.trim()) newErrors.trainer = "El entrenador es requerido"
 
+    // Validate date is not in the past
+    const selectedDate = new Date(`${form.date}T${form.time}`)
+    if (selectedDate <= new Date()) {
+      newErrors.date = "La fecha debe ser futura"
+    }
+    } catch (error) {
+      console.error("Error validating form:", error)
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -119,24 +95,18 @@ export default function EditActivityPage({ params }: { params: { id: string } })
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const updatedActivity = {
-        ...activity,
-        ...form,
-        date: new Date(`${form.date}T${form.time}`),
-      }
-
-      console.log("Updating activity:", updatedActivity)
+      console.log("Creating activity...")
 
       toast({
-        title: "Actividad actualizada",
-        description: "Los cambios han sido guardados exitosamente",
+        title: "Actividad creada",
+        description: "La actividad ha sido creada exitosamente",
       })
 
       router.push("/activities")
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar la actividad",
+        description: "No se pudo crear la actividad",
         variant: "destructive",
       })
     } finally {
@@ -144,45 +114,33 @@ export default function EditActivityPage({ params }: { params: { id: string } })
     }
   }
 
-  const handleInputChange = (field: keyof ActivityForm, value: string | number) => {
+  const handleInputChange = (field: keyof Partial<ActivityFormType>, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
   }
 
-  const hasParticipants = activity.currentParticipants > 0
-
   return (
     <div className="min-h-screen bg-background">
-      <MobileHeader title="Editar Actividad" showBack onBack={() => router.back()} />
+      <MobileHeader title="Nueva Actividad" showBack onBack={() => router.back()} />
 
       <div className="container py-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Modificar Actividad
+              Crear Nueva Actividad
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {hasParticipants && (
-              <Alert className="mb-6">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Esta actividad tiene {activity.currentParticipants} participantes inscritos. Ten cuidado al modificar
-                  la fecha, hora o capacidad.
-                </AlertDescription>
-              </Alert>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Información Básica</h3>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre de la Actividad *</Label>
+                  <Label htmlFor="name">Nombre de la Actividad</Label>
                   <Input
                     id="name"
                     value={form.name}
@@ -194,7 +152,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descripción *</Label>
+                  <Label htmlFor="description">Descripción</Label>
                   <Textarea
                     id="description"
                     value={form.description}
@@ -206,9 +164,9 @@ export default function EditActivityPage({ params }: { params: { id: string } })
                   {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
-                {user.role === "administrator" && (
+                {user.role === "admin" && (
                   <div className="space-y-2">
-                    <Label htmlFor="trainer">Entrenador *</Label>
+                    <Label htmlFor="trainer">Entrenador asignado</Label>
                     <Select value={form.trainer} onValueChange={(value) => handleInputChange("trainer", value)}>
                       <SelectTrigger className={errors.trainer ? "border-destructive" : ""}>
                         <SelectValue placeholder="Seleccionar entrenador" />
@@ -233,19 +191,20 @@ export default function EditActivityPage({ params }: { params: { id: string } })
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date">Fecha *</Label>
+                    <Label htmlFor="date">Fecha</Label>
                     <Input
                       id="date"
                       type="date"
                       value={form.date}
                       onChange={(e) => handleInputChange("date", e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
                       className={errors.date ? "border-destructive" : ""}
                     />
                     {errors.date && <p className="text-sm text-destructive">{errors.date}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="time">Hora *</Label>
+                    <Label htmlFor="time">Hora de inicio</Label>
                     <Input
                       id="time"
                       type="time"
@@ -258,7 +217,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="duration">Duración (minutos) *</Label>
+                  <Label htmlFor="duration">Duración (minutos)</Label>
                   <Select
                     value={form.duration.toString()}
                     onValueChange={(value) => handleInputChange("duration", Number.parseInt(value))}
@@ -282,41 +241,21 @@ export default function EditActivityPage({ params }: { params: { id: string } })
               <div className="space-y-4">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Capacidad y Precio
+                  Capacidad
                 </h3>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="maxParticipants">Máximo Participantes *</Label>
+                    <Label htmlFor="maxParticipants">Máximo Participantes</Label>
                     <Input
                       id="maxParticipants"
                       type="number"
-                      min={activity.currentParticipants}
+                      min="1"
                       max="50"
                       value={form.maxParticipants}
                       onChange={(e) => handleInputChange("maxParticipants", Number.parseInt(e.target.value) || 0)}
                       className={errors.maxParticipants ? "border-destructive" : ""}
                     />
                     {errors.maxParticipants && <p className="text-sm text-destructive">{errors.maxParticipants}</p>}
-                    <p className="text-xs text-muted-foreground">
-                      Participantes actuales: {activity.currentParticipants}
-                    </p>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Precio ($) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.price}
-                      onChange={(e) => handleInputChange("price", Number.parseFloat(e.target.value) || 0)}
-                      className={errors.price ? "border-destructive" : ""}
-                    />
-                    {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
-                  </div>
-                </div>
               </div>
 
               {/* Action Buttons */}
@@ -326,7 +265,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
                 </Button>
                 <Button type="submit" disabled={isLoading} className="flex-1">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Guardar Cambios
+                  Crear Actividad
                 </Button>
               </div>
             </form>

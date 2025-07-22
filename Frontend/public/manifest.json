@@ -4,8 +4,8 @@
   "description": "Professional personal training management platform",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "background_color": "#454545",
+  "theme_color": "#FF6000",
   "orientation": "portrait",
   "icons": [
   ],

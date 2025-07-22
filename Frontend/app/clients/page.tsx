@@ -11,55 +11,28 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Plus, Search, Phone, Mail, MoreVertical, Calendar } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { mockUsers } from "@/mocks/mockUsers"
 import Link from "next/link"
-
-// Mock data
-const mockClients = [
-  {
-    id: "1",
-    name: "María González",
-    email: "maria@email.com",
-    phone: "+34 666 123 456",
-    status: "active",
-    joinDate: new Date("2024-01-01"),
-    activitiesCount: 5,
-    lastActivity: new Date("2024-01-14"),
-  },
-  {
-    id: "2",
-    name: "Juan Pérez",
-    email: "juan@email.com",
-    phone: "+34 666 789 012",
-    status: "active",
-    joinDate: new Date("2023-12-15"),
-    activitiesCount: 8,
-    lastActivity: new Date("2024-01-13"),
-  },
-  {
-    id: "3",
-    name: "Ana Martín",
-    email: "ana@email.com",
-    phone: "+34 666 345 678",
-    status: "inactive",
-    joinDate: new Date("2023-11-20"),
-    activitiesCount: 2,
-    lastActivity: new Date("2024-01-05"),
-  },
-]
+import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
+import { mockActivities } from "@/mocks/mockActivities"
 
 export default function ClientsPage() {
   const { user } = useAuth()
-  const [clients] = useState(mockClients)
+  const [clients] = useState(mockUsers)
   const [searchTerm, setSearchTerm] = useState("")
+  const [clientDetailsDialog, setClientDetailsDialog] = useState<{
+    open: boolean
+    user: (typeof mockUsers)[0] | null
+  }>({ open: false, user: null })
 
   if (!user || user.role === "client") {
     return <div>No tienes permisos para ver esta página</div>
   }
 
   const filteredClients = clients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()),
+    (user) =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const formatDate = (date: Date) => {
@@ -68,14 +41,16 @@ export default function ClientsPage() {
       month: "short",
       year: "numeric",
     }).format(date)
-  }
+  } 
+  
+  const handleClientDetails = (user: (typeof mockUsers)[0]) => setClientDetailsDialog({ open: true, user })
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader
         title="Clientes"
         actions={
-          user.role === "administrator" ? (
+          user.role === "admin" ? (
             <Link href="/clients/new">
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-1" />
@@ -126,13 +101,13 @@ export default function ClientsPage() {
 
         {/* Client List */}
         <div className="space-y-3">
-          {filteredClients.map((client) => (
-            <Card key={client.id}>
+          {filteredClients.map((user) => (
+            <Card key={user.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <Avatar>
                     <AvatarFallback>
-                      {client.name
+                      {user.name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
@@ -141,33 +116,33 @@ export default function ClientsPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium truncate">{client.name}</h3>
-                      <Badge variant={client.status === "active" ? "default" : "secondary"}>
-                        {client.status === "active" ? "Activo" : "Inactivo"}
+                      <h3 className="font-medium truncate">{user.name}</h3>
+                      <Badge variant={user.status === "active" ? "default" : "secondary"}>
+                        {user.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </div>
 
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Mail className="h-3 w-3" />
-                        <span className="truncate">{client.email}</span>
+                        <span className="truncate">{user.email}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        <span>{client.phone}</span>
+                        <span>{user.phone}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Última actividad: {formatDate(client.lastActivity)}</span>
+                        <span>Última actividad: {user.lastActivity ? formatDate(user?.lastActivity) : "no ha realizado ninguna actividad"}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4 mt-2 text-xs">
-                      <span className="text-blue-600 font-medium">{client.activitiesCount} actividades</span>
-                      <span className="text-muted-foreground">Desde {formatDate(client.joinDate)}</span>
+                      <span className="text-blue-600 font-medium">{user.activitiesCount} actividades</span>
+                      <span className="text-muted-foreground">Desde {formatDate(user.joinDate)}</span>
                     </div>
                   </div>
-
+                  
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -175,10 +150,8 @@ export default function ClientsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
-                      <DropdownMenuItem>Ver Actividades</DropdownMenuItem>
-                      <DropdownMenuItem>Ver Pagos</DropdownMenuItem>
-                      {user.role === "administrator" && (
+                      <DropdownMenuItem onClick={() => handleClientDetails(user)}>Ver Detalles</DropdownMenuItem>
+                      {user.role === "admin" && (
                         <>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
@@ -198,7 +171,7 @@ export default function ClientsPage() {
               <div className="text-muted-foreground mb-4">
                 {searchTerm ? "No se encontraron clientes" : "No hay clientes registrados"}
               </div>
-              {user.role === "administrator" && !searchTerm && (
+              {user.role === "admin" && !searchTerm && (
                 <Link href="/clients/new">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -210,7 +183,16 @@ export default function ClientsPage() {
           </Card>
         )}
       </div>
-
+      {/* dialog */}
+      {clientDetailsDialog.user && (
+        <ClientDetailsDialog
+          open={clientDetailsDialog.open}
+          onOpenChange={(open) => setClientDetailsDialog({ open, user: null })}
+          user={clientDetailsDialog.user}
+          activities={mockActivities || []}
+          payments={[]}
+        />
+      )}
       <BottomNav />
     </div>
   )

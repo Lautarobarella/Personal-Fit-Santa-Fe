@@ -14,16 +14,12 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ActivityType } from "@/lib/types"
 
 interface DeleteActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  activity: {
-    id: string
-    name: string
-    currentParticipants: number
-    date: Date
-  }
+  activity: ActivityType
   onDelete: (activityId: string) => void
 }
 

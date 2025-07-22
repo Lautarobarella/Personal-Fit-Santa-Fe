@@ -148,7 +148,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Admin Settings */}
-        {user.role === "administrator" && (
+        {user.role === "admin" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

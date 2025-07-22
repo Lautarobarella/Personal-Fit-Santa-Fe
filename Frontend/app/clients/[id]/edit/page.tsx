@@ -17,28 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import { User, Phone, Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-interface ClientForm {
-  name: string
-  email: string
-  phone: string
-  dateOfBirth: string
-  address: string
-  status: string
-}
 
-// Mock client data
-const mockClient = {
-  id: "1",
-  name: "María González",
-  email: "maria@email.com",
-  phone: "+34 666 123 456",
-  dateOfBirth: "1990-05-15",
-  address: "Calle Mayor 123, Madrid, 28001",
-  status: "active",
-  joinDate: new Date("2024-01-01"),
-  activitiesCount: 5,
-  lastActivity: new Date("2024-01-14"),
-}
 
 export default function EditClientPage({ params }: { params: { id: string } }) {
   const { user } = useAuth()
@@ -59,19 +38,19 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
   const [errors, setErrors] = useState<Partial<ClientForm>>({})
 
   useEffect(() => {
-    if (client) {
+    if (user) {
       setForm({
-        name: client.name,
-        email: client.email,
-        phone: client.phone,
-        dateOfBirth: client.dateOfBirth,
-        address: client.address,
-        status: client.status,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        status: user.status,
       })
     }
-  }, [client])
+  }, [user])
 
-  if (!user || user.role !== "administrator") {
+  if (!user || user.role !== "admin") {
     return <div>No tienes permisos para editar clientes</div>
   }
 
@@ -100,11 +79,11 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       const updatedClient = {
-        ...client,
+        ...user,
         ...form,
       }
 
-      console.log("Updating client:", updatedClient)
+      console.log("Updating user:", updatedClient)
 
       toast({
         title: "Cliente actualizado",
@@ -130,7 +109,7 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const hasActiveEnrollments = client.activitiesCount > 0
+  const hasActiveEnrollments = user.activitiesCount > 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,7 +128,7 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
               <Alert className="mb-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Este cliente tiene {client.activitiesCount} actividades activas. Desactivarlo cancelará todas sus
+                  Este cliente tiene {user.activitiesCount} actividades activas. Desactivarlo cancelará todas sus
                   inscripciones.
                 </AlertDescription>
               </Alert>

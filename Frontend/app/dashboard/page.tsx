@@ -14,7 +14,7 @@ export default function DashboardPage() {
   if (!user) return null
 
   const getDashboardStats = () => {
-    if (user.role === "administrator") {
+    if (user.role === "admin") {
       return [
         { title: "Total Actividades", value: "24", icon: Activity, color: "text-blue-600" },
         { title: "Clientes Activos", value: "156", icon: Users, color: "text-green-600" },
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   }
 
   const getQuickActions = () => {
-    if (user.role === "administrator") {
+    if (user.role === "admin") {
       return [
         { title: "Crear Actividad", href: "/activities/new", icon: Activity },
         { title: "Gestionar Clientes", href: "/clients", icon: Users },
@@ -70,11 +70,11 @@ export default function DashboardPage() {
 
       <div className="container py-6 space-y-6">
         {/* Welcome Card */}
-        <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+        <Card className="bg-gradient-to-r from-primary to-orange-400 text-white">
           <CardHeader>
             <CardTitle>Bienvenido de vuelta</CardTitle>
             <CardDescription className="text-blue-100">
-              {user.role === "administrator" && "Panel de administración completo"}
+              {user.role === "admin" && "Panel de administración completo"}
               {user.role === "trainer" && "Gestiona tus clases y clientes"}
               {user.role === "client" && "Mantente activo con tus entrenamientos"}
             </CardDescription>

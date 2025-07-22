@@ -14,16 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, Clock, Users, Loader2 } from "lucide-react"
-
-interface ActivityForm {
-  name: string
-  description: string
-  date: string
-  time: string
-  duration: number
-  maxParticipants: number
-  trainer: string
-}
+import { ActivityFormType, ActivityType } from "@/lib/types"
 
 export default function NewActivityPage() {
   const { user } = useAuth()
@@ -31,31 +22,34 @@ export default function NewActivityPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
-  const [form, setForm] = useState<ActivityForm>({
+  const [form, setForm] = useState<ActivityFormType>({
     name: "",
     description: "",
+    location: "",
+    category: "",
     date: "",
     time: "",
-    duration: 60,
-    maxParticipants: 10,
-    trainer: user?.role === "trainer" ? user.name : "",
+    duration: "",
+    maxParticipants: "",
+    trainer: "",
   })
 
-  const [errors, setErrors] = useState<Partial<ActivityForm>>({})
+  const [errors, setErrors] = useState<Partial<ActivityFormType>>({})
 
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
     return <div>No tienes permisos para crear actividades</div>
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ActivityForm> = {}
+    const newErrors: Partial<ActivityFormType> = {}
 
+    try {
     if (!form.name.trim()) newErrors.name = "El nombre es requerido"
     if (!form.description.trim()) newErrors.description = "La descripción es requerida"
     if (!form.date) newErrors.date = "La fecha es requerida"
     if (!form.time) newErrors.time = "La hora es requerida"
-    if (form.duration <= 0) newErrors.duration = "La duración debe ser mayor a 0"
-    if (form.maxParticipants <= 0) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
+    if (form.duration) newErrors.duration = "La duración debe ser mayor a 0"
+    if (form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
     if (!form.trainer.trim()) newErrors.trainer = "El entrenador es requerido"
 
     // Validate date is not in the past
@@ -63,7 +57,9 @@ export default function NewActivityPage() {
     if (selectedDate <= new Date()) {
       newErrors.date = "La fecha debe ser futura"
     }
-
+    } catch (error) {
+      console.error("Error validating form:", error)
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -79,17 +75,7 @@ export default function NewActivityPage() {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const newActivity = {
-        id: Date.now().toString(),
-        ...form,
-        date: new Date(`${form.date}T${form.time}`),
-        trainerId: user.id,
-        currentParticipants: 0,
-        status: "active" as const,
-        participants: [],
-      }
-
-      console.log("Creating activity:", newActivity)
+      console.log("Creating activity...")
 
       toast({
         title: "Actividad creada",
@@ -108,7 +94,7 @@ export default function NewActivityPage() {
     }
   }
 
-  const handleInputChange = (field: keyof ActivityForm, value: string | number) => {
+  const handleInputChange = (field: keyof Partial<ActivityFormType>, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
@@ -158,7 +144,7 @@ export default function NewActivityPage() {
                   {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
-                {user.role === "administrator" && (
+                {user.role === "admin" && (
                   <div className="space-y-2">
                     <Label htmlFor="trainer">Entrenador asignado</Label>
                     <Select value={form.trainer} onValueChange={(value) => handleInputChange("trainer", value)}>

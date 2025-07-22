@@ -91,7 +91,7 @@ export default function ClientProfilePage({ params }: { params: { id: string } }
   const [activities] = useState(mockActivities)
   const [payments] = useState(mockPayments)
 
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
     return <div>No tienes permisos para ver este perfil</div>
   }
 
@@ -159,7 +159,7 @@ export default function ClientProfilePage({ params }: { params: { id: string } }
         showBack
         onBack={() => router.back()}
         actions={
-          user.role === "administrator" ? (
+          user.role === "admin" ? (
             <Link href={`/clients/${client.id}/edit`}>
               <Button size="sm" variant="outline">
                 <Edit className="h-4 w-4" />

@@ -11,9 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { User, Phone, Loader2 } from "lucide-react"
+import { User, Loader2 } from "lucide-react"
 
 interface ClientForm {
   name: string
@@ -41,7 +40,7 @@ export default function NewClientPage() {
 
   const [errors, setErrors] = useState<Partial<ClientForm>>({})
 
-  if (!user || user.role !== "administrator") {
+  if (!user || user.role !== "admin") {
     return <div>No tienes permisos para crear clientes</div>
   }
 

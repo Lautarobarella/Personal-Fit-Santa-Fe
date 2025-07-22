@@ -1,31 +1,57 @@
-export type UserRole = "administrator" | "trainer" | "client"
+export type UserRole = "admin" | "trainer" | "client"
+export type Category = "Principiante" | "Intermedio" |"Avanzado"
 
-export interface User {
+export interface UserType {
   id: string
+  dni: number
   name: string
   email: string
-  role: UserRole
+  phone: string
+  age: number
+  dateOfBirth: Date
+  address: string
+  role: "admin" | "trainer" | "client"
+  status: "active" | "inactive"
+  joinDate: Date
+  activitiesCount: number
+  lastActivity: Date | null
+  password: string
   avatar?: string
-  phone?: string
-  createdAt: Date
 }
 
-export interface Activity {
+export interface ActivityType {
   id: string
   name: string
   description: string
-  trainer: string
+  location: string
+  category: "Principiante" | "Intermedio" |"Avanzado"
   trainerId: string
   date: Date
   duration: number
   maxParticipants: number
   currentParticipants: number
-  price: number
+  participants: string[] // Cambia a number[] si los IDs son números
   status: "active" | "cancelled" | "completed"
-  participants: string[]
+  createdBy: string
+  lastModifiedBy?: string
+  createdAt: Date
+  lastModified?: Date
+  notes?: string
 }
 
-export interface Payment {
+export interface ActivityFormType {
+  name: string
+  description: string
+  location: string
+  category: string
+  trainer: string
+  date: string // importante: string, para input type="date"
+  time: string // importante: string, para input type="time"
+  duration: string
+  maxParticipants: string
+}
+
+export interface PaymentType {
   id: string
   clientId: string
   clientName: string
@@ -39,12 +65,27 @@ export interface Payment {
 
 export interface Attendance {
   id: string
+  activityId: string
+  userId: string
+  createdAt: Date
+  status: "present" | "absent" | "late"
+}
+
+export interface MonthlyPayment {
+  id: string
   clientId: string
   clientName: string
-  activityId: string
-  activityName: string
-  date: Date
-  status: "present" | "absent" | "late"
+  month: string // "2024-01" format
+  amount: number
+  dueDate: Date
+  status: "pendiente" | "pagado" | "rechazado" | "vencido"
+  receiptUrl?: string
+  receiptUploadedAt?: Date
+  verifiedAt?: Date
+  verifiedBy?: string
+  rejectionReason?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface Notification {

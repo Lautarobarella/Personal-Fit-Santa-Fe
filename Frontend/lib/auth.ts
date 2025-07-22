@@ -1,36 +1,13 @@
-import type { User, UserRole } from "./types"
-
+import type { UserType, UserRole } from "./types"
+import { mockUsers } from "@/mocks/mockUsers"
 // Mock authentication - replace with real auth service
-export const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Admin User",
-    email: "admin@fittrainer.com",
-    role: "administrator",
-    createdAt: new Date(),
-  },
-  {
-    id: "2",
-    name: "John Trainer",
-    email: "trainer@fittrainer.com",
-    role: "trainer",
-    createdAt: new Date(),
-  },
-  {
-    id: "3",
-    name: "Jane Client",
-    email: "client@fittrainer.com",
-    role: "client",
-    createdAt: new Date(),
-  },
-]
 
-export const authenticate = async (email: string, password: string): Promise<User | null> => {
+export const authenticate = async (email: string, password: string): Promise<UserType | null> => {
   // Mock authentication logic
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
   const user = mockUsers.find((u) => u.email === email)
-  if (user && password === "password") {
+  if (user && password === user.password) {
     return user
   }
   return null
@@ -38,7 +15,7 @@ export const authenticate = async (email: string, password: string): Promise<Use
 
 export const hasPermission = (userRole: UserRole, requiredRole: UserRole): boolean => {
   const roleHierarchy = {
-    administrator: 3,
+    admin: 3,
     trainer: 2,
     client: 1,
   }
