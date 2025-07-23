@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,23 +23,14 @@ import {
   Edit,
   UserX,
 } from "lucide-react"
-import { ActivityType, UserType } from "@/lib/types"
-import { mockAttendance } from "@/mocks/mockAttendance"
-import { mockUsers } from "@/mocks/mockUsers"
+import { useAuth } from "../providers/auth-provider"
+import { useClients } from "@/hooks/use-client"
+
 
 interface ClientDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: UserType
-  activities?: ActivityType[]
-  payments?: Array<{
-    id: string
-    activityName: string
-    amount: number
-    date: Date
-    status: string
-    method: string
-  }>
+  userId: number
   onEdit?: () => void
   onDeactivate?: () => void
 }
@@ -47,32 +38,30 @@ interface ClientDetailsDialogProps {
 export function ClientDetailsDialog({
   open,
   onOpenChange,
-  user,
-  activities = [],
-  payments = [],
+  userId,
   onEdit,
   onDeactivate,
 }: ClientDetailsDialogProps) {
+
+  const { user } = useAuth()  // los entrenadores van a poder ver los detalles???????????
+
   const [activeTab, setActiveTab] = useState("profile")
+  const { loading, error, loadClientDetail, selectedClient } = useClients()
+
+  useEffect(() => {
+    loadClientDetail(userId)
+  } , [loadClientDetail])
+
+  if (loading) return <div>Cargando detalles del cliente...</div>
+  if (error) return <div>{error}</div>
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(date)
+    }).format(new Date(date))
   }
-
-  const formatDateTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date)
-  }
-
 
   const getActivityStatusColor = (status: string) => {
     switch (status) {
@@ -170,9 +159,11 @@ export function ClientDetailsDialog({
   }
 
   // Calculate statistics
-  const presentActivities = mockAttendance.filter((a) => a.userId === user.id && (a.status === "present" || a.status === "late"))
-  const absentActivities = mockAttendance.filter((a) => a.userId === user.id && (a.status === "absent"))
-  const enrolledActivities = activities.filter((a) => a.participants.includes(user.id) && (a.status === "active"))
+  if (!selectedClient) return null
+
+  const presentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === "present" || a.clientStatus === "late")
+  const absentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === "absent")
+  const enrolledActivities = selectedClient.listActivity.filter((a) => a.clientStatus === "pending")
 
   const attendanceRate =
     presentActivities.length > 0
@@ -181,8 +172,8 @@ export function ClientDetailsDialog({
         )
       : 0
 
-  const completedPayments = payments.filter((p) => p.status === "completed")
-  const pendingPayments = payments.filter((p) => p.status === "pending" || p.status === "overdue")
+  const completedPayments = selectedClient.listPayments.filter((p) => p.status === "completed")
+  const pendingPayments = selectedClient.listPayments.filter((p) => p.status === "pending")
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0)
 
@@ -194,18 +185,15 @@ export function ClientDetailsDialog({
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
                 <AvatarFallback className="text-lg">
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {`${selectedClient.firstName[0] ?? ""}${selectedClient.lastName[0] ?? ""}`}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <DialogTitle className="text-xl flex">{user.name}</DialogTitle>
+                <DialogTitle className="text-xl flex">{selectedClient.firstName + " " +selectedClient.lastName}</DialogTitle>
                 <DialogDescription className="flex items-center gap-2">
-                  {user.email}
-                  <Badge variant={user.status === "active" ? "default" : "secondary"}>
-                    {user.status === "active" ? "Activo" : "Inactivo"}
+                  {selectedClient.email}
+                  <Badge variant={selectedClient.status === "active" ? "default" : "secondary"}>
+                    {selectedClient.status === "active" ? "Activo" : "Inactivo"}
                   </Badge>
                 </DialogDescription>
               </div>
@@ -253,32 +241,32 @@ export function ClientDetailsDialog({
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{user.email}</span>
+                      <span>{selectedClient.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{user.phone}</span>
+                      <span>{selectedClient.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>Cliente desde {formatDate(user.joinDate)}</span>
+                      <span>Cliente desde {formatDate(selectedClient.joinDate)}</span>
                     </div>
-                    {user.dateOfBirth && (
+                    {selectedClient.dateOfBirth && (
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span>{user.age} años</span>
+                        <span>{selectedClient.age} años</span>
                       </div>
                     )}
                   </div>
 
-                  {user.address && (
+                  {selectedClient.address && (
                     <>
                       <Separator />
                       <div>
                         <span className="text-muted-foreground text-sm">Dirección:</span>
                         <p className="text-sm mt-1 flex items-start gap-1">
                           <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          {user.address}
+                          {selectedClient.address}
                         </p>
                       </div>
                     </>
@@ -299,21 +287,30 @@ export function ClientDetailsDialog({
             </div>
 
             <div className="space-y-2">
-              {activities.map((activity) => (
+              {selectedClient.listActivity.length === 0 && (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">No hay actividades registradas</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {selectedClient.listActivity.map((activity) => (
                 <Card key={activity.id}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h4 className="font-medium">{activity.name}</h4>
-                        <p className="text-sm text-muted-foreground">Entrenador: { mockUsers.find(t => t.name && t.id === activity.trainerId)?.name }</p>
+                        <p className="text-sm text-muted-foreground">Entrenador: { activity.name }</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={getActivityStatusColor(activity.status)} className="text-xs">
-                          {getActivityStatusText(activity.status)}
+                        <Badge variant={getActivityStatusColor(activity.activityStatus)} className="text-xs">
+                          {getActivityStatusText(activity.activityStatus)}
                         </Badge>
-                        {activity.status === "completed" && (
-                          <span className={`text-xs font-medium ${getAttendanceColor( mockAttendance.find(a => a.activityId === activity.id)?.status)}`}>
-                            {getAttendanceText(mockAttendance.find(a => a.activityId === activity.id)?.status)}
+                        {activity.activityStatus === "completed" && (
+                          <span className={`text-xs font-medium ${getAttendanceColor( activity.clientStatus )}`}>
+                            {getAttendanceText(activity.clientStatus)}
                           </span>
                         )}
                       </div>
@@ -336,15 +333,6 @@ export function ClientDetailsDialog({
                   </CardContent>
                 </Card>
               ))}
-
-              {activities.length === 0 && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">No hay actividades registradas</p>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </TabsContent>
 
@@ -358,13 +346,22 @@ export function ClientDetailsDialog({
               </div>
             </div>
 
-            <div className="space-y-2">
-              {payments.map((payment) => (
+            <div className="space-y-2"> 
+              {selectedClient.listPayments.length === 0 && (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">No hay pagos registrados</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {selectedClient.listPayments.map((payment) => (
                 <Card key={payment.id}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h4 className="font-medium">{payment.activityName}</h4>
+                        <h4 className="font-medium">{formatDate(payment.date)}</h4>
                         <p className="text-sm text-muted-foreground">Método: {getMethodText(payment.method)}</p>
                       </div>
                       <div className="text-right">
@@ -381,15 +378,6 @@ export function ClientDetailsDialog({
                   </CardContent>
                 </Card>
               ))}
-
-              {payments.length === 0 && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">No hay pagos registrados</p>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </TabsContent>
 
@@ -407,7 +395,7 @@ export function ClientDetailsDialog({
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-primary">{activities.length}</div>
+                      <div className="text-2xl font-bold text-primary">{selectedClient.listActivity.length}</div>
                       <div className="text-sm text-muted-foreground">Total</div>
                     </div>
                     <div>
@@ -441,7 +429,7 @@ export function ClientDetailsDialog({
                       <div className="text-sm text-muted-foreground">Total Pagado</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-success">{payments.length}</div>
+                      <div className="text-2xl font-bold text-success">{selectedClient.listPayments.length}</div>
                       <div className="text-sm text-muted-foreground">Transacciones</div>
                     </div>
                   </div>
@@ -461,26 +449,25 @@ export function ClientDetailsDialog({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Cliente desde:</span>
-                    <p className="font-medium">{formatDate(user.joinDate)}</p>
+                    <p className="font-medium">{formatDate(selectedClient.joinDate)}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Última actividad:</span>
-                    <p className="font-medium">{user.lastActivity? formatDate(user.lastActivity) : "No posee"}</p>
+                    <p className="font-medium">{selectedClient.lastActivity? formatDate(selectedClient.lastActivity) : "No posee"}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Promedio mensual:</span>
                     <p className="font-medium">
                       {Math.round(
-                        activities.length /
-                          Math.max(1, (Date.now() - user.joinDate.getTime()) / (1000 * 60 * 60 * 24 * 30)),
+                        presentActivities.length / selectedClient.listActivity.length,
                       )}{" "}
                       actividades
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Estado:</span>
-                    <Badge variant={user.status === "active" ? "success" : "secondary"} className="ml-2">
-                      {user.status === "active" ? "Activo" : "Inactivo"}
+                    <Badge variant={selectedClient.status === "active" ? "success" : "secondary"} className="ml-2">
+                      {selectedClient.status === "active" ? "Activo" : "Inactivo"}
                     </Badge>
                   </div>
                 </div>

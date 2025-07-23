@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -11,39 +11,54 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Plus, Search, Phone, Mail, MoreVertical, Calendar } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { mockUsers } from "@/mocks/mockUsers"
 import Link from "next/link"
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
-import { mockActivities } from "@/mocks/mockActivities"
+import { useClients } from "@/hooks/use-client"
 
 export default function ClientsPage() {
+
   const { user } = useAuth()
-  const [clients] = useState(mockUsers)
+  const {
+    clients,
+    loading,
+    error,
+    loadClients,
+    // selectedClient, loadClientDetail, clearSelectedClient, setClients
+  } = useClients()
   const [searchTerm, setSearchTerm] = useState("")
   const [clientDetailsDialog, setClientDetailsDialog] = useState<{
     open: boolean
-    user: (typeof mockUsers)[0] | null
-  }>({ open: false, user: null })
+    userId: number | null
+  }>({ open: false, userId: null })
+
+  useEffect(() => {
+    loadClients()
+  }, [loadClients])
 
   if (!user || user.role === "client") {
     return <div>No tienes permisos para ver esta página</div>
   }
 
-  const filteredClients = clients.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  if (loading) return <div>Cargando clientes...</div>
+  if (error) return <div>{error}</div>
+  if (!clients) return null
 
+  const filteredClients = clients.filter(
+    (c) =>
+      c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
   const formatDate = (date: Date) => {
+
     return new Intl.DateTimeFormat("es-ES", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(date)
+    }).format(new Date(date))
   } 
   
-  const handleClientDetails = (user: (typeof mockUsers)[0]) => setClientDetailsDialog({ open: true, user })
+  const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -101,45 +116,42 @@ export default function ClientsPage() {
 
         {/* Client List */}
         <div className="space-y-3">
-          {filteredClients.map((user) => (
-            <Card key={user.id}>
+          {filteredClients.map((client) => (
+            <Card key={client.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <Avatar>
                     <AvatarFallback>
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {`${client.firstName[0] ?? ""}${client.lastName[0] ?? ""}`}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium truncate">{user.name}</h3>
-                      <Badge variant={user.status === "active" ? "default" : "secondary"}>
-                        {user.status === "active" ? "Activo" : "Inactivo"}
+                      <h3 className="font-medium truncate">{client.firstName + " " + client.lastName}</h3>
+                      <Badge variant={client.status === "active" ? "default" : "secondary"}>
+                        {client.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </div>
 
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Mail className="h-3 w-3" />
-                        <span className="truncate">{user.email}</span>
+                        <span className="truncate">{client.email}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        <span>{user.phone}</span>
+                        <span>{client.phone}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Última actividad: {user.lastActivity ? formatDate(user?.lastActivity) : "no ha realizado ninguna actividad"}</span>
+                        <span>Última actividad: {client.lastActivity ? formatDate(client?.lastActivity) : "no ha realizado ninguna actividad"}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4 mt-2 text-xs">
-                      <span className="text-blue-600 font-medium">{user.activitiesCount} actividades</span>
-                      <span className="text-muted-foreground">Desde {formatDate(user.joinDate)}</span>
+                      <span className="text-blue-600 font-medium">{client.activitiesCount} actividades</span>
+                      <span className="text-muted-foreground">Desde {formatDate(client.joinDate)}</span>
                     </div>
                   </div>
                   
@@ -150,7 +162,7 @@ export default function ClientsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleClientDetails(user)}>Ver Detalles</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleClientDetails(client.id)}>Ver Detalles</DropdownMenuItem>
                       {user.role === "admin" && (
                         <>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
@@ -184,13 +196,11 @@ export default function ClientsPage() {
         )}
       </div>
       {/* dialog */}
-      {clientDetailsDialog.user && (
+      {clientDetailsDialog.userId && (
         <ClientDetailsDialog
           open={clientDetailsDialog.open}
-          onOpenChange={(open) => setClientDetailsDialog({ open, user: null })}
-          user={clientDetailsDialog.user}
-          activities={mockActivities || []}
-          payments={[]}
+          onOpenChange={(open) => setClientDetailsDialog({ open, userId: null })}
+          userId={clientDetailsDialog.userId}
         />
       )}
       <BottomNav />
