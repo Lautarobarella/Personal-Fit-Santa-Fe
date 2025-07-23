@@ -1,5 +1,6 @@
 package com.personalfit.personalfit.models;
 
+import com.personalfit.personalfit.utils.UserStatus;
 import com.personalfit.personalfit.utils.UserRole;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -26,9 +27,9 @@ public class User {
     private String firstName;
     private String lastName;
     private String password;
-    private String phoneNumber;
+    private String phone;
     private String email;
-    private String avatarName; // Por ahora son las iniciales del nombre y apellido, ejemplo: Juan Pérez -> JP
+    private String avatar; // Por ahora son las iniciales del nombre y apellido, ejemplo: Juan Pérez -> JP
     private LocalDate joinDate; // Fecha de alta del usuario
     private String address;
     private LocalDate birthDate; // Fecha de nacimiento del usuario
@@ -36,6 +37,8 @@ public class User {
     private Integer dni;
     @Enumerated(EnumType.STRING)
     private UserRole role;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
     @OneToMany(mappedBy = "user")
     private List<Attendance> attendances;
     @OneToMany(mappedBy = "user")

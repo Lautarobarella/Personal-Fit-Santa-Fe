@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class InDeleteUserDTO {
 
+    @NotNull
     private Long id;
-    @NotNull(message = "DNI number mustn't be empty.")
     private Integer dni;
 }

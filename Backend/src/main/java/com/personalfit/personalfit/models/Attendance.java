@@ -1,5 +1,6 @@
 package com.personalfit.personalfit.models;
 
+import com.personalfit.personalfit.utils.AttendanceStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,6 +19,7 @@ public class Attendance {
     @ManyToOne
     @JoinColumn(name = "activity_id")
     private Activity activity;
-    private Boolean attendance = false;
+    @Enumerated(EnumType.STRING)
+    private AttendanceStatus attendance;
 
 }

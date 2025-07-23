@@ -1,16 +1,17 @@
 package com.personalfit.personalfit.services;
 
-import com.personalfit.personalfit.dto.InCreateUserDTO;
-import com.personalfit.personalfit.dto.InDeleteUserDTO;
+import com.personalfit.personalfit.dto.*;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
 import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.utils.UserRole;
+import com.personalfit.personalfit.utils.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,13 +32,15 @@ public class UserService {
             userToCreate.setFirstName(newUser.getFirstName());
             userToCreate.setLastName(newUser.getLastName());
             userToCreate.setEmail(newUser.getEmail());
-            userToCreate.setPhoneNumber(newUser.getPhoneNumber());
+            userToCreate.setPhone(newUser.getPhone());
             userToCreate.setRole(UserRole.client);
-            userToCreate.setAvatarName(newUser.getFirstName().substring(0, 1).toUpperCase() +
+            userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
                     newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
             userToCreate.setJoinDate(LocalDate.now());
             userToCreate.setAddress(newUser.getAddress());
             userToCreate.setBirthDate(newUser.getBirthDate());
+            userToCreate.setPassword(newUser.getPassword());
+            userToCreate.setStatus(UserStatus.active);
             userRepository.save(userToCreate);
         } catch (Exception e) {
             System.out.println("Error creating user: " + e.getMessage());
@@ -48,7 +51,7 @@ public class UserService {
     }
 
     public Boolean deleteUser(InDeleteUserDTO userToDelete) {
-        Optional<User> user = userRepository.findByDni(userToDelete.getDni());
+        Optional<User> user = userRepository.findById(userToDelete.getId());
 
         if (!user.isPresent()) throw new NoUserWithDniException();
 
@@ -65,7 +68,21 @@ public class UserService {
 
     public Optional<User> getUserByDni(Integer dni) { return userRepository.findByDni(dni); }
 
-    public List<User> getAllUsers() { return userRepository.findAll(); }
+    public List<UserTypeDTO> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        List<UserTypeDTO> usersDto = new ArrayList<>();
+
+        users.stream().forEach(user -> {
+            UserTypeDTO newUserDto = new UserTypeDTO(user);
+            Integer age = getUserAge(user);
+            newUserDto.setAge(age);
+            newUserDto.setLastActivity(LocalDate.now());
+            newUserDto.setActivitiesCount(user.getAttendances().size());
+            usersDto.add(new UserTypeDTO(user));
+
+        });
+        return usersDto;
+    }
 
     public Integer getUserAge(User user) {
         if (user.getBirthDate() == null) return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
@@ -85,4 +102,25 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    public UserTypeDTO createUserDetailInfoDTO(User user) {
+        UserTypeDTO userDto = new UserDetailInfoDTO(user);
+        Integer age = getUserAge(user);
+        ((UserDetailInfoDTO) userDto).setAge(age);
+
+        user.getAttendances().stream().forEach(attendance -> {
+            ((UserDetailInfoDTO) userDto).getListActivity().add(ActivityUserDetailsDTO.builder()
+                    .id(attendance.getActivity().getId())
+                    .name(attendance.getActivity().getName())
+                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
+                    .date(attendance.getActivity().getDate())
+                    .activityStatus(attendance.getActivity().getStatus())
+                    .clientStatus(attendance.getAttendance())
+                    .build());
+        });
+
+        ((UserDetailInfoDTO) userDto).setLastActivity(LocalDate.now()); // Aca deberia filtrar todas las actividades y quedarme con la ultima
+        ((UserDetailInfoDTO) userDto).setActivitiesCount(user.getAttendances().size());
+
+        return userDto;
+    }
 }

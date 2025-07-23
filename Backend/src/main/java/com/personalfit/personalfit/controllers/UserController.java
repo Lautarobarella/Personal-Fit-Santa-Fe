@@ -42,22 +42,15 @@ public class UserController {
     }
 
     @GetMapping("/getAll")
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserTypeDTO>> getAllUsers() {
         return new ResponseEntity<>(userService.getAllUsers(), HttpStatus.OK);
     }
 
-    @GetMapping("/card")
-    public ResponseEntity<List<UserDTO>> getAllUsersDto() {
-        return new ResponseEntity<>(userService.getAllUsers().stream().map(u -> new OutUserCardInfoDTO(u)).collect(Collectors.toList()), HttpStatus.OK);
-    }
-
     @GetMapping("/info/{id}")
-    public ResponseEntity<UserDTO> getUserInfo(@PathVariable Long id) {
+    public ResponseEntity<UserTypeDTO> getUserInfo(@PathVariable Long id) {
         Optional<User> user = userService.getUserById(id);
         if(user.isPresent()) {
-            Integer age = userService.getUserAge(user.get());
-            UserDTO userDto = new OutUserDetailInfoDTO(user.get());
-            ((OutUserDetailInfoDTO) userDto).setAge(age);
+            UserTypeDTO userDto = userService.createUserDetailInfoDTO(user.get());
             return new ResponseEntity<>(userDto, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
