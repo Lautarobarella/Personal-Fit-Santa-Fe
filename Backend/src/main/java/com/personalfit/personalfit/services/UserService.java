@@ -21,23 +21,28 @@ public class UserService {
     private IUserRepository userRepository;
 
     public Boolean createNewUser(InCreateUserDTO newUser) {
-        Optional<User> user = userRepository.findByDni(newUser.getDni());
+        try{
+            Optional<User> user = userRepository.findByDni(newUser.getDni());
 
-        if (user.isPresent()) throw new UserDniAlreadyExistsException();
+            if (user.isPresent()) throw new UserDniAlreadyExistsException();
 
-        User userToCreate = new User();
-        userToCreate.setDni(newUser.getDni());
-        userToCreate.setFirstName(newUser.getFirstName());
-        userToCreate.setLastName(newUser.getLastName());
-        userToCreate.setEmail(newUser.getEmail());
-        userToCreate.setPhoneNumber(newUser.getPhoneNumber());
-        userToCreate.setRole(UserRole.Client);
-        userToCreate.setAvatarName(newUser.getFirstName().substring(0, 1).toUpperCase() +
-                newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
-        userToCreate.setJoinDate(LocalDate.now());
-        userToCreate.setAddress(newUser.getAddress());
-        userToCreate.setBirthDate(newUser.getBirthDate());
-        userRepository.save(userToCreate);
+            User userToCreate = new User();
+            userToCreate.setDni(newUser.getDni());
+            userToCreate.setFirstName(newUser.getFirstName());
+            userToCreate.setLastName(newUser.getLastName());
+            userToCreate.setEmail(newUser.getEmail());
+            userToCreate.setPhoneNumber(newUser.getPhoneNumber());
+            userToCreate.setRole(UserRole.client);
+            userToCreate.setAvatarName(newUser.getFirstName().substring(0, 1).toUpperCase() +
+                    newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
+            userToCreate.setJoinDate(LocalDate.now());
+            userToCreate.setAddress(newUser.getAddress());
+            userToCreate.setBirthDate(newUser.getBirthDate());
+            userRepository.save(userToCreate);
+        } catch (Exception e) {
+            System.out.println("Error creating user: " + e.getMessage());
+            return false;
+        }
 
         return true;
     }
@@ -47,20 +52,20 @@ public class UserService {
 
         if (!user.isPresent()) throw new NoUserWithDniException();
 
-        userRepository.delete(user.get());
+        try {
+            userRepository.delete(user.get());
+        } catch (Exception e) {
+            System.out.println("Error deleting user: " + e.getMessage());
+            return false;
+        }
+
 
         return true;
     }
 
-    public Optional<User> getUserByDni(Integer dni) {
+    public Optional<User> getUserByDni(Integer dni) { return userRepository.findByDni(dni); }
 
-        return userRepository.findByDni(dni);
-
-    }
-
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
+    public List<User> getAllUsers() { return userRepository.findAll(); }
 
     public Integer getUserAge(User user) {
         if (user.getBirthDate() == null) return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
@@ -74,6 +79,10 @@ public class UserService {
         }
 
         return age;
+    }
+
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
     }
 
 }

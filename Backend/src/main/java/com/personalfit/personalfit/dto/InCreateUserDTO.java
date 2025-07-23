@@ -25,7 +25,7 @@ public class InCreateUserDTO {
     @NotNull(message = "The birthday mustn't be empty")
     private LocalDate birthDate;
 
-    @NotBlank(message = "The password mustn't be empty")
+//    @NotBlank(message = "The password mustn't be empty")
     private String password;
 
     private String phoneNumber; // Este es opcional, sin anotaciones de nulidad

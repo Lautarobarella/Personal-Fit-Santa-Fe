@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/user")
-@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -48,8 +47,22 @@ public class UserController {
     }
 
     @GetMapping("/card")
-    public ResponseEntity<List<OutUserCardInfoDTO>> getAllUsersDto() {
+    public ResponseEntity<List<UserDTO>> getAllUsersDto() {
         return new ResponseEntity<>(userService.getAllUsers().stream().map(u -> new OutUserCardInfoDTO(u)).collect(Collectors.toList()), HttpStatus.OK);
     }
+
+    @GetMapping("/info/{id}")
+    public ResponseEntity<UserDTO> getUserInfo(@PathVariable Long id) {
+        Optional<User> user = userService.getUserById(id);
+        if(user.isPresent()) {
+            Integer age = userService.getUserAge(user.get());
+            UserDTO userDto = new OutUserDetailInfoDTO(user.get());
+            ((OutUserDetailInfoDTO) userDto).setAge(age);
+            return new ResponseEntity<>(userDto, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
 
 }
