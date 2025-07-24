@@ -1,16 +1,31 @@
 package com.personalfit.personalfit.controllers;
 
+import com.personalfit.personalfit.dto.InCreatePaymentDTO;
+import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.services.PaymentService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping("/payment")
+@RequestMapping("/api/payment")
 public class PaymentController {
 
     @Autowired
     private PaymentService paymentService;
+
+    @PostMapping
+    public ResponseEntity<Void> newPayment(@RequestBody InCreatePaymentDTO payment) {
+        if(paymentService.registerPayment(payment)) return ResponseEntity.ok().build();
+        else return ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/getAll")
+    public ResponseEntity<List<PaymentTypeDTO>> getAllPayments() {
+        return ResponseEntity.ok(paymentService.getAllPaymentsTypeDto());
+    }
 
 }
