@@ -22,6 +22,11 @@ import {
   DollarSign,
   Edit,
   UserX,
+  IdCard,
+  CakeIcon,
+  Lock,
+  Dice1,
+  Dice3,
 } from "lucide-react"
 import { useAuth } from "../providers/auth-provider"
 import { useClients } from "@/hooks/use-client"
@@ -172,7 +177,7 @@ export function ClientDetailsDialog({
         )
       : 0
 
-  const completedPayments = selectedClient.listPayments.filter((p) => p.status === "completed")
+  const completedPayments = selectedClient.listPayments.filter((p) => p.status === "paid")
   const pendingPayments = selectedClient.listPayments.filter((p) => p.status === "pending")
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0)
@@ -240,6 +245,10 @@ export function ClientDetailsDialog({
                 <CardContent className="space-y-3">
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
+                      <IdCard className="h-4 w-4 text-muted-foreground" />
+                      <span>{selectedClient.dni}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span>{selectedClient.email}</span>
                     </div>
@@ -248,15 +257,13 @@ export function ClientDetailsDialog({
                       <span>{selectedClient.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>Cliente desde {formatDate(selectedClient.joinDate)}</span>
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>{selectedClient.age} años</span>
                     </div>
-                    {selectedClient.dateOfBirth && (
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span>{selectedClient.age} años</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <CakeIcon className="h-4 w-4 text-muted-foreground" />
+                      <span> {formatDate(selectedClient.birthDate)}</span>
+                    </div>
                   </div>
 
                   {selectedClient.address && (
@@ -267,6 +274,16 @@ export function ClientDetailsDialog({
                         <p className="text-sm mt-1 flex items-start gap-1">
                           <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                           {selectedClient.address}
+                        </p>
+                        <span className="text-muted-foreground text-sm">Cliente desde:</span>
+                        <p className="text-sm mt-1 flex items-start gap-1">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>{formatDate(selectedClient.joinDate)}</span>
+                        </p>
+                        <span className="text-muted-foreground text-sm">Rol:</span>
+                        <p className="text-sm mt-1 flex items-start gap-1">
+                          <Dice3 className="h-4 w-4 text-muted-foreground" />
+                          <span>{selectedClient.role}</span>
                         </p>
                       </div>
                     </>

@@ -1,5 +1,10 @@
 export type UserRole = "admin" | "trainer" | "client"
+export type ActivityStatus = "active" | "cancelled" | "completed"
+export type ClientStatus = "present" | "absent" | "pending" | "late"
+export type AttendanceStatus = "present" | "absent" | "late"
 export type Category = "Principiante" | "Intermedio" |"Avanzado"
+export type MethodType = "cash" | "card" | "transfer"
+export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
 
 
 export interface UserDetailInfo {
@@ -10,9 +15,9 @@ export interface UserDetailInfo {
   email: string
   phone: string
   age: number
-  dateOfBirth: Date
+  birthDate: Date
   address: string
-  role: "admin" | "trainer" | "client"
+  role: UserRole
   status: "active" | "inactive"
   joinDate: Date
   lastActivity: Date | null
@@ -35,7 +40,7 @@ interface PaymentUserDetails {
   id: number
   date: Date
   amount: number
-  status: "pending" | "completed" | "failed"
+  status: PaymentStatus
   method: "cash" | "card" | "transfer"
 }
 
@@ -49,7 +54,7 @@ export interface UserType {
   age: number
   birthDate: Date
   address: string
-  role: "admin" | "trainer" | "client"
+  role: UserRole
   status: "active" | "inactive"
   joinDate: Date
   activitiesCount: number
@@ -63,14 +68,14 @@ export interface ActivityType {
   name: string
   description: string
   location: string
-  category: "Principiante" | "Intermedio" |"Avanzado"
+  category: Category
   trainerId: string
   date: Date
   duration: number
   maxParticipants: number
   currentParticipants: number
   participants: string[] // Cambia a number[] si los IDs son números
-  status: "active" | "cancelled" | "completed"
+  status: ActivityStatus
   createdBy: string
   lastModifiedBy?: string
   createdAt: Date
@@ -90,41 +95,37 @@ export interface ActivityFormType {
   maxParticipants: string
 }
 
-export interface PaymentType {
-  id: number
-  clientId: number
-  clientName: string
-  activityId: string
-  activityName: string
-  amount: number
-  date: Date
-  status: "pending" | "completed" | "failed"
-  method: "cash" | "card" | "transfer"
-}
-
 export interface Attendance {
   id: string
   activityId: string
   userId: string
   createdAt: Date
-  status: "present" | "absent" | "late"
+  status: AttendanceStatus
 }
 
-export interface MonthlyPayment {
-  id: string
-  clientId: string
+export interface VerifyPaymentType {
+  id: number
+  clientId: number
   clientName: string
-  month: string // "2024-01" format
   amount: number
-  dueDate: Date
-  status: "pendiente" | "pagado" | "rechazado" | "vencido"
-  receiptUrl?: string
-  receiptUploadedAt?: Date
-  verifiedAt?: Date
-  verifiedBy?: string
-  rejectionReason?: string
   createdAt: Date
-  updatedAt: Date
+  expiresAt: Date
+  status: PaymentStatus
+  receiptUrl?: string
+  method: MethodType
+  rejectionReason?: string
+}
+
+export interface PaymentType {
+  id: number
+  clientId: number
+  clientName: string
+  createdAt: Date
+  expiresAt: Date
+  amount: number
+  status: PaymentStatus
+  verifiedAt?: Date
+  rejectionReason?: string
 }
 
 export interface Notification {

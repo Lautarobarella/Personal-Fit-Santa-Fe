@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import { fetchUsers, fetchUserDetail } from "@/app/api/clients/clientsApi"
+import { fetchUsers, fetchUserDetail } from "@/api/clients/clientsApi"
 import type { UserDetailInfo, UserType } from "@/lib/types"
 
 export function useClients() {

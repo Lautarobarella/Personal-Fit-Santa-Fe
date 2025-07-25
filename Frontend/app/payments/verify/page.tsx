@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -9,215 +9,69 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, CreditCard, Calendar, DollarSign } from "lucide-react"
-import Link from "next/link"
+import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
+import { usePayment } from "@/hooks/use-payment"
 
-// Mock data
-const mockPayments = [
-  {
-    id: "1",
-    clientId: "1",
-    clientName: "María González",
-    activityId: "1",
-    activityName: "Yoga Matutino",
-    amount: 25,
-    date: new Date("2024-01-14"),
-    status: "completed" as const,
-    method: "card" as const,
-  },
-  {
-    id: "2",
-    clientId: "2",
-    clientName: "Juan Pérez",
-    activityId: "2",
-    activityName: "CrossFit Avanzado",
-    amount: 35,
-    date: new Date("2024-01-13"),
-    status: "completed" as const,
-    method: "cash" as const,
-  },
-  {
-    id: "3",
-    clientId: "3",
-    clientName: "Ana Martín",
-    activityId: "1",
-    activityName: "Yoga Matutino",
-    amount: 25,
-    date: new Date("2024-01-15"),
-    status: "pending" as const,
-    method: "transfer" as const,
-  },
-]
-
-export default function PaymentsPage() {
+export default function PaymentsVerifyPage() {
   const { user } = useAuth()
-  const [payments] = useState(mockPayments)
+  const {
+    payments,
+    loading,
+    error,
+    loadPayments,
+    updatePaymentStatus,
+    loadPaymentDetail,
+  } = usePayment()
 
-  if (!user) return null
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [pendingPayments, setPendingPayments] = useState([])
 
-  const canManagePayments = user.role === "administrator" || user.role === "trainer"
-  const userPayments = user.role === "client" ? payments.filter((payment) => payment.clientId === user.id) : payments
-
-  const completedPayments = userPayments.filter((p) => p.status === "completed")
-  const pendingPayments = userPayments.filter((p) => p.status === "pending")
-  const totalRevenue = completedPayments.reduce((sum, p) => sum + p.amount, 0)
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date)
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "default"
-      case "pending":
-        return "secondary"
-      case "failed":
-        return "destructive"
-      default:
-        return "secondary"
+  useEffect(() => {
+    if (user?.role === "admin") {
+      loadPayments()
     }
-  }
+  }, [user, loadPayments])
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Completado"
-      case "pending":
-        return "Pendiente"
-      case "failed":
-        return "Fallido"
-      default:
-        return status
+  useEffect(() => {
+    if (payments && payments.length > 0) {
+      const pendings = payments.filter((p) => p.status === "pending")
+      setPendingPayments(pendings)
+      setCurrentIndex(0)
+      setDialogOpen(pendings.length > 0)
     }
-  }
+  }, [payments])
 
-  const getMethodText = (method: string) => {
-    switch (method) {
-      case "cash":
-        return "Efectivo"
-      case "card":
-        return "Tarjeta"
-      case "transfer":
-        return "Transferencia"
-      default:
-        return method
-    }
-  }
+  if (!user || user.role !== "admin") return <div>No tienes permisos para ver esta página</div>
+  if (loading) return <div>Cargando pagos...</div>
+  if (error) return <div>{error}</div>
+  if (!pendingPayments.length) return <div>No hay pagos pendientes por verificar.</div>
+
+  const currentPayment = pendingPayments[currentIndex]
 
   return (
     <div className="min-h-screen bg-background pb-20">
-
+      <MobileHeader title="Verificar Pagos" />
       <div className="container py-6 space-y-6">
-        {/* Stats */}
-        {canManagePayments && (
-          <div>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pendientes</p>
-                    <p className="text-2xl font-bold">{pendingPayments.length}</p>
-                  </div>
-                  <Calendar className="h-8 w-8 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Pendientes por verificar</p>
+              <p className="text-2xl font-bold">{pendingPayments.length}</p>
+            </div>
+            <Calendar className="h-8 w-8 text-orange-600" />
+          </CardContent>
+        </Card>
+        {/* Dialog para verificación */}
+        {dialogOpen && currentPayment && (
+          <PaymentVerificationDialog
+            open={dialogOpen}
+            onOpenChange={(open) => setDialogOpen(open)}
+            paymentId={currentPayment.id}
+          />
         )}
-
-        {/* Payments Tabs */}
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="completed">Completados</TabsTrigger>
-            <TabsTrigger value="pending">Pendientes</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-3 mt-4">
-            {userPayments.map((payment) => (
-              <Card key={payment.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{payment.activityName}</h3>
-                      {canManagePayments && <p className="text-sm text-muted-foreground">{payment.clientName}</p>}
-                    </div>
-                    <Badge variant={getStatusColor(payment.status)}>{getStatusText(payment.status)}</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">{formatDate(payment.date)}</span>
-                      <span className="text-muted-foreground">{getMethodText(payment.method)}</span>
-                    </div>
-                    <span className="font-bold text-lg">${payment.amount}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="completed" className="space-y-3 mt-4">
-            {completedPayments.map((payment) => (
-              <Card key={payment.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{payment.activityName}</h3>
-                      {canManagePayments && <p className="text-sm text-muted-foreground">{payment.clientName}</p>}
-                    </div>
-                    <Badge variant="default">Completado</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">{formatDate(payment.date)}</span>
-                      <span className="text-muted-foreground">{getMethodText(payment.method)}</span>
-                    </div>
-                    <span className="font-bold text-lg">${payment.amount}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="pending" className="space-y-3 mt-4">
-            {pendingPayments.map((payment) => (
-              <Card key={payment.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{payment.activityName}</h3>
-                      {canManagePayments && <p className="text-sm text-muted-foreground">{payment.clientName}</p>}
-                    </div>
-                    <Badge variant="secondary">Pendiente</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">{formatDate(payment.date)}</span>
-                      <span className="text-muted-foreground">{getMethodText(payment.method)}</span>
-                    </div>
-                    <span className="font-bold text-lg">${payment.amount}</span>
-                  </div>
-
-                  {user.role === "client" && (
-                    <Button className="w-full" size="sm">
-                      Completar Pago
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        </Tabs>
-
+        {/* Puedes mostrar aquí una lista de pagos pendientes si lo deseas */}
       </div>
-
       <BottomNav />
     </div>
   )

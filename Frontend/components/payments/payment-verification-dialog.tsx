@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -16,36 +16,31 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, User, DollarSign, FileImage, Loader2, Check, X, Clock } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { usePayment } from "@/hooks/use-payment"
 
 interface PaymentVerificationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  payment: {
-    id: string
-    clientName: string
-    month: string
-    amount: number
-    status: string
-    receiptUrl?: string
-    receiptUploadedAt?: Date
-    rejectionReason?: string
-  }
-  onVerify: (paymentId: string, status: "pagado" | "rechazado", reason?: string) => Promise<void>
+  paymentId: number
 }
 
-export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerify }: PaymentVerificationDialogProps) {
+export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: PaymentVerificationDialogProps) {
+
   const [isVerifying, setIsVerifying] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const { toast } = useToast()
+  const {
+    selectedPayment,
+    loadPaymentDetail,
+    clearSelectedPayment,
+    updatePaymentStatus,
+  } = usePayment()
 
-  const formatMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split("-")
-    const date = new Date(Number.parseInt(year), Number.parseInt(month) - 1)
-    return new Intl.DateTimeFormat("es-ES", {
-      month: "long",
-      year: "numeric",
-    }).format(date)
-  }
+
+  useEffect(() => {
+    loadPaymentDetail(paymentId)
+  }, [paymentId, loadPaymentDetail])
+
 
   const formatDateTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -54,11 +49,14 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date)
+    }).format(new Date(date))
   }
 
-  const handleVerify = async (status: "pagado" | "rechazado") => {
-    if (status === "rechazado" && !rejectionReason.trim()) {
+  const handleVerify = async (status: "paid" | "rejected") => {
+    
+    if(selectedPayment?.id === undefined) return null
+    
+    if (status === "rejected" && !rejectionReason.trim()) {
       toast({
         title: "Error",
         description: "Debes proporcionar una razón para rechazar el pago",
@@ -70,15 +68,16 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
     setIsVerifying(true)
 
     try {
-      await onVerify(payment.id, status, status === "rechazado" ? rejectionReason : undefined)
+      await updatePaymentStatus(selectedPayment.id, status, status === "rejected" ? rejectionReason : undefined)
 
       toast({
-        title: status === "pagado" ? "Pago aprobado" : "Pago rechazado",
-        description: `El pago de ${payment.clientName} ha sido ${status === "pagado" ? "aprobado" : "rechazado"}`,
+        title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
+        description: `El pago de ${selectedPayment?.clientName} ha sido ${status === "paid" ? "aprobado" : "rechazado"}`,
       })
 
       onOpenChange(false)
       setRejectionReason("")
+      clearSelectedPayment()
     } catch (error) {
       toast({
         title: "Error",
@@ -92,14 +91,12 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pagado":
+      case "paid":
         return "success"
-      case "rechazado":
+      case "rejected":
         return "destructive"
-      case "pendiente":
+      case "pending":
         return "warning"
-      case "vencido":
-        return "destructive"
       default:
         return "secondary"
     }
@@ -107,22 +104,24 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "pagado":
+      case "paid":
         return "Pagado"
-      case "rechazado":
+      case "rejected":
         return "Rechazado"
-      case "pendiente":
+      case "pending":
         return "Pendiente"
-      case "vencido":
-        return "Vencido"
       default:
         return status
     }
   }
 
+  if (!selectedPayment) {
+    return null
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+     <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl ">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
@@ -138,26 +137,26 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{payment.clientName}</span>
+                  <span className="font-medium">{selectedPayment.clientName}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatMonth(payment.month)}</span>
+                  <span>{formatDateTime(selectedPayment.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-bold text-lg">${payment.amount}</span>
+                  <span className="font-bold text-lg">${selectedPayment.amount}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <Badge variant={getStatusColor(payment.status)}>{getStatusText(payment.status)}</Badge>
+                  <Badge variant={getStatusColor(selectedPayment.status)}>{getStatusText(selectedPayment.status)}</Badge>
                 </div>
               </div>
 
-              {payment.receiptUploadedAt && (
+              {selectedPayment.receiptUrl && (
                 <div className="mt-3 pt-3 border-t">
                   <span className="text-sm text-muted-foreground">
-                    Comprobante subido: {formatDateTime(payment.receiptUploadedAt)}
+                    Comprobante subido: {formatDateTime(selectedPayment.createdAt)}
                   </span>
                 </div>
               )}
@@ -165,13 +164,13 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
           </Card>
 
           {/* Receipt Display */}
-          {payment.receiptUrl ? (
+          {selectedPayment.receiptUrl ? (
             <Card>
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
                 <div className="border rounded-lg overflow-hidden">
                   <img
-                    src={payment.receiptUrl || "/placeholder.svg"}
+                    src={selectedPayment.receiptUrl || "/placeholder.svg"}
                     alt="Comprobante de pago"
                     className="w-full max-h-96 object-contain bg-gray-50"
                   />
@@ -180,7 +179,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(payment.receiptUrl, "_blank")}
+                    onClick={() => window.open(selectedPayment.receiptUrl, "_blank")}
                     className="bg-transparent"
                   >
                     Ver en tamaño completo
@@ -190,8 +189,8 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
                     size="sm"
                     onClick={() => {
                       const link = document.createElement("a")
-                      link.href = payment.receiptUrl!
-                      link.download = `comprobante-${payment.clientName}-${payment.month}.jpg`
+                      link.href = selectedPayment.receiptUrl!
+                      link.download = `comprobante-${selectedPayment.clientName}-${selectedPayment.createdAt}.jpg`
                       link.click()
                     }}
                     className="bg-transparent"
@@ -211,17 +210,17 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
           )}
 
           {/* Rejection Reason */}
-          {payment.status === "rechazado" && payment.rejectionReason && (
+          {selectedPayment.status === "rejected" && selectedPayment.rejectionReason && (
             <Card className="border-destructive">
               <CardContent className="p-4">
                 <Label className="text-sm font-medium text-destructive mb-2 block">Razón del Rechazo</Label>
-                <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{payment.rejectionReason}</p>
+                <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{selectedPayment.rejectionReason}</p>
               </CardContent>
             </Card>
           )}
 
           {/* Rejection Reason Input (for new rejections) */}
-          {payment.status === "pendiente" && (
+          {selectedPayment.status === "pending" && (
             <div className="space-y-2">
               <Label htmlFor="rejectionReason">
                 Razón del rechazo (opcional para aprobación, requerida para rechazo)
@@ -247,14 +246,14 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
             Cancelar
           </Button>
 
-          {payment.status === "pendiente" && payment.receiptUrl && (
+          {selectedPayment.status === "pending" && selectedPayment.receiptUrl && (
             <>
-              <Button variant="destructive" onClick={() => handleVerify("rechazado")} disabled={isVerifying}>
+              <Button variant="destructive" onClick={() => handleVerify("rejected")} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <X className="mr-2 h-4 w-4" />
                 Rechazar
               </Button>
-              <Button onClick={() => handleVerify("pagado")} disabled={isVerifying}>
+              <Button onClick={() => handleVerify("paid")} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Check className="mr-2 h-4 w-4" />
                 Aprobar
@@ -264,5 +263,6 @@ export function PaymentVerificationDialog({ open, onOpenChange, payment, onVerif
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    
   )
 }

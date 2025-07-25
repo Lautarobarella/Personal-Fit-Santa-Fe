@@ -23,7 +23,6 @@ export default function ClientsPage() {
     loading,
     error,
     loadClients,
-    // selectedClient, loadClientDetail, clearSelectedClient, setClients
   } = useClients()
   const [searchTerm, setSearchTerm] = useState("")
   const [clientDetailsDialog, setClientDetailsDialog] = useState<{
