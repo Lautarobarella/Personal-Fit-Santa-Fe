@@ -2,6 +2,7 @@ package com.personalfit.personalfit.services;
 
 import com.personalfit.personalfit.dto.*;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
+import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
@@ -10,6 +11,7 @@ import com.personalfit.personalfit.utils.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +27,10 @@ public class UserService {
         try{
             Optional<User> user = userRepository.findByDni(newUser.getDni());
 
-            if (user.isPresent()) throw new UserDniAlreadyExistsException();
+            if (user.isPresent()){
+                user.get().setDeletedAt(null);
+                userRepository.save(user.get());
+            };
 
             User userToCreate = new User();
             userToCreate.setDni(newUser.getDni());
@@ -50,10 +55,10 @@ public class UserService {
         return true;
     }
 
-    public Boolean deleteUser(InDeleteUserDTO userToDelete) {
-        Optional<User> user = userRepository.findById(userToDelete.getId());
+    public Boolean deleteUser(Long id) {
+        Optional<User> user = userRepository.findById(id);
 
-        if (!user.isPresent()) throw new NoUserWithDniException();
+        if (!user.isPresent()) throw new NoUserWithIdException();
 
         try {
             userRepository.delete(user.get());
@@ -66,7 +71,11 @@ public class UserService {
         return true;
     }
 
-    public Optional<User> getUserByDni(Integer dni) { return userRepository.findByDni(dni); }
+    public User getUserByDni(Integer dni) {
+        Optional<User> user = userRepository.findByDni(dni);
+        if (!user.isPresent()) throw new NoUserWithDniException();
+        return user.get();
+    }
 
     public List<UserTypeDTO> getAllUsers() {
         List<User> users = userRepository.findAll();
@@ -99,6 +108,8 @@ public class UserService {
     }
 
     public Optional<User> getUserById(Long id) {
+        Optional<User> user = userRepository.findById(id);
+        if (!user.isPresent()) throw new NoUserWithIdException();
         return userRepository.findById(id);
     }
 

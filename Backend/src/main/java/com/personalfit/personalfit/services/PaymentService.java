@@ -2,6 +2,8 @@ package com.personalfit.personalfit.services;
 
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
+import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
+import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IPaymentRepository;
@@ -25,7 +27,7 @@ public class PaymentService {
     public Boolean registerPayment(InCreatePaymentDTO newPayment) {
 
         Optional<User> user = userService.getUserById(newPayment.getClientId());
-        if (user.isEmpty()) return false;
+        if (user.isEmpty()) throw new NoUserWithIdException();
 
         Payment payment = Payment.builder()
                 .user(user.get())
@@ -63,5 +65,25 @@ public class PaymentService {
                 .updatedAt(payment.getUpdatedAt())
                 .expiresAt(payment.getExpiresAt())
                 .build()).toList();
+    }
+
+    public VerifyPaymentTypeDTO getVerifyPaymentTypeDto(Long id) {
+        Optional<Payment> payment = paymentRepository.findById(id);
+
+        if(payment.isEmpty()) return null; // TODO handle this case properly
+
+        VerifyPaymentTypeDTO paymentTypeDTO = VerifyPaymentTypeDTO.builder()
+                .id(payment.get().getId())
+                .clientId(payment.get().getUser().getId())
+                .clientName(payment.get().getUser().getFirstName() + " " + payment.get().getUser().getLastName())
+                .amount(payment.get().getAmount())
+                .createdAt(payment.get().getCreatedAt())
+                .status(payment.get().getStatus())
+                .method(payment.get().getMethodType())
+                .expiresAt(payment.get().getExpiresAt())
+                .receiptUrl(payment.get().getFileUrl())
+                .build();
+
+        return paymentTypeDTO;
     }
 }

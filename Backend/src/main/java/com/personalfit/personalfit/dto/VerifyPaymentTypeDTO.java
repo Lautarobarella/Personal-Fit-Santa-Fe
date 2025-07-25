@@ -13,10 +13,10 @@ public class VerifyPaymentTypeDTO {
     private Long id;
     private Long clientId;
     private String clientName;
-    private String activityId;
     private Double amount;
     private LocalDateTime createdAt;
     private PaymentStatus status;
     private MethodType method;
     private LocalDateTime expiresAt;
+    private String receiptUrl;
 }

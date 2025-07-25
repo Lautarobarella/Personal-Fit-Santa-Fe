@@ -22,23 +22,20 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<Void> createUser(@Valid @RequestBody InCreateUserDTO user) {
-        if( userService.createNewUser(user)) return new ResponseEntity<>(HttpStatus.CREATED);
-        else return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        userService.createNewUser(user);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> deleteUser(@Valid @RequestBody InDeleteUserDTO user) {
-        if( userService.deleteUser(user)) return new ResponseEntity<>(HttpStatus.OK);
-        else return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/findByDni")
     public ResponseEntity<User> findByDni(@Valid @RequestBody InFindByDniDTO userDni) {
-        Optional<User> user = userService.getUserByDni(userDni.getDni());
-
-        if(user.isPresent()) return new ResponseEntity<>(user.get(), HttpStatus.OK);
-        else return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
+        User user = userService.getUserByDni(userDni.getDni());
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/getAll")
@@ -49,12 +46,8 @@ public class UserController {
     @GetMapping("/info/{id}")
     public ResponseEntity<UserTypeDTO> getUserInfo(@PathVariable Long id) {
         Optional<User> user = userService.getUserById(id);
-        if(user.isPresent()) {
-            UserTypeDTO userDto = userService.createUserDetailInfoDTO(user.get());
-            return new ResponseEntity<>(userDto, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        UserTypeDTO userDto = userService.createUserDetailInfoDTO(user.get());
+        return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
 

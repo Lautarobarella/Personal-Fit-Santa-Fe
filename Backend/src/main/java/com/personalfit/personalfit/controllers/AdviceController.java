@@ -1,7 +1,9 @@
 package com.personalfit.personalfit.controllers;
 
 import com.personalfit.personalfit.dto.ErrorDTO;
+import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
+import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,18 @@ public class AdviceController {
     @ExceptionHandler(value = NoUserWithDniException.class)
     public ResponseEntity<ErrorDTO> noUserWithDni(NoUserWithDniException e) {
         ErrorDTO err = ErrorDTO.builder().code("E-0002").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(value = NoPaymentWithIdException.class)
+    public ResponseEntity<ErrorDTO> noPaymentWithId(NoPaymentWithIdException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0003").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(value = NoUserWithIdException.class)
+    public ResponseEntity<ErrorDTO> noUserWithId(NoUserWithIdException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0004").message(e.getMessage()).build();
         return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
     }
 
