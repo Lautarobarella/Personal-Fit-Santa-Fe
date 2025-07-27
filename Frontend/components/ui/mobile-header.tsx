@@ -2,10 +2,10 @@
 
 import type React from "react"
 
-import { ArrowLeft, Bell, Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/providers/auth-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Bell, Menu } from "lucide-react"
 import Link from "next/link"
 
 interface MobileHeaderProps {
@@ -27,7 +27,7 @@ export function MobileHeader({
 }: MobileHeaderProps) {
   const { user } = useAuth()
 
-    // Mock unread notifications count - in real app this would come from context/API
+  // Mock unread notifications count - in real app this would come from context/API
   const unreadCount = 3
 
   return (
@@ -57,7 +57,7 @@ export function MobileHeader({
                   variant="destructive"
                   className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
                 >
-                  {unreadCount > 9 ? "9+" : unreadCount}
+                  {unreadCount > 99 ? "99+" : unreadCount}
                 </Badge>
               )}
             </Button>
