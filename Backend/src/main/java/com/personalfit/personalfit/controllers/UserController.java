@@ -1,6 +1,7 @@
 package com.personalfit.personalfit.controllers;
 
 import com.personalfit.personalfit.dto.*;
+import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.services.IUserService;
 import jakarta.validation.Valid;
@@ -18,6 +19,11 @@ public class UserController {
 
     @Autowired
     private IUserService IUserService;
+
+    @GetMapping("/fail")
+    public ResponseEntity<Void> fail() {
+        throw new NoUserWithIdException();
+    }
 
     @PostMapping("/new")
     public ResponseEntity<Void> createUser(@Valid @RequestBody InCreateUserDTO user) {

@@ -6,6 +6,7 @@ import com.personalfit.personalfit.dto.UserDetailInfoDTO;
 import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
+import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.services.IUserService;
@@ -27,33 +28,26 @@ public class UserServiceImpl implements IUserService {
     private IUserRepository userRepository;
 
     public Boolean createNewUser(InCreateUserDTO newUser) {
-        try{
-            Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
-            if (user.isPresent()){
-                user.get().setDeletedAt(null);
-                userRepository.save(user.get());
-            };
+        Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
-            User userToCreate = new User();
-            userToCreate.setDni(Integer.parseInt(newUser.getDni()));
-            userToCreate.setFirstName(newUser.getFirstName());
-            userToCreate.setLastName(newUser.getLastName());
-            userToCreate.setEmail(newUser.getEmail());
-            userToCreate.setPhone(newUser.getPhone());
-            userToCreate.setRole(newUser.getRole());
-            userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
-                    newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
-            userToCreate.setJoinDate(LocalDate.now());
-            userToCreate.setAddress(newUser.getAddress());
-            userToCreate.setBirthDate(newUser.getBirthDate());
-            userToCreate.setPassword(newUser.getPassword());
-            userToCreate.setStatus(UserStatus.active);
-            userRepository.save(userToCreate);
-        } catch (Exception e) {
-            System.out.println("Error creating user: " + e.getMessage());
-            return false;
-        }
+        if (user.isPresent()) throw new UserDniAlreadyExistsException();
+
+        User userToCreate = new User();
+        userToCreate.setDni(Integer.parseInt(newUser.getDni()));
+        userToCreate.setFirstName(newUser.getFirstName());
+        userToCreate.setLastName(newUser.getLastName());
+        userToCreate.setEmail(newUser.getEmail());
+        userToCreate.setPhone(newUser.getPhone());
+        userToCreate.setRole(newUser.getRole());
+        userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
+                newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
+        userToCreate.setJoinDate(LocalDate.now());
+        userToCreate.setAddress(newUser.getAddress());
+        userToCreate.setBirthDate(newUser.getBirthDate());
+        userToCreate.setPassword(newUser.getPassword());
+        userToCreate.setStatus(UserStatus.active);
+        userRepository.save(userToCreate);
 
         return true;
     }
