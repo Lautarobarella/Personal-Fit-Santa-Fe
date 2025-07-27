@@ -1,6 +1,7 @@
 // src/main/java/com/personalfit/personalfit/dto/CreateUserDTO.java
 package com.personalfit.personalfit.dto;
 
+import com.personalfit.personalfit.utils.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +19,7 @@ public class InCreateUserDTO {
     @NotBlank(message = "The last name mustn't be empty")
     private String lastName;
 
-    @NotBlank(message = "The femail mustn't be empty")
+    @NotBlank(message = "The email mustn't be empty")
     @Email(message = "Invalid email")
     private String email;
 
@@ -31,8 +32,14 @@ public class InCreateUserDTO {
     private String phone; // Este es opcional, sin anotaciones de nulidad
 
     @NotNull(message = "The DNI number mustn't be empty")
-    private Integer dni;
+    private String dni;
 
     @NotBlank(message = "The address mustn't be empty")
     private String address;
+
+    private LocalDate joinDate;
+
+    private String avatar;
+
+    private UserRole role;
 }

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/user")
@@ -20,7 +19,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @PostMapping
+    @PostMapping("/new")
     public ResponseEntity<Void> createUser(@Valid @RequestBody InCreateUserDTO user) {
         userService.createNewUser(user);
         return new ResponseEntity<>(HttpStatus.CREATED);

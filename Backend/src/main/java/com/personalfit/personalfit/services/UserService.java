@@ -25,7 +25,7 @@ public class UserService {
 
     public Boolean createNewUser(InCreateUserDTO newUser) {
         try{
-            Optional<User> user = userRepository.findByDni(newUser.getDni());
+            Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
             if (user.isPresent()){
                 user.get().setDeletedAt(null);
@@ -33,12 +33,12 @@ public class UserService {
             };
 
             User userToCreate = new User();
-            userToCreate.setDni(newUser.getDni());
+            userToCreate.setDni(Integer.parseInt(newUser.getDni()));
             userToCreate.setFirstName(newUser.getFirstName());
             userToCreate.setLastName(newUser.getLastName());
             userToCreate.setEmail(newUser.getEmail());
             userToCreate.setPhone(newUser.getPhone());
-            userToCreate.setRole(UserRole.client);
+            userToCreate.setRole(newUser.getRole());
             userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
                     newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
             userToCreate.setJoinDate(LocalDate.now());
@@ -113,13 +113,13 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    public UserTypeDTO createUserDetailInfoDTO(User user) {
-        UserTypeDTO userDto = new UserDetailInfoDTO(user);
+    public UserDetailInfoDTO createUserDetailInfoDTO(User user) {
+        UserDetailInfoDTO userDto = new UserDetailInfoDTO(user);
         Integer age = getUserAge(user);
-        ((UserDetailInfoDTO) userDto).setAge(age);
+        userDto.setAge(age);
 
         user.getAttendances().stream().forEach(attendance -> {
-            ((UserDetailInfoDTO) userDto).getListActivity().add(ActivityUserDetailsDTO.builder()
+             userDto.getListActivity().add(ActivityUserDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
                     .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
@@ -129,8 +129,8 @@ public class UserService {
                     .build());
         });
 
-        ((UserDetailInfoDTO) userDto).setLastActivity(LocalDate.now()); // Aca deberia filtrar todas las actividades y quedarme con la ultima
-        ((UserDetailInfoDTO) userDto).setActivitiesCount(user.getAttendances().size());
+        userDto.setLastActivity(LocalDate.now()); // Aca deberia filtrar todas las actividades y quedarme con la ultima
+        userDto.setActivitiesCount(user.getAttendances().size());
 
         return userDto;
     }
