@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IPaymentService {
-    Boolean registerPayment(InCreatePaymentDTO newPayment);
+    void registerPayment(InCreatePaymentDTO newPayment);
     List<PaymentTypeDTO> getAllPaymentsTypeDto();
     VerifyPaymentTypeDTO getVerifyPaymentTypeDto(Long id);
     List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id);

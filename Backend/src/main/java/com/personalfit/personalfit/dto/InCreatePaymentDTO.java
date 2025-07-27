@@ -12,6 +12,6 @@ public class InCreatePaymentDTO {
     private Long clientId;
     private Long confNumber;
     private Double amount;
-    private String fileUrl;
+    private Long fileId;
     private MethodType methodType;
 }

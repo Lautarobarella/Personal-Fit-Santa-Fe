@@ -5,14 +5,17 @@ import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Payment;
+import com.personalfit.personalfit.models.PaymentFile;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IPaymentRepository;
+import com.personalfit.personalfit.services.IPaymentFileService;
 import com.personalfit.personalfit.services.IPaymentService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.PaymentStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,16 +29,21 @@ public class PaymentServiceImpl implements IPaymentService {
     @Autowired
     private IUserService userService;
 
-    public Boolean registerPayment(InCreatePaymentDTO newPayment) {
+    @Autowired
+    private IPaymentFileService paymentFileService;
+
+    public void registerPayment(InCreatePaymentDTO newPayment) {
 
         Optional<User> user = userService.getUserById(newPayment.getClientId());
         if (user.isEmpty()) throw new NoUserWithIdException();
+        Optional<PaymentFile> pFile = paymentFileService.getPaymentFile(newPayment.getFileId());
+        if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
 
         Payment payment = Payment.builder()
                 .user(user.get())
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
-                .fileUrl(newPayment.getFileUrl())
+                .paymentFile(pFile.get())
                 .methodType(newPayment.getMethodType())
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMonths(1))
@@ -44,10 +52,8 @@ public class PaymentServiceImpl implements IPaymentService {
 
         try {
             paymentRepository.save(payment);
-            return true;
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
         }
     }
 

@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -96,6 +97,11 @@ public class PaymentFileServiceImpl implements IPaymentFileService {
     public PaymentFile getFileInfo(Long id) {
         return fileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Archivo no encontrado con id: " + id));
+    }
+
+    @Override
+    public Optional<PaymentFile> getPaymentFile(Long id) {
+        return fileRepository.findById(id);
     }
 
 
