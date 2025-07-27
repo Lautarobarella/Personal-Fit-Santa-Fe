@@ -1,4 +1,4 @@
-package com.personalfit.personalfit.services;
+package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
@@ -7,6 +7,8 @@ import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IPaymentRepository;
+import com.personalfit.personalfit.services.IPaymentService;
+import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.PaymentStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,17 +18,17 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class PaymentService {
+public class PaymentServiceImpl implements IPaymentService {
 
     @Autowired
     private IPaymentRepository paymentRepository;
 
     @Autowired
-    private UserService userService;
+    private com.personalfit.personalfit.services.IUserService IUserService;
 
     public Boolean registerPayment(InCreatePaymentDTO newPayment) {
 
-        Optional<User> user = userService.getUserById(newPayment.getClientId());
+        Optional<User> user = IUserService.getUserById(newPayment.getClientId());
         if (user.isEmpty()) throw new NoUserWithIdException();
 
         Payment payment = Payment.builder()

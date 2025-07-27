@@ -1,8 +1,7 @@
 package com.personalfit.personalfit.controllers;
 
-import com.personalfit.personalfit.services.AttendanceService;
+import com.personalfit.personalfit.services.IAttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -11,5 +10,5 @@ import org.springframework.web.bind.annotation.RestController;
 public class AttendanceController {
 
     @Autowired
-    private AttendanceService attendanceService;
+    private IAttendanceService attendanceService;
 }

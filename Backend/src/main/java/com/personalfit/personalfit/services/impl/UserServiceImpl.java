@@ -1,24 +1,25 @@
-package com.personalfit.personalfit.services;
+package com.personalfit.personalfit.services.impl;
 
-import com.personalfit.personalfit.dto.*;
+import com.personalfit.personalfit.dto.ActivityUserDetailsDTO;
+import com.personalfit.personalfit.dto.InCreateUserDTO;
+import com.personalfit.personalfit.dto.UserDetailInfoDTO;
+import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
-import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
-import com.personalfit.personalfit.utils.UserRole;
+import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserServiceImpl implements IUserService {
 
     @Autowired
     private IUserRepository userRepository;
@@ -58,7 +59,7 @@ public class UserService {
     public Boolean deleteUser(Long id) {
         Optional<User> user = userRepository.findById(id);
 
-        if (!user.isPresent()) throw new NoUserWithIdException();
+        if (user.isEmpty()) throw new NoUserWithIdException();
 
         try {
             userRepository.delete(user.get());
@@ -119,7 +120,7 @@ public class UserService {
         userDto.setAge(age);
 
         user.getAttendances().stream().forEach(attendance -> {
-             userDto.getListActivity().add(ActivityUserDetailsDTO.builder()
+            userDto.getListActivity().add(ActivityUserDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
                     .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
@@ -134,4 +135,5 @@ public class UserService {
 
         return userDto;
     }
+
 }
