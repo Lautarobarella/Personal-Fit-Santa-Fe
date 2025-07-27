@@ -55,7 +55,7 @@ export function ClientDetailsDialog({
 
   useEffect(() => {
     loadClientDetail(userId)
-  } , [loadClientDetail])
+  }, [loadClientDetail])
 
   if (loading) return <div>Cargando detalles del cliente...</div>
   if (error) return <div>{error}</div>
@@ -173,8 +173,8 @@ export function ClientDetailsDialog({
   const attendanceRate =
     presentActivities.length > 0
       ? Math.round(
-          (presentActivities.length / presentActivities.length + absentActivities.length) * 100,
-        )
+        (presentActivities.length / presentActivities.length + absentActivities.length) * 100,
+      )
       : 0
 
   const completedPayments = selectedClient.listPayments.filter((p) => p.status === "paid")
@@ -194,13 +194,15 @@ export function ClientDetailsDialog({
                 </AvatarFallback>
               </Avatar>
               <div>
-                <DialogTitle className="text-xl flex">{selectedClient.firstName + " " +selectedClient.lastName}</DialogTitle>
-                <DialogDescription className="flex items-center gap-2">
-                  {selectedClient.email}
+
+                <DialogTitle className="text-xl flex">{selectedClient.firstName + " " + selectedClient.lastName}</DialogTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <DialogDescription>{selectedClient.email}</DialogDescription>
                   <Badge variant={selectedClient.status === "active" ? "default" : "secondary"}>
                     {selectedClient.status === "active" ? "Activo" : "Inactivo"}
                   </Badge>
-                </DialogDescription>
+                </div>
+
               </div>
             </div>
             <div className="flex gap-2">
@@ -233,64 +235,64 @@ export function ClientDetailsDialog({
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-4 mt-4">
-            
-              {/* Personal Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Información Personal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <IdCard className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedClient.dni}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedClient.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedClient.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedClient.age} años</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CakeIcon className="h-4 w-4 text-muted-foreground" />
-                      <span> {formatDate(selectedClient.birthDate)}</span>
-                    </div>
-                  </div>
 
-                  {selectedClient.address && (
-                    <>
-                      <Separator />
-                      <div>
-                        <span className="text-muted-foreground text-sm">Dirección:</span>
-                        <p className="text-sm mt-1 flex items-start gap-1">
-                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          {selectedClient.address}
-                        </p>
-                        <span className="text-muted-foreground text-sm">Cliente desde:</span>
-                        <p className="text-sm mt-1 flex items-start gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{formatDate(selectedClient.joinDate)}</span>
-                        </p>
-                        <span className="text-muted-foreground text-sm">Rol:</span>
-                        <p className="text-sm mt-1 flex items-start gap-1">
-                          <Dice3 className="h-4 w-4 text-muted-foreground" />
-                          <span>{selectedClient.role}</span>
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            
+            {/* Personal Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Información Personal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <IdCard className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedClient.dni}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedClient.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedClient.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedClient.age} años</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CakeIcon className="h-4 w-4 text-muted-foreground" />
+                    <span> {formatDate(selectedClient.birthDate)}</span>
+                  </div>
+                </div>
+
+                {selectedClient.address && (
+                  <>
+                    <Separator />
+                    <div>
+                      <span className="text-muted-foreground text-sm">Dirección:</span>
+                      <p className="text-sm mt-1 flex items-start gap-1">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        {selectedClient.address}
+                      </p>
+                      <span className="text-muted-foreground text-sm">Cliente desde:</span>
+                      <p className="text-sm mt-1 flex items-start gap-1">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDate(selectedClient.joinDate)}</span>
+                      </p>
+                      <span className="text-muted-foreground text-sm">Rol:</span>
+                      <p className="text-sm mt-1 flex items-start gap-1">
+                        <Dice3 className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedClient.role}</span>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
           </TabsContent>
 
           {/* Activities Tab */}
@@ -319,14 +321,14 @@ export function ClientDetailsDialog({
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h4 className="font-medium">{activity.name}</h4>
-                        <p className="text-sm text-muted-foreground">Entrenador: { activity.name }</p>
+                        <p className="text-sm text-muted-foreground">Entrenador: {activity.name}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={getActivityStatusColor(activity.activityStatus)} className="text-xs">
                           {getActivityStatusText(activity.activityStatus)}
                         </Badge>
                         {activity.activityStatus === "completed" && (
-                          <span className={`text-xs font-medium ${getAttendanceColor( activity.clientStatus )}`}>
+                          <span className={`text-xs font-medium ${getAttendanceColor(activity.clientStatus)}`}>
                             {getAttendanceText(activity.clientStatus)}
                           </span>
                         )}
@@ -363,7 +365,7 @@ export function ClientDetailsDialog({
               </div>
             </div>
 
-            <div className="space-y-2"> 
+            <div className="space-y-2">
               {selectedClient.listPayments.length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
@@ -372,7 +374,7 @@ export function ClientDetailsDialog({
                   </CardContent>
                 </Card>
               )}
-              
+
               {selectedClient.listPayments.map((payment) => (
                 <Card key={payment.id}>
                   <CardContent className="p-4">
@@ -470,7 +472,7 @@ export function ClientDetailsDialog({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Última actividad:</span>
-                    <p className="font-medium">{selectedClient.lastActivity? formatDate(selectedClient.lastActivity) : "No posee"}</p>
+                    <p className="font-medium">{selectedClient.lastActivity ? formatDate(selectedClient.lastActivity) : "No posee"}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Promedio mensual:</span>

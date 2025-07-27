@@ -1,10 +1,22 @@
 import { useState, useCallback } from "react"
-import { fetchUsers, fetchUserDetail } from "@/api/clients/clientsApi"
-import type { UserDetailInfo, UserType } from "@/lib/types"
+import { fetchUsers, fetchUserDetail, createUser } from "@/api/clients/clientsApi"
+import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
 
 export function useClients() {
   const [clients, setClients] = useState<UserType[]>([])
   const [selectedClient, setSelectedClient] = useState<UserDetailInfo | null>(null)
+    const [form, setForm] = useState<UserFormType>({
+    dni: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    role: "client",
+    joinDate: "",
+    birthDate: "",
+    password: "",
+    })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,14 +50,29 @@ export function useClients() {
     }
   }, [])
 
+  const createClient = useCallback(async (clientData: UserFormType) => {
+    setLoading(true)
+    setError(null)
+    try {
+      createUser(clientData) 
+      console.log("Cliente creado:", clientData)
+    } catch (err) {
+      setError("Error al crear el cliente")
+    }
+    setLoading(false)
+  }, [])
+
   // Limpiar cliente seleccionado
   const clearSelectedClient = () => setSelectedClient(null)
 
   return {
     clients,
     selectedClient,
+    form,
     loading,
     error,
+    setForm,
+    createClient,
     loadClients,
     loadClientDetail,
     clearSelectedClient,

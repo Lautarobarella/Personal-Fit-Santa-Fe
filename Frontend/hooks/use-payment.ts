@@ -1,4 +1,4 @@
-import { fetchPaymentDetail, fetchPayments, fetchPaymentsById, updatePayment } from "@/api/payment/paymentsApi"
+import { fetchPaymentDetail, fetchPayments, fetchPaymentsById, fetchPendingPaymentDetail, updatePayment } from "@/api/payment/paymentsApi"
 import { PaymentType, VerifyPaymentType } from "@/lib/types"
 import { useState, useCallback } from "react"
 
@@ -6,10 +6,11 @@ import { useState, useCallback } from "react"
 export function usePayment() {
   const [payments, setPayments] = useState<PaymentType[]>([])
   const [selectedPayment, setSelectedPayment] = useState<VerifyPaymentType | null>(null)
+  const [pendingPayments, setPendingPayments] = useState<VerifyPaymentType[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Cargar todos los clientes
+  // Cargar todos los pagos
   const loadPayments = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -24,7 +25,8 @@ export function usePayment() {
     }
   }, [])
 
-    const loadPaymentsById = useCallback(async (id: number) => {
+  // Cargar pagos por ID
+  const loadPaymentsById = useCallback(async (id: number) => {
     setLoading(true)
     setError(null)
     try {
@@ -53,9 +55,22 @@ export function usePayment() {
     }
   }, [])
 
-  // Limpiar cliente seleccionado
-  const clearSelectedPayment = () => setSelectedPayment(null)
+  // Cargar pagos pendientes
+  const loadPendingPaymentDetail = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const detail = await fetchPendingPaymentDetail()
+      setPendingPayments(detail)
 
+    } catch (err) {
+      setError("Error al cargar el detalle del cliente")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+// Actualizar estado de un pago
   const updatePaymentStatus = useCallback(async (id: number, status: "paid" | "rejected", rejectionReason?: string) => {
     setLoading(true)
     setError(null)
@@ -70,13 +85,18 @@ export function usePayment() {
     }
   }, [])
 
+  // Limpiar cliente seleccionado
+  const clearSelectedPayment = () => setSelectedPayment(null)
+  
   return {
     payments,
     selectedPayment,
+    pendingPayments,
     loading,
     error,
     loadPayments,
     loadPaymentDetail,
+    loadPendingPaymentDetail,
     clearSelectedPayment,
     setSelectedPayment, // opcional, por si quieres manipular manualmente
     loadPaymentsById,

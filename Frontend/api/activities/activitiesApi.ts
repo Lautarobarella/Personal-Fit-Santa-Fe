@@ -1,8 +1,8 @@
-import { UserFormType } from "@/lib/types";
+import { ActivityDetailInfo, ActivityFormType, ActivityType } from "@/lib/types";
 
-const BASE_URL = 'http://152.170.128.205:8080/api/user';
+const BASE_URL = 'http://152.170.128.205:8080/api/activities';
 
-export async function fetchUsers() {
+export async function fetchActivities() {
   try {
     const response = await fetch(`${BASE_URL}/getAll`, {
       method: 'GET',
@@ -18,12 +18,12 @@ export async function fetchUsers() {
     return await response.json();
 
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('Error fetching Activities:', error);
     return [];
   }
 }
 
-export async function fetchUserDetail(id: number) {
+export async function fetchActivityDetail(id: number) {
   try {
     const response = await fetch(`${BASE_URL}/info/${id}`, {
       method: 'GET',
@@ -37,28 +37,50 @@ export async function fetchUserDetail(id: number) {
     }
 
     return await response.json();
-    
+
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('Error fetching Activities:', error);
     throw error;
   }
 }
 
-export async function createUser(user: UserFormType) {
+export async function newActivity(user: ActivityFormType) {
   try {
-    console.log("Creating user:", user);
-    const response = await fetch(`${BASE_URL}/new`, {
+    const response = await fetch(`${BASE_URL}/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(user),
     });
+
     if (!response.ok) {
       throw new Error(`Error al crear el cliente: ${response.status}`);
     }
+
+    return await response.json();
   } catch (error) {
     console.error('Error creating user:', error);
+    throw error;
+  }
+}
+
+export async function enrollActivity(activityId: number) {
+  try {
+    const response = await fetch(`${BASE_URL}/enroll/${activityId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al inscribirse en la actividad: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error enrolling in activity:', error);
     throw error;
   }
 }

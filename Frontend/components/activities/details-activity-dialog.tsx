@@ -1,6 +1,6 @@
 "use client"
 
-import { act, useState } from "react"
+import { act, useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,20 +21,32 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react"
-import { ActivityType, Attendance } from "@/lib/types"
+import { ActivityDetailInfo } from "@/lib/types"
 import { mockUsers } from "@/mocks/mockUsers"
+import { useActivities } from "@/hooks/use-activity"
 
 interface DetailsActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  activity: ActivityType
-  participants: Attendance[]
+  activityId: number
   onEdit?: () => void
   onDelete?: () => void
 }
 
-export function DetailsActivityDialog({ open, onOpenChange, activity, participants, onEdit, onDelete }: DetailsActivityDialogProps) {
+export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, onDelete }: DetailsActivityDialogProps) {
   const [activeTab, setActiveTab] = useState("overview")
+  const { 
+    selectedActivity, 
+    loadActivityDetail,
+   } = useActivities()
+
+  useEffect(() => {
+    loadActivityDetail(activityId)
+  }, [activityId, loadActivityDetail])
+
+  if (!selectedActivity) {
+    return null
+  }
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -88,17 +100,9 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
     }
   }
 
-  const participantDetails = activity.participants.map((userId) => {
-    const user = mockUsers.find(u => u.id === userId)
-    const attendance = participants.find(a => a.userId === userId)
-    return user && attendance
-      ? { ...user, ...attendance }
-      : null
-  }).filter(Boolean)
-
-  const presentParticipants = participants.filter((p) => p.status === "present")
-  const absentParticipants = participants.filter((p) => p.status === "absent")
-  const occupancyRate = Math.round((activity.currentParticipants / activity.maxParticipants) * 100)
+  const presentParticipants = selectedActivity.participants.filter((p) => p.status === "present")
+  const absentParticipants = selectedActivity.participants.filter((p) => p.status === "absent")
+  const occupancyRate = Math.round((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,11 +110,11 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
         <DialogHeader>
           <div className="flex items-start justify-between mt-4">
             <div className="flex-1">
-              <DialogTitle className="text-xl mb-2 flex">{activity.name}</DialogTitle>
-              <DialogDescription className="flex">{activity.description}</DialogDescription>
+              <DialogTitle className="text-xl mb-2 flex">{selectedActivity.name}</DialogTitle>
+              <DialogDescription className="flex">{selectedActivity.description}</DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge >{getStatusText(activity.status)}</Badge>
+              <Badge >{getStatusText(selectedActivity.status)}</Badge>
               <div className="flex gap-1">
                 {onEdit && (
                   <Button size="sm" variant="outline" onClick={onEdit}>
@@ -149,15 +153,15 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-muted-foreground">Fecha:</span>
-                      <p className="font-medium">{formatDate(activity.date)}</p>
+                      <p className="font-medium">{formatDate(selectedActivity.date)}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Hora:</span>
-                      <p className="font-medium">{formatTime(activity.date)}</p>
+                      <p className="font-medium">{formatTime(selectedActivity.date)}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Duración:</span>
-                      <p className="font-medium">{activity.duration} minutos</p>
+                      <p className="font-medium">{selectedActivity.duration} minutos</p>
                     </div>
                   </div>
 
@@ -168,19 +172,19 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                     <div className="flex items-center gap-2 mt-1">
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className="text-xs">
-                          {mockUsers.find(u => u.id === activity.trainerId)?.name
+                          {selectedActivity.trainerName
                             .split(" ")
                             .map((n) => n[0])
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <span className="font-medium">
-                        {mockUsers.find(u => u.id === activity.trainerId)?.name || "Desconocido"}
+                        {selectedActivity.trainerName}
                       </span>
                     </div>
                   </div>
 
-                  {activity.location && (
+                  {selectedActivity.location && (
                     <div>
                       <span className="text-muted-foreground text-sm">Ubicación:</span>
                       <p className="font-medium flex items-center gap-1 mt-1">
@@ -203,7 +207,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{activity.currentParticipants}</div>
+                      <div className="text-2xl font-bold text-primary">{selectedActivity.currentParticipants}</div>
                       <div className="text-sm text-muted-foreground">Inscritos</div>
                     </div>
                     <div className="text-center">
@@ -224,7 +228,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                     <div className="flex justify-between text-sm">
                       <span>Capacidad</span>
                       <span>
-                        {activity.currentParticipants}/{activity.maxParticipants}
+                        {selectedActivity.currentParticipants}/{selectedActivity.maxParticipants}
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
@@ -239,17 +243,17 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
             </div>
 
             {/* Equipment and Notes 
-            {(activity.equipment?.length || activity.notes) && (
+            {(selectedActivity.equipment?.length || selectedActivity.notes) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Información Adicional</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {activity.equipment?.length && (
+                  {selectedActivity.equipment?.length && (
                     <div>
                       <span className="text-muted-foreground text-sm">Equipamiento necesario:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {activity.equipment.map((item, index) => (
+                        {selectedActivity.equipment.map((item, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
                             {item}
                           </Badge>
@@ -258,10 +262,10 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                     </div>
                   )}
 
-                  {activity.notes && (
+                  {selectedActivity.notes && (
                     <div>
                       <span className="text-muted-foreground text-sm">Notas:</span>
-                      <p className="text-sm mt-1 p-2 bg-muted rounded">{activity.notes}</p>
+                      <p className="text-sm mt-1 p-2 bg-muted rounded">{selectedActivity.notes}</p>
                     </div>
                   )}
                 </CardContent>
@@ -280,21 +284,18 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
             </div>
 
             <div className="space-y-2">
-              {participantDetails.map((p) => (
+              {selectedActivity.participants.map((p) => (
                 <Card key={p?.id}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">
-                            {p?.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
+                            {`${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{p?.name}</p>
+                          <p className="font-medium">{p.firstName + " " + p.lastName}</p>
                           {p?.createdAt && (
                             <p className="text-xs text-muted-foreground">
                               Inscrito: {formatDateTime(p.createdAt)}
@@ -317,7 +318,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                 </Card>
               ))}
 
-              {activity.participants.length === 0 && (
+              {selectedActivity.participants.length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
@@ -341,23 +342,23 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Creado por:</span>
-                    <p className="font-medium">{activity.createdBy || "Sistema"}</p>
+                    <p className="font-medium">{selectedActivity.createdBy || "Sistema"}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Fecha de creación:</span>
                     <p className="font-medium">
-                      {activity.createdAt ? formatDateTime(activity.createdAt) : "No disponible"}
+                      {selectedActivity.createdAt ? formatDateTime(selectedActivity.createdAt) : "No disponible"}
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Última modificación:</span>
                     <p className="font-medium">
-                      {activity.lastModified ? formatDateTime(activity.lastModified) : "No modificada"}
+                      {selectedActivity.lastModified ? formatDateTime(selectedActivity.lastModified) : "No modificada"}
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">ID de actividad:</span>
-                    <p className="font-medium font-mono text-xs">{activity.id}</p>
+                    <p className="font-medium font-mono text-xs">{selectedActivity.id}</p>
                   </div>
                 </div>
               </CardContent>
@@ -371,20 +372,20 @@ export function DetailsActivityDialog({ open, onOpenChange, activity, participan
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Categoría:</span>
-                    <p className="font-medium">{activity.category || "General"}</p>
+                    <p className="font-medium">{selectedActivity.category || "General"}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Estado:</span>
-                    <p className="font-medium">{getStatusText(activity.status)}</p>
+                    <p className="font-medium">{getStatusText(selectedActivity.status)}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Capacidad máxima:</span>
-                    <p className="font-medium">{activity.maxParticipants} personas</p>
+                    <p className="font-medium">{selectedActivity.maxParticipants} personas</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Duración total:</span>
                     <p className="font-medium">
-                      {Math.floor(activity.duration / 60)}h {activity.duration % 60}m
+                      {Math.floor(selectedActivity.duration / 60)}h {selectedActivity.duration % 60}m
                     </p>
                   </div>
                 </div>

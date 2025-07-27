@@ -2,7 +2,7 @@ export type UserRole = "admin" | "trainer" | "client"
 export type ActivityStatus = "active" | "cancelled" | "completed"
 export type ClientStatus = "present" | "absent" | "pending" | "late"
 export type AttendanceStatus = "present" | "absent" | "late"
-export type Category = "Principiante" | "Intermedio" |"Avanzado"
+export type Category = "Principiante" | "Intermedio" | "Avanzado"
 export type MethodType = "cash" | "card" | "transfer"
 export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
 
@@ -27,13 +27,13 @@ export interface UserDetailInfo {
   listPayments: PaymentUserDetails[]
 }
 
-interface ActivityUserDetails{
+interface ActivityUserDetails {
   id: number
   name: string
   trainerName: string
   date: Date
-  activityStatus: "active" | "cancelled" | "completed"
-  clientStatus: "present" | "absent" | "pending" | "late" // esto es la asistencia del cliente
+  activityStatus: ActivityStatus
+  clientStatus: ClientStatus // esto es la asistencia del cliente
 }
 
 interface PaymentUserDetails {
@@ -41,7 +41,7 @@ interface PaymentUserDetails {
   date: Date
   amount: number
   status: PaymentStatus
-  method: "cash" | "card" | "transfer"
+  method: MethodType
 }
 
 export interface UserType {
@@ -63,18 +63,33 @@ export interface UserType {
   avatar?: string
 }
 
-export interface ActivityType {
+export interface UserFormType {
+  dni: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  birthDate: string
+  address: string
+  role: UserRole
+  joinDate: string
+  password: string
+  avatar?: string
+}
+
+export interface ActivityDetailInfo {
   id: string
   name: string
   description: string
   location: string
   category: Category
   trainerId: string
+  trainerName: string
   date: Date
   duration: number
   maxParticipants: number
   currentParticipants: number
-  participants: string[] // Cambia a number[] si los IDs son números
+  participants: ActivityUserDetails[] 
   status: ActivityStatus
   createdBy: string
   lastModifiedBy?: string
@@ -83,14 +98,35 @@ export interface ActivityType {
   notes?: string
 }
 
+interface ActivityUserDetails {
+  id: number
+  firstName: string
+  lastName: string
+  createdAt: Date
+  status: ClientStatus
+}
+
+export interface ActivityType {
+  id: number
+  name: string
+  description: string
+  location: string
+  trainerName: string
+  date: Date
+  duration: number
+  participants: number[]
+  maxParticipants: number
+  currentParticipants: number
+  status: ActivityStatus
+}
+
 export interface ActivityFormType {
   name: string
   description: string
   location: string
   category: string
-  trainer: string
+  trainerName: string
   date: string // importante: string, para input type="date"
-  time: string // importante: string, para input type="time"
   duration: string
   maxParticipants: string
 }
@@ -120,9 +156,9 @@ export interface PaymentType {
   id: number
   clientId: number
   clientName: string
+  amount: number
   createdAt: Date
   expiresAt: Date
-  amount: number
   status: PaymentStatus
   verifiedAt?: Date
   rejectionReason?: string

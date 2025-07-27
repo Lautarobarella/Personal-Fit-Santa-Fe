@@ -22,7 +22,7 @@ interface AttendanceActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   activity: ActivityType
-  onAttendance: (activityId: string) => void
+  onAttendance: (activity: ActivityType) => void
 }
 
 export function AttendanceActivityDialog({ open, onOpenChange, activity, onAttendance }: AttendanceActivityDialogProps) {
@@ -31,7 +31,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activity, onAtten
   const handleAttendance = async () => {
     setIsAttending(true)
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    onAttendance(activity.id)
+    onAttendance(activity)
     onOpenChange(false)
   }
 
@@ -56,15 +56,12 @@ export function AttendanceActivityDialog({ open, onOpenChange, activity, onAtten
                   <div className="flex items-start gap-3">
                     <Avatar>
                       <AvatarFallback>
-                        {client.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                        {`${client.firstName[0] ?? ""}${client.lastName[0] ?? ""}`}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium truncate">{client.name}</h3>
+                        <h3 className="font-medium truncate">{client.firstName + " " + client.lastName}</h3>
                       </div>
                       {/* Aca la idea es mostrar a la hora q  */}
                       <div className="space-y-1 text-sm text-muted-foreground">

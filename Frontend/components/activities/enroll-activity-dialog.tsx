@@ -14,17 +14,13 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ActivityType } from "@/lib/types"
 
 interface EnrollActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  activity: {
-    id: string
-    name: string
-    currentParticipants: number
-    date: Date
-  }
-  onEnroll: (activityId: string) => void
+  activity: ActivityType
+  onEnroll: (activity: ActivityType) => void
 }
 
 export function EnrollActivityDialog({ open, onOpenChange, activity, onEnroll }: EnrollActivityDialogProps) {
@@ -35,10 +31,8 @@ export function EnrollActivityDialog({ open, onOpenChange, activity, onEnroll }:
     setIsEnrolling(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      onEnroll(activity.id)
+      
+      onEnroll(activity)
 
       toast({
         title: "Inscripcion Exitosa",

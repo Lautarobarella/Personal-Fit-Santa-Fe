@@ -63,6 +63,27 @@ export async function fetchPaymentDetail(id: number) {
   }
 }
 
+export async function fetchPendingPaymentDetail() {
+  try {
+    const response = await fetch(`${BASE_URL}/info/pending`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error('Error fetching payment:', error);
+    throw error;
+  }
+}
+
 export async function updatePayment(id: number, status: "paid" | "rejected", rejectionReason?: string) {
   try {
     const response = await fetch(`${BASE_URL}/${id}`, {

@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "FitTrainer Pro - Personal Training Platform",
-    short_name: "FitTrainer",
-    description: "Professional personal training management platform",
+    name: "PERSONAL FIT",
+    short_name: "PERSONAL FIT",
+    description: "Professional personal training management platform with role-based access",
     start_url: "/",
     display: "standalone",
     background_color: "#454545",

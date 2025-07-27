@@ -4,7 +4,9 @@ import type React from "react"
 
 import { ArrowLeft, Bell, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/providers/auth-provider"
+import Link from "next/link"
 
 interface MobileHeaderProps {
   title: string
@@ -25,6 +27,9 @@ export function MobileHeader({
 }: MobileHeaderProps) {
   const { user } = useAuth()
 
+    // Mock unread notifications count - in real app this would come from context/API
+  const unreadCount = 3
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
@@ -44,12 +49,22 @@ export function MobileHeader({
 
         <div className="flex items-center gap-2">
           {actions}
-          <Button variant="ghost" size="sm">
-            <Bell className="h-4 w-4" />
-          </Button>
+          <Link href="/notifications">
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Badge>
+              )}
+            </Button>
+          </Link>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-              {user?.name.charAt(0)}
+              {user?.firstName[0]}
             </div>
           </div>
         </div>
