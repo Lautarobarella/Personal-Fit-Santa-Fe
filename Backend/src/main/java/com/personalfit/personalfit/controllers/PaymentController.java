@@ -33,4 +33,9 @@ public class PaymentController {
         return ResponseEntity.ok(IPaymentService.getVerifyPaymentTypeDto(id));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long id) {
+        return ResponseEntity.ok(IPaymentService.getUserPaymentsTypeDto(id));
+    }
+
 }

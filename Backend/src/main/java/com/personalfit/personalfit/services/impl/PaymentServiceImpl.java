@@ -24,11 +24,11 @@ public class PaymentServiceImpl implements IPaymentService {
     private IPaymentRepository paymentRepository;
 
     @Autowired
-    private com.personalfit.personalfit.services.IUserService IUserService;
+    private IUserService userService;
 
     public Boolean registerPayment(InCreatePaymentDTO newPayment) {
 
-        Optional<User> user = IUserService.getUserById(newPayment.getClientId());
+        Optional<User> user = userService.getUserById(newPayment.getClientId());
         if (user.isEmpty()) throw new NoUserWithIdException();
 
         Payment payment = Payment.builder()
@@ -87,5 +87,28 @@ public class PaymentServiceImpl implements IPaymentService {
                 .build();
 
         return paymentTypeDTO;
+    }
+
+    @Override
+    public List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id) {
+        Optional<User> user = userService.getUserById(id);
+
+        if(user.isEmpty()) throw new NoUserWithIdException();
+
+        return user.get().getPayments().stream()
+                .map(payment -> PaymentTypeDTO.builder()
+                        .id(payment.getId())
+                        .clientId(payment.getUser().getId())
+                        .clientName(payment.getUser().getFullName())
+                        .createdAt(payment.getCreatedAt())
+                        .amount(payment.getAmount())
+                        .status(payment.getStatus())
+                        .receiptUrl(payment.getFileUrl())
+                        .verifiedAt(payment.getVerifiedAt())
+                        .verifiedBy(payment.getVerifiedBy() != null ? payment.getUser().getFullName() : null)
+                        .rejectionReason(payment.getRejectionReason())
+                        .updatedAt(payment.getUpdatedAt())
+                        .expiresAt(payment.getExpiresAt())
+                        .build()).toList();
     }
 }

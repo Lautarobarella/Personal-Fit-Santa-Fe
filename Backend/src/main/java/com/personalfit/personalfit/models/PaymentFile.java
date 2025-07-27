@@ -16,5 +16,7 @@ public class PaymentFile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String path;
+    private String filePath;
+    private String fileName;      // Nombre original del archivo (o generado)
+    private String contentType;
 }

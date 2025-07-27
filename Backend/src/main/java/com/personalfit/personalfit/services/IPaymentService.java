@@ -19,4 +19,5 @@ public interface IPaymentService {
     Boolean registerPayment(InCreatePaymentDTO newPayment);
     List<PaymentTypeDTO> getAllPaymentsTypeDto();
     VerifyPaymentTypeDTO getVerifyPaymentTypeDto(Long id);
+    List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id);
 }
