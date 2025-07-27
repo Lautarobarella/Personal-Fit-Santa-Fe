@@ -49,5 +49,10 @@ public class UserController {
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
+    @GetMapping("/trainers")
+    public ResponseEntity<List<UserTypeDTO>> getAllTrainers() {
+        List<UserTypeDTO> trainers = IUserService.getAllTrainers();
+        return new ResponseEntity<>(trainers, HttpStatus.OK);
+    }
 
 }

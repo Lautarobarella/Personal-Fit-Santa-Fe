@@ -1,6 +1,6 @@
 package com.personalfit.personalfit.services.impl;
 
-import com.personalfit.personalfit.dto.ActivityUserDetailsDTO;
+import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
 import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.UserDetailInfoDTO;
 import com.personalfit.personalfit.dto.UserTypeDTO;
@@ -9,6 +9,7 @@ import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.services.IUserService;
+import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements IUserService {
@@ -120,7 +122,7 @@ public class UserServiceImpl implements IUserService {
         userDto.setAge(age);
 
         user.getAttendances().stream().forEach(attendance -> {
-            userDto.getListActivity().add(ActivityUserDetailsDTO.builder()
+            userDto.getListActivity().add(UserActivityDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
                     .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
@@ -134,6 +136,20 @@ public class UserServiceImpl implements IUserService {
         userDto.setActivitiesCount(user.getAttendances().size());
 
         return userDto;
+    }
+
+    public List<UserTypeDTO> getAllTrainers() {
+        List<User> users = userRepository.findAll();
+        return users.stream().filter( u -> u.getRole().equals(UserRole.trainer))
+                .map(u -> {
+                    UserTypeDTO userDto = new UserTypeDTO(u);
+                    Integer age = getUserAge(u);
+                    userDto.setAge(age);
+                    userDto.setLastActivity(LocalDate.now());
+                    userDto.setActivitiesCount(u.getAttendances().size());
+                    return userDto;
+                })
+                .collect(Collectors.toList());
     }
 
 }

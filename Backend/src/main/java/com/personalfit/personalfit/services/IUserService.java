@@ -16,4 +16,5 @@ public interface IUserService {
     Integer getUserAge(User user);
     Optional<User> getUserById(Long id);
     UserDetailInfoDTO createUserDetailInfoDTO(User user);
+    List<UserTypeDTO> getAllTrainers();
 }

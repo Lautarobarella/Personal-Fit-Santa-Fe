@@ -20,8 +20,10 @@ public class Activity {
     private Long id;
     private String name;
     private String description;
+    private String location;
     private Integer slots;
     private LocalDateTime date;
+    private LocalDateTime createdAt;
     private Boolean repeatEveryWeek;
     private Integer duration; // Minutes
     @Enumerated(EnumType.STRING)
