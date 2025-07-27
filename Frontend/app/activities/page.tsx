@@ -26,14 +26,19 @@ export default function ActivitiesPage() {
   const { user } = useAuth()
   const { 
     activities, 
-    loadActivities,
+    loadActivitiesByWeek,
     enrollIntoActivity,
    } = useActivities()
-  const [currentWeek, setCurrentWeek] = useState(new Date("2025-07-28")) // Monday of current week
+
+   
+  const [currentWeek, setCurrentWeek] = useState(new Date())
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterCategory, setFilterCategory] = useState("all")
   const [filterTrainer, setFilterTrainer] = useState("all")
   const router = useRouter()
+
+  useEffect(() => {
+    loadActivitiesByWeek(currentWeek)
+  }, [currentWeek])
 
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean
@@ -66,9 +71,7 @@ export default function ActivitiesPage() {
 
   if (!user) return null
 
-  useEffect(() => {
-    loadActivities()
-  }, [loadActivities])
+
 
   const canManageActivities = user.role === "admin" || user.role === "trainer"
 
@@ -95,7 +98,6 @@ export default function ActivitiesPage() {
     const weekStart = weekDates[0]
     const weekEnd = new Date(weekDates[6])
     weekEnd.setHours(23, 59, 59, 999)
-
     const matchesWeek = activityDate >= weekStart && activityDate <= weekEnd
     const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesTrainer = filterTrainer === "all" || activity.trainerName === filterTrainer
@@ -111,7 +113,7 @@ export default function ActivitiesPage() {
         return activityDate.toDateString() === date.toDateString()
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
+      
     return {
       date,
       activities: dayActivities,
@@ -120,12 +122,12 @@ export default function ActivitiesPage() {
 
   // Get unique categories and trainers for filters
   const trainers = [...new Set(activities.map((a) => a.trainerName))]
-
+  
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date)
+    }).format(new Date(date))
   }
 
   const formatDate = (date: Date) => {
@@ -300,6 +302,7 @@ export default function ActivitiesPage() {
         {/* Weekly Calendar */}
         <div className="space-y-4">
           {activitiesByDay.map((day, dayIndex) => (
+            
             <Card key={dayIndex} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-4">

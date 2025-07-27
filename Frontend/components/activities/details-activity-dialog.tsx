@@ -371,10 +371,6 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Categoría:</span>
-                    <p className="font-medium">{selectedActivity.category || "General"}</p>
-                  </div>
-                  <div>
                     <span className="text-muted-foreground">Estado:</span>
                     <p className="font-medium">{getStatusText(selectedActivity.status)}</p>
                   </div>
