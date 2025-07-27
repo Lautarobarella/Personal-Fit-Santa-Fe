@@ -33,7 +33,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
       time: "",
       duration: "",
       maxParticipants: "",
-      trainer: "",
+      trainerName: "",
     })
     
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
       setForm({
         name: activity.name,
         description: activity.description,
-        trainer: mockUsers.find(u => u.id === activity.trainerId)?.name || "Desconocido",
+        trainerName: mockUsers.find(u => u.id === activity.trainerId)?.name || "Desconocido",
         location: activity.location,
         category: activity.category,
         date: activity.date.toISOString().split("T")[0], // YYYY-MM-DD
@@ -70,7 +70,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
     if (!form.time) newErrors.time = "La hora es requerida"
     if (form.duration) newErrors.duration = "La duración debe ser mayor a 0"
     if (form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainer.trim()) newErrors.trainer = "El entrenador es requerido"
+    if (!form.trainerName.trim()) newErrors.trainerName = "El entrenador es requerido"
 
     // Validate date is not in the past
     const selectedDate = new Date(`${form.date}T${form.time}`)
@@ -166,9 +166,9 @@ export default function EditActivityPage({ params }: { params: { id: string } })
 
                 {user.role === "admin" && (
                   <div className="space-y-2">
-                    <Label htmlFor="trainer">Entrenador asignado</Label>
-                    <Select value={form.trainer} onValueChange={(value) => handleInputChange("trainer", value)}>
-                      <SelectTrigger className={errors.trainer ? "border-destructive" : ""}>
+                    <Label htmlFor="trainerName">Entrenador asignado</Label>
+                    <Select value={form.trainerName} onValueChange={(value) => handleInputChange("trainerName", value)}>
+                      <SelectTrigger className={errors.trainerName ? "border-destructive" : ""}>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
                       <SelectContent>
@@ -177,7 +177,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
                         <SelectItem value="María Rodríguez">María Rodríguez</SelectItem>
                       </SelectContent>
                     </Select>
-                    {errors.trainer && <p className="text-sm text-destructive">{errors.trainer}</p>}
+                    {errors.trainerName && <p className="text-sm text-destructive">{errors.trainerName}</p>}
                   </div>
                 )}
               </div>

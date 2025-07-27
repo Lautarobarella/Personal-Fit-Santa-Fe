@@ -24,35 +24,35 @@ export function useNotifications() {
     }, [])
 
     // Update functions
-    const markAsRead = (id: string) => {
+    const markAsRead = (id: number) => {
         setNotifications((prev) =>
             prev.map((n) => (n.id === id ? { ...n, read: true } : n))
         )
     }
 
-    const markAsUnread = (id: string) => {
+    const markAsUnread = (id: number) => {
         setNotifications((prev) =>
             prev.map((n) => (n.id === id ? { ...n, read: false } : n))
         )
     }
 
-    const archiveNotification = (id: string) => {
+    const archiveNotification = (id: number) => {
         setNotifications((prev) =>
             prev.map((n) => (n.id === id ? { ...n, archived: true, read: true } : n))
         )
     }
 
-    const unarchiveNotification = (id: string) => {
+    const unarchiveNotification = (id: number) => {
         setNotifications((prev) =>
             prev.map((n) => (n.id === id ? { ...n, archived: false } : n))
         )
     }
 
-    const deleteNotification = (id: string) => {
+    const deleteNotification = (id: number) => {
         setNotifications((prev) => prev.filter((n) => n.id !== id))
     }
 
-    const markAllAsRead = (userId: string) => {
+    const markAllAsRead = () => {
         setNotifications((prev) =>
             prev.map((n) => (!n.read ? { ...n, read: true } : n))
         )

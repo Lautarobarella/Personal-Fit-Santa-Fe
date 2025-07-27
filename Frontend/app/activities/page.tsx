@@ -179,7 +179,7 @@ export default function ActivitiesPage() {
     })
   }
 
-  const handleConfirmDelete = (activityId: string) => {
+  const handleConfirmDelete = (activityId: number) => {
     // Here you would call your delete API
     console.log("Deleting activity:", activityId)
     // For demo purposes, we'll just close the dialog

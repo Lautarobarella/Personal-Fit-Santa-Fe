@@ -28,7 +28,7 @@ export interface UserDetailInfo {
   listPayments: PaymentUserDetails[]
 }
 
-interface ActivityUserDetails{
+interface ActivityUserDetails {
   id: number
   name: string
   trainerName: string
@@ -51,10 +51,17 @@ export interface UserType {
   firstName: string
   lastName: string
   email: string
+  phone: string
+  age: number
+  birthDate: Date
+  address: string
   role: UserRole
+  status: "active" | "inactive"
+  joinDate: Date
+  activitiesCount: number
+  lastActivity: Date | null
+  password: string
   avatar?: string
-  phone?: string
-  createdAt: Date
 }
 
 export interface UserFormType {
@@ -75,7 +82,8 @@ export interface ActivityDetailInfo {
   id: string
   name: string
   description: string
-  trainer: string
+  location: string
+  category: Category
   trainerId: string
   trainerName: string
   date: Date
@@ -119,31 +127,36 @@ export interface ActivityFormType {
   location: string
   category: string
   trainerName: string
-  date: string // importante: string, para input type="date"
+  date: string 
+  time: string
   duration: string
   maxParticipants: string
 }
 
-export interface MonthlyPayment {
-  id: string
-  clientId: string
-  clientName: string
-  month: string // "2024-01" format
-  amount: number
-  dueDate: Date
-  status: "pendiente" | "pagado" | "rechazado" | "vencido"
-  receiptUrl?: string
-  receiptUploadedAt?: Date
-  verifiedAt?: Date
-  verifiedBy?: string
-  rejectionReason?: string
-  createdAt: Date
-  updatedAt: Date
-}
-
 export interface Attendance {
   id: string
-  clientId: string
+  activityId: string
+  userId: string
+  createdAt: Date
+  status: AttendanceStatus
+}
+
+export interface VerifyPaymentType {
+  id: number
+  clientId: number
+  clientName: string
+  amount: number
+  createdAt: Date
+  expiresAt: Date
+  status: PaymentStatus
+  receiptUrl?: string
+  method: MethodType
+  rejectionReason?: string
+}
+
+export interface PaymentType {
+  id: number
+  clientId: number
   clientName: string
   amount: number
   createdAt: Date
@@ -154,7 +167,7 @@ export interface Attendance {
 }
 
 export interface Notification {
-  id: string
+  id: number
   title: string
   message: string
   infoType: NotificationType

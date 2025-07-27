@@ -298,7 +298,7 @@ export default function NotificationsPage() {
                             <h3 className="font-medium mb-3">Acciones Rápidas</h3>
                             <div className="flex flex-wrap gap-2">
                                 {unreadNotifications.length > 0 && (
-                                    <Button variant="outline" size="sm" onClick={() => markAllAsRead(user.id)} className="bg-transparent">
+                                    <Button variant="outline" size="sm" onClick={() => markAllAsRead()} className="bg-transparent">
                                         <CheckCheck className="h-4 w-4 mr-2" />
                                         Marcar todas como leídas
                                     </Button>

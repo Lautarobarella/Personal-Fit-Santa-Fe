@@ -20,7 +20,7 @@ interface DeleteActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   activity: ActivityType
-  onDelete: (activityId: string) => void
+  onDelete: (activityId: number) => void
 }
 
 export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }: DeleteActivityDialogProps) {

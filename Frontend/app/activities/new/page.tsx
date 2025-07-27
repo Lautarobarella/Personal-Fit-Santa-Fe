@@ -31,7 +31,7 @@ export default function NewActivityPage() {
     time: "",
     duration: "",
     maxParticipants: "",
-    trainer: "",
+    trainerName: "", // ACA TENGO Q GUARDAR EL ID ADEMAS DEL NOMBRE,
   })
 
   const [errors, setErrors] = useState<Partial<ActivityFormType>>({})
@@ -50,7 +50,7 @@ export default function NewActivityPage() {
     if (!form.time) newErrors.time = "La hora es requerida"
     if (form.duration) newErrors.duration = "La duración debe ser mayor a 0"
     if (form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainer.trim()) newErrors.trainer = "El entrenador es requerido"
+    if (!form.trainerName.trim()) newErrors.trainerName = "El entrenador es requerido"
 
     // Validate date is not in the past
     const selectedDate = new Date(`${form.date}T${form.time}`)
@@ -146,9 +146,9 @@ export default function NewActivityPage() {
 
                 {user.role === "admin" && (
                   <div className="space-y-2">
-                    <Label htmlFor="trainer">Entrenador asignado</Label>
-                    <Select value={form.trainer} onValueChange={(value) => handleInputChange("trainer", value)}>
-                      <SelectTrigger className={errors.trainer ? "border-destructive" : ""}>
+                    <Label htmlFor="trainerName">Entrenador asignado</Label>
+                    <Select value={form.trainerName} onValueChange={(value) => handleInputChange("trainerName", value)}>
+                      <SelectTrigger className={errors.trainerName ? "border-destructive" : ""}>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
                       <SelectContent>
@@ -157,7 +157,7 @@ export default function NewActivityPage() {
                         <SelectItem value="María Rodríguez">María Rodríguez</SelectItem>
                       </SelectContent>
                     </Select>
-                    {errors.trainer && <p className="text-sm text-destructive">{errors.trainer}</p>}
+                    {errors.trainerName && <p className="text-sm text-destructive">{errors.trainerName}</p>}
                   </div>
                 )}
               </div>

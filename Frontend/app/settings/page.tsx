@@ -32,14 +32,11 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarFallback className="text-lg">
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {`${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-semibold">{user.name}</h2>
+                <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
                 <p className="text-muted-foreground">{user.email}</p>
                 <p className="text-sm text-blue-600 capitalize">{user.role}</p>
               </div>
