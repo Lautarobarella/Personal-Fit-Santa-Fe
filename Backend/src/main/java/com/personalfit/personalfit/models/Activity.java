@@ -2,16 +2,17 @@ package com.personalfit.personalfit.models;
 
 import com.personalfit.personalfit.utils.ActivityStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Getter
-@Setter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Activity {
 
     @Id
@@ -19,9 +20,12 @@ public class Activity {
     private Long id;
     private String name;
     private String description;
+    private String location;
     private Integer slots;
     private LocalDateTime date;
+    private LocalDateTime createdAt;
     private Boolean repeatEveryWeek;
+    private Integer duration; // Minutes
     @Enumerated(EnumType.STRING)
     private ActivityStatus status;
     @OneToOne

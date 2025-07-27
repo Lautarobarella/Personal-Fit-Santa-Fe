@@ -1,4 +1,6 @@
-const BASE_URL = 'http://152.170.128.205:8080/api/payment';
+const BASE_URL = 'http://localhost:8080/api/payment';
+
+import { mockPayments } from "@/mocks/mockPayments";
 
 export async function fetchPayments() {
   try {
@@ -20,10 +22,25 @@ export async function fetchPayments() {
     return [];
   }
 }
+// MOCKS, LUEGO REEMPLAZAR EL USO POR LOS FETCHS REALES
+
+export async function fetchPaymentDetailMock(id: number) {
+  const payment = mockPayments.find(p => p.clientId === id)
+  if (!payment) {
+    console.log("Payment not found for ID:", id);
+    return new Response("Pago no encontrado", { status: 404 })
+  }
+  console.log("Payment detail fetched for ID:", id, payment)
+  return new Response(JSON.stringify(payment), {
+    status: 200,
+    headers: { "Content-Type": "application/json" }
+  })
+}
+// MOCKS, LUEGO REEMPLAZAR EL USO POR LOS FETCHS REALES
 
 export async function fetchPaymentsById(id: number) {
   try {
-    const response = await fetch(`${BASE_URL}/get/${id}`, {
+    const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

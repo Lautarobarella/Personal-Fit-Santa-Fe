@@ -1,18 +1,18 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
-import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Search, Calendar, DollarSign, FileCheck, User, Eye, AlertCircle } from "lucide-react"
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
+import { useAuth } from "@/components/providers/auth-provider"
+import { Badge } from "@/components/ui/badge"
+import { BottomNav } from "@/components/ui/bottom-nav"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usePayment } from "@/hooks/use-payment"
+import { Calendar, DollarSign, Eye, FileCheck, Plus, Search, Upload, User } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function PaymentsPage() {
   const { user } = useAuth()
@@ -125,21 +125,21 @@ export default function PaymentsPage() {
         title="Pagos"
         actions={
           <div className="flex">
-          {user.role === "admin" ? (
-            <Link href="/payments/verify">
-              <Button size="sm" variant="outline" className="bg-transparent">
-                <FileCheck className="h-4 w-4 mr-1" />
-                Verificar ({pendingPayments.length})
-              </Button>
-            </Link>
-          ) : user.role === "client" ? (
-            <Link href="/payments/new">
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Nuevo
-              </Button>
-            </Link>
-          ) : null}
+            {user.role === "admin" ? (
+              <Link href="/payments/verify">
+                <Button size="sm" variant="outline" className="bg-transparent">
+                  <FileCheck className="h-4 w-4 mr-1" />
+                  Verificar ({pendingPayments.length})
+                </Button>
+              </Link>
+            ) : user.role === "client" ? (
+              <Link href="/payments/new">
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Nuevo
+                </Button>
+              </Link>
+            ) : null}
           </div>
         }
       />
@@ -158,38 +158,37 @@ export default function PaymentsPage() {
 
         {/* Stats */}
         {user.role === "admin" && (
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Ingresos del Mes</p>
-                  <p className="text-2xl font-bold text-success">${totalRevenue}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ingresos del Mes</p>
+                    <p className="text-2xl font-bold text-success">${totalRevenue}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-success" />
                 </div>
-                <DollarSign className="h-8 w-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Por Verificar</p>
-                  <p className="text-2xl font-bold text-warning">{pendingPayments.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Por Verificar</p>
+                    <p className="text-2xl font-bold text-warning">{pendingPayments.length}</p>
+                  </div>
+                  <FileCheck className="h-8 w-8 text-warning" />
                 </div>
-                <FileCheck className="h-8 w-8 text-warning" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Payments Tabs */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pending">Pendientes</TabsTrigger>
-            <TabsTrigger value="paid">Pagados</TabsTrigger>
-            <TabsTrigger value="rejected">Rechazados</TabsTrigger>
+            <TabsTrigger value="debtor">No pagados</TabsTrigger>
             <TabsTrigger value="all">Todos</TabsTrigger>
           </TabsList>
 
@@ -217,39 +216,12 @@ export default function PaymentsPage() {
                       </Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
 
-          <TabsContent value="paid" className="space-y-3 mt-4">
-            {paidPayments.map((p) => (
-              <Card key={p.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium">{p.clientName}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>{formatMonth(p.createdAt)}</span>
-                        {p.verifiedAt && (
-                          <>
-                            <span>•</span>
-                            <span>Verificado: {formatDate(p.verifiedAt)}</span>
-                          </>
-                        )}
-                      </div>
+                  {p.rejectionReason && (
+                    <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
+                      <strong>Razón:</strong> {p.rejectionReason}
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg text-success">${p.amount}</div>
-                      <Badge variant="success" className="text-xs">
-                        Pagado
-                      </Badge>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -295,9 +267,9 @@ export default function PaymentsPage() {
             ))}
           </TabsContent>
 
-          <TabsContent value="rejected" className="space-y-3 mt-4">
-            {rejectedPayments.map((p) => (
-              <Card key={p.id} className="border-destructive">
+          <TabsContent value="debtor" className="space-y-3 mt-4">
+            {overduePayments.map((p) => (
+              <Card key={p.id} className="destructive">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -313,16 +285,23 @@ export default function PaymentsPage() {
                     <div className="text-right">
                       <div className="font-bold text-lg text-destructive">${p.amount}</div>
                       <Badge variant="destructive" className="text-xs">
-                        Rechazado
+                        Vencido
                       </Badge>
                     </div>
                   </div>
 
-                  {p.rejectionReason && (
-                    <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
-                      <strong>Razón:</strong> {p.rejectionReason}
-                    </div>
-                  )}
+                  <div className="flex gap-2">
+                    <Link href={`/payments/upload/${p.clientId}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-transparent"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Subir Comprobante
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -331,20 +310,15 @@ export default function PaymentsPage() {
       </div>
 
       {/* Dialogs */}
-      {verificationDialog.paymentId && (
+      {verificationDialog.paymentId !== null && (
         <PaymentVerificationDialog
           open={verificationDialog.open}
-          onOpenChange={(open) => setVerificationDialog({ open, paymentId: null })}
+          onOpenChange={(open) =>
+            setVerificationDialog({ open, paymentId: null })
+          }
           paymentId={verificationDialog.paymentId}
         />
       )}
-
-      {/* <CreatePaymentDialog
-        open={createPaymentDialog}
-        onOpenChange={setCreatePaymentDialog}
-        clients={mockUsers}
-        onCreatePayment={handleCreatePayment}
-      /> */}
 
       <BottomNav />
     </div>

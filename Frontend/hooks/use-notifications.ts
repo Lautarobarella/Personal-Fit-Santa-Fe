@@ -15,7 +15,6 @@ export function useNotifications() {
             const res = await fetchNotificationsMock()
             const data: Notification[] = await res.json()
             setNotifications(data)
-            console.log("Notificaciones cargadas:", data)
         } catch (err) {
             setError("Error al cargar los notificaciones")
         } finally {

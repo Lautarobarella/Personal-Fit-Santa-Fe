@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { Calendar, User, DollarSign, Loader2, Check, X, Clock, ArrowLeft, CheckCircle } from "lucide-react"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
+import { useToast } from "@/hooks/use-toast"
+import { ArrowLeft, Calendar, Check, CheckCircle, Clock, DollarSign, Loader2, User, X } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function PaymentVerificationPage() {
   const { user } = useAuth()
@@ -29,25 +29,28 @@ export default function PaymentVerificationPage() {
   useEffect(() => {
     // If no pendingPayments to verify, redirect backç
     loadPendingPaymentDetail()
-    if (pendingPayments.length === 0) {
-      router.push("/pendingPayments")
-    }
+
+    // Si descomento este if, lo único que hace es instantaneamente llevarme a /payments, no esta validando nada q parezca importante
+    // if (pendingPayments.length === 0) {
+    //   router.push("/payments")
+    // }
+
   }, [pendingPayments.length, router])
 
   if (!user || user.role !== "admin") {
-    router.push("/pendingPayments")
+    router.push("/payments")
     return null
   }
 
   if (!currentPayment) {
     return (
       <div className="min-h-screen bg-background">
-        <MobileHeader title="Verificación Completada" showBack onBack={() => router.push("/pendingPayments")} />
+        <MobileHeader title="Verificación Completada" showBack onBack={() => router.push("/payments")} />
         <div className="container py-12 text-center">
           <CheckCircle className="h-16 w-16 mx-auto text-success mb-4" />
           <h2 className="text-2xl font-bold mb-2">¡Verificación Completada!</h2>
           <p className="text-muted-foreground mb-6">Has verificado {completedCount} pagos exitosamente.</p>
-          <Button onClick={() => router.push("/pendingPayments")}>Volver a Pagos</Button>
+          <Button onClick={() => router.push("/payments")}>Volver a Pagos</Button>
         </div>
       </div>
     )
@@ -59,7 +62,7 @@ export default function PaymentVerificationPage() {
       month: "short",
       year: "numeric",
     }).format(new Date(date))
-  } 
+  }
 
   const formatDateTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -84,7 +87,7 @@ export default function PaymentVerificationPage() {
     setIsVerifying(true)
 
     try {
-      
+
       updatePaymentStatus(currentPayment.id, status, status === "rejected" ? rejectionReason : undefined)
 
       toast({
@@ -123,7 +126,7 @@ export default function PaymentVerificationPage() {
       <MobileHeader
         title="Verificar Pagos"
         showBack
-        onBack={() => router.push("/pendingPayments")}
+        onBack={() => router.push("/payments")}
         actions={
           <div className="text-sm text-muted-foreground">
             {currentIndex + 1} de {pendingPayments.length}

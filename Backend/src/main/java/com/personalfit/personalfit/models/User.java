@@ -47,4 +47,8 @@ public class User {
 
     private LocalDateTime deletedAt = null;
 
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
 }

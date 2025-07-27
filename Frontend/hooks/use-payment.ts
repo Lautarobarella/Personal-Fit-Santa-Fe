@@ -1,6 +1,6 @@
-import { fetchPaymentDetail, fetchPayments, fetchPaymentsById, fetchPendingPaymentDetail, updatePayment } from "@/api/payment/paymentsApi"
+import { fetchPaymentDetail, fetchPaymentDetailMock, fetchPayments, fetchPaymentsById, fetchPendingPaymentDetail, updatePayment } from "@/api/payment/paymentsApi"
 import { PaymentType, VerifyPaymentType } from "@/lib/types"
-import { useState, useCallback } from "react"
+import { useCallback, useState } from "react"
 
 
 export function usePayment() {
@@ -12,14 +12,15 @@ export function usePayment() {
 
   // Cargar todos los pagos
   const loadPayments = useCallback(async () => {
+    console.log("Cargando pagos...")
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchPayments()
-      setPayments(data)
-      console.log("Pagos cargados:", data)
+      const res = await fetchPayments()
+      console.log("Respuesta de pagos:", res)
+      setPayments(res)
     } catch (err) {
-      setError("Error al cargar los clientes")
+      setError("Error al cargar los pagos")
     } finally {
       setLoading(false)
     }
@@ -31,6 +32,7 @@ export function usePayment() {
     setError(null)
     try {
       const data = await fetchPaymentsById(id)
+      console.log("Pagos por ID de usuario cargados:", data)
       setPayments(data)
       console.log("Pagos cargados:", data)
     } catch (err) {
@@ -45,15 +47,18 @@ export function usePayment() {
     setLoading(true)
     setError(null)
     try {
-      const detail = await fetchPaymentDetail(id)
-      setSelectedPayment(detail)
-      console.log("Detalle del pago cargado:", detail)
+      const res = await fetchPaymentDetail(id)
+      console.log("Respuesta de detalle de pago:", res)
+      setSelectedPayment(res)
+      console.log("Detalle del pago cargado:", selectedPayment)
     } catch (err) {
       setError("Error al cargar el detalle del cliente")
     } finally {
       setLoading(false)
     }
   }, [])
+
+  
 
   // Cargar pagos pendientes
   const loadPendingPaymentDetail = useCallback(async () => {
@@ -70,7 +75,7 @@ export function usePayment() {
     }
   }, [])
 
-// Actualizar estado de un pago
+  // Actualizar estado de un pago
   const updatePaymentStatus = useCallback(async (id: number, status: "paid" | "rejected", rejectionReason?: string) => {
     setLoading(true)
     setError(null)
@@ -87,7 +92,7 @@ export function usePayment() {
 
   // Limpiar cliente seleccionado
   const clearSelectedPayment = () => setSelectedPayment(null)
-  
+
   return {
     payments,
     selectedPayment,

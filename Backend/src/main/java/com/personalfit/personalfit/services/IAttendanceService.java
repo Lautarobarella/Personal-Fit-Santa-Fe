@@ -4,9 +4,5 @@ import com.personalfit.personalfit.repository.IAttendanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-@Service
-public class AttendanceService {
-
-    @Autowired
-    private IAttendanceRepository attendanceRepository;
+public interface IAttendanceService {
 }
