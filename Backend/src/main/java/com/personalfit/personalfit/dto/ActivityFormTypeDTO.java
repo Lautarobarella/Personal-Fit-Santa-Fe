@@ -14,7 +14,6 @@ public class ActivityFormTypeDTO {
     private String name;
     private String description;
     private String location;
-    private String category; // Posiblemente se vaya
     private String trainerId; // Parsear a Integer
     private LocalDate date; // yyyy-MM-dd
     private LocalTime time; // HH:mm:ss
