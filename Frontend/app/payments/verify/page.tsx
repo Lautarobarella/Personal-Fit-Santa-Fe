@@ -30,24 +30,24 @@ export default function PaymentVerificationPage() {
     // If no pendingPayments to verify, redirect backç
     loadPendingPaymentDetail()
     if (pendingPayments.length === 0) {
-      router.push("/pendingPayments")
+      router.push("/payments")
     }
   }, [pendingPayments.length, router])
 
   if (!user || user.role !== "admin") {
-    router.push("/pendingPayments")
+    router.push("/payments")
     return null
   }
 
   if (!currentPayment) {
     return (
       <div className="min-h-screen bg-background">
-        <MobileHeader title="Verificación Completada" showBack onBack={() => router.push("/pendingPayments")} />
+        <MobileHeader title="Verificación Completada" showBack onBack={() => router.push("/payment")} />
         <div className="container py-12 text-center">
           <CheckCircle className="h-16 w-16 mx-auto text-success mb-4" />
           <h2 className="text-2xl font-bold mb-2">¡Verificación Completada!</h2>
           <p className="text-muted-foreground mb-6">Has verificado {completedCount} pagos exitosamente.</p>
-          <Button onClick={() => router.push("/pendingPayments")}>Volver a Pagos</Button>
+          <Button onClick={() => router.push("/payment")}>Volver a Pagos</Button>
         </div>
       </div>
     )
@@ -123,7 +123,7 @@ export default function PaymentVerificationPage() {
       <MobileHeader
         title="Verificar Pagos"
         showBack
-        onBack={() => router.push("/pendingPayments")}
+        onBack={() => router.push("/payment")}
         actions={
           <div className="text-sm text-muted-foreground">
             {currentIndex + 1} de {pendingPayments.length}

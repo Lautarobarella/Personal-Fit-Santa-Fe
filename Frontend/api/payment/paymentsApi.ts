@@ -1,3 +1,5 @@
+import { mockPayments } from "@/mocks/mockPayments";
+
 const BASE_URL = 'http://152.170.128.205:8080/api/payment';
 
 export async function fetchPayments() {
@@ -104,4 +106,14 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
     console.error('Error updating payment:', error);
     throw error;
   }
+}
+
+export async function fetchUsersMock(): Promise<Response> {
+
+    return new Response(JSON.stringify(mockPayments), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
 }

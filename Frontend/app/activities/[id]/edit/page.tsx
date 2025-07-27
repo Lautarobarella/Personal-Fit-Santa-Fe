@@ -14,42 +14,30 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, Clock, Users, Loader2 } from "lucide-react"
-import { ActivityFormType, ActivityType } from "@/lib/types"
-import { mockActivities } from "@/mocks/mockActivities"
-import { mockUsers } from "@/mocks/mockUsers"
+import { ActivityFormType } from "@/lib/types"
+import { useActivities } from "@/hooks/use-activity"
 
-export default function EditActivityPage({ params }: { params: { id: string } }) {
+export default function EditActivityPage({ params }: { params: { id: number } }) {
 
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [form, setForm] = useState<ActivityFormType>({
-      name: "",
-      description: "",
-      location: "",
-      category: "",
-      date: "",
-      time: "",
-      duration: "",
-      maxParticipants: "",
-      trainerName: "",
-    })
+  const { form, setForm, selectedActivity, editActivity, loadActivityDetail, trainers, loadTrainers } = useActivities()
     
   useEffect(() => {
-    // Buscar la actividad por ID en el mock
-    const activity = mockActivities.find((a) => a.id === params.id)
-    if (activity) {
+    loadTrainers()
+    loadActivityDetail(Number(params.id))
+    if (selectedActivity) {
       setForm({
-        name: activity.name,
-        description: activity.description,
-        trainerName: mockUsers.find(u => u.id === activity.trainerId)?.name || "Desconocido",
-        location: activity.location,
-        category: activity.category,
-        date: activity.date.toISOString().split("T")[0], // YYYY-MM-DD
-        time: activity.date.toISOString().split("T")[1].slice(0, 5), // HH:MM
-        duration: activity.duration.toString(),
-        maxParticipants: activity.maxParticipants.toString(),
+        name: selectedActivity.name,
+        description: selectedActivity.description,
+        trainerId: selectedActivity.trainerId,
+        location: selectedActivity.location,
+        date: selectedActivity.date.toISOString().split("T")[0], // YYYY-MM-DD
+        time: selectedActivity.date.toISOString().split("T")[1].slice(0, 5), // HH:MM
+        duration: selectedActivity.duration.toString(),
+        maxParticipants: selectedActivity.maxParticipants.toString(),
       })
     }
   }, [params.id])
@@ -70,7 +58,7 @@ export default function EditActivityPage({ params }: { params: { id: string } })
     if (!form.time) newErrors.time = "La hora es requerida"
     if (form.duration) newErrors.duration = "La duración debe ser mayor a 0"
     if (form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainerName.trim()) newErrors.trainerName = "El entrenador es requerido"
+    if (!form.trainerId.trim()) newErrors.trainerId = "El entrenador es requerido"
 
     // Validate date is not in the past
     const selectedDate = new Date(`${form.date}T${form.time}`)
@@ -167,17 +155,19 @@ export default function EditActivityPage({ params }: { params: { id: string } })
                 {user.role === "admin" && (
                   <div className="space-y-2">
                     <Label htmlFor="trainerName">Entrenador asignado</Label>
-                    <Select value={form.trainerName} onValueChange={(value) => handleInputChange("trainerName", value)}>
-                      <SelectTrigger className={errors.trainerName ? "border-destructive" : ""}>
+                    <Select value={form.trainerId} onValueChange={(value) => handleInputChange("trainerId", value)}>
+                      <SelectTrigger className={errors.trainerId ? "border-destructive" : ""}>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ana García">Ana García</SelectItem>
-                        <SelectItem value="Carlos López">Carlos López</SelectItem>
-                        <SelectItem value="María Rodríguez">María Rodríguez</SelectItem>
+                      <SelectContent>                    
+                        {trainers.map((trainer) => (
+                            <SelectItem key={trainer.id} value={trainer.id.toString()}>
+                              {trainer.firstName + " " + trainer.lastName}
+                            </SelectItem>
+                        ))}
                       </SelectContent>
-                    </Select>
-                    {errors.trainerName && <p className="text-sm text-destructive">{errors.trainerName}</p>}
+                    </Select> 
+                    {errors.trainerId && <p className="text-sm text-destructive">{errors.trainerId}</p>}
                   </div>
                 )}
               </div>

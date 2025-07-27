@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
-import type { ActivityDetailInfo, ActivityFormType, ActivityType } from "@/lib/types"
-import { enrollActivity, fetchActivities, fetchActivityDetail, newActivity } from "@/api/activities/activitiesApi"
+import type { ActivityDetailInfo, ActivityFormType, ActivityType, UserType } from "@/lib/types"
+import { enrollActivity, fetchActivities, fetchActivitiesByDate, fetchActivityDetail, fetchTrainers, newActivity } from "@/api/activities/activitiesApi"
 
 export function useActivities() {
   const [activities, setActivities] = useState<ActivityType[]>([])
@@ -9,12 +9,13 @@ export function useActivities() {
     name: "",
     description: "",
     location: "",
-    category: "",
-    trainerName: "",
+    trainerId: "",
     date: "",
+    time: "",
     duration: "",
     maxParticipants: "",
     })
+  const [trainers, setTrainers] = useState<UserType[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,6 +31,32 @@ export function useActivities() {
       setError("Error al cargar las actividades")
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  const loadActivitiesByWeek = useCallback(async (date: Date) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await fetchActivitiesByDate(date)
+      setActivities(data)
+      console.log("Actividades cargadas:", data)
+    } catch (err) {
+      setError("Error al cargar las actividades")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+
+
+  const loadTrainers = useCallback(async () => {
+    try {
+      const data = await fetchTrainers()
+      setTrainers(data)
+      console.log("Entrenadores cargados:", data)
+    } catch (err) {
+      setError("Error al cargar las actividades")
     }
   }, [])
 
@@ -49,6 +76,18 @@ export function useActivities() {
   }, [])
 
   const createActivity = useCallback(async (clientData: ActivityFormType) => {
+    setLoading(true)
+    setError(null)
+    try {
+      newActivity(clientData) 
+      console.log("Activitye creado:", clientData)
+    } catch (err) {
+      setError("Error al crear el cliente")
+    }
+    setLoading(false)
+  }, [])
+
+  const editActivity = useCallback(async (clientData: ActivityFormType) => {
     setLoading(true)
     setError(null)
     try {
@@ -80,12 +119,16 @@ export function useActivities() {
     activities,
     selectedActivity,
     form,
+    trainers,
     loading,
     error,
     setForm,
     createActivity,
+    editActivity,
     loadActivities,
+    loadActivitiesByWeek,
     loadActivityDetail,
+    loadTrainers,
     clearSelectedActivity,
     setActivities, // opcional, por si quieres manipular manualmente
     enrollIntoActivity,

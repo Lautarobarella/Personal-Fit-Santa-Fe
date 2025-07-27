@@ -2,7 +2,6 @@ export type UserRole = "admin" | "trainer" | "client"
 export type ActivityStatus = "active" | "cancelled" | "completed"
 export type ClientStatus = "present" | "absent" | "pending" | "late"
 export type AttendanceStatus = "present" | "absent" | "late"
-export type Category = "Principiante" | "Intermedio" |"Avanzado"
 export type MethodType = "cash" | "card" | "transfer"
 export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
 export type NotificationType = "success" | "info" | "warning" | "error"
@@ -24,11 +23,11 @@ export interface UserDetailInfo {
   lastActivity: Date | null
   password: string
   avatar?: string
-  listActivity: ActivityUserDetails[]
+  listActivity: UserActivityDetails[]
   listPayments: PaymentUserDetails[]
 }
 
-interface ActivityUserDetails {
+interface UserActivityDetails {
   id: number
   name: string
   trainerName: string
@@ -83,7 +82,6 @@ export interface ActivityDetailInfo {
   name: string
   description: string
   location: string
-  category: Category
   trainerId: string
   trainerName: string
   date: Date
@@ -125,8 +123,7 @@ export interface ActivityFormType {
   name: string
   description: string
   location: string
-  category: string
-  trainerName: string
+  trainerId: string
   date: string 
   time: string
   duration: string

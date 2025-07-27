@@ -1,4 +1,5 @@
 import { UserFormType } from "@/lib/types";
+import { mockUsers } from "@/mocks/mockUsers";
 
 const BASE_URL = 'http://152.170.128.205:8080/api/user';
 
@@ -46,7 +47,7 @@ export async function fetchUserDetail(id: number) {
 
 export async function createUser(user: UserFormType) {
   try {
-    console.log("Creating user:", user);
+    
     const response = await fetch(`${BASE_URL}/new`, {
       method: 'POST',
       headers: {
@@ -61,4 +62,14 @@ export async function createUser(user: UserFormType) {
     console.error('Error creating user:', error);
     throw error;
   }
+}
+
+export async function fetchUsersMock(): Promise<Response> {
+
+    return new Response(JSON.stringify(mockUsers), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
 }
