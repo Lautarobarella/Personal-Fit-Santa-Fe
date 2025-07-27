@@ -67,7 +67,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader title={`Hola, ${user.name.split(" ")[0]}`} />
-
+    
       <div className="container py-6 space-y-6">
         {/* Welcome Card */}
         <Card className="bg-gradient-to-r from-primary to-orange-400 text-white">
