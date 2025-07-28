@@ -1,6 +1,7 @@
+import { NewPaymentInput } from "@/lib/types";
+
 const BASE_URL = 'http://localhost:8080/api/payment';
 
-import { mockPayments } from "@/mocks/mockPayments";
 
 export async function fetchPayments() {
   try {
@@ -22,21 +23,45 @@ export async function fetchPayments() {
     return [];
   }
 }
-// MOCKS, LUEGO REEMPLAZAR EL USO POR LOS FETCHS REALES
 
-export async function fetchPaymentDetailMock(id: number) {
-  const payment = mockPayments.find(p => p.clientId === id)
-  if (!payment) {
-    console.log("Payment not found for ID:", id);
-    return new Response("Pago no encontrado", { status: 404 })
+export async function createPayment(payment: NewPaymentInput) {
+  try {
+    const formData = new FormData();
+
+    const dto = {
+      clientDni: payment.clientDni,
+      amount: payment.amount,
+      createdAt: payment.createdAt,
+      expiresAt: payment.expiresAt,
+      methodType: "transfer",
+      confNumber: Math.floor(Math.random() * 1000000),
+      paymentStatus: payment.paymentStatus,
+    };
+
+    formData.append("payment", new Blob([JSON.stringify(dto)], {
+      type: "application/json"
+    }))
+
+    if (payment.file) {
+      formData.append("file", payment.file)
+    }
+
+    const response = await fetch(`${BASE_URL}/new`, {
+      method: "POST",
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al crear el pago");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error creando el pago:", error);
+    throw error;
   }
-  console.log("Payment detail fetched for ID:", id, payment)
-  return new Response(JSON.stringify(payment), {
-    status: 200,
-    headers: { "Content-Type": "application/json" }
-  })
 }
-// MOCKS, LUEGO REEMPLAZAR EL USO POR LOS FETCHS REALES
+
 
 export async function fetchPaymentsById(id: number) {
   try {
@@ -121,14 +146,4 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
     console.error('Error updating payment:', error);
     throw error;
   }
-}
-
-export async function fetchUsersMock(): Promise<Response> {
-
-    return new Response(JSON.stringify(mockPayments), {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
 }

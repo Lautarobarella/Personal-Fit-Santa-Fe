@@ -36,7 +36,7 @@ export default function UploadPage({ params }: UploadPageProps) {
     const resolvedParams = use(params)
     const paymentId = Number(resolvedParams.id)
 
-    console.log("Client ID:", paymentId)
+    console.log("Payment ID:", paymentId)
     const router = useRouter()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { user } = useAuth()
@@ -59,6 +59,7 @@ export default function UploadPage({ params }: UploadPageProps) {
             router.push("/payments")
             return
         }
+        console.log("Loading payment detail for payment ID:", paymentId)
         loadPaymentDetail(paymentId)
     }, [paymentId])
 

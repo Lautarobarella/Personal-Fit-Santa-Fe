@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.IOException;
+
 @RestControllerAdvice
 public class AdviceController {
 
@@ -45,6 +47,30 @@ public class AdviceController {
     public ResponseEntity<ErrorDTO> noActivityWithId(NoActivityWithIdException e) {
         ErrorDTO err = ErrorDTO.builder().code("E-0005").message(e.getMessage()).build();
         return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(value = IOException.class)
+    public ResponseEntity<ErrorDTO> handleIOException(IOException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0006").message("File processing error: " + e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(value = FileSizeException.class)
+    public ResponseEntity<ErrorDTO> handleFileSizeException(FileSizeException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0007").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(value = UnsupportedFileExtension.class)
+    public ResponseEntity<ErrorDTO> handleUnsupportedFileExtension(UnsupportedFileExtension e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0008").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(value = PaymentAlreadyExistsException.class)
+    public ResponseEntity<ErrorDTO> handlePaymentAlreadyExists(PaymentAlreadyExistsException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0009").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.CONFLICT);
     }
 
 }

@@ -17,9 +17,7 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
-    @Column(unique = true)
     private Long confNumber;
-    private String fileUrl; // link o path del comprobante de pago
     private String rejectionReason;
     private Double amount;
     @Enumerated(EnumType.STRING)
@@ -36,5 +34,8 @@ public class Payment {
     private User user;
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "payment_file_id")
+    private PaymentFile paymentFile; // Comprobante de pago asociado
 
 }

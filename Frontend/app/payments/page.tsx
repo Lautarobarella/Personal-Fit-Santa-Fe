@@ -94,7 +94,7 @@ export default function PaymentsPage() {
       case "rejected":
         return "Rechazado"
       case "debtor":
-        return "No pagado"
+        return "Vencido"
       default:
         return status
     }
@@ -124,18 +124,26 @@ export default function PaymentsPage() {
       <MobileHeader
         title="Pagos"
         actions={
-          <div className="flex">
+          <div className="flex gap-x-2">
             {user.role === "admin" ? (
-              <Link href="/payments/verify">
-                <Button size="sm" variant="outline" className="bg-transparent">
-                  <FileCheck className="h-4 w-4 mr-1" />
-                  Verificar ({pendingPayments.length})
-                </Button>
-              </Link>
+              <>
+                <Link href="/payments/verify">
+                  <Button size="sm" variant="outline" className="bg-transparent">
+                    <FileCheck className="h-4 w-4" />
+                    ({pendingPayments.length})
+                  </Button>
+                </Link>
+                <Link href="/payments/new">
+                  <Button size="sm">
+                    <Plus className="h-4 w-4" />
+                    Nuevo
+                  </Button>
+                </Link>
+              </>
             ) : user.role === "client" ? (
               <Link href="/payments/new">
                 <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4" />
                   Nuevo
                 </Button>
               </Link>
@@ -186,9 +194,8 @@ export default function PaymentsPage() {
 
         {/* Payments Tabs */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="pending">Pendientes</TabsTrigger>
-            <TabsTrigger value="debtor">No pagados</TabsTrigger>
             <TabsTrigger value="all">Todos</TabsTrigger>
           </TabsList>
 
@@ -261,46 +268,6 @@ export default function PaymentsPage() {
                       <Eye className="h-4 w-4 mr-2" />
                       Verificar Comprobante
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="debtor" className="space-y-3 mt-4">
-            {overduePayments.map((p) => (
-              <Card key={p.id} className="destructive">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium">{p.clientName}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>{formatMonth(p.createdAt)}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg text-destructive">${p.amount}</div>
-                      <Badge variant="destructive" className="text-xs">
-                        Vencido
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Link href={`/payments/upload/${p.clientId}`}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-transparent"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Subir Comprobante
-                      </Button>
-                    </Link>
                   </div>
                 </CardContent>
               </Card>

@@ -87,7 +87,6 @@ export const mockUsers: UserType[] = [
     lastActivity: new Date("2024-07-05"),
     password: "sofia95",
   },
-<<<<<<< HEAD
   {
     id: 6,
     dni: 31245789,
@@ -259,6 +258,3 @@ export const mockUsers: UserType[] = [
     password: "nacho89"
   }
 ]
-=======
-]
->>>>>>> 5405da87c2febc98f7a1603a4fcf0c9f11a72574

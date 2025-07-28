@@ -28,7 +28,7 @@ public class Activity {
     private Integer duration; // Minutes
     @Enumerated(EnumType.STRING)
     private ActivityStatus status;
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "trainer_id", nullable = false)
     private User trainer;
     @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)

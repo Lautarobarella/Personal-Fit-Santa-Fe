@@ -1,5 +1,12 @@
-import { fetchPaymentDetail, fetchPaymentDetailMock, fetchPayments, fetchPaymentsById, fetchPendingPaymentDetail, updatePayment } from "@/api/payment/paymentsApi"
-import { PaymentType, VerifyPaymentType } from "@/lib/types"
+import {
+  createPayment,
+  fetchPaymentDetail,
+  fetchPayments,
+  fetchPaymentsById,
+  fetchPendingPaymentDetail,
+  updatePayment,
+} from "@/api/payment/paymentsApi"
+import { PaymentType, VerifyPaymentType, NewPaymentInput } from "@/lib/types"
 import { useCallback, useState } from "react"
 
 
@@ -36,7 +43,7 @@ export function usePayment() {
       setPayments(data)
       console.log("Pagos cargados:", data)
     } catch (err) {
-      setError("Error al cargar los clientes")
+      setError("Error al cargar los pagos")
     } finally {
       setLoading(false)
     }
@@ -58,7 +65,21 @@ export function usePayment() {
     }
   }, [])
 
-  
+  // Crear un nuevo pago
+  const createNewPayment = useCallback(async (payment: NewPaymentInput) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await createPayment(payment)
+      console.log("Pago creado:", res)
+      return res
+    } catch (err) {
+      setError("Error al crear el pago")
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   // Cargar pagos pendientes
   const loadPendingPaymentDetail = useCallback(async () => {
@@ -103,10 +124,12 @@ export function usePayment() {
     loadPaymentDetail,
     loadPendingPaymentDetail,
     clearSelectedPayment,
-    setSelectedPayment, // opcional, por si quieres manipular manualmente
+    setSelectedPayment,
     loadPaymentsById,
     updatePaymentStatus,
+    createNewPayment,
   }
+
 
 
 
