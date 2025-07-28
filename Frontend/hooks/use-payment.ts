@@ -22,13 +22,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     enabled: !!userId, // evita cargar si no hay usuario
   })
 
-  const { data: selectedPayment, refetch: refetchPaymentDetail } =
-    useQuery<VerifyPaymentType>({
-      queryKey: ["payment-detail", userId],
-      queryFn: () => fetchPaymentDetail(userId ?? 0),
-      enabled: false,
-    })
-
+  const fetchSinglePayment = async (paymentId: number) => {
+    return await fetchPaymentDetail(paymentId)
+  }
   const createPaymentMutation = useMutation({
     mutationFn: (data: NewPaymentInput) => createPayment(data),
     onSuccess: () => {
@@ -55,9 +51,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     payments,
     isLoading,
     error,
-    selectedPayment,
-    refetchPaymentDetail,
     createNewPayment: createPaymentMutation.mutateAsync,
     updatePaymentStatus: updatePaymentMutation.mutateAsync,
+    fetchSinglePayment,
   }
 }

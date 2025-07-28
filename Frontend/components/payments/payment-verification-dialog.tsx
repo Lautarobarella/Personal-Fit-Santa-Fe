@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
+import { VerifyPaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
@@ -29,17 +30,23 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
   const [isVerifying, setIsVerifying] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
+  const [selectedPayment, setSelectedPayment] = useState<VerifyPaymentType | null>(null)
+
   const { toast } = useToast()
   const { user } = useAuth()
   const {
-    selectedPayment,
-    refetchPaymentDetail,
+    fetchSinglePayment,
     updatePaymentStatus,
   } = usePayment()
 
   useEffect(() => {
-    refetchPaymentDetail()
-  }, [paymentId, refetchPaymentDetail])
+    const fetch = async () => {
+      const payment = await fetchSinglePayment(paymentId)
+      setSelectedPayment(payment)
+    }
+
+    if (open) fetch()
+  }, [open, paymentId, fetchSinglePayment])
 
 
   const formatDateTime = (date: Date) => {
@@ -68,24 +75,22 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
     setIsVerifying(true)
 
     try {
-      await updatePaymentStatus(selectedPayment.id, status, status === "rejected" ? rejectionReason : undefined)
+      await updatePaymentStatus({
+        id: selectedPayment.id,
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason : undefined,
+      })
+
 
       toast({
         title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
         description: `El pago de ${selectedPayment?.clientName} ha sido ${status === "paid" ? "aprobado" : "rechazado"}`,
       })
 
-      // REFRESCAR LA LISTA DE PAGOS
-      if (user?.role === "admin") {
-        await loadPayments();
-      } else if (user?.role === "client") {
-        await loadPaymentsById(user.id);
-      }
-
 
       onOpenChange(false)
       setRejectionReason("")
-      clearSelectedPayment()
+      // clearSelectedPayment()
     } catch (error) {
       toast({
         title: "Error",

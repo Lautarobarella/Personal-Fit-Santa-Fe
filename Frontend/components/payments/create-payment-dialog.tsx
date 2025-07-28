@@ -57,16 +57,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [notes, setNotes] = useState("")
-    const {
-        isLoading,
-        error
-    } = usePayment()
 
-
-
-    if (isLoading) {
-        return <p className="text-center py-10">Cargando...</p>
-    }
 
     // Generate month options (current month and next 12 months)
     const generateMonthOptions = () => {

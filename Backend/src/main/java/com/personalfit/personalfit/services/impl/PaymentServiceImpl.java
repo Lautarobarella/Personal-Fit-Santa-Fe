@@ -126,21 +126,6 @@ public class PaymentServiceImpl implements IPaymentService {
                 .toList();
     }
 
-    // @Override
-    // public void putPayment(Long id) {
-    // Optional<Payment> p = paymentRepository.findById(id);
-    // if(p.isEmpty()) throw new NoPaymentWithIdException();
-
-    // Payment payment = p.get();
-    // payment.setStatus(PaymentStatus.pending);
-    // payment.setUpdatedAt(LocalDateTime.now());
-    // try {
-    // paymentRepository.save(payment);
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // }
-    // }
-
     @Override
     public void updatePaymentStatus(Long id, InUpdatePaymentStatusDTO dto) {
         Optional<Payment> optional = paymentRepository.findById(id);
@@ -169,46 +154,6 @@ public class PaymentServiceImpl implements IPaymentService {
         payment.setUpdatedAt(LocalDateTime.now());
         paymentRepository.save(payment);
     }
-
-    // @Override
-    // public void verifyPayment(Long id, Long userId) {
-    // Optional<Payment> p = paymentRepository.findById(id);
-    // if(p.isEmpty()) throw new NoPaymentWithIdException();
-
-    // Optional<User> user = userService.getUserById(userId);
-    // if(user.isEmpty()) throw new NoUserWithIdException();
-
-    // Payment payment = p.get();
-    // payment.setStatus(PaymentStatus.paid);
-    // payment.setVerifiedBy(user.get());
-    // payment.setVerifiedAt(LocalDateTime.now());
-    // payment.setUpdatedAt(LocalDateTime.now());
-    // try {
-    // paymentRepository.save(payment);
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // }
-
-    // }
-
-    // @Override
-    // public void rejectPayment(Long id, RejectPaymentDTO reason) {
-    // Optional<Payment> p = paymentRepository.findById(id);
-    // if(p.isEmpty()) throw new NoPaymentWithIdException();
-
-    // Optional<User> user = userService.getUserById(reason.getUserId());
-    // if(user.isEmpty()) throw new NoUserWithIdException();
-
-    // Payment payment = p.get();
-    // payment.setStatus(PaymentStatus.rejected);
-    // payment.setRejectionReason(reason.getReason());
-    // payment.setUpdatedAt(LocalDateTime.now());
-    // try {
-    // paymentRepository.save(payment);
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // }
-    // }
 
     @Transactional
     @Override
