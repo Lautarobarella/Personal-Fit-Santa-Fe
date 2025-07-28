@@ -33,7 +33,6 @@ export default function NewPaymentPage() {
 
       router.push("/payments")
     } catch (error) {
-      console.log("Error al crear el pago:", error)
       toast({
         title: "Error",
         description: "No se pudo crear el pago",

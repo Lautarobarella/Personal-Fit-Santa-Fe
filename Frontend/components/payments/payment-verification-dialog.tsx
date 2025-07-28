@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -9,14 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { Calendar, User, DollarSign, FileImage, Loader2, Check, X, Clock } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
+import { useToast } from "@/hooks/use-toast"
+import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useAuth } from "../providers/auth-provider"
 
 interface PaymentVerificationDialogProps {
   open: boolean
@@ -29,17 +30,16 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
   const [isVerifying, setIsVerifying] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const { toast } = useToast()
+  const { user } = useAuth()
   const {
     selectedPayment,
-    loadPaymentDetail,
-    clearSelectedPayment,
+    refetchPaymentDetail,
     updatePaymentStatus,
   } = usePayment()
 
-
   useEffect(() => {
-    loadPaymentDetail(paymentId)
-  }, [paymentId, loadPaymentDetail])
+    refetchPaymentDetail()
+  }, [paymentId, refetchPaymentDetail])
 
 
   const formatDateTime = (date: Date) => {
@@ -52,10 +52,10 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
     }).format(new Date(date))
   }
 
-  const handleVerify = async (status: "paid" | "rejected") => {
-    
-    if(selectedPayment?.id === undefined) return null
-    
+  const handleStatusUpdate = async (status: "paid" | "rejected") => {
+
+    if (selectedPayment?.id === undefined) return null
+
     if (status === "rejected" && !rejectionReason.trim()) {
       toast({
         title: "Error",
@@ -74,6 +74,14 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
         title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
         description: `El pago de ${selectedPayment?.clientName} ha sido ${status === "paid" ? "aprobado" : "rechazado"}`,
       })
+
+      // REFRESCAR LA LISTA DE PAGOS
+      if (user?.role === "admin") {
+        await loadPayments();
+      } else if (user?.role === "client") {
+        await loadPaymentsById(user.id);
+      }
+
 
       onOpenChange(false)
       setRejectionReason("")
@@ -120,7 +128,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
   }
 
   return (
-     <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl ">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -246,14 +254,14 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
             Cancelar
           </Button>
 
-          {selectedPayment.status === "pending" && selectedPayment.receiptUrl && (
+          {selectedPayment.status === "pending" && (
             <>
-              <Button variant="destructive" onClick={() => handleVerify("rejected")} disabled={isVerifying}>
+              <Button variant="destructive" onClick={() => handleStatusUpdate("rejected")} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <X className="mr-2 h-4 w-4" />
                 Rechazar
               </Button>
-              <Button onClick={() => handleVerify("paid")} disabled={isVerifying}>
+              <Button onClick={() => handleStatusUpdate("paid")} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Check className="mr-2 h-4 w-4" />
                 Aprobar
@@ -263,6 +271,6 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    
+
   )
 }

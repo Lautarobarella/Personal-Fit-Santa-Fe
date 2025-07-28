@@ -1,6 +1,7 @@
 package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
+import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.dto.RejectPaymentDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
@@ -40,15 +41,17 @@ public class PaymentServiceImpl implements IPaymentService {
     public void registerPayment(InCreatePaymentDTO newPayment) {
 
         Optional<User> user = userService.getUserById(newPayment.getClientId());
-        if (user.isEmpty()) throw new NoUserWithIdException();
-//        Optional<PaymentFile> pFile = paymentFileService.getPaymentFile(newPayment.getFileId());
-//        if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
+        if (user.isEmpty())
+            throw new NoUserWithIdException();
+        // Optional<PaymentFile> pFile =
+        // paymentFileService.getPaymentFile(newPayment.getFileId());
+        // if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
 
         Payment payment = Payment.builder()
                 .user(user.get())
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
-//                .paymentFile(pFile.get())
+                // .paymentFile(pFile.get())
                 .methodType(newPayment.getMethodType())
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMonths(1))
@@ -82,7 +85,8 @@ public class PaymentServiceImpl implements IPaymentService {
     public VerifyPaymentTypeDTO getVerifyPaymentTypeDto(Long id) {
         Optional<Payment> payment = paymentRepository.findById(id);
 
-        if(payment.isEmpty()) return null; // TODO handle this case properly
+        if (payment.isEmpty())
+            return null; // TODO handle this case properly
 
         VerifyPaymentTypeDTO paymentTypeDTO = VerifyPaymentTypeDTO.builder()
                 .id(payment.get().getId())
@@ -102,7 +106,8 @@ public class PaymentServiceImpl implements IPaymentService {
     public List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id) {
         Optional<User> user = userService.getUserById(id);
 
-        if(user.isEmpty()) throw new NoUserWithIdException();
+        if (user.isEmpty())
+            throw new NoUserWithIdException();
 
         return user.get().getPayments().stream()
                 .map(payment -> PaymentTypeDTO.builder()
@@ -117,63 +122,93 @@ public class PaymentServiceImpl implements IPaymentService {
                         .rejectionReason(payment.getRejectionReason())
                         .updatedAt(payment.getUpdatedAt())
                         .expiresAt(payment.getExpiresAt())
-                        .build()).toList();
+                        .build())
+                .toList();
     }
+
+    // @Override
+    // public void putPayment(Long id) {
+    // Optional<Payment> p = paymentRepository.findById(id);
+    // if(p.isEmpty()) throw new NoPaymentWithIdException();
+
+    // Payment payment = p.get();
+    // payment.setStatus(PaymentStatus.pending);
+    // payment.setUpdatedAt(LocalDateTime.now());
+    // try {
+    // paymentRepository.save(payment);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // }
+    // }
 
     @Override
-    public void setPaymentPending(Long id) {
-        Optional<Payment> p = paymentRepository.findById(id);
-        if(p.isEmpty()) throw new NoPaymentWithIdException();
-
-        Payment payment = p.get();
-        payment.setStatus(PaymentStatus.pending);
-        payment.setUpdatedAt(LocalDateTime.now());
-        try {
-            paymentRepository.save(payment);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void verifyPayment(Long id, Long userId) {
-        Optional<Payment> p = paymentRepository.findById(id);
-        if(p.isEmpty()) throw new NoPaymentWithIdException();
-
-        Optional<User> user = userService.getUserById(userId);
-        if(user.isEmpty()) throw new NoUserWithIdException();
-
-        Payment payment = p.get();
-        payment.setStatus(PaymentStatus.approved);
-        payment.setVerifiedBy(user.get());
-        payment.setVerifiedAt(LocalDateTime.now());
-        payment.setUpdatedAt(LocalDateTime.now());
-        try {
-            paymentRepository.save(payment);
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void updatePaymentStatus(Long id, InUpdatePaymentStatusDTO dto) {
+        Optional<Payment> optional = paymentRepository.findById(id);
+        if (optional.isEmpty()) {
+            throw new NoPaymentWithIdException();
         }
 
-    }
+        Payment payment = optional.get();
 
-    @Override
-    public void rejectPayment(Long id, RejectPaymentDTO reason) {
-        Optional<Payment> p = paymentRepository.findById(id);
-        if(p.isEmpty()) throw new NoPaymentWithIdException();
-
-        Optional<User> user = userService.getUserById(reason.getUserId());
-        if(user.isEmpty()) throw new NoUserWithIdException();
-
-        Payment payment = p.get();
-        payment.setStatus(PaymentStatus.rejected);
-        payment.setRejectionReason(reason.getReason());
-        payment.setUpdatedAt(LocalDateTime.now());
-        try {
-            paymentRepository.save(payment);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (dto.getStatus() == null) {
+            throw new IllegalArgumentException("El estado no puede ser null");
         }
+
+        switch (dto.getStatus().toLowerCase()) {
+            case "paid":
+                payment.setStatus(PaymentStatus.paid);
+                break;
+            case "rejected":
+                payment.setStatus(PaymentStatus.rejected);
+                payment.setRejectionReason(dto.getRejectionReason()); // puede ser null o ""
+                break;
+            default:
+                throw new IllegalArgumentException("Estado inválido: " + dto.getStatus());
+        }
+
+        payment.setUpdatedAt(LocalDateTime.now());
+        paymentRepository.save(payment);
     }
+
+    // @Override
+    // public void verifyPayment(Long id, Long userId) {
+    // Optional<Payment> p = paymentRepository.findById(id);
+    // if(p.isEmpty()) throw new NoPaymentWithIdException();
+
+    // Optional<User> user = userService.getUserById(userId);
+    // if(user.isEmpty()) throw new NoUserWithIdException();
+
+    // Payment payment = p.get();
+    // payment.setStatus(PaymentStatus.paid);
+    // payment.setVerifiedBy(user.get());
+    // payment.setVerifiedAt(LocalDateTime.now());
+    // payment.setUpdatedAt(LocalDateTime.now());
+    // try {
+    // paymentRepository.save(payment);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // }
+
+    // }
+
+    // @Override
+    // public void rejectPayment(Long id, RejectPaymentDTO reason) {
+    // Optional<Payment> p = paymentRepository.findById(id);
+    // if(p.isEmpty()) throw new NoPaymentWithIdException();
+
+    // Optional<User> user = userService.getUserById(reason.getUserId());
+    // if(user.isEmpty()) throw new NoUserWithIdException();
+
+    // Payment payment = p.get();
+    // payment.setStatus(PaymentStatus.rejected);
+    // payment.setRejectionReason(reason.getReason());
+    // payment.setUpdatedAt(LocalDateTime.now());
+    // try {
+    // paymentRepository.save(payment);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // }
+    // }
 
     @Transactional
     @Override
@@ -186,7 +221,8 @@ public class PaymentServiceImpl implements IPaymentService {
         if (!(file == null || file.isEmpty())) {
             idFile = Optional.of(paymentFileService.uploadFile(file));
             pFile = paymentFileService.getPaymentFile(idFile.get());
-            if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
+            if (pFile.isEmpty())
+                throw new RuntimeException("Payment file not found");
         }
 
         Payment payment = Payment.builder()
@@ -241,4 +277,6 @@ public class PaymentServiceImpl implements IPaymentService {
         return true;
 
     }
+
+
 }

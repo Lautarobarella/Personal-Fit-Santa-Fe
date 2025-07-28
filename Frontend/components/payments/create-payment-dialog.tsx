@@ -47,7 +47,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     oneMonthLater.setDate(Math.min(today.getDate(), maxDay))
     const dueDateStr = oneMonthLater.toISOString().split("T")[0]
 
-    const [selectedMonth, setSelectedMonth] = useState(startDateStr)
+    const [startDate, setStartDate] = useState(startDateStr)
     const [dueDate, setDueDate] = useState(dueDateStr)
 
     const [amount, setAmount] = useState("")
@@ -58,13 +58,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [notes, setNotes] = useState("")
     const {
-        loading,
+        isLoading,
         error
     } = usePayment()
 
 
 
-    if (loading) {
+    if (isLoading) {
         return <p className="text-center py-10">Cargando...</p>
     }
 
@@ -123,7 +123,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!selectedClient.trim() || !selectedMonth || !amount || !dueDate) {
+        if (!selectedClient.trim() || !startDate || !amount || !dueDate) {
             toast({
                 title: "Error",
                 description: "Todos los campos son requeridos",
@@ -171,14 +171,14 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             await onCreatePayment({
                 clientDni: clientIdParsed,
                 amount: amountNum,
-                createdAt: selectedMonth,
+                createdAt: startDate,
                 expiresAt: dueDate,
                 file: selectedFile ?? undefined,
             })
 
             // Reset form
             setSelectedClient("")
-            setSelectedMonth("")
+            setStartDate("")
             setAmount("")
             setDueDate("")
 

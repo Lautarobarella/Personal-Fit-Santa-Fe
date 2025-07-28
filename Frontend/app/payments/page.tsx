@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usePayment } from "@/hooks/use-payment"
-import { Calendar, DollarSign, Eye, FileCheck, Plus, Search, Upload, User } from "lucide-react"
+import { Calendar, DollarSign, Eye, FileCheck, Plus, Search, User } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -23,11 +23,11 @@ export default function PaymentsPage() {
   }>({ open: false, paymentId: null })
   const {
     payments,
-    loading,
+    isLoading,
     error,
-    loadPayments,
-    loadPaymentsById,
-  } = usePayment()
+    updatePaymentStatus,
+    createNewPayment,
+  } = usePayment(user?.id, user?.role === "admin")
 
   useEffect(() => {
     if (user?.role === "admin") {
@@ -259,7 +259,7 @@ export default function PaymentsPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
+                    {user?.role === "admin" && <Button
                       variant="outline"
                       size="sm"
                       className="flex-1 bg-transparent"
@@ -267,7 +267,7 @@ export default function PaymentsPage() {
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Verificar Comprobante
-                    </Button>
+                    </Button>}
                   </div>
                 </CardContent>
               </Card>
