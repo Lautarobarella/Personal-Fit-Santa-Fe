@@ -2,7 +2,9 @@ package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
+import com.personalfit.personalfit.dto.RejectPaymentDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
+import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
@@ -116,5 +118,60 @@ public class PaymentServiceImpl implements IPaymentService {
                         .updatedAt(payment.getUpdatedAt())
                         .expiresAt(payment.getExpiresAt())
                         .build()).toList();
+    }
+
+    @Override
+    public void setPaymentPending(Long id) {
+        Optional<Payment> p = paymentRepository.findById(id);
+        if(p.isEmpty()) throw new NoPaymentWithIdException();
+
+        Payment payment = p.get();
+        payment.setStatus(PaymentStatus.pending);
+        payment.setUpdatedAt(LocalDateTime.now());
+        try {
+            paymentRepository.save(payment);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void verifyPayment(Long id, Long userId) {
+        Optional<Payment> p = paymentRepository.findById(id);
+        if(p.isEmpty()) throw new NoPaymentWithIdException();
+
+        Optional<User> user = userService.getUserById(userId);
+        if(user.isEmpty()) throw new NoUserWithIdException();
+
+        Payment payment = p.get();
+        payment.setStatus(PaymentStatus.approved);
+        payment.setVerifiedBy(user.get());
+        payment.setVerifiedAt(LocalDateTime.now());
+        payment.setUpdatedAt(LocalDateTime.now());
+        try {
+            paymentRepository.save(payment);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void rejectPayment(Long id, RejectPaymentDTO reason) {
+        Optional<Payment> p = paymentRepository.findById(id);
+        if(p.isEmpty()) throw new NoPaymentWithIdException();
+
+        Optional<User> user = userService.getUserById(reason.getUserId());
+        if(user.isEmpty()) throw new NoUserWithIdException();
+
+        Payment payment = p.get();
+        payment.setStatus(PaymentStatus.rejected);
+        payment.setRejectionReason(reason.getReason());
+        payment.setUpdatedAt(LocalDateTime.now());
+        try {
+            paymentRepository.save(payment);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
