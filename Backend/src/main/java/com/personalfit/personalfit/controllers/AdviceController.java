@@ -67,4 +67,10 @@ public class AdviceController {
         return new ResponseEntity<>(err, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(value = PaymentAlreadyExistsException.class)
+    public ResponseEntity<ErrorDTO> handlePaymentAlreadyExists(PaymentAlreadyExistsException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0009").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.CONFLICT);
+    }
+
 }

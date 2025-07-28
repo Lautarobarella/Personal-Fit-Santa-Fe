@@ -146,4 +146,41 @@ public class UserServiceImpl implements IUserService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public void updateUserStatus(User user, UserStatus status) {
+        if (user == null) throw new NoUserWithIdException();
+
+        user.setStatus(status);
+        userRepository.save(user);
+    }
+
+    // batch function to save multiple users
+    @Override
+    public Boolean saveAll(List<InCreateUserDTO> newUsers) {
+
+        for (InCreateUserDTO newUser : newUsers) {
+            Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
+
+            if (user.isPresent())
+                throw new UserDniAlreadyExistsException();
+
+            User userToCreate = new User();
+            userToCreate.setDni(Integer.parseInt(newUser.getDni()));
+            userToCreate.setFirstName(newUser.getFirstName());
+            userToCreate.setLastName(newUser.getLastName());
+            userToCreate.setEmail(newUser.getEmail());
+            userToCreate.setPhone(newUser.getPhone());
+            userToCreate.setRole(newUser.getRole());
+            userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
+                    newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
+            userToCreate.setJoinDate(LocalDate.now());
+            userToCreate.setAddress(newUser.getAddress());
+            userToCreate.setBirthDate(newUser.getBirthDate());
+            userToCreate.setPassword(newUser.getPassword());
+            userToCreate.setStatus(UserStatus.active);
+            userRepository.save(userToCreate);
+        }
+        return true;
+    }
+
 }

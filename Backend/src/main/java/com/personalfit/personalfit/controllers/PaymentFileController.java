@@ -32,5 +32,4 @@ public class PaymentFileController {
                 .body(fileBytes);
     }
 
-
 }

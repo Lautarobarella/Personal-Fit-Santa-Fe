@@ -6,6 +6,7 @@ import com.personalfit.personalfit.dto.RejectPaymentDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
 import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
+import com.personalfit.personalfit.exceptions.PaymentAlreadyExistsException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
 import com.personalfit.personalfit.models.User;
@@ -14,10 +15,12 @@ import com.personalfit.personalfit.services.IPaymentFileService;
 import com.personalfit.personalfit.services.IPaymentService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.PaymentStatus;
+import com.personalfit.personalfit.utils.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -38,14 +41,14 @@ public class PaymentServiceImpl implements IPaymentService {
 
         Optional<User> user = userService.getUserById(newPayment.getClientId());
         if (user.isEmpty()) throw new NoUserWithIdException();
-        Optional<PaymentFile> pFile = paymentFileService.getPaymentFile(newPayment.getFileId());
-        if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
+//        Optional<PaymentFile> pFile = paymentFileService.getPaymentFile(newPayment.getFileId());
+//        if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
 
         Payment payment = Payment.builder()
                 .user(user.get())
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
-                .paymentFile(pFile.get())
+//                .paymentFile(pFile.get())
                 .methodType(newPayment.getMethodType())
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMonths(1))
@@ -68,9 +71,8 @@ public class PaymentServiceImpl implements IPaymentService {
                 .createdAt(payment.getCreatedAt())
                 .amount(payment.getAmount())
                 .status(payment.getStatus())
-                .receiptUrl(payment.getFileUrl())
                 .verifiedAt(payment.getVerifiedAt())
-                .verifiedBy(payment.getVerifiedBy() != null ? payment.getUser().getFirstName() + " " + payment.getUser().getLastName() : null)
+                .verifiedBy(payment.getVerifiedBy() != null ? payment.getUser().getFullName() : null)
                 .rejectionReason(payment.getRejectionReason())
                 .updatedAt(payment.getUpdatedAt())
                 .expiresAt(payment.getExpiresAt())
@@ -91,7 +93,6 @@ public class PaymentServiceImpl implements IPaymentService {
                 .status(payment.get().getStatus())
                 .method(payment.get().getMethodType())
                 .expiresAt(payment.get().getExpiresAt())
-                .receiptUrl(payment.get().getFileUrl())
                 .build();
 
         return paymentTypeDTO;
@@ -111,7 +112,6 @@ public class PaymentServiceImpl implements IPaymentService {
                         .createdAt(payment.getCreatedAt())
                         .amount(payment.getAmount())
                         .status(payment.getStatus())
-                        .receiptUrl(payment.getFileUrl())
                         .verifiedAt(payment.getVerifiedAt())
                         .verifiedBy(payment.getVerifiedBy() != null ? payment.getUser().getFullName() : null)
                         .rejectionReason(payment.getRejectionReason())
@@ -173,5 +173,72 @@ public class PaymentServiceImpl implements IPaymentService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Transactional
+    @Override
+    public void registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file) {
+
+        User user = userService.getUserByDni(newPayment.getClientDni());
+
+        Optional<Long> idFile = Optional.empty();
+        Optional<PaymentFile> pFile = Optional.empty();
+        if (!(file == null || file.isEmpty())) {
+            idFile = Optional.of(paymentFileService.uploadFile(file));
+            pFile = paymentFileService.getPaymentFile(idFile.get());
+            if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
+        }
+
+        Payment payment = Payment.builder()
+                .user(user)
+                .confNumber(newPayment.getConfNumber())
+                .amount(newPayment.getAmount())
+                .paymentFile(pFile.orElse(null))
+                .methodType(newPayment.getMethodType())
+                .createdAt(newPayment.getCreatedAt())
+                .expiresAt(newPayment.getExpiresAt())
+                .status(newPayment.getPaymentStatus())
+                .build();
+
+        userService.updateUserStatus(user, UserStatus.active); // Si el usuario pagó, se pone en activo
+
+        try {
+            paymentRepository.save(payment);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    // batch function to save multiple users
+    @Override
+    public Boolean saveAll(List<InCreatePaymentDTO> newPayments) {
+
+        for (InCreatePaymentDTO newPayment : newPayments) {
+            Optional<User> user = userService.getUserById(newPayment.getClientId());
+
+            if (user.isEmpty())
+                throw new NoUserWithIdException();
+
+            Payment payment = Payment.builder()
+                    .user(user.get())
+                    .confNumber(newPayment.getConfNumber())
+                    .amount(newPayment.getAmount())
+                    .methodType(newPayment.getMethodType())
+                    .createdAt(LocalDateTime.now())
+                    .expiresAt(LocalDateTime.now().plusMonths(1))
+                    .status(PaymentStatus.debtor)
+                    .build();
+
+            try {
+                paymentRepository.save(payment);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
+
     }
 }

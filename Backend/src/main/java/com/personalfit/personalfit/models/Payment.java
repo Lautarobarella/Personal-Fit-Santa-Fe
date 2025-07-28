@@ -17,9 +17,7 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
-    @Column(unique = true)
     private Long confNumber;
-    private String fileUrl; // link o path del comprobante de pago
     private String rejectionReason;
     private Double amount;
     @Enumerated(EnumType.STRING)

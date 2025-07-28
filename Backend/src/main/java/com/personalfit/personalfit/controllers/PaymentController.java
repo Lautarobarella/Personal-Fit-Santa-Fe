@@ -5,9 +5,14 @@ import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.dto.RejectPaymentDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
 import com.personalfit.personalfit.services.IPaymentService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,11 +23,23 @@ public class PaymentController {
     @Autowired
     private IPaymentService paymentService;
 
+    // DEPRECATED
     @PostMapping
     public ResponseEntity<Void> newPayment(@RequestBody InCreatePaymentDTO payment) {
         paymentService.registerPayment(payment);
         return ResponseEntity.created(null).build();
     }
+
+    @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> newPaymentWithFile(
+            @RequestPart("payment") InCreatePaymentDTO payment,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
+
+        paymentService.registerPaymentWithFile(payment, file);
+        return ResponseEntity.created(null).build();
+    }
+
+
 
     @GetMapping("/getAll")
     public ResponseEntity<List<PaymentTypeDTO>> getAllPayments() {
@@ -55,6 +72,14 @@ public class PaymentController {
     public ResponseEntity<Void> rejectPayment(@PathVariable Long id, @RequestBody RejectPaymentDTO reason) {
         paymentService.rejectPayment(id, reason);
         return ResponseEntity.noContent().build();
+    }
+
+    // batch function to save multiple payments
+    @Transactional
+    @PostMapping("/batch")
+    public ResponseEntity<Void> savePayments(@Valid @RequestBody List<InCreatePaymentDTO> newPayments) {
+        paymentService.saveAll(newPayments);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
 }

@@ -11,6 +11,7 @@ import com.personalfit.personalfit.repository.IPaymentRepository;
 import com.personalfit.personalfit.utils.PaymentStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,4 +25,6 @@ public interface IPaymentService {
     void setPaymentPending(Long id);
     void verifyPayment(Long id, Long userId);
     void rejectPayment(Long id, RejectPaymentDTO reason);
+    void registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file);
+    Boolean saveAll(List<InCreatePaymentDTO> newPayments);
 }
