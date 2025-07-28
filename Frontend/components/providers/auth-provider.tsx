@@ -3,10 +3,10 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "@/lib/types"
+import type { UserType } from "@/lib/types"
 
 interface AuthContextType {
-  user: User | null
+  user: UserType | null
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   loading: boolean
@@ -15,7 +15,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

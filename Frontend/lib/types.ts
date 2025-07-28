@@ -1,58 +1,184 @@
-export type UserRole = "administrator" | "trainer" | "client"
+export type UserRole = "admin" | "trainer" | "client"
+export type ActivityStatus = "active" | "cancelled" | "completed"
+export type ClientStatus = "present" | "absent" | "pending" | "late"
+export type AttendanceStatus = "present" | "absent" | "late"
+export type MethodType = "cash" | "card" | "transfer"
+export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
+export type NotificationType = "success" | "info" | "warning" | "error"
+export type NotificationCategoryType = "payment" | "client" | "enrollment" | "activity"
 
-export interface User {
-  id: string
-  name: string
+export interface UserDetailInfo {
+  id: number
+  dni: number
+  firstName: string
+  lastName: string
   email: string
+  phone: string
+  age: number
+  birthDate: Date
+  address: string
   role: UserRole
+  status: "active" | "inactive"
+  joinDate: Date
+  lastActivity: Date | null
+  password: string
   avatar?: string
-  phone?: string
-  createdAt: Date
+  listActivity: UserActivityDetails[]
+  listPayments: PaymentUserDetails[]
 }
 
-export interface Activity {
+interface UserActivityDetails {
+  id: number
+  name: string
+  trainerName: string
+  date: Date
+  activityStatus: ActivityStatus
+  clientStatus: ClientStatus // esto es la asistencia del cliente
+}
+
+interface PaymentUserDetails {
+  id: number
+  date: Date
+  amount: number
+  status: PaymentStatus
+  method: MethodType
+}
+
+export interface UserType {
+  id: number
+  dni: number
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  age: number
+  birthDate: Date
+  address: string
+  role: UserRole
+  status: "active" | "inactive"
+  joinDate: Date
+  activitiesCount: number
+  lastActivity: Date | null
+  password: string
+  avatar?: string
+}
+
+export interface UserFormType {
+  dni: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  birthDate: string
+  address: string
+  role: UserRole
+  joinDate: string
+  password: string
+  avatar?: string
+}
+
+export interface ActivityDetailInfo {
   id: string
   name: string
   description: string
-  trainer: string
+  location: string
   trainerId: string
+  trainerName: string
   date: Date
   duration: number
   maxParticipants: number
   currentParticipants: number
-  price: number
-  status: "active" | "cancelled" | "completed"
-  participants: string[]
+  participants: ActivityUserDetails[]
+  status: ActivityStatus
+  createdBy: string
+  lastModifiedBy?: string
+  createdAt: Date
+  lastModified?: Date
+  notes?: string
 }
 
-export interface Payment {
-  id: string
-  clientId: string
-  clientName: string
-  activityId: string
-  activityName: string
-  amount: number
+interface ActivityUserDetails {
+  id: number
+  firstName: string
+  lastName: string
+  createdAt: Date
+  status: ClientStatus
+}
+
+export interface ActivityType {
+  id: number
+  name: string
+  description: string
+  location: string
+  trainerName: string
   date: Date
-  status: "pending" | "completed" | "failed"
-  method: "cash" | "card" | "transfer"
+  duration: number
+  participants: number[]
+  maxParticipants: number
+  currentParticipants: number
+  status: ActivityStatus
+}
+
+export interface ActivityFormType {
+  name: string
+  description: string
+  location: string
+  trainerId: string
+  date: string
+  time: string
+  duration: string
+  maxParticipants: string
 }
 
 export interface Attendance {
   id: string
-  clientId: string
-  clientName: string
   activityId: string
-  activityName: string
-  date: Date
-  status: "present" | "absent" | "late"
+  userId: string
+  createdAt: Date
+  status: AttendanceStatus
+}
+
+export interface VerifyPaymentType {
+  id: number
+  clientId: number
+  clientName: string
+  amount: number
+  createdAt: Date
+  expiresAt: Date
+  status: PaymentStatus
+  receiptUrl?: string
+  method: MethodType
+  rejectionReason?: string
+}
+
+export interface PaymentType {
+  id: number
+  clientId: number
+  clientName: string
+  amount: number
+  createdAt: Date
+  expiresAt: Date
+  status: PaymentStatus
+  verifiedAt?: Date
+  rejectionReason?: string
 }
 
 export interface Notification {
-  id: string
+  id: number
   title: string
   message: string
-  type: "info" | "success" | "warning" | "error"
+  infoType: NotificationType
   read: boolean
+  archived: boolean
   createdAt: Date
-  userId: string
+  notificationCategory: NotificationCategoryType
+}
+
+export interface NewPaymentInput {
+  clientDni: number
+  amount: number
+  createdAt: string
+  expiresAt: string
+  paymentStatus: "pending" | "paid"
+  file?: File
 }

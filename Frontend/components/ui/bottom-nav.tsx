@@ -16,17 +16,22 @@ export function BottomNav() {
     const baseItems = [
       { icon: Home, label: "Inicio", href: "/dashboard" },
       { icon: Calendar, label: "Actividades", href: "/activities" },
+      { icon: CreditCard, label: "Pagos", href: "/payments" },
     ]
 
-    if (user.role === "administrator" || user.role === "trainer") {
+    if (user.role === "admin") {
       baseItems.push(
         { icon: Users, label: "Clientes", href: "/clients" },
-        { icon: CreditCard, label: "Pagos", href: "/payments" },
+        
+      )
+    }
+    else if (user.role === "trainer") {
+      baseItems.push(
+        { icon: Users, label: "Clientes", href: "/clients" },
       )
     }
 
     baseItems.push({ icon: Settings, label: "Config", href: "/settings" })
-
     return baseItems
   }
 

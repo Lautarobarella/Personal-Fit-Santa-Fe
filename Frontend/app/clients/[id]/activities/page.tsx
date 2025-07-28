@@ -75,7 +75,7 @@ export default function ClientActivitiesPage({ params }: { params: { id: string 
   const [client] = useState(mockClient)
   const [activities] = useState(mockActivities)
 
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
     return <div>No tienes permisos para ver esta información</div>
   }
 

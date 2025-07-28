@@ -80,7 +80,7 @@ export default function ClientPaymentsPage({ params }: { params: { id: string } 
   const [client] = useState(mockClient)
   const [payments] = useState(mockPayments)
 
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
     return <div>No tienes permisos para ver esta información</div>
   }
 
@@ -146,7 +146,7 @@ export default function ClientPaymentsPage({ params }: { params: { id: string } 
         showBack
         onBack={() => router.back()}
         actions={
-          user.role === "administrator" ? (
+          user.role === "admin" ? (
             <Button size="sm">
               <Plus className="h-4 w-4 mr-1" />
               Nuevo

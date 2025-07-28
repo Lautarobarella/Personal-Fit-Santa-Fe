@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -14,56 +14,45 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, Clock, Users, Loader2 } from "lucide-react"
-
-interface ActivityForm {
-  name: string
-  description: string
-  date: string
-  time: string
-  duration: number
-  maxParticipants: number
-  trainer: string
-}
+import { ActivityFormType } from "@/lib/types"
+import { useActivities } from "@/hooks/use-activity"
 
 export default function NewActivityPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const { form, setForm, createActivity, loadTrainers, trainers } = useActivities()
+  const [errors, setErrors] = useState<Partial<ActivityFormType>>({})
+  
+  useEffect(() =>{ 
+    loadTrainers()
+  }, [])
 
-  const [form, setForm] = useState<ActivityForm>({
-    name: "",
-    description: "",
-    date: "",
-    time: "",
-    duration: 60,
-    maxParticipants: 10,
-    trainer: user?.role === "trainer" ? user.name : "",
-  })
-
-  const [errors, setErrors] = useState<Partial<ActivityForm>>({})
-
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
     return <div>No tienes permisos para crear actividades</div>
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ActivityForm> = {}
+    const newErrors: Partial<ActivityFormType> = {}
 
+    try {
     if (!form.name.trim()) newErrors.name = "El nombre es requerido"
     if (!form.description.trim()) newErrors.description = "La descripción es requerida"
     if (!form.date) newErrors.date = "La fecha es requerida"
     if (!form.time) newErrors.time = "La hora es requerida"
-    if (form.duration <= 0) newErrors.duration = "La duración debe ser mayor a 0"
-    if (form.maxParticipants <= 0) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainer.trim()) newErrors.trainer = "El entrenador es requerido"
+    if (!form.duration) newErrors.duration = "La duración debe ser mayor a 0"
+    if (!form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
+    if (!form.trainerId.trim()) form.trainerId = user.id.toString()
 
     // Validate date is not in the past
     const selectedDate = new Date(`${form.date}T${form.time}`)
     if (selectedDate <= new Date()) {
       newErrors.date = "La fecha debe ser futura"
     }
-
+    } catch (error) {
+      console.error("Error validating form:", error)
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -76,21 +65,7 @@ export default function NewActivityPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const newActivity = {
-        id: Date.now().toString(),
-        ...form,
-        date: new Date(`${form.date}T${form.time}`),
-        trainerId: user.id,
-        currentParticipants: 0,
-        status: "active" as const,
-        participants: [],
-      }
-
-      console.log("Creating activity:", newActivity)
-
+      createActivity(form)
       toast({
         title: "Actividad creada",
         description: "La actividad ha sido creada exitosamente",
@@ -108,7 +83,7 @@ export default function NewActivityPage() {
     }
   }
 
-  const handleInputChange = (field: keyof ActivityForm, value: string | number) => {
+  const handleInputChange = (field: keyof Partial<ActivityFormType>, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
@@ -158,20 +133,24 @@ export default function NewActivityPage() {
                   {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
-                {user.role === "administrator" && (
+                {user.role === "admin" && (
                   <div className="space-y-2">
-                    <Label htmlFor="trainer">Entrenador asignado</Label>
-                    <Select value={form.trainer} onValueChange={(value) => handleInputChange("trainer", value)}>
-                      <SelectTrigger className={errors.trainer ? "border-destructive" : ""}>
+                    <Label htmlFor="trainerName">Entrenador asignado</Label>
+
+                    <Select value={form.trainerId} onValueChange={(value) => handleInputChange("trainerId", value)}>
+                      <SelectTrigger className={errors.trainerId ? "border-destructive" : ""}>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ana García">Ana García</SelectItem>
-                        <SelectItem value="Carlos López">Carlos López</SelectItem>
-                        <SelectItem value="María Rodríguez">María Rodríguez</SelectItem>
+                      <SelectContent>                    
+                        {trainers.map((trainer) => (
+                            <SelectItem key={trainer.id} value={trainer.id.toString()}>
+                              {trainer.firstName + " " + trainer.lastName}
+                            </SelectItem>
+                        ))}
                       </SelectContent>
-                    </Select>
-                    {errors.trainer && <p className="text-sm text-destructive">{errors.trainer}</p>}
+                    </Select> 
+
+                    {errors.trainerId && <p className="text-sm text-destructive">{errors.trainerId}</p>}
                   </div>
                 )}
               </div>
@@ -214,7 +193,7 @@ export default function NewActivityPage() {
                   <Label htmlFor="duration">Duración (minutos)</Label>
                   <Select
                     value={form.duration.toString()}
-                    onValueChange={(value) => handleInputChange("duration", Number.parseInt(value))}
+                    onValueChange={(value) => handleInputChange("duration", value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -228,6 +207,17 @@ export default function NewActivityPage() {
                     </SelectContent>
                   </Select>
                   {errors.duration && <p className="text-sm text-destructive">{errors.duration}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Ubicación</Label>
+                  <Input
+                    id="location"
+                    value={form.location}
+                    onChange={(e) => handleInputChange("location", e.target.value)}
+                    placeholder="Ej: Gimnasio principal"
+                    className={errors.location ? "border-destructive" : ""}
+                  />
+                  {errors.location && <p className="text-sm text-destructive">{errors.location}</p>}
                 </div>
               </div>
 
