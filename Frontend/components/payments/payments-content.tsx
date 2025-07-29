@@ -42,7 +42,7 @@ export default function PaymentsContent() {
     })
 
     if (!user) return null
- 
+
     const formatMonth = (date: Date) => {
         return new Intl.DateTimeFormat("es-ES", {
             month: "long",
@@ -110,7 +110,9 @@ export default function PaymentsContent() {
                     <div className="flex gap-x-2">
                         {user.role === "admin" ? (
                             <>
-                                <Link href="/payments/verify">
+                                <Link href={pendingPayments.length <= 0 ? '#' : '/payments/verify'}
+                                    className={pendingPayments.length <= 0 ? 'disabled-link' : ''}
+                                    aria-disabled={pendingPayments.length <= 0}>
                                     <Button size="sm" variant="outline" className="bg-transparent">
                                         <FileCheck className="h-4 w-4" />
                                         ({pendingPayments.length})

@@ -261,7 +261,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
           {selectedPayment.status === "pending" && (
             <>
-              <Button variant="destructive" onClick={() => handleStatusUpdate("rejected")} disabled={isVerifying}>
+              <Button variant="secondary" onClick={() => handleStatusUpdate("rejected")} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <X className="mr-2 h-4 w-4" />
                 Rechazar

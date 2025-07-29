@@ -204,9 +204,9 @@ public class PaymentServiceImpl implements IPaymentService {
                     .confNumber(newPayment.getConfNumber())
                     .amount(newPayment.getAmount())
                     .methodType(newPayment.getMethodType())
-                    .createdAt(LocalDateTime.now())
-                    .expiresAt(LocalDateTime.now().plusMonths(1))
-                    .status(PaymentStatus.debtor)
+                    .createdAt(newPayment.getCreatedAt())
+                    .expiresAt(newPayment.getExpiresAt())
+                    .status(PaymentStatus.pending)
                     .build();
 
             try {

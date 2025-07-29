@@ -55,7 +55,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   const createPaymentMutation = useMutation({
     mutationFn: (data: NewPaymentInput) => createPayment(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
     },
   })
 
@@ -70,7 +70,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       rejectionReason?: string
     }) => updatePayment(id, status, rejectionReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
     },
   })
 
