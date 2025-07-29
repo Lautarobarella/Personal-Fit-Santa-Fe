@@ -19,4 +19,6 @@ public class VerifyPaymentTypeDTO {
     private MethodType method;
     private LocalDateTime expiresAt;
     private String receiptUrl;
+    private Long receiptId;
+
 }

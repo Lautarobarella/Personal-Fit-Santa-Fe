@@ -42,7 +42,7 @@ export default function PaymentsContent() {
     })
 
     if (!user) return null
-
+ 
     const formatMonth = (date: Date) => {
         return new Intl.DateTimeFormat("es-ES", {
             month: "long",

@@ -2,13 +2,16 @@ package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
 import com.personalfit.personalfit.dto.InCreateUserDTO;
+import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.dto.UserDetailInfoDTO;
 import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
+import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
+import com.personalfit.personalfit.services.IPaymentService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
@@ -31,7 +34,8 @@ public class UserServiceImpl implements IUserService {
 
         Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
-        if (user.isPresent()) throw new UserDniAlreadyExistsException();
+        if (user.isPresent())
+            throw new UserDniAlreadyExistsException();
 
         User userToCreate = new User();
         userToCreate.setDni(Integer.parseInt(newUser.getDni()));
@@ -55,7 +59,8 @@ public class UserServiceImpl implements IUserService {
     public Boolean deleteUser(Long id) {
         Optional<User> user = userRepository.findById(id);
 
-        if (user.isEmpty()) throw new NoUserWithIdException();
+        if (user.isEmpty())
+            throw new NoUserWithIdException();
 
         try {
             userRepository.delete(user.get());
@@ -64,13 +69,13 @@ public class UserServiceImpl implements IUserService {
             return false;
         }
 
-
         return true;
     }
 
     public User getUserByDni(Integer dni) {
         Optional<User> user = userRepository.findByDni(dni);
-        if (!user.isPresent()) throw new NoUserWithDniException();
+        if (!user.isPresent())
+            throw new NoUserWithDniException();
         return user.get();
     }
 
@@ -91,7 +96,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     public Integer getUserAge(User user) {
-        if (user.getBirthDate() == null) return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
+        if (user.getBirthDate() == null)
+            return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
 
         LocalDate today = LocalDate.now();
         Integer age = today.getYear() - user.getBirthDate().getYear();
@@ -104,10 +110,11 @@ public class UserServiceImpl implements IUserService {
         return age;
     }
 
-    public Optional<User> getUserById(Long id) {
+    public User getUserById(Long id) {
         Optional<User> user = userRepository.findById(id);
-        if (!user.isPresent()) throw new NoUserWithIdException();
-        return userRepository.findById(id);
+        if (user.isEmpty())
+            throw new NoUserWithIdException();
+        return user.get();
     }
 
     public UserDetailInfoDTO createUserDetailInfoDTO(User user) {
@@ -119,7 +126,8 @@ public class UserServiceImpl implements IUserService {
             userDto.getListActivity().add(UserActivityDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
-                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
+                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " "
+                            + attendance.getActivity().getTrainer().getLastName())
                     .date(attendance.getActivity().getDate())
                     .activityStatus(attendance.getActivity().getStatus())
                     .clientStatus(attendance.getAttendance())
@@ -134,7 +142,7 @@ public class UserServiceImpl implements IUserService {
 
     public List<UserTypeDTO> getAllTrainers() {
         List<User> users = userRepository.findAll();
-        return users.stream().filter( u -> u.getRole().equals(UserRole.trainer))
+        return users.stream().filter(u -> u.getRole().equals(UserRole.trainer))
                 .map(u -> {
                     UserTypeDTO userDto = new UserTypeDTO(u);
                     Integer age = getUserAge(u);
@@ -148,7 +156,8 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public void updateUserStatus(User user, UserStatus status) {
-        if (user == null) throw new NoUserWithIdException();
+        if (user == null)
+            throw new NoUserWithIdException();
 
         user.setStatus(status);
         userRepository.save(user);

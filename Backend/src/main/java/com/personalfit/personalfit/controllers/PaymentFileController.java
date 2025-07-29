@@ -27,7 +27,7 @@ public class PaymentFileController {
         PaymentFile file = fileService.getFileInfo(id);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getFileName())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + file.getFileName())
                 .contentType(MediaType.parseMediaType(file.getContentType()))
                 .body(fileBytes);
     }

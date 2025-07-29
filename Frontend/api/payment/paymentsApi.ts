@@ -1,6 +1,7 @@
 import { NewPaymentInput } from "@/lib/types";
 
 const BASE_URL = 'http://localhost:8080/api/payment';
+const FILES_URL = 'http://localhost:8080/api/files';
 
 
 export async function fetchPayments() {
@@ -50,7 +51,7 @@ export async function createPayment(paymentData: NewPaymentInput) {
     formData.append("file", file)
   }
 
-  const response = await fetch(`http://localhost:8080/api/payment/new`, {
+  const response = await fetch(`${BASE_URL}/new`, {
     method: "POST",
     body: formData,
   })
@@ -148,4 +149,10 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
     throw error;
   }
 }
+
+export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
+  if (!receiptId) return null
+  return `${FILES_URL}/${receiptId}`
+}
+
 

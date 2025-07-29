@@ -3,11 +3,13 @@ package com.personalfit.personalfit.controllers;
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
 import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
-import com.personalfit.personalfit.dto.RejectPaymentDTO;
-import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
+import com.personalfit.personalfit.models.Payment;
+import com.personalfit.personalfit.models.PaymentFile;
+import com.personalfit.personalfit.services.IPaymentFileService;
 import com.personalfit.personalfit.services.IPaymentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -23,6 +26,9 @@ public class PaymentController {
 
     @Autowired
     private IPaymentService paymentService;
+
+    @Autowired
+    private IPaymentFileService fileService;
 
     // DEPRECATED
     @PostMapping
@@ -46,20 +52,14 @@ public class PaymentController {
     }
 
     @GetMapping("/info/{id}")
-    public ResponseEntity<VerifyPaymentTypeDTO> getPaymentInfo(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.getVerifyPaymentTypeDto(id));
+    public ResponseEntity<PaymentTypeDTO> getPaymentInfo(@PathVariable Long id) {
+        return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long id) {
         return ResponseEntity.ok(paymentService.getUserPaymentsTypeDto(id));
     }
-
-    // @PutMapping("/pending/{id}")
-    // public ResponseEntity<Void> putPayment(@PathVariable Long id) {
-    // paymentService.putPayment(id);
-    // return ResponseEntity.noContent().build();
-    // }
 
     @PutMapping("/pending/{id}")
     public ResponseEntity<String> putPayment(
@@ -69,23 +69,17 @@ public class PaymentController {
         return ResponseEntity.ok("Estado actualizado correctamente");
     }
 
-    // Estos no se utilizan más, porque el frontend se encarga de mandar el
-    // paymentStatus decidido por el admin,
-    // y se puede hacer el cambio de pending a rejected o paid con el put normal
-    // /pending/{id}
-    // @PutMapping("/verify/{id}")
-    // public ResponseEntity<Void> verifyPayment(@PathVariable Long id, @RequestBody
-    // Long userId) {
-    // paymentService.verifyPayment(id, userId);
-    // return ResponseEntity.noContent().build();
-    // }
+    @GetMapping("/getFile/{id}")
+    public ResponseEntity<byte[]> getFile(@PathVariable Long id) {
+        Payment payment = paymentService.getPaymentWithFileById(id);
+        PaymentFile file = payment.getPaymentFile();
+        byte[] fileBytes = fileService.getFile(file.getId());
 
-    // @PutMapping("/reject/{id}")
-    // public ResponseEntity<Void> rejectPayment(@PathVariable Long id, @RequestBody
-    // RejectPaymentDTO reason) {
-    // paymentService.rejectPayment(id, reason);
-    // return ResponseEntity.noContent().build();
-    // }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getFileName())
+                .contentType(MediaType.parseMediaType(file.getContentType()))
+                .body(fileBytes);
+    }
 
     // batch function to save multiple payments
     @Transactional

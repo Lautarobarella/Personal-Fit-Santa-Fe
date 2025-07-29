@@ -15,10 +15,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
-import { VerifyPaymentType } from "@/lib/types"
+import { PaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAuth } from "../providers/auth-provider"
 
 interface PaymentVerificationDialogProps {
   open: boolean
@@ -30,22 +29,19 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
   const [isVerifying, setIsVerifying] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
-  const [selectedPayment, setSelectedPayment] = useState<VerifyPaymentType | null>(null)
+  const [selectedPayment, setSelectedPayment] = useState<PaymentType | null>(null)
 
   const { toast } = useToast()
-  const { user } = useAuth()
+
   const {
     fetchSinglePayment,
     updatePaymentStatus,
   } = usePayment()
 
   useEffect(() => {
-    const fetch = async () => {
-      const payment = await fetchSinglePayment(paymentId)
-      setSelectedPayment(payment)
-    }
+    if (!open) return
 
-    if (open) fetch()
+    fetchSinglePayment(paymentId).then(setSelectedPayment)
   }, [open, paymentId, fetchSinglePayment])
 
 
@@ -134,7 +130,8 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl ">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
@@ -185,14 +182,15 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
                   <img
                     src={selectedPayment.receiptUrl || "/placeholder.svg"}
                     alt="Comprobante de pago"
-                    className="w-full max-h-96 object-contain bg-gray-50"
+                    className="w-full max-h-[400px] object-contain bg-gray-50 mx-auto"
                   />
+
                 </div>
                 <div className="mt-2 flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(selectedPayment.receiptUrl, "_blank")}
+                    onClick={() => window.open(selectedPayment.receiptUrl as string, "_blank")}
                     className="bg-transparent"
                   >
                     Ver en tamaño completo
@@ -201,8 +199,10 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      if (!selectedPayment.receiptUrl) return;
+
                       const link = document.createElement("a")
-                      link.href = selectedPayment.receiptUrl!
+                      link.href = selectedPayment.receiptUrl as string
                       link.download = `comprobante-${selectedPayment.clientName}-${selectedPayment.createdAt}.jpg`
                       link.click()
                     }}

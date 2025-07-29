@@ -1,36 +1,33 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useClients } from "@/hooks/use-client"
 import {
-  User,
-  Phone,
-  Mail,
-  Calendar,
-  MapPin,
   Activity,
-  CreditCard,
-  TrendingUp,
   AlertTriangle,
+  CakeIcon,
+  Calendar,
   Clock,
+  CreditCard,
+  Dice3,
   DollarSign,
   Edit,
-  UserX,
   IdCard,
-  CakeIcon,
-  Lock,
-  Dice1,
-  Dice3,
+  Mail,
+  MapPin,
+  Phone,
+  TrendingUp,
+  User,
+  UserX
 } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
-import { useClients } from "@/hooks/use-client"
-
 
 interface ClientDetailsDialogProps {
   open: boolean
@@ -67,6 +64,32 @@ export function ClientDetailsDialog({
       year: "numeric",
     }).format(new Date(date))
   }
+
+  const formatFullDate = (date: Date): string => {
+    try {
+
+      if (!date) return "N/A";
+
+      const parsedDate = typeof date === "string" ? new Date(date) : date;
+
+      if (isNaN(parsedDate.getTime())) {
+        console.warn("Fecha inválida:", date);
+        return "N/A";
+      }
+
+      return new Intl.DateTimeFormat("es-ES", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(parsedDate);
+    } catch (err) {
+      console.error("Error al formatear fecha:", err);
+      return "N/A";
+    }
+  };
+
 
   const getActivityStatusColor = (status: string) => {
     switch (status) {
@@ -122,11 +145,11 @@ export function ClientDetailsDialog({
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "paid":
         return "success"
       case "pending":
         return "warning"
-      case "failed":
+      case "rejected":
         return "destructive"
       case "overdue":
         return "destructive"
@@ -137,12 +160,12 @@ export function ClientDetailsDialog({
 
   const getPaymentStatusText = (status: string) => {
     switch (status) {
-      case "completed":
+      case "paid":
         return "Pagado"
       case "pending":
         return "Pendiente"
-      case "failed":
-        return "Fallido"
+      case "rejected":
+        return "Rechazado"
       case "overdue":
         return "Vencido"
       default:
@@ -359,10 +382,10 @@ export function ClientDetailsDialog({
           <TabsContent value="payments" className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Historial de Pagos</h3>
-              <div className="flex gap-2">
+              {/* <div className="flex gap-2">
                 <Badge variant="success">${totalPaid} Pagado</Badge>
                 {totalPending > 0 && <Badge variant="warning">${totalPending} Pendiente</Badge>}
-              </div>
+              </div> */}
             </div>
 
             <div className="space-y-2">
@@ -380,7 +403,7 @@ export function ClientDetailsDialog({
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h4 className="font-medium">{formatDate(payment.date)}</h4>
+                        <h4 className="font-medium">{formatFullDate(payment.createdAt)}</h4>
                         <p className="text-sm text-muted-foreground">Método: {getMethodText(payment.method)}</p>
                       </div>
                       <div className="text-right">
@@ -392,7 +415,7 @@ export function ClientDetailsDialog({
                     </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Calendar className="h-3 w-3" />
-                      <span>{formatDate(payment.date)}</span>
+                      <span>{formatDate(payment.expiresAt)}</span>
                     </div>
                   </CardContent>
                 </Card>

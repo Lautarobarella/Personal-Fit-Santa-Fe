@@ -24,7 +24,7 @@ export interface UserDetailInfo {
   password: string
   avatar?: string
   listActivity: UserActivityDetails[]
-  listPayments: PaymentUserDetails[]
+  listPayments: PaymentType[]
 }
 
 interface UserActivityDetails {
@@ -34,14 +34,6 @@ interface UserActivityDetails {
   date: Date
   activityStatus: ActivityStatus
   clientStatus: ClientStatus // esto es la asistencia del cliente
-}
-
-interface PaymentUserDetails {
-  id: number
-  date: Date
-  amount: number
-  status: PaymentStatus
-  method: MethodType
 }
 
 export interface UserType {
@@ -138,19 +130,6 @@ export interface Attendance {
   status: AttendanceStatus
 }
 
-export interface VerifyPaymentType {
-  id: number
-  clientId: number
-  clientName: string
-  amount: number
-  createdAt: Date
-  expiresAt: Date
-  status: PaymentStatus
-  receiptUrl?: string
-  method: MethodType
-  rejectionReason?: string
-}
-
 export interface PaymentType {
   id: number
   clientId: number
@@ -160,7 +139,10 @@ export interface PaymentType {
   expiresAt: Date
   status: PaymentStatus
   verifiedAt?: Date
+  method: MethodType
   rejectionReason?: string
+  receiptId?: number | null
+  receiptUrl?: string | null
 }
 
 export interface Notification {

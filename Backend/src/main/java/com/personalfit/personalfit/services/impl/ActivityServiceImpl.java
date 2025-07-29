@@ -28,11 +28,10 @@ public class ActivityServiceImpl implements IActivityService {
     private IActivityRepository activityRepository;
 
     @Autowired
-    private IUserService IUserService;
+    private IUserService userService;
 
     public void createActivity(ActivityFormTypeDTO activity) {
-        Optional<User> trainer = IUserService.getUserById(Long.parseLong(activity.getTrainerId()));
-        if(trainer.isEmpty()) throw new NoUserWithIdException();
+        User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
         Activity newActivity = Activity.builder()
                 .name(activity.getName())
@@ -42,7 +41,7 @@ public class ActivityServiceImpl implements IActivityService {
                 .repeatEveryWeek(false)
                 .duration(Integer.parseInt(activity.getDuration()))
                 .status(ActivityStatus.active)
-                .trainer(trainer.get())
+                .trainer(trainer)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -112,20 +111,31 @@ public class ActivityServiceImpl implements IActivityService {
         LocalDate endOfWeekDate = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
         LocalDateTime endOfWeek = endOfWeekDate.atTime(LocalTime.MAX); // 23:59:59.999999999
 
-        // Obtener todas las actividades
-        List<ActivityTypeDTO> allActivities = getAllActivitiesTypeDto();
+        // Obtener todas las actividades entre el inicio y fin de semana
+        List<Activity> allActivities = activityRepository.findByDateBetween(startOfWeek, endOfWeek);
 
         // Filtrar las actividades que estén dentro del rango [startOfWeek, endOfWeek]
         return allActivities.stream()
-                .filter(a -> {
-                    LocalDateTime activityDate = a.getDate();
-                    return ( !activityDate.isBefore(startOfWeek) ) && ( !activityDate.isAfter(endOfWeek) );
+                .map(a -> {
+                    return ActivityTypeDTO.builder()
+                            .id(a.getId())
+                            .name(a.getName())
+                            .description(a.getDescription())
+                            .location(a.getLocation())
+                            .trainerName(a.getTrainer().getFullName())
+                            .date(a.getDate())
+                            .duration(a.getDuration())
+                            .participants(a.getAttendances().stream().map(att -> att.getUser().getId()).collect(Collectors.toList()))
+                            .maxParticipants(a.getSlots())
+                            .currentParticipants(a.getAttendances().size())
+                            .status(a.getStatus())
+                            .build();
                 })
                 .collect(Collectors.toList());
     }
 
     @Scheduled(cron = "0 0 3 * * *")
-    public void generateWeeklyActivities() {
+    public void generateWeeklyActivities() { //TODO
         LocalDateTime now = LocalDateTime.now();
 
         List<Activity> activitiesToRepeat = activityRepository.findAll().stream()

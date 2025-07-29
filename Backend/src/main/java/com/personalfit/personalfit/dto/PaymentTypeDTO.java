@@ -21,4 +21,6 @@ public class PaymentTypeDTO {
     private String rejectionReason;
     private LocalDateTime updatedAt;
     private LocalDateTime expiresAt;
+    private Long receiptId;
+
 }

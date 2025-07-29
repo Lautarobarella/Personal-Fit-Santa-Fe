@@ -1,6 +1,7 @@
 package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.exceptions.FileSizeException;
+import com.personalfit.personalfit.exceptions.NoPaymentFileWithIdException;
 import com.personalfit.personalfit.exceptions.UnsupportedFileExtension;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
@@ -22,10 +23,13 @@ import java.util.UUID;
 public class PaymentFileServiceImpl implements IPaymentFileService {
 
     private final Integer $MAX_FILE_SIZE_MB = 5;
-    private final String $FOLDER_PATH = "C:/Users/tomsh/Documents/Facultad/Proyecto final/Comprobantes/";
+    // private final String $FOLDER_PATH =
+    // "C:/Users/tomsh/Documents/Facultad/Proyecto final/Comprobantes/";
+    private final String $FOLDER_PATH = "/app/comprobantes/";
 
     @Autowired
-    private IPaymentFileRepository fileRepository; // Assuming you have a repository or service to handle file persistence
+    private IPaymentFileRepository fileRepository; // Assuming you have a repository or service to handle file
+                                                   // persistence
 
     @Override
     public Long uploadFile(MultipartFile file) {
@@ -52,7 +56,8 @@ public class PaymentFileServiceImpl implements IPaymentFileService {
 
             // Crear carpeta si no existe
             File folder = new File($FOLDER_PATH);
-            if (!folder.exists()) folder.mkdirs();
+            if (!folder.exists())
+                folder.mkdirs();
 
             // Guardar el archivo
             Path filePath = folder.toPath().resolve(newFileName);
@@ -81,7 +86,6 @@ public class PaymentFileServiceImpl implements IPaymentFileService {
         }
     }
 
-
     @Override
     public Long saveFile(String filePath, String fileName, String contentType) {
         PaymentFile file = PaymentFile.builder()
@@ -100,9 +104,11 @@ public class PaymentFileServiceImpl implements IPaymentFileService {
     }
 
     @Override
-    public Optional<PaymentFile> getPaymentFile(Long id) {
-        return fileRepository.findById(id);
+    public PaymentFile getPaymentFile(Long id) {
+        Optional<PaymentFile> paymentFile = fileRepository.findById(id);
+        if (paymentFile.isEmpty())
+            throw new NoPaymentFileWithIdException();
+        return paymentFile.get();
     }
-
 
 }

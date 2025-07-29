@@ -73,4 +73,10 @@ public class AdviceController {
         return new ResponseEntity<>(err, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(value = NoPaymentFileWithIdException.class)
+    public ResponseEntity<ErrorDTO> noPaymentFileWithId(NoPaymentFileWithIdException e) {
+        ErrorDTO err = ErrorDTO.builder().code("E-0010").message(e.getMessage()).build();
+        return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
+    }
+
 }

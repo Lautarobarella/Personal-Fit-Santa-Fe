@@ -12,7 +12,7 @@ import java.util.List;
 public class UserDetailInfoDTO extends UserTypeDTO {
 
     private List<UserActivityDetailsDTO> listActivity = new ArrayList<>(); // Assuming you have an Activity class
-    private List<PaymentUserDetailsDTO> listPayments = new ArrayList<>(); // Assuming you have a Payment class
+    private List<PaymentTypeDTO> listPayments = new ArrayList<>(); // Assuming you have a Payment class
 
     public UserDetailInfoDTO(User user) {
         super(user);
