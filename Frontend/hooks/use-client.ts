@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react"
 import { fetchUsers, fetchUserDetail, createUser } from "@/api/clients/clientsApi"
 import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
+import { fetchPaymentsById } from "@/api/payment/paymentsApi"
 
 export function useClients() {
   const [clients, setClients] = useState<UserType[]>([])
@@ -27,7 +28,6 @@ export function useClients() {
     try {
       const data = await fetchUsers()
       setClients(data)
-      console.log("Clientes cargados:", data)
     } catch (err) {
       setError("Error al cargar los clientes")
     } finally {
@@ -41,8 +41,9 @@ export function useClients() {
     setError(null)
     try {
       const detail = await fetchUserDetail(id)
+      const payments = await fetchPaymentsById(id)
+      detail.listPayments = payments // Asignar pagos al detalle del cliente
       setSelectedClient(detail)
-      console.log("Detalle del cliente cargado:", detail)
     } catch (err) {
       setError("Error al cargar el detalle del cliente")
     } finally {
@@ -54,8 +55,7 @@ export function useClients() {
     setLoading(true)
     setError(null)
     try {
-      createUser(clientData) 
-      console.log("Cliente creado:", clientData)
+      createUser(clientData)
     } catch (err) {
       setError("Error al crear el cliente")
     }

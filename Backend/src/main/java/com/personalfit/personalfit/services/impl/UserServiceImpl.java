@@ -91,7 +91,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     public Integer getUserAge(User user) {
-        if (user.getBirthDate() == null) return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
+        if (user.getBirthDate() == null)
+            return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
 
         LocalDate today = LocalDate.now();
         Integer age = today.getYear() - user.getBirthDate().getYear();
@@ -119,7 +120,7 @@ public class UserServiceImpl implements IUserService {
             userDto.getListActivity().add(UserActivityDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
-                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
+                    .trainerName(attendance.getActivity().getTrainer().getFullName())
                     .date(attendance.getActivity().getDate())
                     .activityStatus(attendance.getActivity().getStatus())
                     .clientStatus(attendance.getAttendance())
@@ -134,7 +135,7 @@ public class UserServiceImpl implements IUserService {
 
     public List<UserTypeDTO> getAllTrainers() {
         List<User> users = userRepository.findAll();
-        return users.stream().filter( u -> u.getRole().equals(UserRole.trainer))
+        return users.stream().filter(u -> u.getRole().equals(UserRole.trainer))
                 .map(u -> {
                     UserTypeDTO userDto = new UserTypeDTO(u);
                     Integer age = getUserAge(u);

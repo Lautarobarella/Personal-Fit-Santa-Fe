@@ -9,60 +9,34 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Calendar, Check, CheckCircle, Clock, DollarSign, Loader2, User, X } from "lucide-react"
+import { useCurrentPayment } from "@/hooks/use-current-payment"
+import { ArrowLeft, Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 export default function PaymentVerificationPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-
-  const { pendingPayments, loadPendingPaymentDetail, updatePaymentStatus } = usePayment()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isVerifying, setIsVerifying] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
+  const [show, setShow] = useState(true)
   const [completedCount, setCompletedCount] = useState(0)
 
-  const currentPayment = pendingPayments[currentIndex]
+  const { payments, updatePaymentStatus, isLoading } = usePayment(user?.id, true)
+
+  const pendingPayments = useMemo(() => payments.filter(p => p.status === "pending"), [payments])
+
+  const { currentPayment, isPaymentLoading, reloadCurrentPayment } = useCurrentPayment(pendingPayments, currentIndex)
 
   useEffect(() => {
-    // If no pendingPayments to verify, redirect backç
-    loadPendingPaymentDetail()
+    if (user && user.role !== "admin") {
+      router.push("/payments")
+    }
+  }, [user, router])
 
-    // Si descomento este if, lo único que hace es instantaneamente llevarme a /payments, no esta validando nada q parezca importante
-    // if (pendingPayments.length === 0) {
-    //   router.push("/payments")
-    // }
-
-  }, [pendingPayments.length, router])
-
-  if (!user || user.role !== "admin") {
-    router.push("/payments")
-    return null
-  }
-
-  if (!currentPayment) {
-    return (
-      <div className="min-h-screen bg-background">
-        <MobileHeader title="Verificación Completada" showBack onBack={() => router.push("/payments")} />
-        <div className="container py-12 text-center">
-          <CheckCircle className="h-16 w-16 mx-auto text-success mb-4" />
-          <h2 className="text-2xl font-bold mb-2">¡Verificación Completada!</h2>
-          <p className="text-muted-foreground mb-6">Has verificado {completedCount} pagos exitosamente.</p>
-          <Button onClick={() => router.push("/payments")}>Volver a Pagos</Button>
-        </div>
-      </div>
-    )
-  }
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(date))
-  }
+  if (!user || user.role !== "admin") return null
 
   const formatDateTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -71,10 +45,38 @@ export default function PaymentVerificationPage() {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date)
+    }).format(new Date(date))
   }
 
-  const handleVerify = async (status: "paid" | "rejected") => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "paid":
+        return "success"
+      case "rejected":
+        return "destructive"
+      case "pending":
+        return "warning"
+      default:
+        return "secondary"
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "paid":
+        return "Pagado"
+      case "rejected":
+        return "Rechazado"
+      case "pending":
+        return "Pendiente"
+      default:
+        return status
+    }
+  }
+
+  const handleStatusUpdate = async (status: "paid" | "rejected") => {
+    if (!currentPayment) return
+
     if (status === "rejected" && !rejectionReason.trim()) {
       toast({
         title: "Error",
@@ -85,10 +87,12 @@ export default function PaymentVerificationPage() {
     }
 
     setIsVerifying(true)
-
     try {
-
-      updatePaymentStatus(currentPayment.id, status, status === "rejected" ? rejectionReason : undefined)
+      await updatePaymentStatus({
+        id: currentPayment.id,
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason : undefined,
+      })
 
       toast({
         title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
@@ -97,16 +101,11 @@ export default function PaymentVerificationPage() {
 
       setCompletedCount((prev) => prev + 1)
       setRejectionReason("")
-
-      // Move to next payment or finish
-      if (currentIndex < pendingPayments.length - 1) {
+      setShow(false)
+      setTimeout(() => {
+        setShow(true)
         setCurrentIndex((prev) => prev + 1)
-      } else {
-        // All pendingPayments verified, show completion screen
-        setTimeout(() => {
-          setCurrentIndex(-1) // This will trigger the completion screen
-        }, 1000)
-      }
+      }, 350)
     } catch (error) {
       toast({
         title: "Error",
@@ -118,8 +117,26 @@ export default function PaymentVerificationPage() {
     }
   }
 
-  const remainingCount = pendingPayments.length - currentIndex
-  const progress = (currentIndex / pendingPayments.length) * 100
+  if (!isLoading && pendingPayments.length > 0 && currentIndex >= pendingPayments.length) {
+    setTimeout(() => router.push("/payments"), 2000)
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Check className="h-16 w-16 text-success mb-4" />
+        <h2 className="text-2xl font-bold mb-2">¡Verificación Completada!</h2>
+        <p className="text-muted-foreground mb-6">Has verificado {completedCount} pagos exitosamente.</p>
+        <Button onClick={() => router.push("/payments")}>Volver a Pagos</Button>
+      </div>
+    )
+  }
+
+  if (isLoading || isPaymentLoading || !currentPayment) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin mb-2" />
+        <p className="text-muted-foreground">Cargando pagos pendientes...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,99 +152,94 @@ export default function PaymentVerificationPage() {
       />
 
       <div className="container py-6 space-y-6">
-        {/* Progress Bar */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Progreso de Verificación</span>
               <span className="text-sm text-muted-foreground">
-                {completedCount} completados, {remainingCount} restantes
+                {completedCount} completados, {pendingPayments.length - currentIndex} restantes
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div
                 className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
+                style={{ width: `${(currentIndex / pendingPayments.length) * 100}%` }}
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Payment Info */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{currentPayment.clientName}</span>
+        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`}>
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{currentPayment.clientName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{formatDateTime(currentPayment.createdAt)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-bold text-lg">${currentPayment.amount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Badge variant={getStatusColor(currentPayment.status)}>{getStatusText(currentPayment.status)}</Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>{formatDate(currentPayment.createdAt)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <span className="font-bold text-lg">${currentPayment.amount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <Badge variant="warning">Pendiente</Badge>
-              </div>
-            </div>
+              {currentPayment.receiptUrl && (
+                <div className="mt-3 pt-3 border-t">
+                  <span className="text-sm text-muted-foreground">
+                    Comprobante subido: {formatDateTime(currentPayment.createdAt)}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            {currentPayment.createdAt && (
-              <div className="pt-3 border-t">
-                <span className="text-sm text-muted-foreground">
-                  Comprobante subido: {formatDateTime(currentPayment.createdAt)}
-                </span>
+          <Card>
+            <CardContent className="p-4">
+              <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
+              <div className="border rounded-lg overflow-hidden">
+                <img
+                  src={currentPayment.receiptUrl || "/placeholder.svg"}
+                  alt="Comprobante de pago"
+                  className="w-full max-h-[400px] object-contain bg-gray-50 mx-auto"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(currentPayment.receiptUrl!, "_blank")}
+                  className="bg-transparent"
+                >
+                  Ver en tamaño completo
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const link = document.createElement("a")
+                    link.href = currentPayment.receiptUrl!
+                    link.download = `comprobante-${currentPayment.clientName}-${currentPayment.createdAt}.jpg`
+                    link.click()
+                  }}
+                  className="bg-transparent"
+                >
+                  Descargar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Receipt Display */}
-        <Card>
-          <CardContent className="p-6">
-            <Label className="text-sm font-medium mb-3 block">Comprobante de Pago</Label>
-            <div className="border rounded-lg overflow-hidden mb-4">
-              <img
-                src={currentPayment.receiptUrl || "/placeholder.svg"}
-                alt="Comprobante de pago"
-                className="w-full max-h-96 object-contain bg-gray-50"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(currentPayment.receiptUrl, "_blank")}
-                className="bg-transparent"
-              >
-                Ver en tamaño completo
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const link = document.createElement("a")
-                  link.href = currentPayment.receiptUrl!
-                  link.download = `comprobante-${currentPayment.clientName}-${currentPayment.createdAt}.jpg`
-                  link.click()
-                }}
-                className="bg-transparent"
-              >
-                Descargar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Rejection Reason */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-3">
+          <Card>
+            <CardContent className="p-4">
               <Label htmlFor="rejectionReason">
-                Razón del rechazo (opcional para aprobación, requerida para rechazo)
+                Razón del rechazo
               </Label>
               <Textarea
                 id="rejectionReason"
@@ -236,30 +248,32 @@ export default function PaymentVerificationPage() {
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={3}
               />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 sticky bottom-6">
-          <Button
-            variant="destructive"
-            onClick={() => handleVerify("rejected")}
-            disabled={isVerifying}
-            className="flex-1"
-          >
-            {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <X className="mr-2 h-4 w-4" />
-            Rechazar
-          </Button>
-          <Button onClick={() => handleVerify("paid")} disabled={isVerifying} className="flex-1">
-            {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <Check className="mr-2 h-4 w-4" />
-            Aprobar
-          </Button>
+          <div className="flex gap-3 sticky bottom-6">
+            <Button
+              variant="destructive"
+              onClick={() => handleStatusUpdate("rejected")}
+              disabled={isVerifying}
+              className="flex-1"
+            >
+              {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <X className="mr-2 h-4 w-4" />
+              Rechazar
+            </Button>
+            <Button
+              onClick={() => handleStatusUpdate("paid")}
+              disabled={isVerifying}
+              className="flex-1"
+            >
+              {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Check className="mr-2 h-4 w-4" />
+              Aprobar
+            </Button>
+          </div>
         </div>
 
-        {/* Next Payment Preview */}
         {currentIndex < pendingPayments.length - 1 && (
           <Card className="border-dashed">
             <CardContent className="p-4">
@@ -267,7 +281,7 @@ export default function PaymentVerificationPage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span>
                   Siguiente: {pendingPayments[currentIndex + 1]?.clientName} -{" "}
-                  {formatDate(pendingPayments[currentIndex + 1]?.createdAt)}
+                  {formatDateTime(pendingPayments[currentIndex + 1]?.createdAt)}
                 </span>
               </div>
             </CardContent>

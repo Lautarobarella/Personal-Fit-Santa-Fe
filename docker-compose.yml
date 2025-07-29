@@ -27,6 +27,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: secret123
     ports:
       - "8080:8080"
+    volumes:
+      - comprobantes:/app/comprobantes
 
   pgadmin:
     image: dpage/pgadmin4
@@ -42,3 +44,4 @@ services:
 
 volumes:
   pgdata:
+  comprobantes:

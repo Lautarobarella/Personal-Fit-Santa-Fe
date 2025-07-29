@@ -12,68 +12,74 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, AlertTriangle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
 import { ActivityType } from "@/lib/types"
 
 interface EnrollActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   activity: ActivityType
-  onEnroll: (activity: ActivityType) => void
+  isEnrolled: boolean
+  onToggleEnrollment: (activity: ActivityType) => Promise<void>
 }
 
-export function EnrollActivityDialog({ open, onOpenChange, activity, onEnroll }: EnrollActivityDialogProps) {
-  const [isEnrolling, setIsEnrolling] = useState(false)
+export function EnrollActivityDialog({
+  open,
+  onOpenChange,
+  activity,
+  isEnrolled,
+  onToggleEnrollment,
+}: EnrollActivityDialogProps) {
+  const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-  const handleEnroll = async () => {
-    setIsEnrolling(true)
+  const handleAction = async () => {
+    setIsLoading(true)
 
     try {
-      
-      onEnroll(activity)
-
+      onToggleEnrollment(activity)
       toast({
-        title: "Inscripcion Exitosa",
-        description: `"Se ha inscripto con exito a ${activity.name}"`,
+        title: isEnrolled ? "Desinscripción Exitosa" : "Inscripción Exitosa",
+        description: isEnrolled
+          ? `Te has desinscripto de "${activity.name}".`
+          : `Te has inscripto a "${activity.name}".`,
       })
 
       onOpenChange(false)
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo inscribir a la actividad, intente nuevamente.",
+        description: isEnrolled
+          ? "No se pudo desinscribir de la actividad, intente nuevamente."
+          : "No se pudo inscribir a la actividad, intente nuevamente.",
         variant: "destructive",
       })
     } finally {
-      setIsEnrolling(false)
+      setIsLoading(false)
     }
   }
-
-  const hasParticipants = activity.currentParticipants > 0
-  const isPastActivity = new Date(activity.date) < new Date()
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            Inscribirse a actividad
+            {isEnrolled ? "Desinscribirse de actividad" : "Inscribirse a actividad"}
           </AlertDialogTitle>
-          <AlertDialogDescription>
-            Presiona aceptar para inscribirse a la actividad "{activity.name}"
+          <AlertDialogDescription className="flex">
+            {isEnrolled
+              ? `¿Estás seguro de que deseas desinscribirte de "${activity.name}"?`
+              : `Presiona aceptar para inscribirte a "${activity.name}".`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isEnrolling}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleEnroll}
-            disabled={isEnrolling}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={handleAction}
+            disabled={isLoading}
           >
-            {isEnrolling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Aceptar
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -26,7 +26,8 @@ public class PaymentFileServiceImpl implements IPaymentFileService {
     private final String $FOLDER_PATH = "/app/files/";
 
     @Autowired
-    private IPaymentFileRepository fileRepository; // Assuming you have a repository or service to handle file persistence
+    private IPaymentFileRepository fileRepository; // Assuming you have a repository or service to handle file
+                                                   // persistence
 
     @Override
     public Long uploadFile(MultipartFile file) {

@@ -18,11 +18,11 @@ import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.PaymentStatus;
 import com.personalfit.personalfit.utils.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +34,7 @@ public class PaymentServiceImpl implements IPaymentService {
     private IPaymentRepository paymentRepository;
 
     @Autowired
+    @Lazy // Para que?
     private IUserService userService;
 
     @Autowired
@@ -47,7 +48,7 @@ public class PaymentServiceImpl implements IPaymentService {
                 .user(user)
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
-//                 .paymentFile(pFile.get())
+                // .paymentFile(pFile.get())
                 .methodType(newPayment.getMethodType())
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMonths(1))
@@ -108,6 +109,7 @@ public class PaymentServiceImpl implements IPaymentService {
                         .clientId(payment.getUser().getId())
                         .clientName(payment.getUser().getFullName())
                         .createdAt(payment.getCreatedAt())
+                        .receiptId(payment.getPaymentFile() != null ? payment.getPaymentFile().getId() : null)
                         .amount(payment.getAmount())
                         .status(payment.getStatus())
                         .verifiedAt(payment.getVerifiedAt())
@@ -149,11 +151,33 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public Payment getPaymentById(Long id) {
+    public Payment getPaymentWithFileById(Long id) {
         Optional<Payment> payment = paymentRepository.findById(id);
-        if(payment.isEmpty()) throw new NoPaymentWithIdException();
-
+        if (payment.isEmpty())
+            throw new NoPaymentWithIdException();
         return payment.get();
+    }
+
+    @Override
+    public PaymentTypeDTO getPaymentById(Long id) {
+        Optional<Payment> payment = paymentRepository.findById(id);
+        if (payment.isEmpty())
+            throw new NoPaymentWithIdException();
+
+        return PaymentTypeDTO.builder()
+                .id(payment.get().getId())
+                .clientId(payment.get().getUser().getId())
+                .clientName(payment.get().getUser().getFullName())
+                .createdAt(payment.get().getCreatedAt())
+                .amount(payment.get().getAmount())
+                .status(payment.get().getStatus())
+                .verifiedAt(payment.get().getVerifiedAt())
+                .verifiedBy(payment.get().getVerifiedBy() != null ? payment.get().getUser().getFullName() : null)
+                .rejectionReason(payment.get().getRejectionReason())
+                .updatedAt(payment.get().getUpdatedAt())
+                .expiresAt(payment.get().getExpiresAt())
+                .receiptId(payment.get().getPaymentFile() != null ? payment.get().getPaymentFile().getId() : null)
+                .build();
     }
 
     @Transactional

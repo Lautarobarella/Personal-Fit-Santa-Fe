@@ -3,7 +3,6 @@ package com.personalfit.personalfit.controllers;
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
 import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
-import com.personalfit.personalfit.dto.RejectPaymentDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
@@ -54,8 +53,8 @@ public class PaymentController {
     }
 
     @GetMapping("/info/{id}")
-    public ResponseEntity<VerifyPaymentTypeDTO> getPaymentInfo(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.getVerifyPaymentTypeDto(id));
+    public ResponseEntity<PaymentTypeDTO> getPaymentInfo(@PathVariable Long id) {
+        return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
     @GetMapping("/{id}")
@@ -73,7 +72,7 @@ public class PaymentController {
 
     @GetMapping("/getFile/{id}")
     public ResponseEntity<byte[]> getFile(@PathVariable Long id) {
-        Payment payment = paymentService.getPaymentById(id);
+        Payment payment = paymentService.getPaymentWithFileById(id);
         PaymentFile file = payment.getPaymentFile();
         byte[] fileBytes = fileService.getFile(file.getId());
 

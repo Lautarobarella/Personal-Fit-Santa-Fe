@@ -1,99 +1,158 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Loader2, Mail, Phone } from "lucide-react"
-import { Card, CardContent } from "../ui/card"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
 import { Avatar, AvatarFallback } from "../ui/avatar"
-import { Calendar } from "../ui/calendar"
-import { mockUsers } from "@/mocks/mockUsers"
-import { ActivityType } from "@/lib/types"
+import { Card, CardContent } from "../ui/card"
+import { CheckCircle, AlertCircle, Loader2, Users, MailWarningIcon } from "lucide-react"
+import { useActivities } from "@/hooks/use-activity"
 
 interface AttendanceActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  activity: ActivityType
-  onAttendance: (activity: ActivityType) => void
+  activityId: number
+  onAttendance?: () => void
 }
 
-export function AttendanceActivityDialog({ open, onOpenChange, activity, onAttendance }: AttendanceActivityDialogProps) {
-  const [isAttendanceing, setIsAttending] = useState(false)
-  const [users] = useState(mockUsers)
-  const handleAttendance = async () => {
-    setIsAttending(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    onAttendance(activity)
+export function AttendanceActivityDialog({ open, onOpenChange, activityId }: AttendanceActivityDialogProps) {
+  const [isAttending, setIsAttending] = useState(false)
+  const { selectedActivity, loadActivityDetail, markParticipantPresent } = useActivities()
+
+  useEffect(() => {
+    loadActivityDetail(activityId)
+  }, [activityId, loadActivityDetail])
+
+  if (!selectedActivity) return null
+
+  const now = new Date()
+  const activityStart = new Date(selectedActivity.date)
+  const activityEnd = new Date(activityStart.getTime() + selectedActivity.duration * 60000)
+
+  const isFuture = now < activityStart
+  const isPast = now > activityEnd
+
+  const formatDateTime = (date: Date) => {
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(date))
+  }
+
+  const handleMarkPresent = async (participantId: number) => {
+    markParticipantPresent(selectedActivity, participantId)
+  }
+
+  const handleClose = () => {
     onOpenChange(false)
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            Asistencia de la actividad: "{activity.name}"
-          </AlertDialogTitle>
-          <AlertDialogDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[60vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            Asistencia de la actividad: "{selectedActivity.name}"
+          </DialogTitle>
+          <DialogDescription className="flex">
             A continuación se muestra la lista de participantes inscriptos:
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Lista de inscriptos falta filtrar por id segun cada actividad*/}
-        <div className="space-y-3 mb-4">
-          {activity.participants && activity.participants.length > 0 ? (
-            users.map((client) => (
-              <Card key={client.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {`${client.firstName[0] ?? ""}${client.lastName[0] ?? ""}`}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Lista de Participantes</h3>
+        </div>
+
+        <div className="space-y-2">
+          {selectedActivity.participants.map((p) => (
+            <Card key={p.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {`${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium truncate">{client.firstName + " " + client.lastName}</h3>
-                      </div>
-                      {/* Aca la idea es mostrar a la hora q  */}
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        {client.email && (
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            <span className="truncate">{client.email}</span>
-                          </div>
-                        )}
-                      </div>
+                    <div>
+                      <p className="font-medium">{p.firstName + " " + p.lastName}</p>
+                      {p.createdAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Inscrito: {formatDateTime(p.createdAt)}
+                        </p>
+                      )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="text-sm text-muted-foreground">No hay inscriptos aún.</div>
+
+                  <div className="flex items-center gap-2">
+                    <>
+                      {p.status === "present" && (
+                        <Badge variant={'success'}>
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Presente
+                        </Badge>
+                      )}
+                      {p.status === "absent" && (
+                        <Badge variant={'destructive'}>
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Ausente
+                        </Badge>
+                      )}
+                      {p.status === "pending" && isFuture && (
+                        <Badge variant={'warning'}>
+                        <MailWarningIcon className="h-3 w-3 mr-1" />
+                          Pendiente
+                        </Badge>
+                      )}
+                    </>
+
+                    {/* Botón para marcar como presente solo si es pending y la actividad aún no comenzó */}
+                    {(p.status === "pending" || p.status === "absent") && isFuture && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMarkPresent(p.id)}
+                      >
+                        Marcar presente
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {selectedActivity.participants.length === 0 && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No hay participantes inscritos</p>
+              </CardContent>
+            </Card>
           )}
         </div>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isAttendanceing}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleAttendance}
-            disabled={isAttendanceing}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {isAttendanceing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isAttending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleClose} disabled={isAttending}>
+            {isAttending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Aceptar
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

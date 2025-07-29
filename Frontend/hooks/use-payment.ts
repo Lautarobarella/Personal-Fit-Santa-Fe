@@ -4,13 +4,15 @@ import {
   fetchPayments,
   fetchPaymentsById,
   updatePayment,
+  buildReceiptUrl,
 } from "@/api/payment/paymentsApi"
-import { PaymentType, VerifyPaymentType, NewPaymentInput } from "@/lib/types"
+import { PaymentType, NewPaymentInput } from "@/lib/types"
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+import { useCallback } from "react"
 
 export function usePayment(userId?: number, isAdmin?: boolean) {
   const queryClient = useQueryClient()
@@ -22,12 +24,33 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     enabled: !!userId, // evita cargar si no hay usuario
   })
 
-  const { data: selectedPayment, refetch: refetchPaymentDetail } =
-    useQuery<VerifyPaymentType>({
-      queryKey: ["payment-detail", userId],
-      queryFn: () => fetchPaymentDetail(userId ?? 0),
-      enabled: false,
-    })
+  const fetchSinglePayment = useCallback(
+    async (paymentId: number): Promise<PaymentType & { receiptUrl: string | null }> => {
+      const rawPayment = await fetchPaymentDetail(paymentId)
+      return {
+        ...rawPayment,
+        receiptUrl: buildReceiptUrl(rawPayment.receiptId),
+      }
+    },
+    [] // sin dependencias, así se memoriza una sola vez
+  )
+
+  const fetchAllPendingPayments = useCallback(async (): Promise<(PaymentType & { receiptUrl: string | null })[]> => {
+    try {
+      const response = await fetch("/api/payment/pending")
+      const rawPayments: PaymentType[] = await response.json()
+
+      const enrichedPayments = await Promise.all(
+        rawPayments.map((p) => fetchSinglePayment(p.id))
+      )
+
+      return enrichedPayments
+    } catch (error) {
+      console.error("Error al cargar pagos pendientes:", error)
+      return []
+    }
+  }, [fetchSinglePayment])
+
 
   const createPaymentMutation = useMutation({
     mutationFn: (data: NewPaymentInput) => createPayment(data),
@@ -55,9 +78,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     payments,
     isLoading,
     error,
-    selectedPayment,
-    refetchPaymentDetail,
     createNewPayment: createPaymentMutation.mutateAsync,
     updatePaymentStatus: updatePaymentMutation.mutateAsync,
+    fetchSinglePayment,
+    fetchAllPendingPayments,
   }
 }

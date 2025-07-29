@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -25,20 +25,35 @@ import { useRouter } from "next/navigation"
 export default function ActivitiesPage() {
   const { user } = useAuth()
   const { 
-    activities, 
+    activities,
+    loading,
+    error, 
     loadActivitiesByWeek,
     enrollIntoActivity,
+    unenrollFromActivity,
    } = useActivities()
 
-   
-  const [currentWeek, setCurrentWeek] = useState(new Date())
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
   const router = useRouter()
+  const [currentWeek, setCurrentWeek] = useState(() => {
+    const today = new Date()
+    today.setDate(today.getDate() - today.getDay() + 1) // Primer día de la semana (lunes)
+    today.setHours(0, 0, 0, 0)
+    return today
+  })
+
+  const loadedWeeks = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    loadActivitiesByWeek(currentWeek)
-  }, [currentWeek])
+    const weekKey = currentWeek.toISOString().slice(0, 10)
+
+    if (!loadedWeeks.current.has(weekKey)) {
+      loadedWeeks.current.add(weekKey)
+      loadActivitiesByWeek(currentWeek)
+    }
+  }, [currentWeek, loadActivitiesByWeek])
+
 
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean
@@ -50,9 +65,11 @@ export default function ActivitiesPage() {
   const [enrollDialog, setEnrollDialog] = useState<{
     open: boolean
     activity: ActivityType | null
+    isEnrolled: boolean
   }>({
     open: false,
     activity: null,
+    isEnrolled: false,
   })
   const [attendanceDialog, setAttendanceDialog] = useState<{
     open: boolean
@@ -70,8 +87,6 @@ export default function ActivitiesPage() {
   })
 
   if (!user) return null
-
-
 
   const canManageActivities = user.role === "admin" || user.role === "trainer"
 
@@ -151,7 +166,10 @@ export default function ActivitiesPage() {
 
   const goToToday = () => {
     const today = new Date()
-    setCurrentWeek(today)
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - today.getDay() + 1)
+    monday.setHours(0, 0, 0, 0)
+    setCurrentWeek(monday)
   }
 
   const isToday = (date: Date) => {
@@ -159,20 +177,23 @@ export default function ActivitiesPage() {
     return date.toDateString() === today.toDateString()
   }
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      Bienestar: "bg-green-100 text-green-800 border-green-200",
-      Fuerza: "bg-red-100 text-red-800 border-red-200",
-      Cardio: "bg-blue-100 text-blue-800 border-blue-200",
-      Flexibilidad: "bg-purple-100 text-purple-800 border-purple-200",
-      Baile: "bg-pink-100 text-pink-800 border-pink-200",
-      Funcional: "bg-orange-100 text-orange-800 border-orange-200",
-      Combate: "bg-gray-100 text-gray-800 border-gray-200",
-      Acuático: "bg-cyan-100 text-cyan-800 border-cyan-200",
-      Grupal: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    }
-    return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
-  }
+  // const getCategoryColor = (category: string) => {
+  //   const colors = {
+  //     Bienestar: "bg-green-100 text-green-800 border-green-200",
+  //     Fuerza: "bg-red-100 text-red-800 border-red-200",
+  //     Cardio: "bg-blue-100 text-blue-800 border-blue-200",
+  //     Flexibilidad: "bg-purple-100 text-purple-800 border-purple-200",
+  //     Baile: "bg-pink-100 text-pink-800 border-pink-200",
+  //     Funcional: "bg-orange-100 text-orange-800 border-orange-200",
+  //     Combate: "bg-gray-100 text-gray-800 border-gray-200",
+  //     Acuático: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  //     Grupal: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  //   }
+  //   return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
+  // }
+
+  const isUserEnrolled = (activity: ActivityType) =>
+    activity.participants.some((p) => p === user.id)
 
   const handleDeleteActivity = (activity: ActivityType) => {
     setDeleteDialog({
@@ -192,15 +213,18 @@ export default function ActivitiesPage() {
     setEnrollDialog({
       open: true,
       activity,
+      isEnrolled: isUserEnrolled(activity),
     })
   }
 
-  const handleConfirmEnroll = (activity: ActivityType) => {
-    // Here you would call your delete API
-    console.log("Enrolling activity:", activity)
-    enrollIntoActivity(activity.id)
-    // For demo purposes, we'll just close the dialog
-    setEnrollDialog({ open: false, activity:null })
+  const handleConfirmEnroll = async (activity: ActivityType) => {
+    if (enrollDialog.isEnrolled) {
+      unenrollFromActivity(activity.id, user.id)
+    } else {
+      enrollIntoActivity(activity.id, user.id)
+    }
+
+    setEnrollDialog({ open: false, activity: null, isEnrolled: false })
   }
 
   const handleAttendanceActivity = (activity: ActivityType) => {
@@ -210,17 +234,12 @@ export default function ActivitiesPage() {
     })
   }
 
-  const handleCloseAttendance = (activity: ActivityType) => {
-    setAttendanceDialog({ open: false, activity: null })
-  }
-
   const handleDetailsClick = (activity: ActivityType) => {
     setDetailsDialog({
       open: true,
       activity,
     })
   }
-
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -310,7 +329,7 @@ export default function ActivitiesPage() {
                     <div className={`text-center ${isToday(day.date) ? "text-primary" : ""}`}>
                       <div className="text-sm font-medium">{dayNames[dayIndex]}</div>
                       <div
-                        className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center" : ""}`}
+                        className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full w-9 h-9 flex items-center justify-center" : ""}`}
                       >
                         {day.date.getDate()}
                       </div>
@@ -374,9 +393,9 @@ export default function ActivitiesPage() {
                                   <DropdownMenuItem asChild>
                                     <Link href={`/activities/${activity.id}/edit`}>Editar</Link>
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>Ver Asistencia</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>Ver Asistencia</DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="text-destructive"
+                                    className="text-error"
                                     onClick={() => handleDeleteActivity(activity)}
                                   >
                                     Eliminar
@@ -401,21 +420,19 @@ export default function ActivitiesPage() {
 
                             <div className="flex gap-2">
                               {user.role === "client" && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleEnrollActivity(activity)}
-                                  disabled={
-                                    activity.participants.some((p) => p === user.id) ||
-                                    activity.currentParticipants >= activity.maxParticipants
-                                  }
-                                  className="text-xs"
-                                >
-                                  {activity.participants.some((p) => p === user.id)
-                                    ? "Inscrito"
-                                    : activity.currentParticipants >= activity.maxParticipants
-                                      ? "Completo"
-                                      : "Inscribirse"}
-                                </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleEnrollActivity(activity)}
+                                disabled={activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity)}
+                                className="text-xs"
+                                variant={isUserEnrolled(activity) ? "destructive" : "default"}
+                              >
+                                {isUserEnrolled(activity)
+                                  ? "Desinscribir"
+                                  : activity.currentParticipants >= activity.maxParticipants
+                                    ? "Completo"
+                                    : "Inscribirse"}
+                              </Button>
                               )}
                               {canManageActivities && (
                                 <Button
@@ -501,17 +518,17 @@ export default function ActivitiesPage() {
       {enrollDialog.activity && (
         <EnrollActivityDialog
           open={enrollDialog.open}
-          onOpenChange={(open) => setEnrollDialog({ open, activity: null })}
+          onOpenChange={(open) => setEnrollDialog({ open, activity: null, isEnrolled: false })}
           activity={enrollDialog.activity}
-          onEnroll={handleConfirmEnroll}
+          isEnrolled={enrollDialog.isEnrolled}
+          onToggleEnrollment={handleConfirmEnroll}
         />
       )}
       {attendanceDialog.activity && (
         <AttendanceActivityDialog
           open={attendanceDialog.open}
           onOpenChange={(open) => setAttendanceDialog({ open, activity: null })}
-          activity={attendanceDialog.activity}
-          onAttendance={handleCloseAttendance}
+          activityId={attendanceDialog.activity.id}
         />
       )}
       {detailsDialog.activity && (

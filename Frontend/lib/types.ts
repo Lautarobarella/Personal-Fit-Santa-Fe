@@ -1,11 +1,11 @@
 export type UserRole = "admin" | "trainer" | "client"
 export type ActivityStatus = "active" | "cancelled" | "completed"
 export type ClientStatus = "present" | "absent" | "pending" | "late"
-export type AttendanceStatus = "present" | "absent" | "late"
 export type MethodType = "cash" | "card" | "transfer"
 export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
 export type NotificationType = "success" | "info" | "warning" | "error"
 export type NotificationCategoryType = "payment" | "client" | "enrollment" | "activity"
+export type GenderCategoty = "male" | "female" | "unspecified"
 
 export interface UserDetailInfo {
   id: number
@@ -24,7 +24,7 @@ export interface UserDetailInfo {
   password: string
   avatar?: string
   listActivity: UserActivityDetails[]
-  listPayments: PaymentUserDetails[]
+  listPayments: PaymentType[]
 }
 
 interface UserActivityDetails {
@@ -34,14 +34,6 @@ interface UserActivityDetails {
   date: Date
   activityStatus: ActivityStatus
   clientStatus: ClientStatus // esto es la asistencia del cliente
-}
-
-interface PaymentUserDetails {
-  id: number
-  date: Date
-  amount: number
-  status: PaymentStatus
-  method: MethodType
 }
 
 export interface UserType {
@@ -64,6 +56,7 @@ export interface UserType {
 }
 
 export interface UserFormType {
+  id?: string
   dni: string
   firstName: string
   lastName: string
@@ -78,11 +71,11 @@ export interface UserFormType {
 }
 
 export interface ActivityDetailInfo {
-  id: string
+  id: number
   name: string
   description: string
   location: string
-  trainerId: string
+  trainerId: number
   trainerName: string
   date: Date
   duration: number
@@ -120,6 +113,7 @@ export interface ActivityType {
 }
 
 export interface ActivityFormType {
+  id?: string
   name: string
   description: string
   location: string
@@ -131,24 +125,11 @@ export interface ActivityFormType {
 }
 
 export interface Attendance {
-  id: string
-  activityId: string
-  userId: string
+  id?: number
+  activityId: number
+  userId: number
   createdAt: Date
-  status: AttendanceStatus
-}
-
-export interface VerifyPaymentType {
-  id: number
-  clientId: number
-  clientName: string
-  amount: number
-  createdAt: Date
-  expiresAt: Date
-  status: PaymentStatus
-  receiptUrl?: string
-  method: MethodType
-  rejectionReason?: string
+  status: ClientStatus
 }
 
 export interface PaymentType {
@@ -160,7 +141,10 @@ export interface PaymentType {
   expiresAt: Date
   status: PaymentStatus
   verifiedAt?: Date
+  method: MethodType
   rejectionReason?: string
+  receiptId?: number | null
+  receiptUrl?: string | null
 }
 
 export interface Notification {

@@ -20,9 +20,9 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  MessageCircleWarningIcon,
+  MailWarningIcon,
 } from "lucide-react"
-import { ActivityDetailInfo } from "@/lib/types"
-import { mockUsers } from "@/mocks/mockUsers"
 import { useActivities } from "@/hooks/use-activity"
 
 interface DetailsActivityDialogProps {
@@ -35,16 +35,18 @@ interface DetailsActivityDialogProps {
 
 export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, onDelete }: DetailsActivityDialogProps) {
   const [activeTab, setActiveTab] = useState("overview")
-  const { 
-    selectedActivity, 
+  const {
+    selectedActivity,
     loadActivityDetail,
-   } = useActivities()
+  } = useActivities()
 
   useEffect(() => {
     loadActivityDetail(activityId)
   }, [activityId, loadActivityDetail])
 
+
   if (!selectedActivity) {
+    console.log('hola!')
     return null
   }
 
@@ -54,14 +56,14 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
       year: "numeric",
       month: "long",
       day: "numeric",
-    }).format(date)
+    }).format(new Date(date))
   }
 
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date)
+    }).format(new Date(date))
   }
 
   const formatDateTime = (date: Date) => {
@@ -71,7 +73,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date)
+    }).format(new Date(date))
   }
 
   const getStatusColor = (status: string) => {
@@ -111,7 +113,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
           <div className="flex items-start justify-between mt-4">
             <div className="flex-1">
               <DialogTitle className="text-xl mb-2 flex">{selectedActivity.name}</DialogTitle>
-              <DialogDescription className="flex">{selectedActivity.description}</DialogDescription>
+              <DialogDescription >{selectedActivity.description}</DialogDescription>
             </div>
             <div className="flex items-center gap-2">
               <Badge >{getStatusText(selectedActivity.status)}</Badge>
@@ -122,7 +124,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                   </Button>
                 )}
                 {onDelete && (
-                  <Button size="sm" variant="outline" onClick={onDelete} className="text-destructive bg-transparent">
+                  <Button size="sm" variant="outline" onClick={onDelete} className="text-error bg-transparent">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
@@ -132,7 +134,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Resumen</TabsTrigger>
             <TabsTrigger value="attendance">Asistencia</TabsTrigger>
             <TabsTrigger value="details">Detalles</TabsTrigger>
@@ -140,7 +142,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {/* Basic Info Card */}
               <Card>
                 <CardHeader>
@@ -150,7 +152,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-3 gap-3 text-sm">
                     <div>
                       <span className="text-muted-foreground">Fecha:</span>
                       <p className="font-medium">{formatDate(selectedActivity.date)}</p>
@@ -274,18 +276,19 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
           </TabsContent>
 
           {/* Participants Tab */}
-          <TabsContent value="participants" className="space-y-4 mt-4">
+          <TabsContent value="attendance" className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Lista de Participantes</h3>
               <div className="flex gap-2">
-                <Badge >{presentParticipants.length} Presentes</Badge>
+                <Badge variant={'success'}>{presentParticipants.length} Presentes</Badge>
                 <Badge variant="destructive">{absentParticipants.length} Ausentes</Badge>
               </div>
             </div>
 
             <div className="space-y-2">
               {selectedActivity.participants.map((p) => (
-                <Card key={p?.id}>
+
+                <Card key={p.id}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -296,7 +299,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                         </Avatar>
                         <div>
                           <p className="font-medium">{p.firstName + " " + p.lastName}</p>
-                          {p?.createdAt && (
+                          {p.createdAt && (
                             <p className="text-xs text-muted-foreground">
                               Inscrito: {formatDateTime(p.createdAt)}
                             </p>
@@ -304,14 +307,26 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className="text-xs">
-                          {p?.status === "present" ? (
+                      <>
+                        {p.status === "present" && (
+                          <Badge variant={'success'}>
                             <CheckCircle className="h-3 w-3 mr-1" />
-                          ) : (
+                            Presente
+                          </Badge>
+                        )}
+                        {p.status === "absent" && (
+                          <Badge variant={'destructive'}>
                             <AlertCircle className="h-3 w-3 mr-1" />
-                          )}
-                          {p?.status === "present" ? "Presente" : "Ausente"}
-                        </Badge>
+                            Ausente
+                          </Badge>
+                        )}
+                        {p.status === "pending" && (
+                          <Badge variant={'warning'}>
+                            <MailWarningIcon className="h-3 w-3 mr-1" />
+                            Pendiente
+                          </Badge>
+                        )}
+                      </>
                       </div>
                     </div>
                   </CardContent>
@@ -402,10 +417,6 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                   <Button size="sm" variant="outline" className="bg-transparent">
                     <Users className="h-4 w-4 mr-2" />
                     Exportar Lista
-                  </Button>
-                  <Button size="sm" variant="outline" className="bg-transparent">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Ver Pagos
                   </Button>
                   {onEdit && (
                     <Button size="sm" variant="outline" onClick={onEdit} className="bg-transparent">
