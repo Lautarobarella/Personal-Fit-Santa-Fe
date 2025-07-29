@@ -15,7 +15,29 @@ export async function fetchUsers() {
     });
 
     if (!response.ok) {
-      throw new Error(`Error al obtener los clientes: ${response.status}`);
+      const errorData = await response.json().catch(() => ({})) // por si no hay JSON
+      const errorMessage = errorData.message || "Error desconocido"
+
+      switch (response.status) {
+        case 400:
+          throw new Error(`Solicitud inválida: ${errorMessage}`)
+        case 401:
+          throw new Error(`No autorizado: ${errorMessage}`)
+        case 402:
+          throw new Error(`Pago requerido: ${errorMessage}`)
+        case 403:
+          throw new Error(`Prohibido: ${errorMessage}`)
+        case 404:
+          throw new Error(`Recurso no encontrado: ${errorMessage}`)
+        case 409:
+          throw new Error(`Conflicto: ${errorMessage}`)
+        case 500:
+          throw new Error(`Error interno del servidor: ${errorMessage}`)
+        case 503:
+          throw new Error(`Servicio no disponible: ${errorMessage}`)
+        default:
+          throw new Error(`Error ${response.status}: ${errorMessage}`)
+      }
     }
 
     return await response.json();
@@ -36,7 +58,29 @@ export async function fetchUserDetail(id: number) {
     });
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({})) // por si no hay JSON
+      const errorMessage = errorData.message || "Error desconocido"
+
+      switch (response.status) {
+        case 400:
+          throw new Error(`Solicitud inválida: ${errorMessage}`)
+        case 401:
+          throw new Error(`No autorizado: ${errorMessage}`)
+        case 402:
+          throw new Error(`Pago requerido: ${errorMessage}`)
+        case 403:
+          throw new Error(`Prohibido: ${errorMessage}`)
+        case 404:
+          throw new Error(`Recurso no encontrado: ${errorMessage}`)
+        case 409:
+          throw new Error(`Conflicto: ${errorMessage}`)
+        case 500:
+          throw new Error(`Error interno del servidor: ${errorMessage}`)
+        case 503:
+          throw new Error(`Servicio no disponible: ${errorMessage}`)
+        default:
+          throw new Error(`Error ${response.status}: ${errorMessage}`)
+      }
     }
 
     return await response.json();
@@ -47,7 +91,53 @@ export async function fetchUserDetail(id: number) {
   }
 }
 
-// MOCK DE FETCH USER USADO PARA REQUERIMIENTO SUBIR COMPROBANTE, LUEGO CAMBIAR POR REAL
+export async function createUser(user: UserFormType) {
+  try {
+
+    const response = await fetch(`${BASE_URL}/new`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(user),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) // por si no hay JSON
+      const errorMessage = errorData.message || "Error desconocido"
+
+      switch (response.status) {
+        case 400:
+          throw new Error(`Solicitud inválida: ${errorMessage}`)
+        case 401:
+          throw new Error(`No autorizado: ${errorMessage}`)
+        case 402:
+          throw new Error(`Pago requerido: ${errorMessage}`)
+        case 403:
+          throw new Error(`Prohibido: ${errorMessage}`)
+        case 404:
+          throw new Error(`Recurso no encontrado: ${errorMessage}`)
+        case 409:
+          throw new Error(`Conflicto: ${errorMessage}`)
+        case 500:
+          throw new Error(`Error interno del servidor: ${errorMessage}`)
+        case 503:
+          throw new Error(`Servicio no disponible: ${errorMessage}`)
+        default:
+          throw new Error(`Error ${response.status}: ${errorMessage}`)
+      }
+    }
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+}
+
+
+
+// MOCKS 
+
+
+
 export async function fetchUserDetailMock(id: number) {
 
   const client = mockUsers.find((c) => c.id === id)
@@ -65,31 +155,12 @@ export async function fetchUserDetailMock(id: number) {
   });
 }
 
-export async function createUser(user: UserFormType) {
-  try {
-    
-    const response = await fetch(`${BASE_URL}/new`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(user),
-    });
-    if (!response.ok) {
-      throw new Error(`Error al crear el cliente: ${response.status}`);
-    }
-  } catch (error) {
-    console.error('Error creating user:', error);
-    throw error;
-  }
-}
-
 export async function fetchUsersMock(): Promise<Response> {
 
-    return new Response(JSON.stringify(mockUsers), {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
+  return new Response(JSON.stringify(mockUsers), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 }

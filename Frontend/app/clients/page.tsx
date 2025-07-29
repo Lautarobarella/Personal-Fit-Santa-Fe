@@ -50,12 +50,12 @@ export default function ClientsPage() {
   )
   const formatDate = (date: Date) => {
 
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(date))
-  } 
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(date))
+  }
   
   const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
 

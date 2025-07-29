@@ -1,6 +1,17 @@
 import { useState, useCallback } from "react"
-import type { ActivityDetailInfo, ActivityFormType, ActivityType, UserType } from "@/lib/types"
-import { enrollActivity, fetchActivities, fetchActivitiesByDate, fetchActivityDetail, fetchTrainers, newActivity } from "@/api/activities/activitiesApi"
+import type { ActivityDetailInfo, ActivityFormType, ActivityType, Attendance, UserType } from "@/lib/types"
+import { 
+  editActivityBack, 
+  enrollActivity, 
+  fetchActivities, 
+  fetchActivitiesByDate, 
+  fetchActivitiesByDateMock, 
+  fetchActivitiesMock, 
+  fetchActivityDetail, 
+  fetchActivityDetailMock, 
+  fetchTrainers, 
+  newActivity, 
+  unenrollActivity } from "@/api/activities/activitiesApi"
 
 export function useActivities() {
   const [activities, setActivities] = useState<ActivityType[]>([])
@@ -38,17 +49,22 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchActivitiesByDate(date)
-      setActivities(data)
-      console.log("Actividades cargadas:", data)
+      // const data = await fetchActivitiesByDate(date)
+      const data = await (await fetchActivitiesByDateMock(date))
+      // Evitar duplicados por ID
+      setActivities((prev) => {
+        const existingIds = new Set(prev.map((a) => a.id))
+        const newActivities = data.filter((a: ActivityType) => !existingIds.has(a.id))
+        return [...prev, ...newActivities]
+      })
+
+      console.log("Actividades de la semana cargadas:", data)
     } catch (err) {
       setError("Error al cargar las actividades")
     } finally {
       setLoading(false)
     }
   }, [])
-
-
 
   const loadTrainers = useCallback(async () => {
     try {
@@ -65,7 +81,8 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      const detail = await fetchActivityDetail(id)
+      // const detail = await fetchActivityDetail(id)
+      const detail = await fetchActivityDetailMock(id)
       setSelectedActivity(detail)
       console.log("Detalle de la actividad cargada:", detail)
     } catch (err) {
@@ -75,34 +92,59 @@ export function useActivities() {
     }
   }, [])
 
-  const createActivity = useCallback(async (clientData: ActivityFormType) => {
+  const createActivity = useCallback(async (activity: ActivityFormType) => {
     setLoading(true)
     setError(null)
     try {
-      newActivity(clientData) 
-      console.log("Activitye creado:", clientData)
+      newActivity(activity) 
     } catch (err) {
-      setError("Error al crear el cliente")
+      setError("Error al crear la actividad")
     }
     setLoading(false)
   }, [])
 
-  const editActivity = useCallback(async (clientData: ActivityFormType) => {
+  const editActivity = useCallback(async (activity: ActivityFormType) => {
     setLoading(true)
     setError(null)
     try {
-      newActivity(clientData) 
-      console.log("Activitye creado:", clientData)
+      editActivityBack(activity) 
     } catch (err) {
-      setError("Error al crear el cliente")
+      setError("Error al crear la actividad")
     }
     setLoading(false)
   }, [])
 
-  const enrollIntoActivity = useCallback((activityId: number) => {
+  const enrollIntoActivity = useCallback(
+    (activityId: number, user: number) => {
+      setLoading(true)
+      try {
+        const attendance: Attendance = {
+          activityId: activityId,
+          userId: user,
+          createdAt: new Date(),
+          status: "pending", // o "present" según tu lógica
+        }
+
+        enrollActivity(attendance)
+      } catch (err) {
+        setError("Error al inscribirse en la actividad")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [] // Dependencia necesaria para usar user.id
+  )
+
+  const unenrollFromActivity = useCallback((activityId: number, user: number) => {
     setLoading(true)
-    try{
-      enrollActivity(activityId)
+      try {
+        const attendance: Attendance = {
+          activityId: activityId,
+          userId: user,
+          createdAt: new Date(),
+          status: "pending", // o "present" según tu lógica
+      }
+      unenrollActivity(attendance)
     }
     catch (err) {
       setError("Error al inscribirse en la actividad")
@@ -111,6 +153,10 @@ export function useActivities() {
     }
 
   }, [])
+
+  const markParticipantPresent = useCallback((activity: ActivityDetailInfo, participantId: number) =>{
+
+  },[])
 
   // Limpiar cliente seleccionado
   const clearSelectedActivity = () => setSelectedActivity(null)
@@ -132,5 +178,7 @@ export function useActivities() {
     clearSelectedActivity,
     setActivities, // opcional, por si quieres manipular manualmente
     enrollIntoActivity,
+    unenrollFromActivity,
+    markParticipantPresent,
   }
 }

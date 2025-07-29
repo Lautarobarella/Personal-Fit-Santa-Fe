@@ -122,13 +122,3 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
     throw error;
   }
 }
-
-export async function fetchUsersMock(): Promise<Response> {
-
-    return new Response(JSON.stringify(mockPayments), {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-}

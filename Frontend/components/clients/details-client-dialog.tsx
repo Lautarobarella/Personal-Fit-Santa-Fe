@@ -24,8 +24,6 @@ import {
   UserX,
   IdCard,
   CakeIcon,
-  Lock,
-  Dice1,
   Dice3,
 } from "lucide-react"
 import { useAuth } from "../providers/auth-provider"
