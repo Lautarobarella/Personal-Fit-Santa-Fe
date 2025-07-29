@@ -23,7 +23,7 @@ import java.util.UUID;
 public class PaymentFileServiceImpl implements IPaymentFileService {
 
     private final Integer $MAX_FILE_SIZE_MB = 5;
-    private final String $FOLDER_PATH = "C:/Users/tomsh/Documents/Facultad/Proyecto final/Comprobantes/";
+    private final String $FOLDER_PATH = "/app/files/";
 
     @Autowired
     private IPaymentFileRepository fileRepository; // Assuming you have a repository or service to handle file persistence
