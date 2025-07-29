@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -40,15 +41,10 @@ public class PaymentServiceImpl implements IPaymentService {
 
     public void registerPayment(InCreatePaymentDTO newPayment) {
 
-        Optional<User> user = userService.getUserById(newPayment.getClientId());
-        if (user.isEmpty())
-            throw new NoUserWithIdException();
-//         Optional<PaymentFile> pFile =
-//         paymentFileService.getPaymentFile(newPayment.getFileId());
-//         if (pFile.isEmpty()) throw new RuntimeException("Payment file not found");
+        User user = userService.getUserById(newPayment.getClientId());
 
         Payment payment = Payment.builder()
-                .user(user.get())
+                .user(user)
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
 //                 .paymentFile(pFile.get())
@@ -104,12 +100,9 @@ public class PaymentServiceImpl implements IPaymentService {
 
     @Override
     public List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id) {
-        Optional<User> user = userService.getUserById(id);
+        User user = userService.getUserById(id);
 
-        if (user.isEmpty())
-            throw new NoUserWithIdException();
-
-        return user.get().getPayments().stream()
+        return user.getPayments().stream()
                 .map(payment -> PaymentTypeDTO.builder()
                         .id(payment.getId())
                         .clientId(payment.getUser().getId())
@@ -155,6 +148,14 @@ public class PaymentServiceImpl implements IPaymentService {
         paymentRepository.save(payment);
     }
 
+    @Override
+    public Payment getPaymentById(Long id) {
+        Optional<Payment> payment = paymentRepository.findById(id);
+        if(payment.isEmpty()) throw new NoPaymentWithIdException();
+
+        return payment.get();
+    }
+
     @Transactional
     @Override
     public void registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file) {
@@ -162,19 +163,17 @@ public class PaymentServiceImpl implements IPaymentService {
         User user = userService.getUserByDni(newPayment.getClientDni());
 
         Optional<Long> idFile = Optional.empty();
-        Optional<PaymentFile> pFile = Optional.empty();
+        PaymentFile pFile = null;
         if (!(file == null || file.isEmpty())) {
             idFile = Optional.of(paymentFileService.uploadFile(file));
             pFile = paymentFileService.getPaymentFile(idFile.get());
-            if (pFile.isEmpty())
-                throw new RuntimeException("Payment file not found");
         }
 
         Payment payment = Payment.builder()
                 .user(user)
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
-                .paymentFile(pFile.orElse(null))
+                .paymentFile(pFile)
                 .methodType(newPayment.getMethodType())
                 .createdAt(newPayment.getCreatedAt())
                 .expiresAt(newPayment.getExpiresAt())
@@ -197,13 +196,10 @@ public class PaymentServiceImpl implements IPaymentService {
     public Boolean saveAll(List<InCreatePaymentDTO> newPayments) {
 
         for (InCreatePaymentDTO newPayment : newPayments) {
-            Optional<User> user = userService.getUserById(newPayment.getClientId());
-
-            if (user.isEmpty())
-                throw new NoUserWithIdException();
+            User user = userService.getUserById(newPayment.getClientId());
 
             Payment payment = Payment.builder()
-                    .user(user.get())
+                    .user(user)
                     .confNumber(newPayment.getConfNumber())
                     .amount(newPayment.getAmount())
                     .methodType(newPayment.getMethodType())

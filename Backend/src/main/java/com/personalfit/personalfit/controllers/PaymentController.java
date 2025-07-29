@@ -5,9 +5,13 @@ import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.dto.RejectPaymentDTO;
 import com.personalfit.personalfit.dto.VerifyPaymentTypeDTO;
+import com.personalfit.personalfit.models.Payment;
+import com.personalfit.personalfit.models.PaymentFile;
+import com.personalfit.personalfit.services.IPaymentFileService;
 import com.personalfit.personalfit.services.IPaymentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -23,6 +28,9 @@ public class PaymentController {
 
     @Autowired
     private IPaymentService paymentService;
+
+    @Autowired
+    private IPaymentFileService fileService;
 
     // DEPRECATED
     @PostMapping
@@ -61,6 +69,18 @@ public class PaymentController {
             @RequestBody InUpdatePaymentStatusDTO dto) {
         paymentService.updatePaymentStatus(id, dto);
         return ResponseEntity.ok("Estado actualizado correctamente");
+    }
+
+    @GetMapping("/getFile/{id}")
+    public ResponseEntity<byte[]> getFile(@PathVariable Long id) {
+        Payment payment = paymentService.getPaymentById(id);
+        PaymentFile file = payment.getPaymentFile();
+        byte[] fileBytes = fileService.getFile(file.getId());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getFileName())
+                .contentType(MediaType.parseMediaType(file.getContentType()))
+                .body(fileBytes);
     }
 
     // batch function to save multiple payments

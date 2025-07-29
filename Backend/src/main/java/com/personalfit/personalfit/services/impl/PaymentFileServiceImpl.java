@@ -1,6 +1,7 @@
 package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.exceptions.FileSizeException;
+import com.personalfit.personalfit.exceptions.NoPaymentFileWithIdException;
 import com.personalfit.personalfit.exceptions.UnsupportedFileExtension;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
@@ -100,8 +101,10 @@ public class PaymentFileServiceImpl implements IPaymentFileService {
     }
 
     @Override
-    public Optional<PaymentFile> getPaymentFile(Long id) {
-        return fileRepository.findById(id);
+    public PaymentFile getPaymentFile(Long id) {
+        Optional<PaymentFile> paymentFile = fileRepository.findById(id);
+        if (paymentFile.isEmpty()) throw new NoPaymentFileWithIdException();
+        return paymentFile.get();
     }
 
 

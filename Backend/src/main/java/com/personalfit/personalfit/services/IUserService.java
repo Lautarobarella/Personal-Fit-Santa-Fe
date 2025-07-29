@@ -15,7 +15,7 @@ public interface IUserService {
     User getUserByDni(Integer dni);
     List<UserTypeDTO> getAllUsers();
     Integer getUserAge(User user);
-    Optional<User> getUserById(Long id);
+    User getUserById(Long id);
     UserDetailInfoDTO createUserDetailInfoDTO(User user);
     List<UserTypeDTO> getAllTrainers();
     void updateUserStatus(User user, UserStatus status);

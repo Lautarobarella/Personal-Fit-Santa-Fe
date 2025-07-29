@@ -11,5 +11,5 @@ public interface IPaymentFileService {
     byte[] getFile(Long id);
     Long saveFile(String filePath, String fileName, String contentType);
     PaymentFile getFileInfo(Long id);
-    Optional<PaymentFile> getPaymentFile(Long id);
+    PaymentFile getPaymentFile(Long id);
 }

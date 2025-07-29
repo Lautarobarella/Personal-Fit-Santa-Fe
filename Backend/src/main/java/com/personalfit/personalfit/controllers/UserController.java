@@ -51,8 +51,8 @@ public class UserController {
 
     @GetMapping("/info/{id}")
     public ResponseEntity<UserTypeDTO> getUserInfo(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        UserTypeDTO userDto = userService.createUserDetailInfoDTO(user.get());
+        User user = userService.getUserById(id);
+        UserTypeDTO userDto = userService.createUserDetailInfoDTO(user);
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 

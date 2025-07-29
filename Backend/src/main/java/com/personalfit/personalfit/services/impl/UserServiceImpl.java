@@ -104,10 +104,10 @@ public class UserServiceImpl implements IUserService {
         return age;
     }
 
-    public Optional<User> getUserById(Long id) {
+    public User getUserById(Long id) {
         Optional<User> user = userRepository.findById(id);
-        if (!user.isPresent()) throw new NoUserWithIdException();
-        return userRepository.findById(id);
+        if (user.isEmpty()) throw new NoUserWithIdException();
+        return user.get();
     }
 
     public UserDetailInfoDTO createUserDetailInfoDTO(User user) {

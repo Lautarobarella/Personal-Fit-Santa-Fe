@@ -31,8 +31,7 @@ public class ActivityServiceImpl implements IActivityService {
     private IUserService userService;
 
     public void createActivity(ActivityFormTypeDTO activity) {
-        Optional<User> trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
-        if(trainer.isEmpty()) throw new NoUserWithIdException();
+        User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
         Activity newActivity = Activity.builder()
                 .name(activity.getName())
@@ -42,7 +41,7 @@ public class ActivityServiceImpl implements IActivityService {
                 .repeatEveryWeek(false)
                 .duration(Integer.parseInt(activity.getDuration()))
                 .status(ActivityStatus.active)
-                .trainer(trainer.get())
+                .trainer(trainer)
                 .createdAt(LocalDateTime.now())
                 .build();
 
