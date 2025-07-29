@@ -23,16 +23,24 @@ export default function EditActivityPage({ params }: { params: { id: number } })
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const { form, setForm, selectedActivity, editActivity, loadActivityDetail, trainers, loadTrainers } = useActivities()
+  const {
+    form,
+    setForm,
+    selectedActivity,
+    editActivity,
+    loadActivityDetail,
+    trainers,
+    loadTrainers } = useActivities()
     
   useEffect(() => {
     loadTrainers()
-    loadActivityDetail(Number(params.id))
+    loadActivityDetail(params.id)
     if (selectedActivity) {
       setForm({
+        id: selectedActivity.id.toString(),
         name: selectedActivity.name,
         description: selectedActivity.description,
-        trainerId: selectedActivity.trainerId,
+        trainerId: selectedActivity.trainerId.toString(),
         location: selectedActivity.location,
         date: selectedActivity.date.toISOString().split("T")[0], // YYYY-MM-DD
         time: selectedActivity.date.toISOString().split("T")[1].slice(0, 5), // HH:MM
@@ -52,19 +60,19 @@ export default function EditActivityPage({ params }: { params: { id: number } })
     const newErrors: Partial<ActivityFormType> = {}
 
     try {
-    if (!form.name.trim()) newErrors.name = "El nombre es requerido"
-    if (!form.description.trim()) newErrors.description = "La descripción es requerida"
-    if (!form.date) newErrors.date = "La fecha es requerida"
-    if (!form.time) newErrors.time = "La hora es requerida"
-    if (form.duration) newErrors.duration = "La duración debe ser mayor a 0"
-    if (form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainerId.trim()) newErrors.trainerId = "El entrenador es requerido"
+      if (!form.name.trim()) newErrors.name = "El nombre es requerido"
+      if (!form.description.trim()) newErrors.description = "La descripción es requerida"
+      if (!form.date) newErrors.date = "La fecha es requerida"
+      if (!form.time) newErrors.time = "La hora es requerida"
+      if (!form.duration) newErrors.duration = "La duración debe ser mayor a 0"
+      if (!form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
+      if (!form.trainerId.trim()) newErrors.trainerId = "El entrenador es requerido"
 
-    // Validate date is not in the past
-    const selectedDate = new Date(`${form.date}T${form.time}`)
-    if (selectedDate <= new Date()) {
-      newErrors.date = "La fecha debe ser futura"
-    }
+      // Validate date is not in the past
+      const selectedDate = new Date(`${form.date}T${form.time}`)
+      if (selectedDate <= new Date()) {
+        newErrors.date = "La fecha debe ser futura"
+      }
     } catch (error) {
       console.error("Error validating form:", error)
     }
@@ -80,11 +88,7 @@ export default function EditActivityPage({ params }: { params: { id: number } })
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      console.log("Creating activity...")
-
+      editActivity(form)
       toast({
         title: "Actividad creada",
         description: "La actividad ha sido creada exitosamente",

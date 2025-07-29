@@ -1,11 +1,11 @@
 export type UserRole = "admin" | "trainer" | "client"
 export type ActivityStatus = "active" | "cancelled" | "completed"
 export type ClientStatus = "present" | "absent" | "pending" | "late"
-export type AttendanceStatus = "present" | "absent" | "late"
 export type MethodType = "cash" | "card" | "transfer"
 export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
 export type NotificationType = "success" | "info" | "warning" | "error"
 export type NotificationCategoryType = "payment" | "client" | "enrollment" | "activity"
+export type GenderCategoty = "male" | "female" | "unspecified"
 
 export interface UserDetailInfo {
   id: number
@@ -56,6 +56,7 @@ export interface UserType {
 }
 
 export interface UserFormType {
+  id?: string
   dni: string
   firstName: string
   lastName: string
@@ -70,11 +71,11 @@ export interface UserFormType {
 }
 
 export interface ActivityDetailInfo {
-  id: string
+  id: number
   name: string
   description: string
   location: string
-  trainerId: string
+  trainerId: number
   trainerName: string
   date: Date
   duration: number
@@ -112,6 +113,7 @@ export interface ActivityType {
 }
 
 export interface ActivityFormType {
+  id?: string
   name: string
   description: string
   location: string
@@ -123,11 +125,11 @@ export interface ActivityFormType {
 }
 
 export interface Attendance {
-  id: string
-  activityId: string
-  userId: string
+  id?: number
+  activityId: number
+  userId: number
   createdAt: Date
-  status: AttendanceStatus
+  status: ClientStatus
 }
 
 export interface PaymentType {
