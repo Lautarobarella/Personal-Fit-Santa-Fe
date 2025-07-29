@@ -1,113 +1,58 @@
-import { fetchPaymentDetail, fetchPaymentDetailMock, fetchPayments, fetchPaymentsById, fetchPendingPaymentDetail, updatePayment } from "@/api/payment/paymentsApi"
-import { PaymentType, VerifyPaymentType } from "@/lib/types"
-import { useCallback, useState } from "react"
+import {
+  createPayment,
+  fetchPaymentDetail,
+  fetchPayments,
+  fetchPaymentsById,
+  updatePayment,
+} from "@/api/payment/paymentsApi"
+import { PaymentType, VerifyPaymentType, NewPaymentInput } from "@/lib/types"
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 
+export function usePayment(userId?: number, isAdmin?: boolean) {
+  const queryClient = useQueryClient()
 
-export function usePayment() {
-  const [payments, setPayments] = useState<PaymentType[]>([])
-  const [selectedPayment, setSelectedPayment] = useState<VerifyPaymentType | null>(null)
-  const [pendingPayments, setPendingPayments] = useState<VerifyPaymentType[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { data: payments = [], isLoading, error } = useQuery<PaymentType[]>({
+    queryKey: ["payments", userId],
+    queryFn: () =>
+      isAdmin ? fetchPayments() : fetchPaymentsById(userId ?? 0),
+    enabled: !!userId, // evita cargar si no hay usuario
+  })
 
-  // Cargar todos los pagos
-  const loadPayments = useCallback(async () => {
-    console.log("Cargando pagos...")
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetchPayments()
-      console.log("Respuesta de pagos:", res)
-      setPayments(res)
-    } catch (err) {
-      setError("Error al cargar los pagos")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const fetchSinglePayment = async (paymentId: number) => {
+    return await fetchPaymentDetail(paymentId)
+  }
+  const createPaymentMutation = useMutation({
+    mutationFn: (data: NewPaymentInput) => createPayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
+    },
+  })
 
-  // Cargar pagos por ID
-  const loadPaymentsById = useCallback(async (id: number) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await fetchPaymentsById(id)
-      console.log("Pagos por ID de usuario cargados:", data)
-      setPayments(data)
-      console.log("Pagos cargados:", data)
-    } catch (err) {
-      setError("Error al cargar los clientes")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Cargar detalle de un cliente
-  const loadPaymentDetail = useCallback(async (id: number) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetchPaymentDetail(id)
-      console.log("Respuesta de detalle de pago:", res)
-      setSelectedPayment(res)
-      console.log("Detalle del pago cargado:", selectedPayment)
-    } catch (err) {
-      setError("Error al cargar el detalle del cliente")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  
-
-  // Cargar pagos pendientes
-  const loadPendingPaymentDetail = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const detail = await fetchPendingPaymentDetail()
-      setPendingPayments(detail)
-
-    } catch (err) {
-      setError("Error al cargar el detalle del cliente")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Actualizar estado de un pago
-  const updatePaymentStatus = useCallback(async (id: number, status: "paid" | "rejected", rejectionReason?: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const updatedPayment = await updatePayment(id, status, rejectionReason)
-      setSelectedPayment(updatedPayment)
-      console.log("Pago actualizado:", updatedPayment)
-    } catch (err) {
-      setError("Error al actualizar el pago")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Limpiar cliente seleccionado
-  const clearSelectedPayment = () => setSelectedPayment(null)
+  const updatePaymentMutation = useMutation({
+    mutationFn: ({
+      id,
+      status,
+      rejectionReason,
+    }: {
+      id: number
+      status: "paid" | "rejected"
+      rejectionReason?: string
+    }) => updatePayment(id, status, rejectionReason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
+    },
+  })
 
   return {
     payments,
-    selectedPayment,
-    pendingPayments,
-    loading,
+    isLoading,
     error,
-    loadPayments,
-    loadPaymentDetail,
-    loadPendingPaymentDetail,
-    clearSelectedPayment,
-    setSelectedPayment, // opcional, por si quieres manipular manualmente
-    loadPaymentsById,
-    updatePaymentStatus,
+    createNewPayment: createPaymentMutation.mutateAsync,
+    updatePaymentStatus: updatePaymentMutation.mutateAsync,
+    fetchSinglePayment,
   }
-
-
-
 }

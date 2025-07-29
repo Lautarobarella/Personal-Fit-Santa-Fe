@@ -1,16 +1,7 @@
 package com.personalfit.personalfit.services.impl;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
+import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.UserDetailInfoDTO;
 import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
@@ -21,6 +12,14 @@ import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements IUserService {
@@ -32,8 +31,7 @@ public class UserServiceImpl implements IUserService {
 
         Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
-        if (user.isPresent())
-            throw new UserDniAlreadyExistsException();
+        if (user.isPresent()) throw new UserDniAlreadyExistsException();
 
         User userToCreate = new User();
         userToCreate.setDni(Integer.parseInt(newUser.getDni()));
@@ -57,8 +55,7 @@ public class UserServiceImpl implements IUserService {
     public Boolean deleteUser(Long id) {
         Optional<User> user = userRepository.findById(id);
 
-        if (user.isEmpty())
-            throw new NoUserWithIdException();
+        if (user.isEmpty()) throw new NoUserWithIdException();
 
         try {
             userRepository.delete(user.get());
@@ -67,13 +64,13 @@ public class UserServiceImpl implements IUserService {
             return false;
         }
 
+
         return true;
     }
 
     public User getUserByDni(Integer dni) {
         Optional<User> user = userRepository.findByDni(dni);
-        if (!user.isPresent())
-            throw new NoUserWithDniException();
+        if (!user.isPresent()) throw new NoUserWithDniException();
         return user.get();
     }
 
@@ -94,8 +91,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     public Integer getUserAge(User user) {
-        if (user.getBirthDate() == null)
-            return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
+        if (user.getBirthDate() == null) return null; // Si no tiene fecha de nacimiento, no se puede calcular la edad
 
         LocalDate today = LocalDate.now();
         Integer age = today.getYear() - user.getBirthDate().getYear();
@@ -110,8 +106,7 @@ public class UserServiceImpl implements IUserService {
 
     public Optional<User> getUserById(Long id) {
         Optional<User> user = userRepository.findById(id);
-        if (!user.isPresent())
-            throw new NoUserWithIdException();
+        if (!user.isPresent()) throw new NoUserWithIdException();
         return userRepository.findById(id);
     }
 
@@ -124,8 +119,7 @@ public class UserServiceImpl implements IUserService {
             userDto.getListActivity().add(UserActivityDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
-                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " "
-                            + attendance.getActivity().getTrainer().getLastName())
+                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " " + attendance.getActivity().getTrainer().getLastName())
                     .date(attendance.getActivity().getDate())
                     .activityStatus(attendance.getActivity().getStatus())
                     .clientStatus(attendance.getAttendance())
@@ -140,7 +134,7 @@ public class UserServiceImpl implements IUserService {
 
     public List<UserTypeDTO> getAllTrainers() {
         List<User> users = userRepository.findAll();
-        return users.stream().filter(u -> u.getRole().equals(UserRole.trainer))
+        return users.stream().filter( u -> u.getRole().equals(UserRole.trainer))
                 .map(u -> {
                     UserTypeDTO userDto = new UserTypeDTO(u);
                     Integer age = getUserAge(u);
@@ -152,7 +146,16 @@ public class UserServiceImpl implements IUserService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public void updateUserStatus(User user, UserStatus status) {
+        if (user == null) throw new NoUserWithIdException();
+
+        user.setStatus(status);
+        userRepository.save(user);
+    }
+
     // batch function to save multiple users
+    @Override
     public Boolean saveAll(List<InCreateUserDTO> newUsers) {
 
         for (InCreateUserDTO newUser : newUsers) {
@@ -169,7 +172,7 @@ public class UserServiceImpl implements IUserService {
             userToCreate.setPhone(newUser.getPhone());
             userToCreate.setRole(newUser.getRole());
             userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
-            newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
+                    newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
             userToCreate.setJoinDate(LocalDate.now());
             userToCreate.setAddress(newUser.getAddress());
             userToCreate.setBirthDate(newUser.getBirthDate());
@@ -179,4 +182,5 @@ public class UserServiceImpl implements IUserService {
         }
         return true;
     }
+
 }

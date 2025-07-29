@@ -4,8 +4,7 @@ import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.UserDetailInfoDTO;
 import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.models.User;
-
-import jakarta.validation.Valid;
+import com.personalfit.personalfit.utils.UserStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +18,6 @@ public interface IUserService {
     Optional<User> getUserById(Long id);
     UserDetailInfoDTO createUserDetailInfoDTO(User user);
     List<UserTypeDTO> getAllTrainers();
+    void updateUserStatus(User user, UserStatus status);
     Boolean saveAll(List<InCreateUserDTO> newUsers);
-    
 }

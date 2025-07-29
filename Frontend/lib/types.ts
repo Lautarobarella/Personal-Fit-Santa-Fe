@@ -89,7 +89,7 @@ export interface ActivityDetailInfo {
   duration: number
   maxParticipants: number
   currentParticipants: number
-  participants: ActivityUserDetails[] 
+  participants: ActivityUserDetails[]
   status: ActivityStatus
   createdBy: string
   lastModifiedBy?: string
@@ -126,7 +126,7 @@ export interface ActivityFormType {
   description: string
   location: string
   trainerId: string
-  date: string 
+  date: string
   time: string
   duration: string
   maxParticipants: string
@@ -174,4 +174,13 @@ export interface Notification {
   archived: boolean
   createdAt: Date
   notificationCategory: NotificationCategoryType
+}
+
+export interface NewPaymentInput {
+  clientDni: number
+  amount: number
+  createdAt: string
+  expiresAt: string
+  paymentStatus: "pending" | "paid"
+  file?: File
 }

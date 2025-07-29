@@ -1,6 +1,7 @@
+import { NewPaymentInput } from "@/lib/types";
+
 const BASE_URL = 'http://localhost:8080/api/payment';
 
-import { mockPayments } from "@/mocks/mockPayments";
 
 export async function fetchPayments() {
   try {
@@ -22,21 +23,47 @@ export async function fetchPayments() {
     return [];
   }
 }
-// MOCKS, LUEGO REEMPLAZAR EL USO POR LOS FETCHS REALES
 
-export async function fetchPaymentDetailMock(id: number) {
-  const payment = mockPayments.find(p => p.clientId === id)
-  if (!payment) {
-    console.log("Payment not found for ID:", id);
-    return new Response("Pago no encontrado", { status: 404 })
+export async function createPayment(paymentData: NewPaymentInput) {
+  const {
+    clientDni,
+    amount,
+    createdAt,
+    expiresAt,
+    file,
+    paymentStatus,
+  } = paymentData
+
+  const formData = new FormData()
+
+  const payment = {
+    clientDni,
+    amount,
+    createdAt: new Date(createdAt + "T00:00:00").toISOString().slice(0, 19),
+    expiresAt: new Date(expiresAt + "T00:00:00").toISOString().slice(0, 19),
+    paymentStatus,
   }
-  console.log("Payment detail fetched for ID:", id, payment)
-  return new Response(JSON.stringify(payment), {
-    status: 200,
-    headers: { "Content-Type": "application/json" }
+
+  formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }))
+
+  if (file) {
+    formData.append("file", file)
+  }
+
+  const response = await fetch(`http://localhost:8080/api/payment/new`, {
+    method: "POST",
+    body: formData,
   })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Error en el servidor: ${response.status} - ${errorText}`)
+  }
+
+  return await response.json()
 }
-// MOCKS, LUEGO REEMPLAZAR EL USO POR LOS FETCHS REALES
+
+
 
 export async function fetchPaymentsById(id: number) {
   try {
@@ -54,7 +81,6 @@ export async function fetchPaymentsById(id: number) {
     return await response.json();
 
   } catch (error) {
-    console.error('Error fetching payments:', error);
     return [];
   }
 }
@@ -75,7 +101,6 @@ export async function fetchPaymentDetail(id: number) {
     return await response.json();
 
   } catch (error) {
-    console.error('Error fetching payment:', error);
     throw error;
   }
 }
@@ -103,7 +128,7 @@ export async function fetchPendingPaymentDetail() {
 
 export async function updatePayment(id: number, status: "paid" | "rejected", rejectionReason?: string) {
   try {
-    const response = await fetch(`${BASE_URL}/${id}`, {
+    const response = await fetch(`${BASE_URL}/pending/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +140,8 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
       throw new Error(`Error al actualizar el pago: ${response.status}`);
     }
 
-    return await response.json();
+    // Como el backend ahora devuelve un mensaje simple (String), podés hacer esto:
+    return await response.text(); // o ignorar el cuerpo si no lo usás
 
   } catch (error) {
     console.error('Error updating payment:', error);

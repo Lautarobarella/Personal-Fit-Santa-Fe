@@ -24,7 +24,7 @@ public class ActivityController {
     @PostMapping("/new")
     public ResponseEntity<Void> newActivity(@RequestBody ActivityFormTypeDTO activity) {
         activityService.createActivity(activity);
-        return ResponseEntity.created(null).build();
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/getAll")
