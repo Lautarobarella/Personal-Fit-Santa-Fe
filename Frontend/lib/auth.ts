@@ -5,6 +5,11 @@ import { mockUsers } from "@/mocks/mockUsers"
 export const authenticate = async (email: string, password: string): Promise<UserType | null> => {
 
   const user = mockUsers.find((u) => u.email === email)
+  console.log("Authenticating user:", user)
+  if (!user) {
+    console.error("User not found for email:", email)
+    return null
+  }
   if (user && password === user.password) {
     return user
   }

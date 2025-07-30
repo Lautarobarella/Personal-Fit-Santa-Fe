@@ -28,12 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.error("Login attempt with email:", email)
+    console.log("Login attempt with password:", password)
     setLoading(true)
     try {
       const { authenticate } = await import("@/lib/auth")
       const authenticatedUser = await authenticate(email, password)
 
       if (authenticatedUser) {
+        console.log("User authenticated successfully:", authenticatedUser)
         setUser(authenticatedUser)
         localStorage.setItem("user", JSON.stringify(authenticatedUser))
         return true

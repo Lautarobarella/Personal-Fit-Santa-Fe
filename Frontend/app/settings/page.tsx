@@ -37,7 +37,7 @@ export default function SettingsPage() {
               </Avatar>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
-                <p className="text-muted-foreground">{user.email}</p>
+                {/* <p className="text-muted-foreground">{user.email}</p> */}
                 <p className="text-sm text-blue-600 capitalize">{user.role}</p>
               </div>
               <Button variant="outline" size="sm">
