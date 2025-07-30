@@ -114,10 +114,13 @@ public class PaymentServiceImpl implements IPaymentService {
         switch (dto.getStatus().toLowerCase()) {
             case "paid":
                 payment.setStatus(PaymentStatus.paid);
+                userService.updateUserStatus(optional.get().getUser(), UserStatus.active); // Si el usuario pagó, se
+                                                                                           // pone en activo
                 break;
             case "rejected":
                 payment.setStatus(PaymentStatus.rejected);
                 payment.setRejectionReason(dto.getRejectionReason()); // puede ser null o ""
+                userService.updateUserStatus(optional.get().getUser(), UserStatus.inactive);
                 break;
             default:
                 throw new IllegalArgumentException("Estado inválido: " + dto.getStatus());
@@ -180,8 +183,6 @@ public class PaymentServiceImpl implements IPaymentService {
                 .expiresAt(newPayment.getExpiresAt())
                 .status(newPayment.getPaymentStatus())
                 .build();
-
-        userService.updateUserStatus(user, UserStatus.active); // Si el usuario pagó, se pone en activo
 
         try {
             paymentRepository.save(payment);

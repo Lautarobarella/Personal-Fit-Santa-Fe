@@ -92,7 +92,10 @@ public class UserServiceImpl implements IUserService {
             usersDto.add(new UserTypeDTO(user));
 
         });
-        return usersDto;
+
+        return usersDto.stream()
+                .filter(u -> !u.getRole().equals(UserRole.admin))
+                .collect(Collectors.toList());
     }
 
     public Integer getUserAge(User user) {
@@ -191,5 +194,4 @@ public class UserServiceImpl implements IUserService {
         }
         return true;
     }
-
 }

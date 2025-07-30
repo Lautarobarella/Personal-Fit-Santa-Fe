@@ -202,9 +202,9 @@ export default function PaymentVerificationPage() {
         <div
           className="bg-primary h-2 rounded-full transition-all duration-300"
           style={{
-            width: (initialPendingCount.current === 0 || reviewedCount === 0)
+            width: (!initialPendingCount.current || reviewedCount === 0)
               ? "0%"
-              : `${(reviewedCount / initialPendingCount.current) * 100}%`
+              : `${(reviewedCount / (initialPendingCount.current ?? 1)) * 100}%`
           }}
         />
       </div>

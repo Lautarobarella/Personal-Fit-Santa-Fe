@@ -4,6 +4,8 @@ import com.personalfit.personalfit.dto.*;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.services.IUserService;
+import com.personalfit.personalfit.utils.UserStatus;
+
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -61,6 +63,13 @@ public class UserController {
         List<UserTypeDTO> trainers = userService.getAllTrainers();
         return new ResponseEntity<>(trainers, HttpStatus.OK);
     }
+
+    // @PutMapping("/status/{id}")
+    // public ResponseEntity<Void> updateUserStatus(@PathVariable Long id, String status){
+    //     User user = userService.getUserById(id);
+    //     userService.updateUserStatus(user, UserStatus.valueOf(status.toUpperCase()));
+    //     return new ResponseEntity<>(HttpStatus.OK);
+    // }
 
     @Transactional
     @PostMapping("/batch")
