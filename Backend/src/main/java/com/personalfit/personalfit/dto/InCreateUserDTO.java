@@ -2,6 +2,8 @@
 package com.personalfit.personalfit.dto;
 
 import com.personalfit.personalfit.utils.UserRole;
+import com.personalfit.personalfit.utils.UserStatus;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -38,6 +40,8 @@ public class InCreateUserDTO {
     private String address;
 
     private LocalDate joinDate;
+
+    private UserStatus status;
 
     private String avatar;
 

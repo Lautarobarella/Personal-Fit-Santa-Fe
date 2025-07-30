@@ -50,7 +50,7 @@ public class UserServiceImpl implements IUserService {
         userToCreate.setAddress(newUser.getAddress());
         userToCreate.setBirthDate(newUser.getBirthDate());
         userToCreate.setPassword(newUser.getPassword());
-        userToCreate.setStatus(UserStatus.active);
+        userToCreate.setStatus(newUser.getStatus());
         userRepository.save(userToCreate);
 
         return true;
@@ -186,7 +186,7 @@ public class UserServiceImpl implements IUserService {
             userToCreate.setAddress(newUser.getAddress());
             userToCreate.setBirthDate(newUser.getBirthDate());
             userToCreate.setPassword(newUser.getPassword());
-            userToCreate.setStatus(UserStatus.active);
+            userToCreate.setStatus(newUser.getStatus());
             userRepository.save(userToCreate);
         }
         return true;

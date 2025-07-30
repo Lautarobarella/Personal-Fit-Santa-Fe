@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
 import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { useToast } from "@/hooks/use-toast"
+import { PaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -26,11 +27,10 @@ export default function PaymentVerificationPage() {
 
   // NUEVO: Hook externo con la lista inicial de pendientes
   const { pendingPayments, loading, totalPendingPayments } = usePendingPayments(user?.id, true)
-  const { updatePaymentStatus } = usePayment(user?.id, true)
+  const { updatePaymentStatus, fetchSinglePayment } = usePayment(user?.id, true)
 
   // Inicializa y congela la cantidad total de pagos al primer render
   const initialPendingCount = useRef<number | null>(null)
-
   useEffect(() => {
     // Solo setea cuando: no está cargando y nunca se seteo
     if (!loading && initialPendingCount.current === null) {
@@ -38,7 +38,19 @@ export default function PaymentVerificationPage() {
     }
   }, [loading, pendingPayments])
 
-  const currentPayment = pendingPayments[currentIndex] || null
+  const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
+  useEffect(() => {
+    const fetchPayment = async () => {
+      const payment =
+        pendingPayments[currentIndex]
+          ? await fetchSinglePayment(pendingPayments[currentIndex].id)
+          : null;
+      setCurrentPayment(payment);
+    };
+    fetchPayment();
+  }, [currentIndex, pendingPayments, fetchSinglePayment]);
+
+
 
   // Redirige si no es admin
   useEffect(() => {
@@ -292,7 +304,7 @@ export default function PaymentVerificationPage() {
           <Button
             variant="secondary"
             onClick={() => handleStatusUpdate("rejected")}
-            disabled={isVerifying || !currentPayment}
+            disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
             className="w-1/2 py-3 text-base font-semibold"
           >
             {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -302,7 +314,7 @@ export default function PaymentVerificationPage() {
           <Button
             variant="default"
             onClick={() => handleStatusUpdate("paid")}
-            disabled={isVerifying || !currentPayment}
+            disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
             className="w-1/2 py-3 text-base font-semibold"
           >
             {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

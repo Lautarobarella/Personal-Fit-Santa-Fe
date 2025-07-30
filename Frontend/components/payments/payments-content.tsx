@@ -87,6 +87,14 @@ export default function PaymentsContent() {
         }
     }
 
+    function formatCurrency(amount: number): string {
+        return new Intl.NumberFormat("es-AR", {
+            style: "decimal",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(amount)
+    }
+
     const filteredPayments = payments.filter(
         (p) =>
             p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,7 +123,7 @@ export default function PaymentsContent() {
                                     aria-disabled={pendingPayments.length <= 0}>
                                     <Button size="sm" variant="outline" className="bg-transparent">
                                         <FileCheck className="h-4 w-4" />
-                                        ({pendingPayments.length})
+                                        Verificar ({pendingPayments.length})
                                     </Button>
                                 </Link>
                                 <Link href="/payments/new">
@@ -151,19 +159,21 @@ export default function PaymentsContent() {
 
                 {/* Stats */}
                 {user.role === "admin" && (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-rows-1 gap-4">
                         <Card>
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Ingresos del Mes</p>
-                                        <p className="text-2xl font-bold text-success">${totalRevenue}</p>
+                                        <p className="text-sm text-muted-foreground font-bold">Ingresos del Mes</p>
+                                        <p className="text-2xl font-bold text-success">{formatCurrency(totalRevenue)}</p>
+
                                     </div>
                                     <DollarSign className="h-8 w-8 text-success" />
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card>
+                        {/* Esta card para mi es innecesaria, ya que contamos con los pendientes en la tab de pendientes y además el botón de verificr tambén lo especifica */}
+                        {/* <Card>
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -173,14 +183,14 @@ export default function PaymentsContent() {
                                     <FileCheck className="h-8 w-8 text-warning" />
                                 </div>
                             </CardContent>
-                        </Card>
+                        </Card> */}
                     </div>
                 )}
 
                 {/* Payments Tabs */}
                 <Tabs defaultValue="all" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="pending">Pendientes</TabsTrigger>
+                        <TabsTrigger value="pending">{pendingPayments.length} Pendientes </TabsTrigger>
                         <TabsTrigger value="all">Todos</TabsTrigger>
                     </TabsList>
 

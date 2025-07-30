@@ -25,6 +25,9 @@ export default function ClientsPage() {
     loadClients,
   } = useClients()
   const [searchTerm, setSearchTerm] = useState("")
+
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active")
+
   const [clientDetailsDialog, setClientDetailsDialog] = useState<{
     open: boolean
     userId: number | null
@@ -42,21 +45,26 @@ export default function ClientsPage() {
   if (error) return <div>{error}</div>
   if (!clients) return null
 
-  const filteredClients = clients.filter(
-    (c) =>
-      c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredClients = clients
+    .filter((c) =>
+      (statusFilter === "all" ? true : c.status === statusFilter) &&
+      (
+        c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    )
+
+
   const formatDate = (date: Date) => {
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(date))
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(date))
   }
-  
+
   const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
 
   return (
@@ -87,30 +95,44 @@ export default function ClientsPage() {
           />
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {clients.filter((c) => c.status === "active").length}
-              </div>
-              <div className="text-sm text-muted-foreground">Activos</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {clients.filter((c) => c.status === "inactive").length}
-              </div>
-              <div className="text-sm text-muted-foreground">Inactivos</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{clients.length}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
-            </CardContent>
-          </Card>
+          <button
+            className={`rounded-lg transition border-2 ${statusFilter === "active" ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
+            onClick={() => setStatusFilter("active")}
+          >
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {clients.filter((c) => c.status === "active").length}
+                </div>
+                <div className="text-sm text-muted-foreground">Activos</div>
+              </CardContent>
+            </Card>
+          </button>
+          <button
+            className={`rounded-lg transition border-2 ${statusFilter === "inactive" ? "border-orange-600 bg-orange-50" : "border-transparent"} focus:outline-none`}
+            onClick={() => setStatusFilter("inactive")}
+          >
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {clients.filter((c) => c.status === "inactive").length}
+                </div>
+                <div className="text-sm text-muted-foreground">Inactivos</div>
+              </CardContent>
+            </Card>
+          </button>
+          <button
+            className={`rounded-lg transition border-2 ${statusFilter === "all" ? "border-blue-600 bg-blue-50" : "border-transparent"} focus:outline-none`}
+            onClick={() => setStatusFilter("all")}
+          >
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600">{clients.length}</div>
+                <div className="text-sm text-muted-foreground">Total</div>
+              </CardContent>
+            </Card>
+          </button>
         </div>
 
         {/* Client List */}
@@ -153,7 +175,7 @@ export default function ClientsPage() {
                       <span className="text-muted-foreground">Desde {formatDate(client.joinDate)}</span>
                     </div>
                   </div>
-                  
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
