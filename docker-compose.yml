@@ -14,11 +14,11 @@ services:
     ports:
       - "5432:5432"
 
-  personalfit:
+  personalfit-backend:
     build:
       context: .
       dockerfile: Backend/Dockerfile
-    container_name: personalfit-app
+    container_name: personalfit-backend
     depends_on:
       - postgres
     environment:
@@ -29,6 +29,18 @@ services:
       - "8080:8080"
     volumes:
       - comprobantes:/app/comprobantes
+
+  personalfit-frontend:
+    build:
+      context: .
+      dockerfile: Frontend/Dockerfile
+    container_name: personalfit-frontend
+    depends_on:
+      - personalfit-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
 
   pgadmin:
     image: dpage/pgadmin4

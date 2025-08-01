@@ -9,6 +9,27 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  output: 'standalone',
+  // Configuración para evitar warnings
+  experimental: {
+    esmExternals: 'loose',
+  },
+  webpack: (config, { isServer }) => {
+    // Suprimir warnings de webpack
+    config.infrastructureLogging = {
+      level: 'error',
+    }
+    
+    // Configuración para evitar warnings de módulos
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    }
+    
+    return config
+  },
 }
 
 export default nextConfig
