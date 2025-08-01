@@ -5,9 +5,9 @@ export const mockUsers: UserType[] = [
   {
     id: 1,
     dni: 32145678,
-    firstName: "Camila",
-    lastName: "Fernández",
-    email: "camila.fernandez@example.com",
+    firstName: "Matías",
+    lastName: "Gutierrez",
+    email: "matias.gutierrez@example.com",
     phone: "1123456789",
     age: 28,
     birthDate: new Date("1996-03-15"),
@@ -17,7 +17,7 @@ export const mockUsers: UserType[] = [
     joinDate: new Date("2024-01-05"),
     activitiesCount: 3,
     lastActivity: new Date("2024-06-20"),
-    password: "camila123",
+    password: "a",
   },
   {
     id: 2,
@@ -55,7 +55,7 @@ export const mockUsers: UserType[] = [
   },
   {
     id: 4,
-    dni: 33412567,
+    dni: 1234,
     firstName: "Bruno",
     lastName: "Castro",
     email: "a@a",
