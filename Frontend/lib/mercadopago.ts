@@ -108,7 +108,6 @@ export async function createSingleProductPreference(
             // Configuración adicional
             expires: true,
             expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-            auto_return: "approved",
             statement_descriptor: "Personal Fit",
         };
 
