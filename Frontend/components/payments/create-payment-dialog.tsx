@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
@@ -135,12 +134,11 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         const clientIdParsed = parseInt(selectedClient, 10)
         if (
             isNaN(clientIdParsed) ||
-            clientIdParsed < 5000000 ||
-            clientIdParsed > 99999999
+            clientIdParsed < 0
         ) {
             toast({
                 title: "Error",
-                description: "El DNI debe ser un número válido entre 5.000.000 y 99.999.999",
+                description: "El DNI debe ser un número válido y no puede ser negativo",
                 variant: "destructive",
             })
             return

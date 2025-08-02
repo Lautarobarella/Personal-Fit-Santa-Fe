@@ -192,4 +192,4 @@ Para problemas o preguntas sobre la configuración CI/CD:
 1. Revisar los logs de GitHub Actions
 2. Verificar la configuración de secrets
 3. Revisar la documentación de GitHub Actions
-4. Contactar al equipo de desarrollo 
+4. Contactar al equipo de desarrollo

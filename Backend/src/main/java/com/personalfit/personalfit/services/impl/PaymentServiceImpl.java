@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.personalfit.personalfit.dto.InCreatePaymentDTO;
+import com.personalfit.personalfit.dto.InCreatePaymentWithFileDTO;
 import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
@@ -208,6 +209,81 @@ public class PaymentServiceImpl implements IPaymentService {
                     .createdAt(newPayment.getCreatedAt())
                     .expiresAt(newPayment.getExpiresAt())
                     .status(PaymentStatus.pending)
+                    .build();
+
+            try {
+                paymentRepository.save(payment);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
+
+    }
+
+    // batch function to save multiple payments with files
+    @Override
+    public Boolean saveAllWithFiles(List<InCreatePaymentWithFileDTO> newPayments) {
+
+        for (InCreatePaymentWithFileDTO newPayment : newPayments) {
+            User user = userService.getUserByDni(newPayment.getClientDni());
+
+            Optional<Long> idFile = Optional.empty();
+            PaymentFile pFile = null;
+            if (!(newPayment.getFile() == null || newPayment.getFile().isEmpty())) {
+                idFile = Optional.of(paymentFileService.uploadFile(newPayment.getFile()));
+                pFile = paymentFileService.getPaymentFile(idFile.get());
+            }
+
+            Payment payment = Payment.builder()
+                    .user(user)
+                    .confNumber(newPayment.getConfNumber())
+                    .amount(newPayment.getAmount())
+                    .paymentFile(pFile)
+                    .methodType(newPayment.getMethodType())
+                    .createdAt(newPayment.getCreatedAt())
+                    .expiresAt(newPayment.getExpiresAt())
+                    .status(newPayment.getPaymentStatus())
+                    .build();
+
+            try {
+                paymentRepository.save(payment);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
+
+    }
+
+    // batch function to save multiple payments with files from array
+    @Override
+    public Boolean saveAllWithFilesFromArray(List<InCreatePaymentDTO> newPayments, MultipartFile[] files) {
+
+        for (int i = 0; i < newPayments.size(); i++) {
+            InCreatePaymentDTO newPayment = newPayments.get(i);
+            User user = userService.getUserByDni(newPayment.getClientDni());
+
+            Optional<Long> idFile = Optional.empty();
+            PaymentFile pFile = null;
+            
+            // Verificar si hay archivo correspondiente
+            if (files != null && i < files.length && !(files[i] == null || files[i].isEmpty())) {
+                idFile = Optional.of(paymentFileService.uploadFile(files[i]));
+                pFile = paymentFileService.getPaymentFile(idFile.get());
+            }
+
+            Payment payment = Payment.builder()
+                    .user(user)
+                    .confNumber(newPayment.getConfNumber())
+                    .amount(newPayment.getAmount())
+                    .paymentFile(pFile)
+                    .methodType(newPayment.getMethodType())
+                    .createdAt(newPayment.getCreatedAt())
+                    .expiresAt(newPayment.getExpiresAt())
+                    .status(newPayment.getPaymentStatus())
                     .build();
 
             try {

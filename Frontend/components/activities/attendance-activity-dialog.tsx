@@ -109,16 +109,16 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                           Ausente
                         </Badge>
                       )}
-                      {p.status === "pending" && isFuture && (
+                      {p.status === "pending" && (
                         <Badge variant={'warning'}>
-                        <MailWarningIcon className="h-3 w-3 mr-1" />
+                          <MailWarningIcon className="h-3 w-3 mr-1" />
                           Pendiente
                         </Badge>
                       )}
                     </>
 
                     {/* Botón para marcar como presente solo si es pending y la actividad aún no comenzó */}
-                    {(p.status === "pending" || p.status === "absent") && isFuture && (
+                    {(p.status === "pending" || p.status === "absent") && (
                       <Button
                         size="sm"
                         variant="outline"
