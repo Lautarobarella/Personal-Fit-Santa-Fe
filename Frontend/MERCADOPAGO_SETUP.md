@@ -1,119 +1,138 @@
 # Configuración de MercadoPago
 
-## Variables de Entorno Requeridas
+## 1. Obtener Credenciales de MercadoPago
 
-Crea un archivo `.env.local` en la carpeta `Frontend/` con las siguientes variables:
+### Paso 1: Crear cuenta en MercadoPago Developers
+1. Ve a [https://www.mercadopago.com/developers](https://www.mercadopago.com/developers)
+2. Inicia sesión con tu cuenta de MercadoPago
+3. Ve a "Tus integraciones" → "Credenciales"
 
-```bash
-# Variables de entorno para MercadoPago
-# CREDENCIALES DE PRUEBA - NO USAR EN PRODUCCIÓN
+### Paso 2: Obtener Access Token
+1. En la sección de credenciales, encontrarás:
+   - **Public Key**: Para el frontend
+   - **Access Token**: Para el backend (este es el que necesitamos)
 
-# Access Token de MercadoPago (Sandbox/Pruebas)
-MP_ACCESS_TOKEN=APP_USR-XXXXXXXXXXXXXXXX-XXXXXX-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-XXXXXXXXX
+2. **Para pruebas (Sandbox)**:
+   - Usa el Access Token que comienza con `TEST-`
+   - Ejemplo: `TEST-1234567890abcdef-123456-abcdef1234567890abcdef1234567890-123456789`
 
-# URL base de la aplicación
+3. **Para producción**:
+   - Usa el Access Token que comienza con `APP_USR-`
+   - Ejemplo: `APP_USR-1234567890abcdef-123456-abcdef1234567890abcdef1234567890-123456789`
+
+## 2. Configurar Variables de Entorno
+
+### En el archivo `docker-compose.yml`:
+
+```yaml
+personalfit-frontend:
+  # ... otras configuraciones ...
+  environment:
+    NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
+    NEXT_PUBLIC_IS_DOCKER: "true"
+    NEXT_PUBLIC_BASE_URL: http://72.60.1.76:3000
+    MP_ACCESS_TOKEN: TEST-TU_TOKEN_AQUI  # ← Reemplaza con tu token real
+    NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+```
+
+### Para desarrollo local (archivo `.env.local`):
+
+```env
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
-
-# Indicador de ambiente de pruebas
+MP_ACCESS_TOKEN=TEST-TU_TOKEN_AQUI
 NEXT_PUBLIC_MP_ENVIRONMENT=sandbox
 ```
 
-## Pasos para obtener las credenciales
+## 3. Verificar la Configuración
 
-### 1. Crear cuenta de desarrollador en MercadoPago
-
-1. Ve a [https://www.mercadopago.com.ar/developers](https://www.mercadopago.com.ar/developers)
-2. Inicia sesión o crea una cuenta
-3. Ve a la sección "Mis aplicaciones"
-
-### 2. Crear una aplicación de prueba
-
-1. Haz clic en "Crear aplicación"
-2. Elige "Pagos online" como producto
-3. Nombra tu aplicación (ej: "Personal Fit Gym")
-4. Selecciona el modelo de negocio apropiado
-
-### 3. Obtener credenciales de SANDBOX (pruebas)
-
-1. Una vez creada la aplicación, ve a la sección "Credenciales"
-2. Asegúrate de estar en la pestaña "Credenciales de prueba"
-3. Copia el **Access Token** (empieza con `APP_USR-`)
-4. Pega este token en la variable `MP_ACCESS_TOKEN` de tu `.env.local`
-
-### 4. Configurar URL de webhook (Producción)
-
-Para producción, necesitarás configurar una URL pública para el webhook:
-
-1. Si tienes un dominio/IP pública, usa: `https://tudominio.com/api/webhook/mercadopago`
-2. Si usas servicios como Ngrok, Railway, Vercel, etc., usa su URL
-
-**Ejemplo para máquina en la nube:**
-```bash
-NEXT_PUBLIC_BASE_URL=http://tu-ip-publica:3000
+### Endpoint de prueba
+Una vez configurado, puedes verificar que todo esté funcionando visitando:
+```
+http://72.60.1.76:3000/api/test-mercadopago
 ```
 
-## Tarjetas de prueba
+Deberías ver una respuesta como:
+```json
+{
+  "success": true,
+  "config": {
+    "hasMpToken": true,
+    "mpTokenLength": 84,
+    "mpTokenPreview": "TEST-12345...",
+    "baseUrl": "http://72.60.1.76:3000",
+    "environment": "sandbox",
+    "nodeEnv": "production"
+  },
+  "message": "Configuración de MercadoPago verificada"
+}
+```
 
-Para probar los pagos, usa estas tarjetas de prueba:
+## 4. URLs de Webhook
 
-### Tarjetas que aprueban el pago:
-- **Visa:** 4507 9900 0000 0087
-- **Mastercard:** 5031 7557 3453 0604
-- **American Express:** 3711 8030 3257 522
+### Configuración automática
+El sistema configura automáticamente las siguientes URLs:
 
-### Datos de ejemplo:
-- **CVV:** 123
-- **Fecha de vencimiento:** 11/25
-- **Nombre:** APRO (para aprobar) o CONT (para rechazar)
-- **DNI:** 12345678
+- **Success**: `http://72.60.1.76:3000/success`
+- **Failure**: `http://72.60.1.76:3000/failure`
+- **Pending**: `http://72.60.1.76:3000/pending`
+- **Webhook**: `http://72.60.1.76:3000/api/webhook/mercadopago`
 
-## URLs de redirección
+### Verificar webhook
+Puedes probar el webhook visitando:
+```
+http://72.60.1.76:3000/api/webhook/mercadopago
+```
 
-El sistema está configurado para redirigir a:
-- **Éxito:** `/success`
-- **Error:** `/failure`  
-- **Pendiente:** `/pending`
+## 5. Datos de Prueba
 
-## Webhook
+### Tarjetas de prueba para Sandbox:
 
-El webhook está configurado en: `/api/webhook/mercadopago`
+**Tarjeta de crédito aprobada:**
+- Número: `4509 9535 6623 3704`
+- Fecha: `11/25`
+- CVV: `123`
+- Nombre: `APRO`
 
-Esta ruta recibe las notificaciones de MercadoPago cuando cambia el estado de un pago.
+**Tarjeta de crédito rechazada:**
+- Número: `4000 0000 0000 0002`
+- Fecha: `11/25`
+- CVV: `123`
+- Nombre: `CONT`
 
-## Modo Producción
+**Tarjeta de débito:**
+- Número: `4000 0000 0000 0010`
+- Fecha: `11/25`
+- CVV: `123`
+- Nombre: `DEB`
 
-Para usar en producción:
+## 6. Solución de Problemas
 
-1. Cambia a credenciales de producción en MercadoPago
-2. Actualiza `MP_ACCESS_TOKEN` con el token de producción
-3. Cambia `NEXT_PUBLIC_MP_ENVIRONMENT=production`
-4. Configura una URL pública para `NEXT_PUBLIC_BASE_URL`
+### Error: "Token de MercadoPago inválido"
+- Verifica que el token comience con `TEST-` para sandbox
+- Asegúrate de que el token esté completo (84 caracteres)
+- Verifica que no haya espacios extra
 
-## Verificar configuración
+### Error: "Error de conexión con MercadoPago"
+- Verifica la conectividad a internet
+- Asegúrate de que el puerto 3000 esté abierto
+- Verifica que la URL base sea accesible públicamente
 
-Una vez configurado, puedes verificar que todo funciona:
+### Error: "Datos de preferencia inválidos"
+- Verifica que el precio sea un número válido
+- Asegúrate de que el email tenga formato válido
+- Verifica que el ID del producto exista
 
-1. Ejecuta `npm run dev`
-2. Ve a `/payments/new-mp`
-3. Intenta realizar un pago de prueba
-4. Verifica que te redirija a MercadoPago
-5. Completa el pago con las tarjetas de prueba
-6. Verifica que vuelvas a la aplicación con el estado correcto
+## 7. Logs de Debug
 
-## Troubleshooting
+El sistema incluye logs detallados para debugging. Puedes ver los logs en:
+- **Desarrollo**: Consola del navegador
+- **Producción**: Logs del contenedor Docker
 
-### Error: "Cannot find module 'mercadopago'"
-- Asegúrate de haber ejecutado `npm install` en la carpeta Frontend
+### Comandos útiles para ver logs:
+```bash
+# Ver logs del frontend
+docker logs personalfit-frontend --tail 100
 
-### Error: "MP_ACCESS_TOKEN no definido"
-- Verifica que el archivo `.env.local` esté en la carpeta `Frontend/`
-- Verifica que la variable `MP_ACCESS_TOKEN` esté correctamente definida
-- Reinicia el servidor de desarrollo
-
-### Error de CORS o Webhook
-- Verifica que la URL del webhook sea accesible públicamente
-- Para desarrollo local, puedes usar herramientas como Ngrok
-
-### El pago no se confirma
-- Verifica que el webhook esté recibiendo las notificaciones
-- Revisa los logs del servidor en `/api/webhook/mercadopago`
+# Ver logs en tiempo real
+docker logs personalfit-frontend -f
+```

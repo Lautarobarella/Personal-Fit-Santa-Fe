@@ -43,98 +43,136 @@ export async function createSingleProductPreference(
     options: CreatePrefOptions
 ) {
     try {
-        console.log(`Creando preferencia para producto: ${options.productName}`);
+        console.log(`=== CREANDO PREFERENCIA MERCADOPAGO ===`);
+        console.log(`Producto: ${options.productName}`);
+        console.log(`Precio: $${options.productPrice}`);
+        console.log(`Email: ${options.userEmail}`);
+
+        // Verificar configuración
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            throw new Error('Token de acceso de MercadoPago no configurado');
+        }
 
         // URL base por defecto si no está configurada
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        console.log(`URL base configurada: ${baseUrl}`);
 
-        const preference = await pref.create({
-            body: {
-                // Configuración del producto
-                items: [
-                    {
-                        id: options.productId,
-                        title: options.productName,
-                        description: options.productDescription,
-                        quantity: 1,
-                        currency_id: "ARS",
-                        unit_price: options.productPrice,
-                    },
-                ],
-
-                // Información del pagador (datos de ejemplo)
-                payer: {
-                    name: "Usuario",
-                    surname: "Ejemplo",
-                    email: options.userEmail,
-                    phone: {
-                        area_code: "11",
-                        number: "12345678"
-                    },
-                    identification: {
-                        type: "DNI",
-                        number: "12345678"
-                    },
-                    address: {
-                        zip_code: "1234",
-                        street_name: "Calle Ejemplo",
-                        street_number: "123"
-                    },
-                    date_created: new Date().toISOString()
+        const preferenceBody = {
+            // Configuración del producto
+            items: [
+                {
+                    id: options.productId,
+                    title: options.productName,
+                    description: options.productDescription,
+                    quantity: 1,
+                    currency_id: "ARS",
+                    unit_price: options.productPrice,
                 },
+            ],
 
-                // URLs de redirección después del pago
-                back_urls: {
-                    success: `${baseUrl}/success`,
-                    failure: `${baseUrl}/failure`,
-                    pending: `${baseUrl}/pending`,
+            // Información del pagador (datos de ejemplo)
+            payer: {
+                name: "Usuario",
+                surname: "Ejemplo",
+                email: options.userEmail,
+                phone: {
+                    area_code: "11",
+                    number: "12345678"
                 },
-
-                // URL del webhook para recibir notificaciones
-                notification_url: `${baseUrl}/api/webhook/mercadopago`,
-
-                // Referencia externa para vincular con la compra
-                external_reference: options.transactionId,
-
-                // Configuraciones adicionales
-                expires: true,
-                expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-
-                // Configuración de métodos de pago - HABILITAR TODOS LOS MÉTODOS
-                payment_methods: {
-                    // NO excluir ningún tipo de pago
-                    excluded_payment_types: [],
-                    // NO excluir ningún método de pago específico
-                    excluded_payment_methods: [],
-                    // Configurar cuotas para tarjetas de crédito
-                    installments: 12,
-                    // Cuotas por defecto
-                    default_installments: 1,
+                identification: {
+                    type: "DNI",
+                    number: "12345678"
                 },
-
-                // Configuración de envíos (no aplica para servicios digitales)
-                shipments: {
-                    mode: "not_specified"
+                address: {
+                    zip_code: "1234",
+                    street_name: "Calle Ejemplo",
+                    street_number: "123"
                 },
-
-                // Configuración adicional para habilitar todos los métodos
-                binary_mode: false,
-                statement_descriptor: "Personal Fit",
+                date_created: new Date().toISOString()
             },
-        });
 
-        console.log(`Preferencia creada exitosamente: ${preference.id}`);
-        console.log(`URLs de redirección configuradas:`, {
+            // URLs de redirección después del pago
+            back_urls: {
+                success: `${baseUrl}/success`,
+                failure: `${baseUrl}/failure`,
+                pending: `${baseUrl}/pending`,
+            },
+
+            // URL del webhook para recibir notificaciones
+            notification_url: `${baseUrl}/api/webhook/mercadopago`,
+
+            // Referencia externa para vincular con la compra
+            external_reference: options.transactionId,
+
+            // Configuraciones adicionales
+            expires: true,
+            expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
+
+            // Configuración de métodos de pago - HABILITAR TODOS LOS MÉTODOS
+            payment_methods: {
+                // NO excluir ningún tipo de pago
+                excluded_payment_types: [],
+                // NO excluir ningún método de pago específico
+                excluded_payment_methods: [],
+                // Configurar cuotas para tarjetas de crédito
+                installments: 12,
+                // Cuotas por defecto
+                default_installments: 1,
+            },
+
+            // Configuración de envíos (no aplica para servicios digitales)
+            shipments: {
+                mode: "not_specified"
+            },
+
+            // Configuración adicional para habilitar todos los métodos
+            binary_mode: false,
+            statement_descriptor: "Personal Fit",
+        };
+
+        console.log('Cuerpo de la preferencia preparado, enviando a MercadoPago...');
+        console.log('URLs configuradas:', {
             success: `${baseUrl}/success`,
             failure: `${baseUrl}/failure`,
             pending: `${baseUrl}/pending`,
+            webhook: `${baseUrl}/api/webhook/mercadopago`
         });
+
+        const preference = await pref.create({
+            body: preferenceBody,
+        });
+
+        console.log(`=== PREFERENCIA CREADA EXITOSAMENTE ===`);
+        console.log(`ID: ${preference.id}`);
+        console.log(`Init Point: ${preference.init_point}`);
+        console.log(`Sandbox Init Point: ${preference.sandbox_init_point}`);
 
         return preference;
 
     } catch (error) {
-        console.error("Error al crear preferencia:", error);
-        throw new Error(`Error al crear preferencia de pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        console.error("=== ERROR AL CREAR PREFERENCIA ===");
+        console.error("Error completo:", error);
+        
+        if (error instanceof Error) {
+            console.error("Mensaje de error:", error.message);
+            console.error("Stack trace:", error.stack);
+            
+            // Analizar el tipo de error
+            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                throw new Error('Token de MercadoPago inválido o expirado');
+            } else if (error.message.includes('400') || error.message.includes('Bad Request')) {
+                throw new Error('Datos de preferencia inválidos');
+            } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
+                throw new Error('Error de conexión con MercadoPago');
+            } else if (error.message.includes('timeout')) {
+                throw new Error('Timeout al conectar con MercadoPago');
+            } else {
+                throw new Error(`Error al crear preferencia de pago: ${error.message}`);
+            }
+        } else {
+            throw new Error(`Error al crear preferencia de pago: Error desconocido`);
+        }
     }
 }
 
