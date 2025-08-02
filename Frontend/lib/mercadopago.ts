@@ -12,10 +12,6 @@ import { getProductById } from "./products";
  */
 const client = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN!,
-    options: {
-        timeout: 5000,
-        idempotencyKey: "abc"
-    },
 });
 
 // Instancia de Preference para crear preferencias de pago
@@ -54,6 +50,9 @@ export async function createSingleProductPreference(
         if (!accessToken) {
             throw new Error('Token de acceso de MercadoPago no configurado');
         }
+
+        console.log(`Token configurado: ${accessToken.substring(0, 10)}...`);
+        console.log(`Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
 
         // URL base por defecto si no está configurada
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -103,48 +102,27 @@ export async function createSingleProductPreference(
             // URL del webhook para recibir notificaciones
             notification_url: `${baseUrl}/api/webhook/mercadopago`,
 
-            // Referencia externa para vincular con la compra
+            // ID de referencia externa para identificar el pago
             external_reference: options.transactionId,
 
-            // Configuraciones adicionales
+            // Configuración adicional
             expires: true,
             expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-
-            // Configuración de métodos de pago - HABILITAR TODOS LOS MÉTODOS
-            payment_methods: {
-                // NO excluir ningún tipo de pago
-                excluded_payment_types: [],
-                // NO excluir ningún método de pago específico
-                excluded_payment_methods: [],
-                // Configurar cuotas para tarjetas de crédito
-                installments: 12,
-                // Cuotas por defecto
-                default_installments: 1,
-            },
-
-            // Configuración de envíos (no aplica para servicios digitales)
-            shipments: {
-                mode: "not_specified"
-            },
-
-            // Configuración adicional para habilitar todos los métodos
-            binary_mode: false,
+            auto_return: "approved",
             statement_descriptor: "Personal Fit",
         };
 
-        console.log('Cuerpo de la preferencia preparado, enviando a MercadoPago...');
-        console.log('URLs configuradas:', {
+        console.log("Cuerpo de la preferencia preparado, enviando a MercadoPago...");
+        console.log("URLs configuradas:", {
             success: `${baseUrl}/success`,
             failure: `${baseUrl}/failure`,
             pending: `${baseUrl}/pending`,
             webhook: `${baseUrl}/api/webhook/mercadopago`
         });
 
-        const preference = await pref.create({
-            body: preferenceBody,
-        });
+        const preference = await pref.create({ body: preferenceBody });
 
-        console.log(`=== PREFERENCIA CREADA EXITOSAMENTE ===`);
+        console.log("=== PREFERENCIA CREADA EXITOSAMENTE ===");
         console.log(`ID: ${preference.id}`);
         console.log(`Init Point: ${preference.init_point}`);
         console.log(`Sandbox Init Point: ${preference.sandbox_init_point}`);
@@ -152,28 +130,8 @@ export async function createSingleProductPreference(
         return preference;
 
     } catch (error) {
-        console.error("=== ERROR AL CREAR PREFERENCIA ===");
-        console.error("Error completo:", error);
-        
-        if (error instanceof Error) {
-            console.error("Mensaje de error:", error.message);
-            console.error("Stack trace:", error.stack);
-            
-            // Analizar el tipo de error
-            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-                throw new Error('Token de MercadoPago inválido o expirado');
-            } else if (error.message.includes('400') || error.message.includes('Bad Request')) {
-                throw new Error('Datos de preferencia inválidos');
-            } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
-                throw new Error('Error de conexión con MercadoPago');
-            } else if (error.message.includes('timeout')) {
-                throw new Error('Timeout al conectar con MercadoPago');
-            } else {
-                throw new Error(`Error al crear preferencia de pago: ${error.message}`);
-            }
-        } else {
-            throw new Error(`Error al crear preferencia de pago: Error desconocido`);
-        }
+        console.error("Error al crear preferencia:", error);
+        throw new Error(`Error al crear preferencia de pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
 }
 
@@ -185,17 +143,57 @@ export async function createSingleProductPreference(
  */
 export async function getPaymentById(id: string) {
     try {
-        console.log(`Obteniendo información del pago: ${id}`);
+        console.log(`🔍 Obteniendo información del pago: ${id}`);
+        
+        // Verificar configuración
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            throw new Error('Token de acceso de MercadoPago no configurado');
+        }
+        
+        console.log(`🔑 Token: ${accessToken.substring(0, 10)}...`);
+        console.log(`🌍 Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
 
         const payment = new Payment(client);
         const paymentInfo = await payment.get({ id });
 
-        console.log(`Pago obtenido: ${paymentInfo.id} - Estado: ${paymentInfo.status}`);
+        console.log(`✅ Pago obtenido exitosamente:`);
+        console.log(`   - ID: ${paymentInfo.id}`);
+        console.log(`   - Estado: ${paymentInfo.status}`);
+        console.log(`   - Monto: $${paymentInfo.transaction_amount}`);
+        console.log(`   - Método: ${paymentInfo.payment_method?.type || 'N/A'}`);
+        console.log(`   - Referencia: ${paymentInfo.external_reference || 'N/A'}`);
+        
         return paymentInfo;
 
-    } catch (error) {
-        console.error("Error al obtener pago:", error);
-        throw new Error(`Error al obtener información del pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } catch (error: any) {
+        console.error("❌ Error al obtener pago:", error);
+        
+        // Mostrar información detallada del error
+        if (error.response) {
+            console.error("📊 Detalles del error:");
+            console.error(`   - Status: ${error.response.status}`);
+            console.error(`   - StatusText: ${error.response.statusText}`);
+            console.error(`   - Data:`, error.response.data);
+        }
+        
+        // Determinar el tipo de error específico
+        let errorMessage = 'Error desconocido';
+        if (error.message) {
+            if (error.message.includes('404') || error.message.includes('not_found')) {
+                errorMessage = 'Pago no encontrado - puede estar en procesamiento';
+            } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                errorMessage = 'Token de MercadoPago inválido';
+            } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                errorMessage = 'Sin permisos para acceder al pago';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorMessage = 'Error de conexión con MercadoPago';
+            } else {
+                errorMessage = error.message;
+            }
+        }
+        
+        throw new Error(`Error al obtener información del pago: ${errorMessage}`);
     }
 }
 
