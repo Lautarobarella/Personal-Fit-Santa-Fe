@@ -1,5 +1,6 @@
 package com.personalfit.personalfit.controllers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,22 +103,44 @@ public class PaymentController {
     // batch function to save multiple payments with files
     @Transactional
     @PostMapping(value = "/batch-with-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> savePaymentsWithFiles(
+    public ResponseEntity<String> savePaymentsWithFiles(
             @RequestPart("payments") String paymentsJson,
-            @RequestPart("files") MultipartFile[] files) {
+            @RequestPart(value = "file1", required = false) MultipartFile file1,
+            @RequestPart(value = "file2", required = false) MultipartFile file2,
+            @RequestPart(value = "file3", required = false) MultipartFile file3,
+            @RequestPart(value = "file4", required = false) MultipartFile file4,
+            @RequestPart(value = "file5", required = false) MultipartFile file5) {
         
         try {
+            System.out.println("Received payments JSON: " + paymentsJson);
+            System.out.println("File1: " + (file1 != null ? file1.getOriginalFilename() : "null"));
+            System.out.println("File2: " + (file2 != null ? file2.getOriginalFilename() : "null"));
+            
             // Convertir JSON string a lista de DTOs
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
             List<InCreatePaymentDTO> payments = mapper.readValue(paymentsJson, 
                 mapper.getTypeFactory().constructCollectionType(List.class, InCreatePaymentDTO.class));
             
+            System.out.println("Parsed payments count: " + payments.size());
+            
+            // Crear array de archivos
+            List<MultipartFile> filesList = new ArrayList<>();
+            if (file1 != null) filesList.add(file1);
+            if (file2 != null) filesList.add(file2);
+            if (file3 != null) filesList.add(file3);
+            if (file4 != null) filesList.add(file4);
+            if (file5 != null) filesList.add(file5);
+            
+            MultipartFile[] files = filesList.toArray(new MultipartFile[0]);
+            System.out.println("Files count: " + files.length);
+            
             paymentService.saveAllWithFilesFromArray(payments, files);
-            return new ResponseEntity<>(HttpStatus.CREATED);
+            return new ResponseEntity<>("Pagos creados exitosamente", HttpStatus.CREATED);
         } catch (Exception e) {
+            System.err.println("Error processing batch payment: " + e.getMessage());
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Error: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

@@ -2,13 +2,12 @@ import { NewPaymentInput } from "@/lib/types";
 
 const BASE_URL = 'http://localhost:8080/api/payment';
 const FILES_URL = 'http://localhost:8080/api/files';
-const URL_TOMI = 'http://152.170.128.205:8080/api/payment';
-const URL_TOMI_FILES = 'http://152.170.128.205:8080/api/files';
+
 
 
 export async function fetchPayments() {
   try {
-    const response = await fetch(`${URL_TOMI}/getAll`, {
+    const response = await fetch(`${BASE_URL}/getAll`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -53,7 +52,7 @@ export async function createPayment(paymentData: NewPaymentInput) {
     formData.append("file", file)
   }
 
-  const response = await fetch(`${URL_TOMI}/new`, {
+  const response = await fetch(`${BASE_URL}/new`, {
     method: "POST",
     body: formData,
   })
@@ -70,7 +69,7 @@ export async function createPayment(paymentData: NewPaymentInput) {
 
 export async function fetchPaymentsById(id: number) {
   try {
-    const response = await fetch(`${URL_TOMI}/${id}`, {
+    const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +89,7 @@ export async function fetchPaymentsById(id: number) {
 
 export async function fetchPaymentDetail(id: number) {
   try {
-    const response = await fetch(`${URL_TOMI}/info/${id}`, {
+    const response = await fetch(`${BASE_URL}/info/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -110,7 +109,7 @@ export async function fetchPaymentDetail(id: number) {
 
 export async function fetchPendingPaymentDetail() {
   try {
-    const response = await fetch(`${URL_TOMI}/info/pending`, {
+    const response = await fetch(`${BASE_URL}/info/pending`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -131,7 +130,7 @@ export async function fetchPendingPaymentDetail() {
 
 export async function updatePayment(id: number, status: "paid" | "rejected", rejectionReason?: string) {
   try {
-    const response = await fetch(`${URL_TOMI}/pending/${id}`, {
+    const response = await fetch(`${BASE_URL}/pending/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -154,7 +153,7 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
 
 export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
   if (!receiptId) return null
-  return `${URL_TOMI_FILES}/${receiptId}`
+  return `${FILES_URL}/${receiptId}`
 }
 
 

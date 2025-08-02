@@ -1,13 +1,11 @@
 import { UserFormType } from "@/lib/types";
 import { mockUsers } from "@/mocks/mockUsers";
 
-// const BASE_URL = 'http://152.170.128.205:8080/api/user';
 const BASE_URL = 'http://localhost:8080/api/user';
-const URL_TOMI = 'http://152.170.128.205:8080/api/user'
 
 export async function fetchUsers() {
   try {
-    const response = await fetch(`${URL_TOMI}/getAll`, {
+    const response = await fetch(`${BASE_URL}/getAll`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -50,7 +48,7 @@ export async function fetchUsers() {
 
 export async function fetchUserDetail(id: number) {
   try {
-    const response = await fetch(`${URL_TOMI}/info/${id}`, {
+    const response = await fetch(`${BASE_URL}/info/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +92,7 @@ export async function fetchUserDetail(id: number) {
 export async function createUser(user: UserFormType) {
   try {
 
-    const response = await fetch(`${URL_TOMI}/new`, {
+    const response = await fetch(`${BASE_URL}/new`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

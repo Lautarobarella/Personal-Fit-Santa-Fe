@@ -1,5 +1,4 @@
-
-const BASE_URL = 'http://152.170.128.205:8080/api/notification';
+const BASE_URL = 'http://localhost:8080/api/notification';
 
 export async function fetchNotifications() {
     try {
