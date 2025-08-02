@@ -1,7 +1,8 @@
+import { API_CONFIG } from "@/lib/config";
 import { UserFormType } from "@/lib/types";
 import { mockUsers } from "@/mocks/mockUsers";
 
-const BASE_URL = 'http://localhost:8080/api/user';
+const BASE_URL = API_CONFIG.USER_URL;
 
 export async function fetchUsers() {
   try {

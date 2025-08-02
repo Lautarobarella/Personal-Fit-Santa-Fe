@@ -1,7 +1,8 @@
+import { API_CONFIG } from "@/lib/config";
 import { ActivityDetailInfo, ActivityFormType, ActivityType, Attendance } from "@/lib/types";
 import { mockActivities, mockActivitiesDetails } from "@/mocks/mockActivities";
 
-const BASE_URL = 'http://localhost:8080/api/activities';
+const BASE_URL = API_CONFIG.ACTIVITIES_URL;
 
 export async function fetchActivities() {
   try {
@@ -302,7 +303,7 @@ export async function unenrollActivity(attendance: Attendance) {
 
 export async function fetchTrainers() {
   try {
-    const response = await fetch('http://152.170.128.205:8080/api/user/trainers', {
+    const response = await fetch(`${API_CONFIG.USER_URL}/trainers`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

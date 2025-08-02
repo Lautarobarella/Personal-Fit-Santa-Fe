@@ -1,7 +1,8 @@
+import { API_CONFIG } from "@/lib/config";
 import { NewPaymentInput } from "@/lib/types";
 
-const BASE_URL = 'http://localhost:8080/api/payment';
-const FILES_URL = 'http://localhost:8080/api/files';
+const BASE_URL = API_CONFIG.PAYMENT_URL;
+const FILES_URL = API_CONFIG.FILES_URL;
 
 
 

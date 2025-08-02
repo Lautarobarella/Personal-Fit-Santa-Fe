@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:8080/api/notification';
+import { API_CONFIG } from "@/lib/config";
+
+const BASE_URL = API_CONFIG.NOTIFICATION_URL;
 
 export async function fetchNotifications() {
     try {

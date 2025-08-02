@@ -1,10 +1,17 @@
 version: '3.8'
 
+networks:
+  personalfit-network:
+    driver: bridge
+    name: personalfit-network
+
 services:
   postgres:
     image: postgres:15
     container_name: personalfit-db
     restart: unless-stopped
+    networks:
+      - personalfit-network
     environment:
       POSTGRES_DB: personalfit
       POSTGRES_USER: personalfit_user
@@ -19,6 +26,8 @@ services:
       context: .
       dockerfile: Backend/Dockerfile
     container_name: personalfit-backend
+    networks:
+      - personalfit-network
     depends_on:
       - postgres
     environment:
@@ -35,17 +44,22 @@ services:
       context: .
       dockerfile: Frontend/Dockerfile
     container_name: personalfit-frontend
+    networks:
+      - personalfit-network
     depends_on:
       - personalfit-backend
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
+      NEXT_PUBLIC_IS_DOCKER: "true"
 
   pgadmin:
     image: dpage/pgadmin4
     container_name: personalfit-pgadmin
     restart: unless-stopped
+    networks:
+      - personalfit-network
     ports:
       - "5050:80"
     environment:
