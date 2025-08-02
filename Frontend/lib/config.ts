@@ -10,6 +10,11 @@ const getApiBaseUrl = () => {
     return 'http://localhost:8080';
   }
   
+  // Si estamos en el servidor de producción (72.60.1.76), usar la IP del servidor
+  if (typeof window !== 'undefined' && window.location.hostname === '72.60.1.76') {
+    return 'http://72.60.1.76:8080';
+  }
+  
   // En Docker, usar el nombre del servicio
   return 'http://personalfit-backend:8080';
 };

@@ -53,6 +53,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
       NEXT_PUBLIC_IS_DOCKER: "true"
+      # Para producción, puedes cambiar la URL aquí:
+      # NEXT_PUBLIC_API_URL: http://72.60.1.76:8080
 
   pgadmin:
     image: dpage/pgadmin4
