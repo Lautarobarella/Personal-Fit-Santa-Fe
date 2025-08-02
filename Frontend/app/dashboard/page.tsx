@@ -1,11 +1,11 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
 import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Activity, CreditCard, TrendingUp, Clock } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
@@ -56,7 +56,7 @@ export default function DashboardPage() {
       return [
         { title: "Ver Actividades", href: "/activities", icon: Activity },
         { title: "Mis Inscripciones", href: "/enrollments", icon: Calendar },
-        { title: "Realizar Pago", href: "/payments/new", icon: CreditCard },
+        { title: "Realizar Pago", href: "/payments/method-select", icon: CreditCard },
       ]
     }
   }
