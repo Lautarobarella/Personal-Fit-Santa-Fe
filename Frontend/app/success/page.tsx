@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
-export default function SuccessPage() {
+function SuccessPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
@@ -80,9 +80,25 @@ export default function SuccessPage() {
                         >
                             Ir al inicio
                         </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                            </div>
+    </CardContent>
+  </Card>
+</div>
+);
+}
+
+export default function SuccessPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Card className="w-full max-w-md mx-4">
+                    <CardContent className="text-center py-8">
+                        <p className="text-gray-600">Cargando...</p>
+                    </CardContent>
+                </Card>
+            </div>
+        }>
+            <SuccessPageContent />
+        </Suspense>
     );
 }

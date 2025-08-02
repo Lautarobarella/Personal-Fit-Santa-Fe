@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function PendingPage() {
+function PendingPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -57,9 +58,25 @@ export default function PendingPage() {
                         >
                             Ir al inicio
                         </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                            </div>
+    </CardContent>
+  </Card>
+</div>
+);
+}
+
+export default function PendingPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Card className="w-full max-w-md mx-4">
+                    <CardContent className="text-center py-8">
+                        <p className="text-gray-600">Cargando...</p>
+                    </CardContent>
+                </Card>
+            </div>
+        }>
+            <PendingPageContent />
+        </Suspense>
     );
 }
