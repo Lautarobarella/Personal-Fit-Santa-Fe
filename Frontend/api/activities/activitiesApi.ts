@@ -1,7 +1,7 @@
 import { ActivityDetailInfo, ActivityFormType, ActivityType, Attendance } from "@/lib/types";
 import { mockActivities, mockActivitiesDetails } from "@/mocks/mockActivities";
 
-const BASE_URL = 'http://72.60.1.76:8080/api/activities';
+const BASE_URL = 'http://localhost:8080/api/activities';
 
 export async function fetchActivities() {
   try {

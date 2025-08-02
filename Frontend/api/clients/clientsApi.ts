@@ -1,7 +1,7 @@
 import { UserFormType } from "@/lib/types";
 import { mockUsers } from "@/mocks/mockUsers";
 
-const BASE_URL = 'http://72.60.1.76:8080/api/user';
+const BASE_URL = 'http://localhost:8080/api/user';
 
 export async function fetchUsers() {
   try {
