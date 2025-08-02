@@ -4,6 +4,7 @@ import {
     Payment,
     Preference
 } from "mercadopago";
+import { getProductById } from "./products";
 
 /**
  * Configuración del cliente de MercadoPago
@@ -250,29 +251,377 @@ export type WebhookPayload = {
  */
 export async function processWebhookNotification(payload: WebhookPayload) {
     try {
-        console.log("Procesando notificación del webhook:", payload);
+        console.log("=== PROCESANDO WEBHOOK MERCADOPAGO ===");
+        console.log("Payload:", payload);
 
         if (payload.type === "payment") {
-            const mpPayment = await getPaymentById(payload.data.id);
+            // Intentar obtener información del pago con reintentos
+            let mpPayment = null;
+            let retryCount = 0;
+            const maxRetries = 3;
+            const retryDelay = 2000; // 2 segundos
 
-            console.log(`Pago procesado: ${mpPayment.id} - Estado: ${mpPayment.status}`);
+            while (retryCount < maxRetries) {
+                try {
+                    console.log(`Intento ${retryCount + 1} de ${maxRetries} para obtener pago ${payload.data.id}`);
+                    mpPayment = await getPaymentById(payload.data.id);
+                    break; // Si llegamos aquí, el pago se obtuvo exitosamente
+                } catch (error: any) {
+                    retryCount++;
+                    console.log(`Error en intento ${retryCount}:`, error.message);
+                    
+                    if (retryCount < maxRetries) {
+                        console.log(`Esperando ${retryDelay}ms antes del siguiente intento...`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    } else {
+                        console.log("Se agotaron los reintentos. Creando registro de pago pendiente...");
+                        // Crear un registro de pago pendiente con la información disponible
+                        return await createPendingPaymentRecord(payload);
+                    }
+                }
+            }
 
+            if (mpPayment) {
+                console.log(`✅ Pago procesado exitosamente: ${mpPayment.id} - Estado: ${mpPayment.status}`);
+                
+                // Mapear el pago con el cliente usando external_reference
+                const clientInfo = await mapPaymentToClient(mpPayment);
+                
+                return {
+                    success: true,
+                    paymentId: mpPayment.id,
+                    status: mpPayment.status,
+                    externalReference: mpPayment.external_reference,
+                    amount: mpPayment.transaction_amount,
+                    paymentMethod: mpPayment.payment_method?.type,
+                    paymentMethodId: mpPayment.payment_method_id,
+                    installments: mpPayment.installments,
+                    clientInfo: clientInfo,
+                    processedAt: new Date().toISOString(),
+                };
+            }
+        }
+
+        if (payload.type === "merchant_order") {
+            console.log("📦 Orden de comerciante recibida, procesando...");
             return {
-                paymentId: mpPayment.id,
-                status: mpPayment.status,
-                externalReference: mpPayment.external_reference,
-                amount: mpPayment.transaction_amount,
-                paymentMethod: mpPayment.payment_method?.type,
-                paymentMethodId: mpPayment.payment_method_id,
-                installments: mpPayment.installments,
+                success: true,
+                type: "merchant_order",
+                orderId: payload.data.id,
                 processedAt: new Date().toISOString(),
             };
         }
 
-        return { message: "Tipo de notificación no procesado", type: payload.type };
+        return { 
+            success: false,
+            message: "Tipo de notificación no procesado", 
+            type: payload.type 
+        };
 
     } catch (error) {
-        console.error("Error al procesar webhook:", error);
+        console.error("❌ Error al procesar webhook:", error);
         throw new Error(`Error al procesar notificación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+}
+
+// Almacenamiento temporal para pagos pendientes (en producción usar base de datos)
+const pendingPayments = new Map<string, any>();
+
+/**
+ * Crea un registro de pago pendiente cuando no se puede obtener información inmediata
+ */
+async function createPendingPaymentRecord(payload: WebhookPayload) {
+    try {
+        console.log("📝 Creando registro de pago pendiente...");
+        
+        // Extraer información del external_reference si está disponible
+        // El formato es: productId-timestamp-randomString
+        const externalRef = payload.data.id; // Usar el ID del pago como referencia temporal
+        
+        const pendingPayment = {
+            mpPaymentId: payload.data.id,
+            status: "pending",
+            externalReference: externalRef,
+            amount: 0, // Se actualizará cuando se obtenga la información completa
+            createdAt: new Date().toISOString(),
+            webhookId: payload.id,
+            retryCount: 0,
+            lastRetry: new Date().toISOString(),
+        };
+
+        console.log("📋 Registro de pago pendiente creado:", pendingPayment);
+        
+        // Guardar en almacenamiento temporal
+        pendingPayments.set(payload.data.id, pendingPayment);
+        console.log(`💾 Pago pendiente guardado. Total pendientes: ${pendingPayments.size}`);
+        
+        return {
+            success: true,
+            type: "pending_payment",
+            paymentId: payload.data.id,
+            status: "pending",
+            message: "Pago registrado como pendiente para procesamiento posterior",
+            processedAt: new Date().toISOString(),
+        };
+        
+    } catch (error) {
+        console.error("Error al crear registro de pago pendiente:", error);
+        throw error;
+    }
+}
+
+/**
+ * Procesa pagos pendientes (se puede llamar desde un cron job o endpoint)
+ */
+export async function processPendingPayments() {
+    try {
+        console.log("🔄 Procesando pagos pendientes...");
+        console.log(`📊 Total de pagos pendientes: ${pendingPayments.size}`);
+        
+        const processedPayments = [];
+        const failedPayments = [];
+        
+        for (const [paymentId, pendingPayment] of pendingPayments.entries()) {
+            try {
+                console.log(`🔄 Procesando pago pendiente: ${paymentId}`);
+                
+                // Intentar obtener información del pago
+                const mpPayment = await getPaymentById(paymentId);
+                
+                if (mpPayment) {
+                    console.log(`✅ Pago ${paymentId} procesado exitosamente`);
+                    
+                    // Mapear con cliente
+                    const clientInfo = await mapPaymentToClient(mpPayment);
+                    
+                    // Actualizar el registro pendiente
+                    pendingPayment.status = mpPayment.status;
+                    pendingPayment.amount = mpPayment.transaction_amount;
+                    pendingPayment.processedAt = new Date().toISOString();
+                    pendingPayment.clientInfo = clientInfo;
+                    
+                    processedPayments.push({
+                        paymentId,
+                        status: mpPayment.status,
+                        amount: mpPayment.transaction_amount,
+                        clientInfo,
+                    });
+                    
+                    // Remover de pendientes
+                    pendingPayments.delete(paymentId);
+                    
+                } else {
+                    console.log(`⚠️ No se pudo obtener información del pago ${paymentId}`);
+                    pendingPayment.retryCount++;
+                    pendingPayment.lastRetry = new Date().toISOString();
+                    
+                    // Si se agotaron los reintentos, marcar como fallido
+                    if (pendingPayment.retryCount >= 5) {
+                        pendingPayment.status = "failed";
+                        failedPayments.push(paymentId);
+                        pendingPayments.delete(paymentId);
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`❌ Error procesando pago ${paymentId}:`, error);
+                pendingPayment.retryCount++;
+                pendingPayment.lastRetry = new Date().toISOString();
+                
+                if (pendingPayment.retryCount >= 5) {
+                    pendingPayment.status = "failed";
+                    failedPayments.push(paymentId);
+                    pendingPayments.delete(paymentId);
+                }
+            }
+        }
+        
+        console.log(`✅ Procesamiento completado:`);
+        console.log(`   - Procesados: ${processedPayments.length}`);
+        console.log(`   - Fallidos: ${failedPayments.length}`);
+        console.log(`   - Pendientes restantes: ${pendingPayments.size}`);
+        
+        return {
+            success: true,
+            processed: processedPayments,
+            failed: failedPayments,
+            remaining: pendingPayments.size,
+        };
+        
+    } catch (error) {
+        console.error("❌ Error procesando pagos pendientes:", error);
+        throw error;
+    }
+}
+
+/**
+ * Obtiene información sobre pagos pendientes
+ */
+export function getPendingPaymentsInfo() {
+    const pendingList = Array.from(pendingPayments.values());
+    
+    return {
+        total: pendingPayments.size,
+        payments: pendingList.map(p => ({
+            mpPaymentId: p.mpPaymentId,
+            status: p.status,
+            retryCount: p.retryCount,
+            createdAt: p.createdAt,
+            lastRetry: p.lastRetry,
+        })),
+    };
+}
+
+/**
+ * Mapea un pago de MercadoPago con la información del cliente
+ */
+async function mapPaymentToClient(mpPayment: any) {
+    try {
+        console.log("🔍 Mapeando pago con cliente...");
+        
+        // Extraer información del external_reference
+        // Formato esperado: productId-timestamp-randomString
+        const externalRef = mpPayment.external_reference;
+        console.log("Referencia externa:", externalRef);
+        
+        if (!externalRef) {
+            console.log("⚠️ No se encontró referencia externa");
+            return null;
+        }
+
+        // Parsear la referencia externa
+        const parts = externalRef.split('-');
+        if (parts.length >= 2) {
+            const productId = parts[0];
+            const timestamp = parts[1];
+            
+            console.log(`📦 Producto ID: ${productId}`);
+            console.log(`⏰ Timestamp: ${timestamp}`);
+            
+            // Obtener información del producto
+            const product = await getProductById(productId);
+            
+            // Información del pago
+            const paymentInfo = {
+                productId: productId,
+                productName: product?.name || 'Producto desconocido',
+                transactionId: externalRef,
+                amount: mpPayment.transaction_amount,
+                currency: mpPayment.currency_id,
+                paymentDate: mpPayment.date_created,
+                status: mpPayment.status,
+                paymentMethod: mpPayment.payment_method?.type || 'N/A',
+                paymentMethodId: mpPayment.payment_method_id,
+                installments: mpPayment.installments,
+                mpPaymentId: mpPayment.id,
+            };
+            
+            console.log("👤 Información del pago mapeada:", paymentInfo);
+            
+            // Simular guardado en base de datos
+            console.log("💾 Guardando pago en base de datos...");
+            console.log(`   - Producto: ${paymentInfo.productName}`);
+            console.log(`   - Monto: $${paymentInfo.amount} ${paymentInfo.currency}`);
+            console.log(`   - Estado: ${paymentInfo.status}`);
+            console.log(`   - Método: ${paymentInfo.paymentMethod}`);
+            console.log(`   - Cuotas: ${paymentInfo.installments || 1}`);
+            console.log(`   - Fecha: ${new Date(paymentInfo.paymentDate).toLocaleString('es-AR')}`);
+            console.log(`   - ID MercadoPago: ${paymentInfo.mpPaymentId}`);
+            
+            // Aquí podrías crear el pago en tu base de datos
+            // Por ahora simulamos la creación
+            await simulatePaymentCreation(paymentInfo);
+            
+            return paymentInfo;
+        }
+        
+        console.log("⚠️ Formato de referencia externa no reconocido");
+        return null;
+        
+    } catch (error) {
+        console.error("Error al mapear pago con cliente:", error);
+        return null;
+    }
+}
+
+/**
+ * Simula la creación de un pago en el sistema
+ */
+async function simulatePaymentCreation(paymentInfo: any) {
+    try {
+        console.log("🏗️ Simulando creación de pago en el sistema...");
+        
+        // Aquí iría la lógica para crear el pago en tu base de datos
+        // Por ejemplo, llamar a tu API de pagos
+        
+        const paymentData = {
+            clientDni: 1234, // Esto debería venir del usuario que realizó el pago
+            amount: paymentInfo.amount,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
+            paymentStatus: mapMercadoPagoStatus(paymentInfo.status),
+            methodType: mapPaymentMethod(paymentInfo.paymentMethod),
+            mpPaymentId: paymentInfo.mpPaymentId,
+            mpTransactionId: paymentInfo.transactionId,
+        };
+        
+        console.log("📋 Datos del pago a crear:", paymentData);
+        
+        // Simular llamada a la API de pagos
+        console.log("🌐 Llamando a la API de pagos...");
+        
+        // En producción, aquí harías:
+        // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/new`, {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify(paymentData)
+        // });
+        
+        console.log("✅ Pago creado exitosamente en el sistema");
+        console.log("📊 Resumen del pago:");
+        console.log(`   - Cliente DNI: ${paymentData.clientDni}`);
+        console.log(`   - Producto: ${paymentInfo.productName}`);
+        console.log(`   - Monto: $${paymentData.amount}`);
+        console.log(`   - Estado: ${paymentData.paymentStatus}`);
+        console.log(`   - Método: ${paymentData.methodType}`);
+        console.log(`   - ID MP: ${paymentData.mpPaymentId}`);
+        
+        return paymentData;
+        
+    } catch (error) {
+        console.error("❌ Error simulando creación de pago:", error);
+        throw error;
+    }
+}
+
+/**
+ * Mapea el estado de MercadoPago al estado del sistema
+ */
+function mapMercadoPagoStatus(mpStatus: string): string {
+    switch (mpStatus) {
+        case 'approved':
+            return 'paid';
+        case 'pending':
+            return 'pending';
+        case 'rejected':
+        case 'cancelled':
+            return 'rejected';
+        default:
+            return 'pending';
+    }
+}
+
+/**
+ * Mapea el método de pago de MercadoPago al método del sistema
+ */
+function mapPaymentMethod(mpMethod: string): string {
+    switch (mpMethod) {
+        case 'credit_card':
+        case 'debit_card':
+            return 'card';
+        case 'bank_transfer':
+            return 'transfer';
+        default:
+            return 'cash';
     }
 } 

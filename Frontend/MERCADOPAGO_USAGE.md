@@ -65,6 +65,53 @@ cd Frontend
 - **Error**: `/failure` - Muestra error y opciones para reintentar
 - **Pendiente**: `/pending` - Muestra estado pendiente
 
+## 🔄 Sistema de Procesamiento de Pagos
+
+### Procesamiento Automático
+El sistema ahora incluye un mecanismo robusto para procesar pagos:
+
+1. **Webhook Inmediato**: Cuando MercadoPago envía una notificación
+2. **Reintentos Automáticos**: Si el pago no se puede procesar inmediatamente
+3. **Almacenamiento Temporal**: Los pagos pendientes se guardan en memoria
+4. **Procesamiento Manual**: Endpoint para procesar pagos pendientes
+
+### Endpoints de Administración
+
+#### Ver Pagos Pendientes
+```bash
+GET /api/process-pending-payments
+```
+
+#### Procesar Pagos Pendientes
+```bash
+POST /api/process-pending-payments
+```
+
+#### Página de Administración
+```
+/admin/payments/pending
+```
+
+### Flujo de Procesamiento
+
+1. **Recepción del Webhook**:
+   - MercadoPago envía notificación
+   - Sistema intenta obtener información del pago
+   - Si falla, se guarda como pendiente
+
+2. **Reintentos Automáticos**:
+   - Hasta 3 intentos con 2 segundos de espera
+   - Si falla, se marca como pendiente
+
+3. **Procesamiento Manual**:
+   - Hasta 5 intentos adicionales
+   - Si falla, se marca como fallido
+
+4. **Mapeo con Cliente**:
+   - Se extrae información del `external_reference`
+   - Se simula la creación del pago en el sistema
+   - Se muestra información detallada en consola
+
 ## 🧪 Datos de Prueba
 
 ### Tarjetas de Prueba (Sandbox)
@@ -101,12 +148,37 @@ curl http://72.60.1.76:3000/api/test-mercadopago
 curl http://72.60.1.76:3000/api/webhook/mercadopago
 ```
 
-### 3. Probar Flujo Completo
+### 3. Verificar Pagos Pendientes
+```bash
+# Ver pagos pendientes
+curl http://72.60.1.76:3000/api/process-pending-payments
+```
+
+### 4. Procesar Pagos Pendientes
+```bash
+# Procesar pagos pendientes
+curl -X POST http://72.60.1.76:3000/api/process-pending-payments
+```
+
+### 5. Diagnóstico Completo del Sistema
+```
+/admin/diagnostics
+```
+Esta página verifica automáticamente todos los endpoints del sistema y muestra:
+- Estado de cada endpoint
+- Tiempo de respuesta
+- Errores específicos
+- Timeouts
+
+### 6. Probar Flujo Completo
 1. Ve a `/payments/method-select`
 2. Elige "Pago Online"
 3. Completa el formulario
 4. Usa una tarjeta de prueba
 5. Verifica la redirección
+6. Revisa los logs del servidor
+7. Verifica los pagos pendientes en `/admin/payments/pending`
+8. Ejecuta el diagnóstico en `/admin/diagnostics`
 
 ## 🐛 Solución de Problemas
 
@@ -130,6 +202,21 @@ curl http://72.60.1.76:3000/api/webhook/mercadopago
 - Verifica que el precio sea un número válido
 - Asegúrate de que el email tenga formato correcto
 - Verifica que el ID del producto exista
+
+### Error: "Payment not found"
+**Síntomas:** Error 404 al obtener información del pago
+**Solución:**
+- Es normal en los primeros segundos después del pago
+- El sistema reintentará automáticamente
+- Puedes procesar manualmente desde `/admin/payments/pending`
+
+### Error: "Timeout exceeded" en webhook
+**Síntomas:** El webhook no responde o tarda demasiado
+**Solución:**
+- El webhook ahora responde inmediatamente (sin esperar el procesamiento)
+- El procesamiento se hace de forma asíncrona
+- Verifica el estado en `/admin/diagnostics`
+- Revisa los logs del servidor para ver el procesamiento
 
 ### Error: "Cannot find module 'mercadopago'"
 **Síntomas:** Error de módulo no encontrado
@@ -159,7 +246,11 @@ docker logs personalfit-frontend -f
 - `=== INICIO DE CHECKOUT ===`
 - `=== CREANDO PREFERENCIA MERCADOPAGO ===`
 - `=== PREFERENCIA CREADA EXITOSAMENTE ===`
+- `=== PROCESANDO WEBHOOK MERCADOPAGO ===`
 - `=== ERROR EN CHECKOUT ===`
+- `🔄 Procesando pagos pendientes...`
+- `✅ Pago procesado exitosamente`
+- `📝 Creando registro de pago pendiente...`
 
 ## 🔄 Webhooks
 
@@ -174,6 +265,12 @@ El sistema configura automáticamente:
 - Los webhooks se procesan en `/api/webhook/mercadopago`
 - Se registran todos los eventos de pago
 - Se actualiza el estado de la transacción
+- Los pagos fallidos se guardan como pendientes
+
+### Tipos de Notificaciones
+- **payment.created**: Pago creado
+- **payment.updated**: Pago actualizado
+- **merchant_order**: Orden de comerciante
 
 ## 🚀 Producción
 
@@ -189,10 +286,26 @@ El sistema configura automáticamente:
 - Configura correctamente los webhooks
 - Monitorea los logs regularmente
 
+### Monitoreo en Producción
+- Revisa regularmente `/admin/payments/pending`
+- Monitorea los logs del servidor
+- Configura alertas para pagos fallidos
+- Revisa los webhooks de MercadoPago
+
 ## 📞 Soporte
 
 Si tienes problemas:
 1. Revisa los logs del servidor
 2. Verifica la configuración con `/api/test-mercadopago`
-3. Prueba con las tarjetas de prueba
-4. Consulta la documentación de MercadoPago
+3. Revisa los pagos pendientes en `/admin/payments/pending`
+4. Prueba con las tarjetas de prueba
+5. Consulta la documentación de MercadoPago
+
+## 🎯 Próximos Pasos
+
+### Mejoras Sugeridas
+1. **Base de Datos**: Reemplazar almacenamiento en memoria por base de datos
+2. **Notificaciones**: Enviar emails cuando se procesen pagos
+3. **Dashboard**: Crear dashboard más detallado para administradores
+4. **Integración Backend**: Conectar con el backend Java para crear pagos reales
+5. **Cron Jobs**: Configurar procesamiento automático de pagos pendientes
