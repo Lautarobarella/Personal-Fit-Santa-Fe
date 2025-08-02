@@ -28,6 +28,10 @@ public class Activity {
     private Integer duration; // Minutes
     @Enumerated(EnumType.STRING)
     private ActivityStatus status;
+    
+    // Field for weekly repetition
+    private Boolean isRecurring;
+    
     @ManyToOne
     @JoinColumn(name = "trainer_id", nullable = false)
     private User trainer;

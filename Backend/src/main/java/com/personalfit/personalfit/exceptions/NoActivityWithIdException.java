@@ -4,4 +4,8 @@ public class NoActivityWithIdException extends RuntimeException{
     public NoActivityWithIdException(){
         super("No activity found with the provided ID.");
     }
+    
+    public NoActivityWithIdException(String message){
+        super(message);
+    }
 }

@@ -1,11 +1,16 @@
 package com.personalfit.personalfit.services.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personalfit.personalfit.dto.*;
+import com.personalfit.personalfit.exceptions.NoActivityWithIdException;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Activity;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IActivityRepository;
 import com.personalfit.personalfit.services.IActivityService;
+import com.personalfit.personalfit.services.IAttendanceService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.ActivityStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,45 +34,136 @@ public class ActivityServiceImpl implements IActivityService {
 
     @Autowired
     private IUserService userService;
+    
+    @Autowired
+    private IAttendanceService attendanceService;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void createActivity(ActivityFormTypeDTO activity) {
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
-        Activity newActivity = Activity.builder()
-                .name(activity.getName())
-                .description(activity.getDescription())
-                .slots(Integer.parseInt(activity.getMaxParticipants()))
-                .date(LocalDateTime.of(activity.getDate(), activity.getTime()))
-                .repeatEveryWeek(false)
-                .duration(Integer.parseInt(activity.getDuration()))
-                .status(ActivityStatus.active)
-                .trainer(trainer)
-                .createdAt(LocalDateTime.now())
-                .build();
+        // Si hay un horario semanal, crear múltiples actividades
+        if (activity.getWeeklySchedule() != null && !activity.getWeeklySchedule().isEmpty()) {
+            createMultipleActivities(activity, trainer);
+        } else {
+            // Crear una sola actividad usando la fecha actual
+            LocalDate currentDate = LocalDate.now();
+            LocalTime activityTime = activity.getTime() != null ? activity.getTime() : LocalTime.of(9, 0); // Default 9:00 AM
+            
+            Activity newActivity = Activity.builder()
+                    .name(activity.getName())
+                    .description(activity.getDescription())
+                    .location(activity.getLocation())
+                    .slots(Integer.parseInt(activity.getMaxParticipants()))
+                    .date(LocalDateTime.of(currentDate, activityTime))
+                    .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
+                    .duration(Integer.parseInt(activity.getDuration()))
+                    .status(ActivityStatus.active)
+                    .trainer(trainer)
+                    .createdAt(LocalDateTime.now())
+                    .isRecurring(activity.getIsRecurring())
+                    .build();
 
+            try {
+                activityRepository.save(newActivity);
+            } catch (Exception e) {
+                throw new RuntimeException("Error al guardar la actividad: " + e.getMessage(), e);
+            }
+        }
+    }
+    
+    private void createMultipleActivities(ActivityFormTypeDTO activity, User trainer) {
+        LocalDate baseDate = LocalDate.now(); // Usar fecha actual como base
+        LocalTime activityTime = activity.getTime() != null ? activity.getTime() : LocalTime.of(9, 0); // Default 9:00 AM
+        
+        // Días de la semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
+        DayOfWeek[] daysOfWeek = {
+            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, 
+            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
+        };
+        
+        for (int i = 0; i < activity.getWeeklySchedule().size(); i++) {
+            if (activity.getWeeklySchedule().get(i)) {
+                // Calcular la fecha para este día de la semana
+                LocalDate activityDate = calculateNextDateForDay(baseDate, daysOfWeek[i]);
+                
+                Activity newActivity = Activity.builder()
+                        .name(activity.getName())
+                        .description(activity.getDescription())
+                        .location(activity.getLocation())
+                        .slots(Integer.parseInt(activity.getMaxParticipants()))
+                        .date(LocalDateTime.of(activityDate, activityTime))
+                        .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
+                        .duration(Integer.parseInt(activity.getDuration()))
+                        .status(ActivityStatus.active)
+                        .trainer(trainer)
+                        .createdAt(LocalDateTime.now())
+                        .isRecurring(activity.getIsRecurring())
+                        .build();
+
+                try {
+                    activityRepository.save(newActivity);
+                } catch (Exception e) {
+                    throw new RuntimeException("Error al guardar la actividad para el día " + (i + 1) + ": " + e.getMessage(), e);
+                }
+            }
+        }
+    }
+    
+    private LocalDate calculateNextDateForDay(LocalDate baseDate, DayOfWeek targetDay) {
+        // Si la fecha base es el día objetivo, usar esa fecha
+        if (baseDate.getDayOfWeek() == targetDay) {
+            return baseDate;
+        }
+        
+        // Encontrar el próximo día de la semana objetivo
+        LocalDate nextDate = baseDate.with(TemporalAdjusters.next(targetDay));
+        
+        // Si la fecha resultante es más de 7 días en el futuro, usar la fecha actual
+        if (nextDate.isAfter(baseDate.plusDays(7))) {
+            return baseDate.with(TemporalAdjusters.nextOrSame(targetDay));
+        }
+        
+        return nextDate;
+    }
+    
+    public void updateActivity(Long id, ActivityFormTypeDTO activity) {
+        Activity existingActivity = activityRepository.findById(id)
+                .orElseThrow(() -> new NoActivityWithIdException("Activity not found with id: " + id));
+        
+        User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
+        
+        existingActivity.setName(activity.getName());
+        existingActivity.setDescription(activity.getDescription());
+        existingActivity.setLocation(activity.getLocation());
+        existingActivity.setSlots(Integer.parseInt(activity.getMaxParticipants()));
+        existingActivity.setDuration(Integer.parseInt(activity.getDuration()));
+        existingActivity.setTrainer(trainer);
+        existingActivity.setIsRecurring(activity.getIsRecurring());
+        
         try {
-            activityRepository.save(newActivity);
+            activityRepository.save(existingActivity);
         } catch (Exception e) {
-            throw new RuntimeException("Error al guardar la actividad: " + e.getMessage(), e);
+            throw new RuntimeException("Error al actualizar la actividad: " + e.getMessage(), e);
+        }
+    }
+    
+    public void deleteActivity(Long id) {
+        Activity activity = activityRepository.findById(id)
+                .orElseThrow(() -> new NoActivityWithIdException("Activity not found with id: " + id));
+        
+        try {
+            activityRepository.delete(activity);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al eliminar la actividad: " + e.getMessage(), e);
         }
     }
 
     public List<ActivityTypeDTO> getAllActivitiesTypeDto() {
         List<Activity> activities = activityRepository.findAll();
         return activities.stream()
-                .map(activity -> ActivityTypeDTO.builder()
-                        .id(activity.getId())
-                        .name(activity.getName())
-                        .description(activity.getDescription())
-                        .location(activity.getLocation())
-                        .trainerName(activity.getTrainer().getFullName())
-                        .date(activity.getDate())
-                        .duration(activity.getDuration())
-                        .participants(activity.getAttendances().stream().map(a -> a.getUser().getId()).collect(Collectors.toList()))
-                        .maxParticipants(activity.getSlots())
-                        .currentParticipants(activity.getAttendances().size())
-                        .status(activity.getStatus())
-                        .build())
+                .map(this::convertToActivityTypeDTO)
                 .toList();
     }
 
@@ -83,6 +179,7 @@ public class ActivityServiceImpl implements IActivityService {
                 .name(act.getName())
                 .description(act.getDescription())
                 .location(act.getLocation())
+                .trainerId(act.getTrainer().getId())
                 .trainerName(act.getTrainer().getFullName())
                 .date(act.getDate())
                 .duration(act.getDuration())
@@ -93,11 +190,13 @@ public class ActivityServiceImpl implements IActivityService {
                             .firstName(a.getUser().getFirstName())
                             .lastName(a.getUser().getLastName())
                             .createdAt(act.getDate())
-                            .status(a.getUser().getStatus())
+                            .status(a.getAttendance())
                             .build();
                 }).collect(Collectors.toList()))
                 .currentParticipants(act.getAttendances().size())
                 .status(act.getStatus())
+                .createdAt(act.getCreatedAt())
+                .isRecurring(act.getIsRecurring())
                 .build();
     }
 
@@ -116,30 +215,63 @@ public class ActivityServiceImpl implements IActivityService {
 
         // Filtrar las actividades que estén dentro del rango [startOfWeek, endOfWeek]
         return allActivities.stream()
-                .map(a -> {
-                    return ActivityTypeDTO.builder()
-                            .id(a.getId())
-                            .name(a.getName())
-                            .description(a.getDescription())
-                            .location(a.getLocation())
-                            .trainerName(a.getTrainer().getFullName())
-                            .date(a.getDate())
-                            .duration(a.getDuration())
-                            .participants(a.getAttendances().stream().map(att -> att.getUser().getId()).collect(Collectors.toList()))
-                            .maxParticipants(a.getSlots())
-                            .currentParticipants(a.getAttendances().size())
-                            .status(a.getStatus())
-                            .build();
-                })
+                .map(this::convertToActivityTypeDTO)
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public EnrollmentResponseDTO enrollUser(EnrollmentRequestDTO enrollmentRequest) {
+        try {
+            AttendanceDTO attendance = attendanceService.enrollUser(
+                enrollmentRequest.getUserId(), 
+                enrollmentRequest.getActivityId()
+            );
+            
+            return EnrollmentResponseDTO.builder()
+                    .success(true)
+                    .message("Usuario inscrito exitosamente")
+                    .enrollment(attendance)
+                    .build();
+        } catch (Exception e) {
+            return EnrollmentResponseDTO.builder()
+                    .success(false)
+                    .message("Error al inscribir usuario: " + e.getMessage())
+                    .build();
+        }
+    }
+    
+    @Override
+    public EnrollmentResponseDTO unenrollUser(EnrollmentRequestDTO enrollmentRequest) {
+        try {
+            attendanceService.unenrollUser(
+                enrollmentRequest.getUserId(), 
+                enrollmentRequest.getActivityId()
+            );
+            
+            return EnrollmentResponseDTO.builder()
+                    .success(true)
+                    .message("Usuario desinscrito exitosamente")
+                    .enrollment(null)
+                    .build();
+        } catch (Exception e) {
+            return EnrollmentResponseDTO.builder()
+                    .success(false)
+                    .message("Error al desinscribir usuario: " + e.getMessage())
+                    .build();
+        }
+    }
+    
+    @Override
+    public boolean isUserEnrolled(Long userId, Long activityId) {
+        return attendanceService.isUserEnrolled(userId, activityId);
     }
 
     @Scheduled(cron = "0 0 3 * * *")
-    public void generateWeeklyActivities() { //TODO
+    public void generateWeeklyActivities() {
         LocalDateTime now = LocalDateTime.now();
 
         List<Activity> activitiesToRepeat = activityRepository.findAll().stream()
-                .filter(a -> Boolean.TRUE.equals(a.getRepeatEveryWeek()))
+                .filter(a -> Boolean.TRUE.equals(a.getIsRecurring()))
                 .filter(a -> a.getDate().toLocalDate().isEqual(now.toLocalDate())) // se repite hoy
                 .toList();
 
@@ -147,6 +279,7 @@ public class ActivityServiceImpl implements IActivityService {
             Activity newActivity = Activity.builder()
                     .name(activity.getName())
                     .description(activity.getDescription())
+                    .location(activity.getLocation())
                     .slots(activity.getSlots())
                     .date(activity.getDate().plusWeeks(1))
                     .repeatEveryWeek(true)
@@ -154,10 +287,27 @@ public class ActivityServiceImpl implements IActivityService {
                     .status(ActivityStatus.active)
                     .trainer(activity.getTrainer())
                     .createdAt(LocalDateTime.now())
+                    .isRecurring(activity.getIsRecurring())
                     .build();
 
             activityRepository.save(newActivity);
         }
     }
-
+    
+    private ActivityTypeDTO convertToActivityTypeDTO(Activity activity) {
+        return ActivityTypeDTO.builder()
+                .id(activity.getId())
+                .name(activity.getName())
+                .description(activity.getDescription())
+                .location(activity.getLocation())
+                .trainerName(activity.getTrainer().getFullName())
+                .date(activity.getDate())
+                .duration(activity.getDuration())
+                .participants(activity.getAttendances().stream().map(a -> a.getUser().getId()).collect(Collectors.toList()))
+                .maxParticipants(activity.getSlots())
+                .currentParticipants(activity.getAttendances().size())
+                .status(activity.getStatus())
+                .isRecurring(activity.getIsRecurring())
+                .build();
+    }
 }

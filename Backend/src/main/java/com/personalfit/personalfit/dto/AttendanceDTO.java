@@ -1,6 +1,5 @@
 package com.personalfit.personalfit.dto;
 
-import com.personalfit.personalfit.utils.ActivityStatus;
 import com.personalfit.personalfit.utils.AttendanceStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,13 +12,11 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserActivityDetailsDTO {
-
+public class AttendanceDTO {
     private Long id;
-    private String name;
-    private String trainerName;
-    private LocalDateTime date;
-    private ActivityStatus activityStatus;
-    private AttendanceStatus clientStatus;
-
-}
+    private Long activityId;
+    private Long userId;
+    private AttendanceStatus status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+} 

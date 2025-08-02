@@ -19,4 +19,8 @@ public class PaymentFile {
     private String filePath;
     private String fileName;      // Nombre original del archivo (o generado)
     private String contentType;
+
+    public String getFileUrl() {
+        return fileName;
+    }
 }

@@ -3,6 +3,8 @@ package com.personalfit.personalfit.controllers;
 import com.personalfit.personalfit.dto.ActivityDetailInfoDTO;
 import com.personalfit.personalfit.dto.ActivityFormTypeDTO;
 import com.personalfit.personalfit.dto.ActivityTypeDTO;
+import com.personalfit.personalfit.dto.EnrollmentRequestDTO;
+import com.personalfit.personalfit.dto.EnrollmentResponseDTO;
 import com.personalfit.personalfit.dto.LocalDateTimeDTO;
 import com.personalfit.personalfit.services.IActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,18 @@ public class ActivityController {
         activityService.createActivity(activity);
         return ResponseEntity.ok().build();
     }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateActivity(@PathVariable Long id, @RequestBody ActivityFormTypeDTO activity) {
+        activityService.updateActivity(id, activity);
+        return ResponseEntity.ok().build();
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteActivity(@PathVariable Long id) {
+        activityService.deleteActivity(id);
+        return ResponseEntity.ok().build();
+    }
 
     @GetMapping("/getAll")
     public ResponseEntity<List<ActivityTypeDTO>> getAllActivities() {
@@ -43,6 +57,25 @@ public class ActivityController {
     public ResponseEntity<ActivityDetailInfoDTO> getActivityInfo(@PathVariable Long id) {
         ActivityDetailInfoDTO activityInfo = activityService.getActivityDetailInfo(id);
         return ResponseEntity.ok(activityInfo);
+    }
+    
+    // Enrollment endpoints
+    @PostMapping("/enroll")
+    public ResponseEntity<EnrollmentResponseDTO> enrollUser(@RequestBody EnrollmentRequestDTO enrollmentRequest) {
+        EnrollmentResponseDTO response = activityService.enrollUser(enrollmentRequest);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/unenroll")
+    public ResponseEntity<EnrollmentResponseDTO> unenrollUser(@RequestBody EnrollmentRequestDTO enrollmentRequest) {
+        EnrollmentResponseDTO response = activityService.unenrollUser(enrollmentRequest);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/{activityId}/enrolled/{userId}")
+    public ResponseEntity<Boolean> isUserEnrolled(@PathVariable Long activityId, @PathVariable Long userId) {
+        boolean isEnrolled = activityService.isUserEnrolled(userId, activityId);
+        return ResponseEntity.ok(isEnrolled);
     }
 
 }

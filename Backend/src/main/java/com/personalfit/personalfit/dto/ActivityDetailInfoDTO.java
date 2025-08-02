@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -31,4 +32,8 @@ public class ActivityDetailInfoDTO {
     private LocalDateTime createdAt;
     private LocalDateTime lastModified;
     private String notes;
+    
+    // Fields for recurring activities
+    private Boolean isRecurring;
+    private List<Boolean> weeklySchedule;
 }

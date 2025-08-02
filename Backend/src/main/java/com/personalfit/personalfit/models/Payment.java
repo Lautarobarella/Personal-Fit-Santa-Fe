@@ -38,4 +38,17 @@ public class Payment {
     @JoinColumn(name = "payment_file_id")
     private PaymentFile paymentFile; // Comprobante de pago asociado
 
+    // Convenience methods for compatibility
+    public MethodType getMethod() {
+        return methodType;
+    }
+
+    public Long getReceiptId() {
+        return paymentFile != null ? paymentFile.getId() : null;
+    }
+
+    public String getReceiptUrl() {
+        return paymentFile != null ? paymentFile.getFileUrl() : null;
+    }
+
 }
