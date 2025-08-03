@@ -53,9 +53,13 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
       NEXT_PUBLIC_IS_DOCKER: "true"
-      NEXT_PUBLIC_BASE_URL: http://72.60.1.76:3000
-      MP_ACCESS_TOKEN: APP_USR-6086551668223931-073117-6064a2fd4d47496cd6d490a1264f72c9-2594861434
+      NEXT_PUBLIC_BASE_URL: https://72.60.1.76:3000
+      MP_ACCESS_TOKEN: TEST-7905154802245233-073019-7a153d13df05b9ca412c871c5e1fdf87-288248460
       NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+      # Configuración para evitar el error de "pagar a uno mismo"
+      NEXT_PUBLIC_MP_TEST_EMAIL: test-buyer@example.com
+      NEXT_PUBLIC_MP_TEST_PHONE: 12345678
+      NEXT_PUBLIC_MP_TEST_DNI: 12345678
 
   pgadmin:
     image: dpage/pgadmin4

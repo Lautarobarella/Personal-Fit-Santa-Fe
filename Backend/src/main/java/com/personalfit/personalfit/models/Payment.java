@@ -37,5 +37,6 @@ public class Payment {
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "payment_file_id")
     private PaymentFile paymentFile; // Comprobante de pago asociado
+    
 
 }

@@ -56,8 +56,13 @@ export async function createSingleProductPreference(
         console.log(`Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
 
         // URL base por defecto si no está configurada
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000';
         console.log(`URL base configurada: ${baseUrl}`);
+
+        // Usar datos de prueba diferentes para evitar el error "pagar a uno mismo"
+        const testEmail = process.env.NEXT_PUBLIC_MP_TEST_EMAIL || 'test-buyer@example.com';
+        const testPhone = process.env.NEXT_PUBLIC_MP_TEST_PHONE || '12345678';
+        const testDni = process.env.NEXT_PUBLIC_MP_TEST_DNI || '12345678';
 
         const preferenceBody = {
             // Configuración del producto
@@ -72,35 +77,35 @@ export async function createSingleProductPreference(
                 },
             ],
 
-            // Información del pagador (datos de ejemplo)
+            // Información del pagador (datos de prueba diferentes)
             payer: {
-                name: "Usuario",
-                surname: "Ejemplo",
-                email: options.userEmail,
+                name: "Comprador",
+                surname: "Prueba",
+                email: testEmail, // Usar email de prueba en lugar del email real
                 phone: {
                     area_code: "11",
-                    number: "12345678"
+                    number: testPhone
                 },
                 identification: {
                     type: "DNI",
-                    number: "12345678"
+                    number: testDni
                 },
                 address: {
                     zip_code: "1234",
-                    street_name: "Calle Ejemplo",
+                    street_name: "Calle de Prueba",
                     street_number: "123"
                 },
                 date_created: new Date().toISOString()
             },
 
-            // URLs de redirección después del pago
+            // URLs de redirección después del pago (usar HTTPS)
             back_urls: {
                 success: `${baseUrl}/success`,
                 failure: `${baseUrl}/failure`,
                 pending: `${baseUrl}/pending`,
             },
 
-            // URL del webhook para recibir notificaciones
+            // URL del webhook para recibir notificaciones (usar HTTPS)
             notification_url: `${baseUrl}/api/webhook/mercadopago`,
 
             // ID de referencia externa para identificar el pago
@@ -118,6 +123,11 @@ export async function createSingleProductPreference(
             failure: `${baseUrl}/failure`,
             pending: `${baseUrl}/pending`,
             webhook: `${baseUrl}/api/webhook/mercadopago`
+        });
+        console.log("Datos del pagador:", {
+            email: testEmail,
+            phone: testPhone,
+            dni: testDni
         });
 
         const preference = await pref.create({ body: preferenceBody });
