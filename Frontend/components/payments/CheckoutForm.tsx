@@ -55,6 +55,7 @@ export default function CheckoutForm({
                 body: JSON.stringify({
                     productId,
                     userEmail: user.email,
+                    userDni: user.dni, // Agregar el DNI del usuario
                 }),
             });
 

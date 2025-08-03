@@ -4,6 +4,7 @@ import {
     Payment,
     Preference
 } from "mercadopago";
+import { createPayment } from "../api/payment/paymentsApi";
 import { getProductById } from "./products";
 
 /**
@@ -470,14 +471,14 @@ export function getPendingPaymentsInfo() {
 }
 
 /**
- * Mapea un pago de MercadoPago con la información del cliente
+ * Mapea un pago de MercadoPago con el cliente y crea el pago en el sistema
  */
 async function mapPaymentToClient(mpPayment: any) {
     try {
         console.log("🔍 Mapeando pago con cliente...");
         
         // Extraer información del external_reference
-        // Formato esperado: productId-timestamp-randomString
+        // Formato esperado: userDni-productId-timestamp-randomString
         const externalRef = mpPayment.external_reference;
         console.log("Referencia externa:", externalRef);
         
@@ -488,10 +489,12 @@ async function mapPaymentToClient(mpPayment: any) {
 
         // Parsear la referencia externa
         const parts = externalRef.split('-');
-        if (parts.length >= 2) {
-            const productId = parts[0];
-            const timestamp = parts[1];
+        if (parts.length >= 3) {
+            const userDni = parseInt(parts[0]);
+            const productId = parts[1];
+            const timestamp = parts[2];
             
+            console.log(`👤 DNI del usuario: ${userDni}`);
             console.log(`📦 Producto ID: ${productId}`);
             console.log(`⏰ Timestamp: ${timestamp}`);
             
@@ -511,12 +514,14 @@ async function mapPaymentToClient(mpPayment: any) {
                 paymentMethodId: mpPayment.payment_method_id,
                 installments: mpPayment.installments,
                 mpPaymentId: mpPayment.id,
+                clientDni: userDni, // Usar el DNI extraído de la referencia externa
             };
             
             console.log("👤 Información del pago mapeada:", paymentInfo);
             
-            // Simular guardado en base de datos
-            console.log("💾 Guardando pago en base de datos...");
+            // Crear el pago en la base de datos
+            console.log("💾 Creando pago en base de datos...");
+            console.log(`   - Cliente DNI: ${paymentInfo.clientDni}`);
             console.log(`   - Producto: ${paymentInfo.productName}`);
             console.log(`   - Monto: $${paymentInfo.amount} ${paymentInfo.currency}`);
             console.log(`   - Estado: ${paymentInfo.status}`);
@@ -525,8 +530,7 @@ async function mapPaymentToClient(mpPayment: any) {
             console.log(`   - Fecha: ${new Date(paymentInfo.paymentDate).toLocaleString('es-AR')}`);
             console.log(`   - ID MercadoPago: ${paymentInfo.mpPaymentId}`);
             
-            // Aquí podrías crear el pago en tu base de datos
-            // Por ahora simulamos la creación
+            // Crear el pago real en el sistema
             await simulatePaymentCreation(paymentInfo);
             
             return paymentInfo;
@@ -542,37 +546,28 @@ async function mapPaymentToClient(mpPayment: any) {
 }
 
 /**
- * Simula la creación de un pago en el sistema
+ * Crea un pago real en el sistema usando la API del backend
  */
 async function simulatePaymentCreation(paymentInfo: any) {
     try {
-        console.log("🏗️ Simulando creación de pago en el sistema...");
+        console.log("🏗️ Creando pago real en el sistema...");
         
-        // Aquí iría la lógica para crear el pago en tu base de datos
-        // Por ejemplo, llamar a tu API de pagos
+        // Usar el DNI que viene en paymentInfo (obtenido del usuario actual)
+        const clientDni = paymentInfo.clientDni || 1234;
         
         const paymentData = {
-            clientDni: 1234, // Esto debería venir del usuario que realizó el pago
+            clientDni: clientDni,
             amount: paymentInfo.amount,
-            createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
-            paymentStatus: mapMercadoPagoStatus(paymentInfo.status),
-            methodType: mapPaymentMethod(paymentInfo.paymentMethod),
-            mpPaymentId: paymentInfo.mpPaymentId,
-            mpTransactionId: paymentInfo.transactionId,
+            createdAt: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 días
+            paymentStatus: mapMercadoPagoStatus(paymentInfo.status) as "pending" | "paid",
         };
         
         console.log("📋 Datos del pago a crear:", paymentData);
+        console.log("🌐 Llamando a la API de pagos del backend...");
         
-        // Simular llamada a la API de pagos
-        console.log("🌐 Llamando a la API de pagos...");
-        
-        // En producción, aquí harías:
-        // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/new`, {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(paymentData)
-        // });
+        // Crear el pago real usando la API del backend
+        const response = await createPayment(paymentData);
         
         console.log("✅ Pago creado exitosamente en el sistema");
         console.log("📊 Resumen del pago:");
@@ -580,13 +575,14 @@ async function simulatePaymentCreation(paymentInfo: any) {
         console.log(`   - Producto: ${paymentInfo.productName}`);
         console.log(`   - Monto: $${paymentData.amount}`);
         console.log(`   - Estado: ${paymentData.paymentStatus}`);
-        console.log(`   - Método: ${paymentData.methodType}`);
-        console.log(`   - ID MP: ${paymentData.mpPaymentId}`);
+        console.log(`   - Método: ${mapPaymentMethod(paymentInfo.paymentMethod)}`);
+        console.log(`   - ID MP: ${paymentInfo.mpPaymentId}`);
+        console.log(`   - Respuesta del backend:`, response);
         
-        return paymentData;
+        return response;
         
     } catch (error) {
-        console.error("❌ Error simulando creación de pago:", error);
+        console.error("❌ Error creando pago en el sistema:", error);
         throw error;
     }
 }

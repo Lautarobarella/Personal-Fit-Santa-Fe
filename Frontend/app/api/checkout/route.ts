@@ -6,14 +6,14 @@ export async function POST(request: NextRequest) {
     try {
         console.log('=== INICIO DE CHECKOUT ===');
         
-        const { productId, userEmail } = await request.json();
-        console.log('Datos recibidos:', { productId, userEmail });
+        const { productId, userEmail, userDni } = await request.json();
+        console.log('Datos recibidos:', { productId, userEmail, userDni });
 
-        // Validar que se envió el productId y userEmail
-        if (!productId || !userEmail) {
-            console.error('Datos faltantes:', { productId, userEmail });
+        // Validar que se envió el productId, userEmail y userDni
+        if (!productId || !userEmail || !userDni) {
+            console.error('Datos faltantes:', { productId, userEmail, userDni });
             return NextResponse.json(
-                { error: 'Faltan datos requeridos: productId y userEmail' },
+                { error: 'Faltan datos requeridos: productId, userEmail y userDni' },
                 { status: 400 }
             );
         }
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
         }
         console.log('Producto encontrado:', product);
 
-        // Generar ID de transacción único
-        const transactionId = `${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        // Generar ID de transacción único incluyendo el DNI del usuario
+        const transactionId = `${userDni}-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         console.log('Transaction ID generado:', transactionId);
 
         // Crear preferencia de MercadoPago
