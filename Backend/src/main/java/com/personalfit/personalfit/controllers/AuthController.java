@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -74,6 +76,19 @@ public class AuthController {
             return ResponseEntity.ok(userInfo);
         } catch (Exception e) {
             log.error("Error getting current user", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Endpoint de prueba para verificar usuarios (público)
+    @GetMapping("/test-users")
+    public ResponseEntity<List<User>> getTestUsers() {
+        try {
+            List<User> users = userRepository.findAll();
+            log.info("Found {} users in database", users.size());
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error("Error getting test users", e);
             return ResponseEntity.badRequest().build();
         }
     }

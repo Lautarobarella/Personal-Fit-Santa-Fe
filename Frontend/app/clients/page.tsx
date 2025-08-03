@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, Search, Phone, Mail, MoreVertical, Calendar } from "lucide-react"
+import { Plus, Search, Phone, Mail, MoreVertical, Calendar, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
@@ -41,7 +41,14 @@ export default function ClientsPage() {
     return <div>No tienes permisos para ver esta página</div>
   }
 
-  if (loading) return <div>Cargando clientes...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
   if (error) return <div>{error}</div>
   if (!clients) return null
 

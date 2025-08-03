@@ -20,6 +20,7 @@ import {
     CheckCircle,
     CreditCard,
     Info,
+    Loader2,
     Trash2,
     Users,
     XCircle,
@@ -51,7 +52,14 @@ export default function NotificationsPage() {
         return <div>No tienes permisos para ver esta página</div>
     }
 
-    if (loading) return <div>Cargando notificaciones...</div>
+    if (loading) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        )
+      }
+
     if (error) return <div>{error}</div>
     if (!notifications) return null
 

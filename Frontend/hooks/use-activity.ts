@@ -1,14 +1,11 @@
 import { useState, useCallback } from "react"
-import type { ActivityDetailInfo, ActivityFormType, ActivityType, Attendance, UserType } from "@/lib/types"
+import type { ActivityDetailInfo, ActivityFormType, ActivityType, Attendance, UserType, EnrollmentRequest, EnrollmentResponse } from "@/lib/types"
 import { 
   editActivityBack, 
   enrollActivity, 
   fetchActivities, 
   fetchActivitiesByDate, 
-  fetchActivitiesByDateMock, 
-  fetchActivitiesMock, 
   fetchActivityDetail, 
-  fetchActivityDetailMock, 
   fetchTrainers, 
   newActivity, 
   unenrollActivity } from "@/api/activities/activitiesApi"
@@ -25,7 +22,9 @@ export function useActivities() {
     time: "",
     duration: "",
     maxParticipants: "",
-    })
+    isRecurring: false,
+    weeklySchedule: [false, false, false, false, false, false, false], // [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
+  })
   const [trainers, setTrainers] = useState<UserType[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,8 +48,7 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      // const data = await fetchActivitiesByDate(date)
-      const data = await (await fetchActivitiesByDateMock(date))
+      const data = await fetchActivitiesByDate(date)
       // Evitar duplicados por ID
       setActivities((prev) => {
         const existingIds = new Set(prev.map((a) => a.id))
@@ -81,8 +79,7 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      // const detail = await fetchActivityDetail(id)
-      const detail = await fetchActivityDetailMock(id)
+      const detail = await fetchActivityDetail(id)
       setSelectedActivity(detail)
       console.log("Detalle de la actividad cargada:", detail)
     } catch (err) {
@@ -96,70 +93,200 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      newActivity(activity) 
+      await newActivity(activity) 
+      // Recargar actividades después de crear una nueva
+      await loadActivities()
     } catch (err) {
       setError("Error al crear la actividad")
+      throw err
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [])
+  }, [loadActivities])
 
   const editActivity = useCallback(async (activity: ActivityFormType) => {
     setLoading(true)
     setError(null)
     try {
-      editActivityBack(activity) 
+      await editActivityBack(activity) 
     } catch (err) {
-      setError("Error al crear la actividad")
-    }
-    setLoading(false)
-  }, [])
-
-  const enrollIntoActivity = useCallback(
-    (activityId: number, user: number) => {
-      setLoading(true)
-      try {
-        const attendance: Attendance = {
-          activityId: activityId,
-          userId: user,
-          createdAt: new Date(),
-          status: "pending", // o "present" según tu lógica
-        }
-
-        enrollActivity(attendance)
-      } catch (err) {
-        setError("Error al inscribirse en la actividad")
-      } finally {
-        setLoading(false)
-      }
-    },
-    [] // Dependencia necesaria para usar user.id
-  )
-
-  const unenrollFromActivity = useCallback((activityId: number, user: number) => {
-    setLoading(true)
-      try {
-        const attendance: Attendance = {
-          activityId: activityId,
-          userId: user,
-          createdAt: new Date(),
-          status: "pending", // o "present" según tu lógica
-      }
-      unenrollActivity(attendance)
-    }
-    catch (err) {
-      setError("Error al inscribirse en la actividad")
+      setError("Error al editar la actividad")
+      throw err
     } finally {
       setLoading(false)
     }
-
   }, [])
 
-  const markParticipantPresent = useCallback((activity: ActivityDetailInfo, participantId: number) =>{
+  // Función mejorada para inscribirse a una actividad
+  const enrollIntoActivity = useCallback(async (activityId: number, userId: number): Promise<EnrollmentResponse> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const enrollmentRequest: EnrollmentRequest = {
+        activityId,
+        userId,
+        status: "pending",
+        createdAt: new Date()
+      }
 
-  },[])
+      const response = await enrollActivity(enrollmentRequest)
+      
+      // Actualizar la lista de actividades localmente
+      setActivities(prev => 
+        prev.map(activity => 
+          activity.id === activityId 
+            ? { 
+                ...activity, 
+                participants: [...activity.participants, userId],
+                currentParticipants: activity.currentParticipants + 1
+              }
+            : activity
+        )
+      )
+
+      return {
+        success: true,
+        message: "Inscripción exitosa",
+        enrollment: response
+      }
+    } catch (err) {
+      const errorMessage = "Error al inscribirse en la actividad"
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Función mejorada para desinscribirse de una actividad
+  const unenrollFromActivity = useCallback(async (activityId: number, userId: number): Promise<EnrollmentResponse> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const enrollmentRequest: EnrollmentRequest = {
+        activityId,
+        userId,
+        status: "absent",
+        createdAt: new Date()
+      }
+
+      const response = await unenrollActivity(enrollmentRequest)
+      
+      // Actualizar la lista de actividades localmente
+      setActivities(prev => 
+        prev.map(activity => 
+          activity.id === activityId 
+            ? { 
+                ...activity, 
+                participants: activity.participants.filter(id => id !== userId),
+                currentParticipants: Math.max(0, activity.currentParticipants - 1)
+              }
+            : activity
+        )
+      )
+
+      return {
+        success: true,
+        message: "Desinscripción exitosa",
+        enrollment: response
+      }
+    } catch (err) {
+      const errorMessage = "Error al desinscribirse de la actividad"
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Función para marcar asistencia de un participante
+  const markParticipantPresent = useCallback(async (activityId: number, participantId: number, status: "present" | "absent" | "late") => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const attendanceRequest: EnrollmentRequest = {
+        activityId,
+        userId: participantId,
+        status,
+        createdAt: new Date()
+      }
+
+      await enrollActivity(attendanceRequest) // Reutilizamos la misma función pero con diferente status
+      
+      // Actualizar el detalle de la actividad si está cargado
+      if (selectedActivity && selectedActivity.id === activityId) {
+        setSelectedActivity(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            participants: prev.participants.map(p => 
+              p.id === participantId 
+                ? { ...p, status }
+                : p
+            )
+          }
+        })
+      }
+
+      return {
+        success: true,
+        message: `Asistencia marcada como ${status}`
+      }
+    } catch (err) {
+      const errorMessage = "Error al marcar la asistencia"
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedActivity])
+
+  // Función para verificar si un usuario está inscrito en una actividad
+  const isUserEnrolled = useCallback((activity: ActivityType, userId: number): boolean => {
+    return activity.participants.includes(userId)
+  }, [])
+
+  // Función para obtener el estado de inscripción de un usuario
+  const getUserEnrollmentStatus = useCallback((activity: ActivityType, userId: number): "enrolled" | "not_enrolled" | "full" => {
+    if (activity.participants.includes(userId)) {
+      return "enrolled"
+    }
+    if (activity.currentParticipants >= activity.maxParticipants) {
+      return "full"
+    }
+    return "not_enrolled"
+  }, [])
 
   // Limpiar cliente seleccionado
   const clearSelectedActivity = () => setSelectedActivity(null)
+
+  // Función para resetear el formulario
+  const resetForm = useCallback(() => {
+    setForm({
+      name: "",
+      description: "",
+      location: "",
+      trainerId: "",
+      date: "",
+      time: "",
+      duration: "",
+      maxParticipants: "",
+      isRecurring: false,
+      weeklySchedule: [false, false, false, false, false, false, false],
+    })
+  }, [])
 
   return {
     activities,
@@ -180,5 +307,8 @@ export function useActivities() {
     enrollIntoActivity,
     unenrollFromActivity,
     markParticipantPresent,
+    isUserEnrolled,
+    getUserEnrollmentStatus,
+    resetForm,
   }
 }

@@ -63,8 +63,17 @@
   * {
     @apply border-border;
   }
+  
+  html, body {
+    overflow-x: hidden; /* ❌ Evita scroll horizontal */
+    width: 100%;
+    height: 100%;
+    touch-action: pan-y; /* ❌ Solo permite scroll vertical */
+  }
+
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-x: none; /* ❌ Previene el estiramiento lateral en móviles */
   }
 }
 

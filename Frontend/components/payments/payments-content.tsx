@@ -19,6 +19,7 @@ import {
     DollarSign,
     Eye,
     FileCheck,
+    Loader2,
     Plus,
     Search,
     User,
@@ -42,6 +43,14 @@ export default function PaymentsContent() {
     })
 
     if (!user) return null
+
+    // if (loading) {
+    //     return (
+    //       <div className="min-h-screen flex items-center justify-center">
+    //         <Loader2 className="h-8 w-8 animate-spin" />
+    //       </div>
+    //     )
+    //   }
 
     const formatMonth = (date: Date) => {
         return new Intl.DateTimeFormat("es-ES", {
