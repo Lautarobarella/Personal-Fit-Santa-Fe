@@ -46,12 +46,18 @@ export default function NewPaymentPage() {
     }
   }
 
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      router.push("/payments")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container py-6 space-y-6">
         <CreatePaymentDialog
           open={true}
-          onOpenChange={(open) => console.log("Dialog open:", open)}
+          onOpenChange={handleDialogChange}
           onCreatePayment={handleCreatePayment}
         />
       </div>
