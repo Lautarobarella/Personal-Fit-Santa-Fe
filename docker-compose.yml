@@ -54,7 +54,11 @@ services:
       NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
       NEXT_PUBLIC_IS_DOCKER: "true"
       NEXT_PUBLIC_BASE_URL: https://72.60.1.76:3000
-      MP_ACCESS_TOKEN: APP_USR-1486038102037364-080111-8692d9eaf95fa8d4e2ad60ffb4cfe367-2594861436
+      MP_ACCESS_TOKEN: TEST-3942377988418193-080311-8084950108cc03a2a313a97295909394-288248460
+      NEXT_PUBLIC_MP_PUBLIC_KEY: TEST-191ffd30-141f-46be-97ed-b4a82a1804a9
+      WEBHOOK_URL: http://72.60.1.76/:3000/api/webhook/mercadopago
+      NODE_ENV: development
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: personalfit-pgadmin
