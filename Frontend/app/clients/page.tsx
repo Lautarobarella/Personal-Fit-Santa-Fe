@@ -90,7 +90,7 @@ export default function ClientsPage() {
         }
       />
 
-      <div className="container py-6 space-y-4">
+      <div className="container-centered py-6 space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

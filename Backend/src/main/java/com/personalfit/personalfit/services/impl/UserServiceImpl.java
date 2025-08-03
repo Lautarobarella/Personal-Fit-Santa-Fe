@@ -110,38 +110,25 @@ public class UserServiceImpl implements IUserService {
     }
 
     public UserDetailInfoDTO createUserDetailInfoDTO(User user) {
-        List<UserActivityDetailsDTO> userActivityDetailsDTOList = new ArrayList<>();
-        List<PaymentTypeDTO> paymentTypeDTOList = new ArrayList<>();
+        UserDetailInfoDTO userDto = new UserDetailInfoDTO(user);
+        Integer age = getUserAge(user);
+        userDto.setAge(age);
 
         user.getAttendances().stream().forEach(attendance -> {
-            UserActivityDetailsDTO userActivityDetailsDTO = new UserActivityDetailsDTO();
-            userActivityDetailsDTO.setId(attendance.getActivity().getId());
-            userActivityDetailsDTO.setName(attendance.getActivity().getName());
-            userActivityDetailsDTO.setTrainerName(attendance.getActivity().getTrainer().getFullName());
-            userActivityDetailsDTO.setDate(attendance.getActivity().getDate());
-            userActivityDetailsDTO.setActivityStatus(attendance.getActivity().getStatus());
-            userActivityDetailsDTO.setClientStatus(attendance.getAttendance());
-            userActivityDetailsDTOList.add(userActivityDetailsDTO);
+            userDto.getListActivity().add(UserActivityDetailsDTO.builder()
+                    .id(attendance.getActivity().getId())
+                    .name(attendance.getActivity().getName())
+                    .trainerName(attendance.getActivity().getTrainer().getFirstName() + " "
+                            + attendance.getActivity().getTrainer().getLastName())
+                    .date(attendance.getActivity().getDate())
+                    .activityStatus(attendance.getActivity().getStatus())
+                    .clientStatus(attendance.getAttendance())
+                    .build());
         });
 
-        user.getPayments().stream().forEach(payment -> {
-            PaymentTypeDTO paymentTypeDTO = new PaymentTypeDTO();
-            paymentTypeDTO.setId(payment.getId());
-            paymentTypeDTO.setClientId(payment.getUser().getId());
-            paymentTypeDTO.setClientName(payment.getUser().getFullName());
-            paymentTypeDTO.setAmount(payment.getAmount());
-            paymentTypeDTO.setCreatedAt(payment.getCreatedAt());
-            paymentTypeDTO.setExpiresAt(payment.getExpiresAt());
-            paymentTypeDTO.setStatus(payment.getStatus());
-            paymentTypeDTO.setVerifiedAt(payment.getVerifiedAt());
-            paymentTypeDTO.setMethod(payment.getMethod());
-            paymentTypeDTO.setRejectionReason(payment.getRejectionReason());
-            paymentTypeDTO.setReceiptId(payment.getReceiptId());
-            paymentTypeDTO.setReceiptUrl(payment.getReceiptUrl());
-            paymentTypeDTOList.add(paymentTypeDTO);
-        });
-
-        return new UserDetailInfoDTO(user, userActivityDetailsDTOList, paymentTypeDTOList);
+        userDto.setLastActivity(LocalDate.now()); // Aca deberia filtrar todas las actividades y quedarme con la ultima
+        userDto.setActivitiesCount(user.getAttendances().size());
+        return userDto;
     }
 
     public List<UserTypeDTO> getAllTrainers() {

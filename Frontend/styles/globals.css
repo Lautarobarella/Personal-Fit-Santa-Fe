@@ -77,6 +77,13 @@
   }
 }
 
+@layer components {
+  /* Custom container that centers content on all screen sizes */
+  .container-centered {
+    @apply w-full max-w-4xl mx-auto px-4;
+  }
+}
+
 /* Custom utility classes for status colors */
 @layer utilities {
   .text-success {

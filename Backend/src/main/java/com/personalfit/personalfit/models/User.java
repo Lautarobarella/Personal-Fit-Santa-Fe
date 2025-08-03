@@ -45,7 +45,6 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
 
-
     private LocalDateTime deletedAt = null;
 
     public String getFullName() {

@@ -25,7 +25,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader title="Configuración" />
 
-      <div className="container py-6 space-y-6">
+      <div className="container-centered py-6 space-y-6">
         {/* Profile Section */}
         <Card>
           <CardContent className="p-6">

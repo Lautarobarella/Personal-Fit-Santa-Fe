@@ -46,7 +46,6 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
 
   if (!selectedActivity) {
-    console.log('hola!')
     return null
   }
 

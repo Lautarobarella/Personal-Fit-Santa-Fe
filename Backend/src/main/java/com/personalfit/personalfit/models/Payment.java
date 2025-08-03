@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class Payment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private Long confNumber;
     private String rejectionReason;
@@ -38,17 +38,17 @@ public class Payment {
     @JoinColumn(name = "payment_file_id")
     private PaymentFile paymentFile; // Comprobante de pago asociado
 
-    // Convenience methods for compatibility
-    public MethodType getMethod() {
-        return methodType;
-    }
+    // // Convenience methods for compatibility
+    // public MethodType getMethod() {
+    //     return methodType;
+    // }
 
-    public Long getReceiptId() {
-        return paymentFile != null ? paymentFile.getId() : null;
-    }
+    // public Long getReceiptId() {
+    //     return paymentFile != null ? paymentFile.getId() : null;
+    // }
 
-    public String getReceiptUrl() {
-        return paymentFile != null ? paymentFile.getFileUrl() : null;
-    }
+    // public String getReceiptUrl() {
+    //     return paymentFile != null ? paymentFile.getFileUrl() : null;
+    // }
 
 }

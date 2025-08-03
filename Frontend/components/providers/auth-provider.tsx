@@ -35,20 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    console.log("Login attempt with email:", email)
     setLoading(true)
     try {
       const authenticatedUser = await authenticate(email, password)
-
-      if (authenticatedUser) {
-        console.log("User authenticated successfully:", authenticatedUser)
-        setUser(authenticatedUser)
-        return true
-      }
-      return false
+      setUser(authenticatedUser)
+      return true
     } catch (error) {
       console.error("Login error:", error)
-      return false
+      throw error // Re-throw to let the login form handle the error
     } finally {
       setLoading(false)
     }

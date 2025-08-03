@@ -39,9 +39,13 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={ inter.className }>
+      <body className={inter.className}>
         <AuthProvider>
-          {children}
+          <div className="min-h-screen flex justify-center">
+            <div className="w-full max-w-4xl">
+              {children}
+            </div>
+          </div>
           <Toaster />
         </AuthProvider>
       </body>

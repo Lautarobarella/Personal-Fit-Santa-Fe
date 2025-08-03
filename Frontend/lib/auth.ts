@@ -20,14 +20,19 @@ export const authenticate = async (email: string, password: string): Promise<Use
     })
 
     if (!response.ok) {
-      console.error('Authentication failed:', response.statusText)
-      return null
+      // Try to parse error response from backend
+      try {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Credenciales incorrectas')
+      } catch (parseError) {
+        throw new Error('Error de autenticación')
+      }
     }
 
     const authData: AuthResponse = await response.json()
     
     // Store tokens in localStorage
-    // MODIFICAR, GUARDAR TOKEN EN HTTPS Y SECURED
+    // TODO: Implement secure token storage for production
     localStorage.setItem('accessToken', authData.accessToken)
     localStorage.setItem('refreshToken', authData.refreshToken)
     localStorage.setItem('user', JSON.stringify(authData.user))
@@ -35,7 +40,7 @@ export const authenticate = async (email: string, password: string): Promise<Use
     return authData.user
   } catch (error) {
     console.error('Authentication error:', error)
-    return null
+    throw error // Re-throw to let the calling code handle it
   }
 }
 

@@ -1,11 +1,12 @@
-import { apiClient } from "@/lib/api";
+import { jwtPermissionsApi } from "@/lib/api";
 import { ActivityFormType, Attendance, EnrollmentRequest } from "@/lib/types";
+import { handleApiError, isValidationError, handleValidationError } from "@/lib/error-handler";
 
 export async function fetchActivities() {
   try {
-    return await apiClient.get('/api/activities/getAll');
+    return await jwtPermissionsApi.get('/api/activities/getAll');
   } catch (error) {
-    console.error('Error fetching Activities:', error);
+    handleApiError(error, 'Error al cargar las actividades');
     return [];
   }
 }
@@ -19,81 +20,89 @@ export async function fetchActivitiesByDate(date: Date) {
       const day = pad(date.getDate())
       return `${year}-${month}-${day}`
     }
-    return await apiClient.get(`/api/activities/getAllByWeek/${formatTime(date)}`);
+    return await jwtPermissionsApi.get(`/api/activities/getAllByWeek/${formatTime(date)}`);
   } catch (error) {
-    console.error('Error fetching Activities:', error);
+    handleApiError(error, 'Error al cargar las actividades por fecha');
     return [];
   }
 }
 
 export async function fetchActivityDetail(id: number) {
   try {
-    return await apiClient.get(`/api/activities/info/${id}`);
+    return await jwtPermissionsApi.get(`/api/activities/info/${id}`);
   } catch (error) {
-    console.error('Error fetching Activity Detail:', error);
+    handleApiError(error, 'Error al cargar los detalles de la actividad');
     throw error;
   }
 }
 
 export async function newActivity(activity: ActivityFormType) {
   try {
-    return await apiClient.post('/api/activities/create', activity);
+    return await jwtPermissionsApi.post('/api/activities/new', activity);
   } catch (error) {
-    console.error('Error creating Activity:', error);
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al crear la actividad');
+    }
     throw error;
   }
 }
 
 export async function editActivityBack(activity: ActivityFormType) {
   try {
-    return await apiClient.put(`/api/activities/${activity.id}`, activity);
+    return await jwtPermissionsApi.put(`/api/activities/${activity.id}`, activity);
   } catch (error) {
-    console.error('Error editing Activity:', error);
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al editar la actividad');
+    }
     throw error;
   }
 }
 
 export async function deleteActivity(id: number) {
   try {
-    return await apiClient.delete(`/api/activities/${id}`);
+    return await jwtPermissionsApi.delete(`/api/activities/${id}`);
   } catch (error) {
-    console.error('Error deleting Activity:', error);
+    handleApiError(error, 'Error al eliminar la actividad');
     throw error;
   }
 }
 
 export async function enrollActivity(enrollmentRequest: EnrollmentRequest) {
   try {
-    return await apiClient.post('/api/activities/enroll', enrollmentRequest);
+    return await jwtPermissionsApi.post('/api/activities/enroll', enrollmentRequest);
   } catch (error) {
-    console.error('Error enrolling in Activity:', error);
+    handleApiError(error, 'Error al inscribirse en la actividad');
     throw error;
   }
 }
 
 export async function unenrollActivity(enrollmentRequest: EnrollmentRequest) {
   try {
-    return await apiClient.post('/api/activities/unenroll', enrollmentRequest);
+    return await jwtPermissionsApi.post('/api/activities/unenroll', enrollmentRequest);
   } catch (error) {
-    console.error('Error unenrolling from Activity:', error);
+    handleApiError(error, 'Error al cancelar la inscripción');
     throw error;
   }
 }
 
 export async function isUserEnrolled(activityId: number, userId: number) {
   try {
-    return await apiClient.get(`/api/activities/${activityId}/enrolled/${userId}`);
+    return await jwtPermissionsApi.get(`/api/activities/${activityId}/enrolled/${userId}`);
   } catch (error) {
-    console.error('Error checking enrollment:', error);
+    handleApiError(error, 'Error al verificar la inscripción');
     return false;
   }
 }
 
 export async function fetchTrainers() {
   try {
-    return await apiClient.get('/api/users/trainers');
+    return await jwtPermissionsApi.get('/api/users/trainers');
   } catch (error) {
-    console.error('Error fetching Trainers:', error);
+    handleApiError(error, 'Error al cargar los entrenadores');
     return [];
   }
 }

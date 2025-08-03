@@ -27,26 +27,16 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> authenticate(@Valid @RequestBody AuthRequestDTO request) {
-        try {
-            AuthResponseDTO response = authService.authenticate(request);
-            log.info("User authenticated successfully: {}", request.getEmail());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Authentication failed for user: {}", request.getEmail(), e);
-            return ResponseEntity.badRequest().build();
-        }
+        AuthResponseDTO response = authService.authenticate(request);
+        log.info("User authenticated successfully: {}", request.getEmail());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponseDTO> refreshToken(@RequestParam String refreshToken) {
-        try {
-            AuthResponseDTO response = authService.refreshToken(refreshToken);
-            log.info("Token refreshed successfully");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Token refresh failed", e);
-            return ResponseEntity.badRequest().build();
-        }
+        AuthResponseDTO response = authService.refreshToken(refreshToken);
+        log.info("Token refreshed successfully");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/me")

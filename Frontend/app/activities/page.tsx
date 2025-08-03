@@ -21,10 +21,12 @@ import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-d
 import { useActivities } from "@/hooks/use-activity"
 import { ActivityType } from "@/lib/types"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 
 export default function ActivitiesPage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const { 
     activities,
     loading,
@@ -32,6 +34,7 @@ export default function ActivitiesPage() {
     loadActivitiesByWeek,
     enrollIntoActivity,
     unenrollFromActivity,
+    deleteActivityById,
     isUserEnrolled,
     getUserEnrollmentStatus,
    } = useActivities()
@@ -210,11 +213,32 @@ export default function ActivitiesPage() {
     })
   }
 
-  const handleConfirmDelete = (activityId: number) => {
-    // Here you would call your delete API
-    console.log("Deleting activity:", activityId)
-    // For demo purposes, we'll just close the dialog
-    setDeleteDialog({ open: false, activity: null })
+  const handleConfirmDelete = async (activityId: number) => {
+    try {
+      const result = await deleteActivityById(activityId)
+      
+      if (result.success) {
+        toast({
+          title: "Éxito",
+          description: result.message,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al eliminar la actividad",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteDialog({ open: false, activity: null })
+    }
   }
 
   const handleEnrollActivity = (activity: ActivityType) => {
@@ -275,7 +299,7 @@ export default function ActivitiesPage() {
         }
       />
 
-      <div className="container py-6 space-y-6">
+      <div className="container-centered py-6 space-y-6">
         {/* Week Navigation */}
         <Card>
           <CardContent className="p-4">
@@ -419,7 +443,7 @@ export default function ActivitiesPage() {
                                     Ver Detalles
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/activities/${activity.id}/edit`}>Editar</Link>
+                                    <Link href={`/activities/${activity.id}`}>Editar</Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>Ver Asistencia</DropdownMenuItem>
                                   <DropdownMenuItem

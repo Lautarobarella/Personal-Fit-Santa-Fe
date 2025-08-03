@@ -97,7 +97,7 @@ export default function NewClientPage() {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Nuevo Cliente" showBack onBack={() => router.back()} />
 
-      <div className="container py-6">
+      <div className="container-centered py-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

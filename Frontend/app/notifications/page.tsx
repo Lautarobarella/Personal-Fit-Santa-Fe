@@ -43,13 +43,13 @@ export default function NotificationsPage() {
         deleteNotification,
         markAllAsRead,
     } = useNotifications()
-
+    
     useEffect(() => {
         loadNotifications()
     }, [loadNotifications])
 
-    if (!user || user.role !== "admin") {
-        return <div>No tienes permisos para ver esta página</div>
+    if (!user || !notifications) {
+        return null
     }
 
     if (loading) {
@@ -61,7 +61,6 @@ export default function NotificationsPage() {
       }
 
     if (error) return <div>{error}</div>
-    if (!notifications) return null
 
     const unreadNotifications = notifications.filter((n) => !n.read && !n.archived)
     const readNotifications = notifications.filter((n) => n.read && !n.archived)
@@ -209,7 +208,7 @@ export default function NotificationsPage() {
                 showBack
                 onBack={() => window.history.back()}
             />
-            <div className="container py-6 space-y-6">
+            <div className="container-centered py-6 space-y-6">
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4">
                     <Card>

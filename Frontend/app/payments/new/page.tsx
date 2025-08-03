@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast"
 import { usePayment } from "@/hooks/use-payment"
 import { useAuth } from "@/components/providers/auth-provider"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export default function NewPaymentPage() {
   const { toast } = useToast()
@@ -41,12 +42,16 @@ export default function NewPaymentPage() {
     }
   }
 
+  const [createPaymentDialog, setCreatePaymentDialog] = useState<{
+    open: boolean
+  }>({ open: false })
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="container py-6 space-y-6">
+      <div className="container-centered py-6 space-y-6">
         <CreatePaymentDialog
           open={true}
-          onOpenChange={(open) => console.log("Dialog open:", open)}
+          onOpenChange={(open) => setCreatePaymentDialog({ open })}
           onCreatePayment={handleCreatePayment}
         />
       </div>

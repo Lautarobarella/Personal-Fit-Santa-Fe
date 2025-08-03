@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import { fetchUsers, fetchUserDetail, createUser } from "@/api/clients/clientsApi"
+import { fetchUsers, fetchUserDetail, createUser } from "@/api/clients/usersApi"
 import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
 import { fetchPaymentsById } from "@/api/payment/paymentsApi"
 

@@ -8,7 +8,8 @@ import {
   fetchActivityDetail, 
   fetchTrainers, 
   newActivity, 
-  unenrollActivity } from "@/api/activities/activitiesApi"
+  unenrollActivity,
+  deleteActivity } from "@/api/activities/activitiesApi"
 
 export function useActivities() {
   const [activities, setActivities] = useState<ActivityType[]>([])
@@ -36,7 +37,6 @@ export function useActivities() {
     try {
       const data = await fetchActivities()
       setActivities(data)
-      console.log("Actividades cargadas:", data)
     } catch (err) {
       setError("Error al cargar las actividades")
     } finally {
@@ -56,7 +56,6 @@ export function useActivities() {
         return [...prev, ...newActivities]
       })
 
-      console.log("Actividades de la semana cargadas:", data)
     } catch (err) {
       setError("Error al cargar las actividades")
     } finally {
@@ -68,7 +67,6 @@ export function useActivities() {
     try {
       const data = await fetchTrainers()
       setTrainers(data)
-      console.log("Entrenadores cargados:", data)
     } catch (err) {
       setError("Error al cargar las actividades")
     }
@@ -81,7 +79,6 @@ export function useActivities() {
     try {
       const detail = await fetchActivityDetail(id)
       setSelectedActivity(detail)
-      console.log("Detalle de la actividad cargada:", detail)
     } catch (err) {
       setError("Error al cargar el detalle de la actividad")
     } finally {
@@ -112,6 +109,29 @@ export function useActivities() {
     } catch (err) {
       setError("Error al editar la actividad")
       throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const deleteActivityById = useCallback(async (activityId: number) => {
+    setLoading(true)
+    setError(null)
+    try {
+      await deleteActivity(activityId)
+      // Remove the deleted activity from the local state
+      setActivities(prev => prev.filter(activity => activity.id !== activityId))
+      return {
+        success: true,
+        message: "Actividad eliminada exitosamente"
+      }
+    } catch (err) {
+      const errorMessage = "Error al eliminar la actividad"
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
     } finally {
       setLoading(false)
     }
@@ -298,6 +318,7 @@ export function useActivities() {
     setForm,
     createActivity,
     editActivity,
+    deleteActivityById,
     loadActivities,
     loadActivitiesByWeek,
     loadActivityDetail,

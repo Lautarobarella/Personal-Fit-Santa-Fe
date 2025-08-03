@@ -2,6 +2,19 @@ import { getAccessToken, refreshAccessToken } from './auth'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
+// Custom error class for API errors
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public error: string,
+    public details?: Record<string, any>
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
 interface ApiOptions {
   method?: string
   headers?: Record<string, string>
@@ -9,7 +22,7 @@ interface ApiOptions {
   requireAuth?: boolean
 }
 
-class ApiClient {
+class JWTPermissionsApi {
   private async getAuthHeaders(): Promise<Record<string, string>> {
     const token = getAccessToken()
     if (!token) {
@@ -36,7 +49,24 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      // Try to parse error response from backend
+      try {
+        const errorData = await response.json()
+        throw new ApiError(
+          errorData.message || 'Error desconocido',
+          response.status,
+          errorData.error || 'Error',
+          errorData.details
+        )
+      } catch (parseError) {
+        // If we can't parse the error response, throw a generic error
+        throw new ApiError(
+          `Error ${response.status}: ${response.statusText}`,
+          response.status,
+          'Error',
+          undefined
+        )
+      }
     }
 
     return response.json()
@@ -103,4 +133,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient() 
+export const jwtPermissionsApi = new JWTPermissionsApi() 
