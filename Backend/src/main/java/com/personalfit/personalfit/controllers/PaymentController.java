@@ -1,7 +1,9 @@
 package com.personalfit.personalfit.controllers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -49,12 +51,17 @@ public class PaymentController {
     }
 
     @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> newPaymentWithFile(
+    public ResponseEntity<Map<String, Object>> newPaymentWithFile(
             @RequestPart("payment") InCreatePaymentDTO payment,
             @RequestPart(value = "file", required = false) MultipartFile file) {
 
-        paymentService.registerPaymentWithFile(payment, file);
-        return ResponseEntity.created(null).build();
+        Payment createdPayment = paymentService.registerPaymentWithFile(payment, file);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", createdPayment.getId());
+        response.put("message", "Pago creado exitosamente");
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/getAll")
