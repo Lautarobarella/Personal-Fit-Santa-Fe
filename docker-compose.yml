@@ -56,7 +56,12 @@ services:
       NEXT_PUBLIC_BASE_URL: https://72.60.1.76:3000
       MP_ACCESS_TOKEN: TEST-3942377988418193-080311-8084950108cc03a2a313a97295909394-288248460
       NEXT_PUBLIC_MP_PUBLIC_KEY: TEST-191ffd30-141f-46be-97ed-b4a82a1804a9
-      WEBHOOK_URL: http://72.60.1.76/:3000/api/webhook/mercadopago
+      NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+      # Configuración para habilitar todos los métodos de pago
+      NEXT_PUBLIC_MP_ENABLE_ALL_METHODS: "true"
+      NEXT_PUBLIC_MP_ENABLE_CARDS: "true"
+      NEXT_PUBLIC_MP_ENABLE_TRANSFERS: "true"
+      NEXT_PUBLIC_MP_ENABLE_WALLET: "true"
       NODE_ENV: development
 
   pgadmin:

@@ -111,7 +111,17 @@ export async function createSingleProductPreference(
             // ID de referencia externa para identificar el pago
             external_reference: options.transactionId,
 
-            // Configuración adicional
+            // Configuración para habilitar todos los métodos de pago
+            payment_methods: {
+                excluded_payment_types: [],
+                excluded_payment_methods: [],
+                installments: 12,
+                default_installments: 1
+            },
+
+            // Configuración específica para sandbox
+            auto_return: "approved",
+            binary_mode: false,
             expires: true,
             expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
             statement_descriptor: "Personal Fit",
@@ -128,6 +138,11 @@ export async function createSingleProductPreference(
             email: testEmail,
             phone: testPhone,
             dni: testDni
+        });
+        console.log("Configuración de métodos de pago:", {
+            excluded_payment_types: "ninguno",
+            excluded_payment_methods: "ninguno",
+            installments: "hasta 12 cuotas"
         });
 
         const preference = await pref.create({ body: preferenceBody });
@@ -626,5 +641,74 @@ function mapPaymentMethod(mpMethod: string): string {
             return 'transfer';
         default:
             return 'cash';
+    }
+} 
+
+/**
+ * Prueba la configuración de Mercado Pago y verifica que todos los métodos estén habilitados
+ * Esta función es útil para diagnosticar problemas de configuración
+ */
+export async function testMercadoPagoConfiguration() {
+    try {
+        console.log("🧪 === PRUEBA DE CONFIGURACIÓN MERCADOPAGO ===");
+        
+        // Verificar token
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            throw new Error('Token de acceso de MercadoPago no configurado');
+        }
+        
+        console.log(`✅ Token configurado: ${accessToken.substring(0, 10)}...`);
+        console.log(`🌍 Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
+        
+        // Verificar public key
+        const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
+        if (publicKey) {
+            console.log(`🔑 Public Key configurado: ${publicKey.substring(0, 10)}...`);
+        } else {
+            console.log(`⚠️  Public Key no configurado`);
+        }
+        
+        // Crear una preferencia de prueba
+        const testPreference = await createSingleProductPreference({
+            productName: "Producto de Prueba",
+            productDescription: "Descripción de prueba para verificar configuración",
+            productId: "test-001",
+            productPrice: 100,
+            userEmail: "test@example.com",
+            transactionId: `test-${Date.now()}`
+        });
+        
+        console.log("✅ Preferencia de prueba creada exitosamente");
+        console.log(`📋 ID de preferencia: ${testPreference.id}`);
+        console.log(`🔗 Init Point: ${testPreference.init_point}`);
+        console.log(`🔗 Sandbox Init Point: ${testPreference.sandbox_init_point}`);
+        
+        // Verificar configuración de métodos de pago
+        if (testPreference.payment_methods) {
+            console.log("✅ Métodos de pago configurados:");
+            console.log(`   - Tipos excluidos: ${testPreference.payment_methods.excluded_payment_types?.length || 0}`);
+            console.log(`   - Métodos excluidos: ${testPreference.payment_methods.excluded_payment_methods?.length || 0}`);
+            console.log(`   - Cuotas máximas: ${testPreference.payment_methods.installments || 'No configurado'}`);
+        } else {
+            console.log("⚠️  Métodos de pago no configurados explícitamente");
+        }
+        
+        return {
+            success: true,
+            preference: testPreference,
+            config: {
+                accessToken: accessToken.substring(0, 10) + "...",
+                environment: accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN',
+                publicKey: publicKey ? publicKey.substring(0, 10) + "..." : 'No configurado'
+            }
+        };
+        
+    } catch (error) {
+        console.error("❌ Error en prueba de configuración:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        };
     }
 } 
