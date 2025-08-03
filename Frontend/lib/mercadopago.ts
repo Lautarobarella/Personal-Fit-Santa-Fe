@@ -79,7 +79,6 @@ export async function createSingleProductPreference(
 
             notification_url: `${baseUrl}/api/webhook/mercadopago`,
             external_reference: options.transactionId,
-            auto_return: "approved",
         };
 
         console.log("Creando preferencia limpia para:", options.userEmail);
