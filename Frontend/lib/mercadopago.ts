@@ -4,7 +4,7 @@ import {
     Payment,
     Preference
 } from "mercadopago";
-import { createPayment } from "../api/payment/paymentsApi";
+import { createPaymentWithStatus } from "../api/payment/paymentsApi";
 import { getProductById } from "./products";
 
 /**
@@ -512,36 +512,42 @@ async function mapPaymentToClient(mpPayment: any) {
  */
 async function simulatePaymentCreation(paymentInfo: any) {
     try {
-        console.log("🏗️ Creando pago real en el sistema...");
+        console.log("🏗️ Creando pago de Mercado Pago en el sistema...");
         
         // Usar el DNI que viene en paymentInfo (obtenido del external_reference)
         const clientDni = paymentInfo.clientDni;
         
-        const paymentData = {
-            clientDni: clientDni,
-            amount: paymentInfo.amount,
-            createdAt: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 días
-            paymentStatus: mapMercadoPagoStatus(paymentInfo.status) as "pending" | "paid",
-        };
+        // Determinar el estado del pago
+        const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
         
-        console.log("📋 Datos del pago a crear:", paymentData);
-        console.log("🌐 Llamando a la API de pagos del backend...");
-        
-        // Crear el pago real usando la API del backend
-        const response = await createPayment(paymentData);
-        
-        console.log("✅ Pago creado exitosamente en el sistema");
-        console.log("📊 Resumen del pago:");
-        console.log(`   - Cliente DNI: ${paymentData.clientDni}`);
-        console.log(`   - Producto: ${paymentInfo.productName}`);
-        console.log(`   - Monto: $${paymentData.amount}`);
-        console.log(`   - Estado: ${paymentData.paymentStatus}`);
-        console.log(`   - Método: ${mapPaymentMethod(paymentInfo.paymentMethod)}`);
-        console.log(`   - ID MP: ${paymentInfo.mpPaymentId}`);
-        console.log(`   - Respuesta del backend:`, response);
-        
-        return response;
+        if (newStatus === 'paid') {
+            console.log("✅ Creando pago PAID y activando cliente automáticamente...");
+            
+            // Crear el pago con estado automático (paid y activa cliente)
+            const paymentData = {
+                clientDni: clientDni,
+                amount: paymentInfo.amount,
+                createdAt: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 días
+            };
+            
+            const response = await createPaymentWithStatus(paymentData, true);
+            
+            console.log("✅ Pago creado exitosamente en el sistema");
+            console.log("📊 Resumen del pago:");
+            console.log(`   - Cliente DNI: ${clientDni}`);
+            console.log(`   - Producto: ${paymentInfo.productName}`);
+            console.log(`   - Monto: $${paymentInfo.amount}`);
+            console.log(`   - Estado: ${newStatus}`);
+            console.log(`   - Método: ${mapPaymentMethod(paymentInfo.paymentMethod)}`);
+            console.log(`   - ID MP: ${paymentInfo.mpPaymentId}`);
+            console.log(`   - Cliente activado automáticamente`);
+            
+            return response;
+        } else {
+            console.log("❌ Pago rechazado o cancelado:", newStatus);
+            return null;
+        }
         
     } catch (error) {
         console.error("❌ Error creando pago en el sistema:", error);

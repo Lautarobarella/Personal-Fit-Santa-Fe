@@ -1,16 +1,17 @@
 import {
-  createPayment,
-  fetchPaymentDetail,
-  fetchPayments,
-  fetchPaymentsById,
-  updatePayment,
-  buildReceiptUrl,
+    buildReceiptUrl,
+    createPayment,
+    createPaymentWithStatus,
+    fetchPaymentDetail,
+    fetchPayments,
+    fetchPaymentsById,
+    updatePayment,
 } from "@/api/payment/paymentsApi"
-import { PaymentType, NewPaymentInput } from "@/lib/types"
+import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
+    useMutation,
+    useQuery,
+    useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -59,6 +60,14 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     },
   })
 
+  const createPaymentWithStatusMutation = useMutation({
+    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) => 
+      createPaymentWithStatus(data.paymentData, data.isMercadoPagoPayment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
+    },
+  })
+
   const updatePaymentMutation = useMutation({
     mutationFn: ({
       id,
@@ -79,6 +88,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     isLoading,
     error,
     createNewPayment: createPaymentMutation.mutateAsync,
+    createPaymentWithStatus: createPaymentWithStatusMutation.mutateAsync,
     updatePaymentStatus: updatePaymentMutation.mutateAsync,
     fetchSinglePayment,
     fetchAllPendingPayments,

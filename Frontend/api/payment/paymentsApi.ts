@@ -66,6 +66,65 @@ export async function createPayment(paymentData: NewPaymentInput) {
   return await response.json()
 }
 
+/**
+ * Crea un pago con estado automático y maneja la activación del cliente
+ * @param paymentData - Datos del pago
+ * @param isMercadoPagoPayment - Si es true, el pago se marca como "paid" y activa el cliente
+ */
+export async function createPaymentWithStatus(paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean = false) {
+  const {
+    clientDni,
+    amount,
+    createdAt,
+    expiresAt,
+    file,
+  } = paymentData
+
+  // Determinar el estado del pago
+  const paymentStatus = isMercadoPagoPayment ? "paid" : "pending"
+
+  const formData = new FormData()
+
+  const payment = {
+    clientDni,
+    amount,
+    createdAt: new Date(createdAt + "T00:00:00").toISOString().slice(0, 19),
+    expiresAt: new Date(expiresAt + "T00:00:00").toISOString().slice(0, 19),
+    paymentStatus,
+  }
+
+  formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }))
+
+  if (file) {
+    formData.append("file", file)
+  }
+
+  const response = await fetch(`${BASE_URL}/new`, {
+    method: "POST",
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Error en el servidor: ${response.status} - ${errorText}`)
+  }
+
+  const result = await response.json()
+
+  // Si es un pago de Mercado Pago (paid), actualizar el estado del cliente automáticamente
+  if (isMercadoPagoPayment && result.id) {
+    try {
+      await updatePayment(result.id, "paid")
+      console.log("✅ Cliente activado automáticamente por pago de Mercado Pago")
+    } catch (error) {
+      console.error("❌ Error activando cliente:", error)
+      // No fallamos la creación del pago si falla la activación del cliente
+    }
+  }
+
+  return result
+}
+
 
 
 export async function fetchPaymentsById(id: number) {

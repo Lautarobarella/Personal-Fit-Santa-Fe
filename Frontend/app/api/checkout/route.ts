@@ -1,3 +1,4 @@
+import { createPaymentWithStatus } from '@/api/payment/paymentsApi';
 import { createSingleProductPreference } from '@/lib/mercadopago';
 import { getProductById } from '@/lib/products';
 import { NextRequest, NextResponse } from 'next/server';
@@ -69,6 +70,24 @@ export async function POST(request: NextRequest) {
             initPoint: preference.init_point,
             sandboxInitPoint: preference.sandbox_init_point
         });
+
+        // Crear pago pendiente en el sistema
+        console.log('Creando pago pendiente en el sistema...');
+        const paymentData = {
+            clientDni: parseInt(userDni),
+            amount: product.price,
+            createdAt: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 días
+        };
+
+        try {
+            const paymentResponse = await createPaymentWithStatus(paymentData, false); // false = pago manual (pending)
+            console.log('Pago pendiente creado exitosamente:', paymentResponse);
+        } catch (error) {
+            console.error('Error creando pago pendiente:', error);
+            // No fallamos el checkout si no se puede crear el pago pendiente
+            // El webhook se encargará de crear el pago cuando llegue la notificación
+        }
 
         return NextResponse.json({
             preferenceId: preference.id,
