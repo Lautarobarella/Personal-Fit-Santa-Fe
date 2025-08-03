@@ -17,7 +17,7 @@ const productsDatabase: Product[] = [
         id: "123",
         name: "Cuota mensual gimnasio",
         description: "Cuota mensual gimnasio Personal Fit",
-        price: 1,
+        price: 25000,
     },
 ];
 
