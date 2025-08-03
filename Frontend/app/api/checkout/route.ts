@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
             productId: product.id,
             productPrice: product.price,
             userEmail,
+            userDni,
             transactionId,
         });
 

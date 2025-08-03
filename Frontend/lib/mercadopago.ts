@@ -27,6 +27,7 @@ type CreatePrefOptions = {
     productId: string;
     productPrice: number;
     userEmail: string;
+    userDni: string;
     transactionId: string;
 };
 
@@ -44,28 +45,17 @@ export async function createSingleProductPreference(
         console.log(`=== CREANDO PREFERENCIA MERCADOPAGO ===`);
         console.log(`Producto: ${options.productName}`);
         console.log(`Precio: $${options.productPrice}`);
-        console.log(`Email: ${options.userEmail}`);
+        console.log(`Usuario: ${options.userEmail}`);
+        console.log(`DNI: ${options.userDni}`);
 
-        // Verificar configuración
         const accessToken = process.env.MP_ACCESS_TOKEN;
         if (!accessToken) {
             throw new Error('Token de acceso de MercadoPago no configurado');
         }
 
-        console.log(`Token configurado: ${accessToken.substring(0, 10)}...`);
-        console.log(`Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
-
-        // URL base por defecto si no está configurada
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000';
-        console.log(`URL base configurada: ${baseUrl}`);
-
-        // Usar datos de prueba diferentes para evitar el error "pagar a uno mismo"
-        const testEmail = process.env.NEXT_PUBLIC_MP_TEST_EMAIL || 'test-buyer@example.com';
-        const testPhone = process.env.NEXT_PUBLIC_MP_TEST_PHONE || '12345678';
-        const testDni = process.env.NEXT_PUBLIC_MP_TEST_DNI || '12345678';
 
         const preferenceBody = {
-            // Configuración del producto
             items: [
                 {
                     id: options.productId,
@@ -77,86 +67,30 @@ export async function createSingleProductPreference(
                 },
             ],
 
-            // Información del pagador (datos de prueba diferentes)
-            payer: {
-                name: "Comprador",
-                surname: "Prueba",
-                email: testEmail, // Usar email de prueba en lugar del email real
-                phone: {
-                    area_code: "11",
-                    number: testPhone
-                },
-                identification: {
-                    type: "DNI",
-                    number: testDni
-                },
-                address: {
-                    zip_code: "1234",
-                    street_name: "Calle de Prueba",
-                    street_number: "123"
-                },
-                date_created: new Date().toISOString()
-            },
-
-            // URLs de redirección después del pago (usar HTTPS)
             back_urls: {
                 success: `${baseUrl}/success`,
                 failure: `${baseUrl}/failure`,
                 pending: `${baseUrl}/pending`,
             },
 
-            // URL del webhook para recibir notificaciones (usar HTTPS)
             notification_url: `${baseUrl}/api/webhook/mercadopago`,
-
-            // ID de referencia externa para identificar el pago
             external_reference: options.transactionId,
-
-            // Configuración para habilitar todos los métodos de pago
-            payment_methods: {
-                excluded_payment_types: [],
-                excluded_payment_methods: [],
-                installments: 12,
-                default_installments: 1
-            },
-
-            // Configuración específica para sandbox
             auto_return: "approved",
-            binary_mode: false,
-            expires: true,
-            expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
-            statement_descriptor: "Personal Fit",
         };
 
-        console.log("Cuerpo de la preferencia preparado, enviando a MercadoPago...");
-        console.log("URLs configuradas:", {
-            success: `${baseUrl}/success`,
-            failure: `${baseUrl}/failure`,
-            pending: `${baseUrl}/pending`,
-            webhook: `${baseUrl}/api/webhook/mercadopago`
-        });
-        console.log("Datos del pagador:", {
-            email: testEmail,
-            phone: testPhone,
-            dni: testDni
-        });
-        console.log("Configuración de métodos de pago:", {
-            excluded_payment_types: "ninguno",
-            excluded_payment_methods: "ninguno",
-            installments: "hasta 12 cuotas"
-        });
+        console.log("Creando preferencia limpia para:", options.userEmail);
 
         const preference = await pref.create({ body: preferenceBody });
 
-        console.log("=== PREFERENCIA CREADA EXITOSAMENTE ===");
+        console.log("=== PREFERENCIA CREADA ===");
         console.log(`ID: ${preference.id}`);
         console.log(`Init Point: ${preference.init_point}`);
-        console.log(`Sandbox Init Point: ${preference.sandbox_init_point}`);
 
         return preference;
 
     } catch (error) {
         console.error("Error al crear preferencia:", error);
-        throw new Error(`Error al crear preferencia de pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        throw error;
     }
 }
 
@@ -577,8 +511,8 @@ async function simulatePaymentCreation(paymentInfo: any) {
     try {
         console.log("🏗️ Creando pago real en el sistema...");
         
-        // Usar el DNI que viene en paymentInfo (obtenido del usuario actual)
-        const clientDni = paymentInfo.clientDni || 1234;
+        // Usar el DNI que viene en paymentInfo (obtenido del external_reference)
+        const clientDni = paymentInfo.clientDni;
         
         const paymentData = {
             clientDni: clientDni,
@@ -669,34 +603,11 @@ export async function testMercadoPagoConfiguration() {
             console.log(`⚠️  Public Key no configurado`);
         }
         
-        // Crear una preferencia de prueba
-        const testPreference = await createSingleProductPreference({
-            productName: "Producto de Prueba",
-            productDescription: "Descripción de prueba para verificar configuración",
-            productId: "test-001",
-            productPrice: 100,
-            userEmail: "test@example.com",
-            transactionId: `test-${Date.now()}`
-        });
-        
-        console.log("✅ Preferencia de prueba creada exitosamente");
-        console.log(`📋 ID de preferencia: ${testPreference.id}`);
-        console.log(`🔗 Init Point: ${testPreference.init_point}`);
-        console.log(`🔗 Sandbox Init Point: ${testPreference.sandbox_init_point}`);
-        
-        // Verificar configuración de métodos de pago
-        if (testPreference.payment_methods) {
-            console.log("✅ Métodos de pago configurados:");
-            console.log(`   - Tipos excluidos: ${testPreference.payment_methods.excluded_payment_types?.length || 0}`);
-            console.log(`   - Métodos excluidos: ${testPreference.payment_methods.excluded_payment_methods?.length || 0}`);
-            console.log(`   - Cuotas máximas: ${testPreference.payment_methods.installments || 'No configurado'}`);
-        } else {
-            console.log("⚠️  Métodos de pago no configurados explícitamente");
-        }
+        console.log("✅ Configuración verificada - Solo tokens, sin preferencias de prueba");
         
         return {
             success: true,
-            preference: testPreference,
+            message: "Configuración de MercadoPago verificada correctamente",
             config: {
                 accessToken: accessToken.substring(0, 10) + "...",
                 environment: accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN',
