@@ -2,11 +2,11 @@
 
 import CheckoutForm from '@/components/payments/CheckoutForm';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { MobileHeader } from '@/components/ui/mobile-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProducts, type Product } from '@/lib/products';
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -108,65 +108,36 @@ export default function NewMercadoPagoPaymentPage() {
     return (
         <div className="min-h-screen bg-background">
             <MobileHeader 
-                title="Pago con MercadoPago" 
+                title="Pagar Cuota" 
                 showBack 
-                onBack={() => router.back()}
-                actions={
-                    <button
-                        onClick={() => router.push('/payments/method-select')}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Cambiar método
-                    </button>
-                }
+                onBack={() => router.back()} 
             />
 
-            <div className="container py-6">
-                <div className="max-w-2xl mx-auto space-y-6">
-                    {/* Encabezado informativo */}
-                    <Card className="bg-blue-50 border-blue-200">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-blue-900">
-                                <CreditCard className="w-5 h-5" />
-                                Pago Online con MercadoPago
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2 text-sm text-blue-700">
-                                <p>• Pago inmediato y seguro</p>
-                                <p>• Acepta todos los métodos de pago</p>
-                                <p>• Confirmación automática</p>
-                                <p className="font-semibold text-blue-800">
-                                    🔒 Modo de pruebas - No se realizará un cobro real
-                                </p>
+            <div className="container py-6 max-w-lg mx-auto">
+                {/* Header simplificado */}
+                <Card className="mb-6">
+                    <CardContent className="pt-6">
+                        <div className="text-center space-y-3">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                                <CreditCard className="w-8 h-8 text-blue-600" />
                             </div>
-                        </CardContent>
-                    </Card>
+                            <h2 className="text-xl font-bold">Cuota Mensual</h2>
+                            <p className="text-3xl font-bold text-green-600">
+                                ${product.price.toLocaleString('es-AR')}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                                {product.description}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    {/* Formulario de checkout */}
-                    <CheckoutForm
-                        productId={product.id}
-                        productName={product.name}
-                        productPrice={product.price}
-                    />
-
-                    {/* Información adicional */}
-                    <Card className="bg-gray-50">
-                        <CardContent className="p-4">
-                            <h4 className="font-semibold text-gray-800 mb-2">
-                                ℹ️ ¿Cómo funciona?
-                            </h4>
-                            <div className="space-y-1 text-sm text-gray-600">
-                                <p>1. Haz clic en "Pagar con MercadoPago"</p>
-                                <p>2. Serás redirigido a la plataforma segura de MercadoPago</p>
-                                <p>3. Completa el pago con tu método preferido</p>
-                                <p>4. Vuelve automáticamente a nuestra aplicación</p>
-                                <p>5. Tu pago se confirmará al instante</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Checkout simplificado */}
+                <CheckoutForm
+                    productId={product.id}
+                    productName={product.name}
+                    productPrice={product.price}
+                />
             </div>
         </div>
     );

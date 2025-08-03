@@ -1,17 +1,17 @@
 import {
-    buildReceiptUrl,
-    createPayment,
-    createPaymentWithStatus,
-    fetchPaymentDetail,
-    fetchPayments,
-    fetchPaymentsById,
-    updatePayment,
+  buildReceiptUrl,
+  createPayment,
+  createPaymentWithStatus,
+  fetchPaymentDetail,
+  fetchPayments,
+  fetchPaymentsById,
+  updatePayment,
 } from "@/api/payment/paymentsApi"
 import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-    useMutation,
-    useQuery,
-    useQueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -40,14 +40,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     try {
       const response = await fetch("/api/payment/pending")
       const rawPayments: PaymentType[] = await response.json()
-
-      const enrichedPayments = await Promise.all(
-        rawPayments.map((p) => fetchSinglePayment(p.id))
-      )
-
-      return enrichedPayments
+      return await Promise.all(rawPayments.map((p) => fetchSinglePayment(p.id)))
     } catch (error) {
-      console.error("Error al cargar pagos pendientes:", error)
       return []
     }
   }, [fetchSinglePayment])

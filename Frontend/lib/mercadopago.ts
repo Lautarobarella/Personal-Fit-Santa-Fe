@@ -42,59 +42,36 @@ type CreatePrefOptions = {
  * @param options - Opciones para crear la preferencia
  * @returns Promise<any> Preferencia creada por MercadoPago
  */
-export async function createSingleProductPreference(
-    options: CreatePrefOptions
-) {
-    try {
-        console.log(`=== CREANDO PREFERENCIA MERCADOPAGO ===`);
-        console.log(`Producto: ${options.productName}`);
-        console.log(`Precio: $${options.productPrice}`);
-        console.log(`Usuario: ${options.userEmail}`);
-        console.log(`DNI: ${options.userDni}`);
-
-        const accessToken = process.env.MP_ACCESS_TOKEN;
-        if (!accessToken) {
-            throw new Error('Token de acceso de MercadoPago no configurado');
-        }
-
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000';
-
-        const preferenceBody = {
-            items: [
-                {
-                    id: options.productId,
-                    title: options.productName,
-                    description: options.productDescription,
-                    quantity: 1,
-                    currency_id: "ARS",
-                    unit_price: options.productPrice,
-                },
-            ],
-
-            back_urls: {
-                success: `${baseUrl}/success`,
-                failure: `${baseUrl}/failure`,
-                pending: `${baseUrl}/pending`,
-            },
-
-            notification_url: `${baseUrl}/api/webhook/mercadopago`,
-            external_reference: options.transactionId,
-        };
-
-        console.log("Creando preferencia limpia para:", options.userEmail);
-
-        const preference = await pref.create({ body: preferenceBody });
-
-        console.log("=== PREFERENCIA CREADA ===");
-        console.log(`ID: ${preference.id}`);
-        console.log(`Init Point: ${preference.init_point}`);
-
-        return preference;
-
-    } catch (error) {
-        console.error("Error al crear preferencia:", error);
-        throw error;
+export async function createSingleProductPreference(options: CreatePrefOptions) {
+    const accessToken = process.env.MP_ACCESS_TOKEN;
+    if (!accessToken) {
+        throw new Error('Token de acceso de MercadoPago no configurado');
     }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000';
+
+    const preferenceBody = {
+        items: [
+            {
+                id: options.productId,
+                title: options.productName,
+                description: options.productDescription,
+                quantity: 1,
+                currency_id: "ARS",
+                unit_price: options.productPrice,
+            },
+        ],
+        back_urls: {
+            success: `${baseUrl}/success`,
+            failure: `${baseUrl}/failure`,
+            pending: `${baseUrl}/pending`,
+        },
+        notification_url: `${baseUrl}/api/webhook/mercadopago`,
+        external_reference: options.transactionId,
+    };
+
+    const preference = await pref.create({ body: preferenceBody });
+    return preference;
 }
 
 /**
@@ -104,59 +81,14 @@ export async function createSingleProductPreference(
  * @returns Promise<any> Información del pago
  */
 export async function getPaymentById(id: string) {
-    try {
-        console.log(`🔍 Obteniendo información del pago: ${id}`);
-        
-        // Verificar configuración
-        const accessToken = process.env.MP_ACCESS_TOKEN;
-        if (!accessToken) {
-            throw new Error('Token de acceso de MercadoPago no configurado');
-        }
-        
-        console.log(`🔑 Token: ${accessToken.substring(0, 10)}...`);
-        console.log(`🌍 Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
-
-        const payment = new Payment(client);
-        const paymentInfo = await payment.get({ id });
-
-        console.log(`✅ Pago obtenido exitosamente:`);
-        console.log(`   - ID: ${paymentInfo.id}`);
-        console.log(`   - Estado: ${paymentInfo.status}`);
-        console.log(`   - Monto: $${paymentInfo.transaction_amount}`);
-        console.log(`   - Método: ${paymentInfo.payment_method?.type || 'N/A'}`);
-        console.log(`   - Referencia: ${paymentInfo.external_reference || 'N/A'}`);
-        
-        return paymentInfo;
-
-    } catch (error: any) {
-        console.error("❌ Error al obtener pago:", error);
-        
-        // Mostrar información detallada del error
-        if (error.response) {
-            console.error("📊 Detalles del error:");
-            console.error(`   - Status: ${error.response.status}`);
-            console.error(`   - StatusText: ${error.response.statusText}`);
-            console.error(`   - Data:`, error.response.data);
-        }
-        
-        // Determinar el tipo de error específico
-        let errorMessage = 'Error desconocido';
-        if (error.message) {
-            if (error.message.includes('404') || error.message.includes('not_found')) {
-                errorMessage = 'Pago no encontrado - puede estar en procesamiento';
-            } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-                errorMessage = 'Token de MercadoPago inválido';
-            } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
-                errorMessage = 'Sin permisos para acceder al pago';
-            } else if (error.message.includes('network') || error.message.includes('fetch')) {
-                errorMessage = 'Error de conexión con MercadoPago';
-            } else {
-                errorMessage = error.message;
-            }
-        }
-        
-        throw new Error(`Error al obtener información del pago: ${errorMessage}`);
+    const accessToken = process.env.MP_ACCESS_TOKEN;
+    if (!accessToken) {
+        throw new Error('Token de acceso de MercadoPago no configurado');
     }
+
+    const payment = new Payment(client);
+    const paymentInfo = await payment.get({ id });
+    return paymentInfo;
 }
 
 /**
@@ -511,48 +443,20 @@ async function mapPaymentToClient(mpPayment: any) {
  * Crea un pago real en el sistema usando la API del backend
  */
 async function simulatePaymentCreation(paymentInfo: any) {
-    try {
-        console.log("🏗️ Creando pago de Mercado Pago en el sistema...");
+    const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
+    
+    if (newStatus === 'paid') {
+        const paymentData = {
+            clientDni: paymentInfo.clientDni,
+            amount: paymentInfo.amount,
+            createdAt: new Date().toISOString().split('T')[0],
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        };
         
-        // Usar el DNI que viene en paymentInfo (obtenido del external_reference)
-        const clientDni = paymentInfo.clientDni;
-        
-        // Determinar el estado del pago
-        const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
-        
-        if (newStatus === 'paid') {
-            console.log("✅ Creando pago PAID y activando cliente automáticamente...");
-            
-            // Crear el pago con estado automático (paid y activa cliente)
-            const paymentData = {
-                clientDni: clientDni,
-                amount: paymentInfo.amount,
-                createdAt: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
-                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 días
-            };
-            
-            const response = await createPaymentWithStatus(paymentData, true);
-            
-            console.log("✅ Pago creado exitosamente en el sistema");
-            console.log("📊 Resumen del pago:");
-            console.log(`   - Cliente DNI: ${clientDni}`);
-            console.log(`   - Producto: ${paymentInfo.productName}`);
-            console.log(`   - Monto: $${paymentInfo.amount}`);
-            console.log(`   - Estado: ${newStatus}`);
-            console.log(`   - Método: ${mapPaymentMethod(paymentInfo.paymentMethod)}`);
-            console.log(`   - ID MP: ${paymentInfo.mpPaymentId}`);
-            console.log(`   - Cliente activado automáticamente`);
-            
-            return response;
-        } else {
-            console.log("❌ Pago rechazado o cancelado:", newStatus);
-            return null;
-        }
-        
-    } catch (error) {
-        console.error("❌ Error creando pago en el sistema:", error);
-        throw error;
+        return await createPaymentWithStatus(paymentData, true);
     }
+    
+    return null;
 }
 
 /**

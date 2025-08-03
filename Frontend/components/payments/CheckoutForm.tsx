@@ -44,9 +44,6 @@ export default function CheckoutForm({
         setError('');
 
         try {
-            console.log('Iniciando proceso de checkout...');
-
-            // Crear preferencia de pago usando el email del usuario logueado
             const response = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: {
@@ -55,7 +52,7 @@ export default function CheckoutForm({
                 body: JSON.stringify({
                     productId,
                     userEmail: user.email,
-                    userDni: user.dni, // Agregar el DNI del usuario
+                    userDni: user.dni,
                 }),
             });
 
@@ -65,21 +62,15 @@ export default function CheckoutForm({
                 throw new Error(data.error || 'Error al crear la preferencia de pago');
             }
 
-            console.log('Preferencia creada:', data);
-
-            // Redirigir al usuario a MercadoPago sandbox (ambiente de pruebas)
             if (data.sandboxInitPoint) {
-                console.log('Redirigiendo a MercadoPago sandbox...');
                 window.location.href = data.sandboxInitPoint;
             } else if (data.initPoint) {
-                console.log('Redirigiendo a MercadoPago...');
                 window.location.href = data.initPoint;
             } else {
                 throw new Error('No se recibió URL de pago de MercadoPago');
             }
 
         } catch (error) {
-            console.error('Error en checkout:', error);
             setError(error instanceof Error ? error.message : 'Error al procesar el pago');
         } finally {
             setLoading(false);

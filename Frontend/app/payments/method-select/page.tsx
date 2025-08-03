@@ -50,50 +50,35 @@ export default function PaymentMethodSelectPage() {
                     {/* Opciones de pago */}
                     <div className="space-y-4">
                         <h2 className="text-xl font-bold text-center mb-6">
-                            Elige tu método de pago
+                            {user.role === 'admin' ? 'Registrar pago' : 'Elige tu método de pago'}
                         </h2>
 
-                        {/* Pago con MercadoPago */}
-                        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <CreditCard className="w-6 h-6 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-lg">Pago Online</h3>
-                                            <p className="text-sm text-gray-600 mb-2">
-                                                Paga con MercadoPago
-                                            </p>
-                                            <div className="flex flex-wrap gap-1">
-                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
-                                                    ✅ Inmediato
-                                                </span>
-                                                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">
-                                                    💳 Tarjetas
-                                                </span>
-                                                <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">
-                                                    📱 Billeteras
-                                                </span>
+                        {/* Pago con MercadoPago - Solo para clientes */}
+                        {user.role === 'client' && (
+                            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <CreditCard className="w-6 h-6 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-lg">Pagar Online</h3>
+                                                <p className="text-sm text-gray-600">
+                                                    Pago inmediato con MercadoPago
+                                                </p>
                                             </div>
                                         </div>
+                                        <Button 
+                                            onClick={() => handleMethodSelect('mercadopago')}
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            Pagar <ArrowRight className="w-4 h-4 ml-1" />
+                                        </Button>
                                     </div>
-                                    <Button 
-                                        onClick={() => handleMethodSelect('mercadopago')}
-                                        className="bg-blue-600 hover:bg-blue-700"
-                                    >
-                                        Elegir <ArrowRight className="w-4 h-4 ml-1" />
-                                    </Button>
-                                </div>
-                                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                                    <p className="text-xs text-blue-700">
-                                        🔒 <strong>Modo de pruebas:</strong> No se realizará un cobro real. 
-                                        Puedes usar tarjetas de prueba para simular el pago.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Pago Manual */}
                         <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-gray-300">
@@ -104,18 +89,15 @@ export default function PaymentMethodSelectPage() {
                                             <FileText className="w-6 h-6 text-gray-600" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-lg">Pago Manual</h3>
-                                            <p className="text-sm text-gray-600 mb-2">
-                                                Subir comprobante manualmente
+                                            <h3 className="font-semibold text-lg">
+                                                {user.role === 'admin' ? 'Registrar Pago' : 'Pago Manual'}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {user.role === 'admin' 
+                                                    ? 'Crear pago para un cliente'
+                                                    : 'Subir comprobante de pago'
+                                                }
                                             </p>
-                                            <div className="flex flex-wrap gap-1">
-                                                <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded">
-                                                    ⏳ Requiere verificación
-                                                </span>
-                                                <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-                                                    📄 Subir comprobante
-                                                </span>
-                                            </div>
                                         </div>
                                     </div>
                                     <Button 
@@ -123,31 +105,31 @@ export default function PaymentMethodSelectPage() {
                                         variant="outline"
                                         className="border-gray-300 hover:bg-gray-50"
                                     >
-                                        Elegir <ArrowRight className="w-4 h-4 ml-1" />
+                                        {user.role === 'admin' ? 'Crear' : 'Elegir'} <ArrowRight className="w-4 h-4 ml-1" />
                                     </Button>
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Información adicional */}
-                    <Card className="bg-yellow-50 border-yellow-200">
-                        <CardContent className="p-4">
-                            <h4 className="font-semibold text-yellow-800 mb-2">
-                                💡 ¿Cuál elegir?
-                            </h4>
-                            <div className="space-y-2 text-sm text-yellow-700">
-                                <p>
-                                    <strong>Pago Online:</strong> Más rápido y automático. 
-                                    Ideal si quieres confirmar tu pago al instante.
-                                </p>
-                                <p>
-                                    <strong>Pago Manual:</strong> Si ya realizaste el pago 
-                                    por transferencia/efectivo y necesitas subir el comprobante.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Información adicional - Solo para clientes */}
+                    {user.role === 'client' && (
+                        <Card className="bg-yellow-50 border-yellow-200">
+                            <CardContent className="p-4">
+                                <h4 className="font-semibold text-yellow-800 mb-2">
+                                    💡 ¿Cuál elegir?
+                                </h4>
+                                <div className="space-y-2 text-sm text-yellow-700">
+                                    <p>
+                                        <strong>Pago Online:</strong> Inmediato y automático.
+                                    </p>
+                                    <p>
+                                        <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>
