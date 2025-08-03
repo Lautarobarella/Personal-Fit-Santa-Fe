@@ -10,25 +10,35 @@ import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.User;
+import com.personalfit.personalfit.repository.IPaymentRepository;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.services.IPaymentService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements IUserService {
 
     @Autowired
     private IUserRepository userRepository;
+
+    @Autowired
+    private IPaymentRepository paymentRepository;
+    @Autowired
+    private IPaymentRepository iPaymentRepository;
 
     public Boolean createNewUser(InCreateUserDTO newUser) {
 
@@ -193,5 +203,34 @@ public class UserServiceImpl implements IUserService {
             userRepository.save(userToCreate);
         }
         return true;
+    }
+
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void userStatusDailyCheck() {
+        log.info("Daily user status checking started at {}", LocalDateTime.now());
+        List<User> users = userRepository.findAllByStatus(UserStatus.active);
+        List<User> toUpdate = new ArrayList<>();
+        users.stream().forEach(u -> {
+            Optional<Payment> payment = paymentRepository.findTopByUserOrderByCreatedAtDesc(u);
+            if(payment.isEmpty()) return;
+
+            if(payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())){
+                u.setStatus(UserStatus.inactive);
+                toUpdate.add(u);
+                log.info("User {} has been set to inactive due to expired payment.", u.getFullName());
+            }
+            // Actualizar todos
+            userRepository.saveAll(toUpdate);
+            // TODO lógica de envio de notificación al usuario y al admin
+        });
+    }
+
+    @Scheduled(cron = "0 1 0 * * ?")
+    public void userBirthdayCheck() {
+        log.info("Daily user birthday checking started at {}", LocalDateTime.now());
+        List<User> users = userRepository.findAllByBirthDate(LocalDate.now());
+        log.info("Found {} users with birthday today.", users.size());
+
+        //TODO logica para enviar notificaciones a los usuarios y al admin del cumpleañero
     }
 }

@@ -43,6 +43,8 @@ public class User {
     private List<Attendance> attendances;
     @OneToMany(mappedBy = "user")
     private List<Payment> payments;
+    @OneToMany(mappedBy = "user")
+    private List<Notification> notifications;
 
 
     private LocalDateTime deletedAt = null;

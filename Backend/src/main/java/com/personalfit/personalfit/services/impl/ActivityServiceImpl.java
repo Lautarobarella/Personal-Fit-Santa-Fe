@@ -134,30 +134,30 @@ public class ActivityServiceImpl implements IActivityService {
                 .collect(Collectors.toList());
     }
 
-    @Scheduled(cron = "0 0 3 * * *")
-    public void generateWeeklyActivities() { //TODO
-        LocalDateTime now = LocalDateTime.now();
-
-        List<Activity> activitiesToRepeat = activityRepository.findAll().stream()
-                .filter(a -> Boolean.TRUE.equals(a.getRepeatEveryWeek()))
-                .filter(a -> a.getDate().toLocalDate().isEqual(now.toLocalDate())) // se repite hoy
-                .toList();
-
-        for (Activity activity : activitiesToRepeat) {
-            Activity newActivity = Activity.builder()
-                    .name(activity.getName())
-                    .description(activity.getDescription())
-                    .slots(activity.getSlots())
-                    .date(activity.getDate().plusWeeks(1))
-                    .repeatEveryWeek(true)
-                    .duration(activity.getDuration())
-                    .status(ActivityStatus.active)
-                    .trainer(activity.getTrainer())
-                    .createdAt(LocalDateTime.now())
-                    .build();
-
-            activityRepository.save(newActivity);
-        }
-    }
+//    @Scheduled(cron = "0 0 3 * * *")
+//    public void generateWeeklyActivities() { //TODO
+//        LocalDateTime now = LocalDateTime.now();
+//
+//        List<Activity> activitiesToRepeat = activityRepository.findAll().stream()
+//                .filter(a -> Boolean.TRUE.equals(a.getRepeatEveryWeek()))
+//                .filter(a -> a.getDate().toLocalDate().isEqual(now.toLocalDate())) // se repite hoy
+//                .toList();
+//
+//        for (Activity activity : activitiesToRepeat) {
+//            Activity newActivity = Activity.builder()
+//                    .name(activity.getName())
+//                    .description(activity.getDescription())
+//                    .slots(activity.getSlots())
+//                    .date(activity.getDate().plusWeeks(1))
+//                    .repeatEveryWeek(true)
+//                    .duration(activity.getDuration())
+//                    .status(ActivityStatus.active)
+//                    .trainer(activity.getTrainer())
+//                    .createdAt(LocalDateTime.now())
+//                    .build();
+//
+//            activityRepository.save(newActivity);
+//        }
+//    }
 
 }
