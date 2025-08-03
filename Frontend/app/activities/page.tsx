@@ -1,25 +1,25 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
+import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
+import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
+import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, ChevronLeft, ChevronRight, Calendar, Clock, Users, MapPin, MoreVertical, Search } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { BottomNav } from "@/components/ui/bottom-nav"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
-import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
-import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
-import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
-import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { useActivities } from "@/hooks/use-activity"
 import { ActivityType } from "@/lib/types"
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MoreVertical, Plus, Search, Users } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
 
 export default function ActivitiesPage() {
@@ -242,7 +242,7 @@ export default function ActivitiesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       <MobileHeader
         title="Actividades"
         actions={
@@ -257,7 +257,7 @@ export default function ActivitiesPage() {
         }
       />
 
-      <div className="container py-6 space-y-6">
+      <div className="w-full px-4 py-6 space-y-6 max-w-full overflow-x-hidden">
         {/* Week Navigation */}
         <Card>
           <CardContent className="p-4">

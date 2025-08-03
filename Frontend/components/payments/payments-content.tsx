@@ -111,7 +111,7 @@ export default function PaymentsContent() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-20">
+        <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
             <MobileHeader
                 title="Pagos"
                 actions={
@@ -145,7 +145,7 @@ export default function PaymentsContent() {
                 }
             />
 
-            <div className="container py-6 space-y-6">
+            <div className="w-full px-4 py-6 space-y-6 max-w-full overflow-x-hidden">
                 {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
