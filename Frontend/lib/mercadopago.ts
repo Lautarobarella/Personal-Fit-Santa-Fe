@@ -144,16 +144,18 @@ export async function getPrefByOrderId(id: number) {
  * Estructura de datos que envía MercadoPago en las notificaciones
  */
 export type WebhookPayload = {
-    action: string;
-    api_version: string;
-    data: {
+    action?: string;
+    api_version?: string;
+    data?: {
         id: string;
     };
-    date_created: string;
-    id: number;
-    live_mode: boolean;
-    type: string;
-    user_id: string;
+    date_created?: string;
+    id?: number;
+    live_mode?: boolean;
+    type?: string;
+    topic?: string; // MercadoPago usa 'topic' en lugar de 'type' en algunos casos
+    user_id?: string;
+    resource?: string; // URL del recurso (ej: merchant_order, payment)
 };
 
 /**
@@ -168,7 +170,11 @@ export async function processWebhookNotification(payload: WebhookPayload) {
         console.log("=== PROCESANDO WEBHOOK MERCADOPAGO ===");
         console.log("Payload:", payload);
 
-        if (payload.type === "payment") {
+        // Determinar el tipo de notificación
+        const notificationType = payload.type || payload.topic;
+        console.log("📋 Tipo de notificación:", notificationType);
+
+        if (notificationType === "payment") {
             // Intentar obtener información del pago con reintentos
             let mpPayment = null;
             let retryCount = 0;
@@ -177,8 +183,8 @@ export async function processWebhookNotification(payload: WebhookPayload) {
 
             while (retryCount < maxRetries) {
                 try {
-                    console.log(`Intento ${retryCount + 1} de ${maxRetries} para obtener pago ${payload.data.id}`);
-                    mpPayment = await getPaymentById(payload.data.id);
+                    console.log(`Intento ${retryCount + 1} de ${maxRetries} para obtener pago ${payload.data?.id}`);
+                    mpPayment = await getPaymentById(payload.data!.id);
                     break; // Si llegamos aquí, el pago se obtuvo exitosamente
                 } catch (error: any) {
                     retryCount++;
@@ -216,12 +222,99 @@ export async function processWebhookNotification(payload: WebhookPayload) {
             }
         }
 
-        if (payload.type === "merchant_order") {
+        if (notificationType === "merchant_order") {
             console.log("📦 Orden de comerciante recibida, procesando...");
+            
+            // Extraer el ID de la orden de la URL del recurso
+            const resourceUrl = payload.resource;
+            let orderId = payload.data?.id;
+            
+            if (resourceUrl && !orderId) {
+                // Extraer ID de la URL: https://api.mercadolibre.com/merchant_orders/32927795708
+                const urlParts = resourceUrl.split('/');
+                orderId = urlParts[urlParts.length - 1];
+            }
+            
+            console.log("🆔 ID del pago/orden:", orderId);
+            
+            if (orderId) {
+                // Obtener información de la orden
+                try {
+                    const order = new MerchantOrder(client);
+                    const orderInfo = await order.get({ merchantOrderId: parseInt(orderId) });
+                    
+                    console.log("📋 Información de la orden:", {
+                        id: orderInfo.id,
+                        status: orderInfo.status,
+                        total_amount: orderInfo.total_amount,
+                        paid_amount: orderInfo.paid_amount,
+                        items: orderInfo.items?.length || 0,
+                        payments: orderInfo.payments?.length || 0,
+                        preference_id: orderInfo.preference_id
+                    });
+                    
+                    // Si la orden está pagada, procesar los pagos
+                    if (orderInfo.status === 'paid' && (orderInfo.paid_amount || 0) > 0) {
+                        console.log("💰 Orden pagada, procesando pagos...");
+                        
+                        if (orderInfo.payments && orderInfo.payments.length > 0) {
+                            // Procesar cada pago de la orden
+                            for (const payment of orderInfo.payments) {
+                                try {
+                                    if (payment.id) {
+                                        const paymentInfo = await getPaymentById(payment.id.toString());
+                                        if (paymentInfo) {
+                                            console.log(`✅ Pago ${payment.id} procesado: ${paymentInfo.status}`);
+                                            
+                                            // Mapear el pago con el cliente
+                                            const clientInfo = await mapPaymentToClient(paymentInfo);
+                                            
+                                            return {
+                                                success: true,
+                                                type: "merchant_order_paid",
+                                                orderId: orderId,
+                                                paymentId: payment.id,
+                                                status: paymentInfo.status,
+                                                amount: paymentInfo.transaction_amount,
+                                                clientInfo: clientInfo,
+                                                processedAt: new Date().toISOString(),
+                                            };
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error(`Error procesando pago ${payment.id}:`, error);
+                                }
+                            }
+                        }
+                    } else {
+                        console.log("⏳ Orden no pagada aún, esperando notificación de pago...");
+                        return {
+                            success: true,
+                            type: "merchant_order_pending",
+                            orderId: orderId,
+                            status: orderInfo.status,
+                            paidAmount: orderInfo.paid_amount || 0,
+                            totalAmount: orderInfo.total_amount || 0,
+                            processedAt: new Date().toISOString(),
+                        };
+                    }
+                    
+                } catch (error) {
+                    console.error("Error obteniendo información de la orden:", error);
+                    return {
+                        success: true,
+                        type: "merchant_order",
+                        orderId: orderId,
+                        status: "unknown",
+                        processedAt: new Date().toISOString(),
+                    };
+                }
+            }
+            
             return {
                 success: true,
                 type: "merchant_order",
-                orderId: payload.data.id,
+                orderId: orderId,
                 processedAt: new Date().toISOString(),
             };
         }
@@ -229,7 +322,7 @@ export async function processWebhookNotification(payload: WebhookPayload) {
         return { 
             success: false,
             message: "Tipo de notificación no procesado", 
-            type: payload.type 
+            type: notificationType 
         };
 
     } catch (error) {
@@ -250,10 +343,10 @@ async function createPendingPaymentRecord(payload: WebhookPayload) {
         
         // Extraer información del external_reference si está disponible
         // El formato es: productId-timestamp-randomString
-        const externalRef = payload.data.id; // Usar el ID del pago como referencia temporal
+        const externalRef = payload.data?.id; // Usar el ID del pago como referencia temporal
         
         const pendingPayment = {
-            mpPaymentId: payload.data.id,
+            mpPaymentId: payload.data?.id,
             status: "pending",
             externalReference: externalRef,
             amount: 0, // Se actualizará cuando se obtenga la información completa
@@ -266,13 +359,13 @@ async function createPendingPaymentRecord(payload: WebhookPayload) {
         console.log("📋 Registro de pago pendiente creado:", pendingPayment);
         
         // Guardar en almacenamiento temporal
-        pendingPayments.set(payload.data.id, pendingPayment);
+        pendingPayments.set(payload.data?.id || '', pendingPayment);
         console.log(`💾 Pago pendiente guardado. Total pendientes: ${pendingPayments.size}`);
         
         return {
             success: true,
             type: "pending_payment",
-            paymentId: payload.data.id,
+            paymentId: payload.data?.id,
             status: "pending",
             message: "Pago registrado como pendiente para procesamiento posterior",
             processedAt: new Date().toISOString(),
