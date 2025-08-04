@@ -1,3 +1,4 @@
+import { ConstructionIcon } from 'lucide-react';
 import { getAccessToken, refreshAccessToken } from './auth'
 
 // Configuración central para las URLs de la API (misma lógica que config.ts)
@@ -102,7 +103,7 @@ class JWTPermissionsApi {
     } = options
 
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
-    
+    console.log("URL: ", url)
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...headers,
