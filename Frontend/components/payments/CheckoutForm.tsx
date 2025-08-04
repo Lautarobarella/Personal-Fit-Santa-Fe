@@ -40,20 +40,28 @@ export default function CheckoutForm({
             return;
         }
 
+        // Debug: mostrar información del usuario
+        console.log('Usuario actual:', user);
+        console.log('DNI del usuario:', user.dni);
+
         setLoading(true);
         setError('');
 
         try {
+            const checkoutData = {
+                productId,
+                userEmail: user.email,
+                userDni: user.dni,
+            };
+
+            console.log('Datos enviados al checkout:', checkoutData);
+
             const response = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    productId,
-                    userEmail: user.email,
-                    userDni: user.dni,
-                }),
+                body: JSON.stringify(checkoutData),
             });
 
             const data = await response.json();

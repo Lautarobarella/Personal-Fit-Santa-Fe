@@ -2,7 +2,7 @@ package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.dto.AuthRequestDTO;
 import com.personalfit.personalfit.dto.AuthResponseDTO;
-import com.personalfit.personalfit.dto.UserInfoDTO;
+import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.security.JwtService;
@@ -41,20 +41,7 @@ public class AuthServiceImpl implements AuthService {
             String accessToken = jwtService.generateToken(userDetails);
             String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-            UserInfoDTO userInfo = UserInfoDTO.builder()
-                    .id(user.getId())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .email(user.getEmail())
-                    .phone(user.getPhone())
-                    .age(user.getAge())
-                    .birthDate(user.getBirthDate())
-                    .address(user.getAddress())
-                    .role(user.getRole())
-                    .status(user.getStatus().toString())
-                    .joinDate(user.getJoinDate())
-                    .avatar(user.getAvatar())
-                    .build();
+            UserTypeDTO userInfo = new UserTypeDTO(user);
 
             return AuthResponseDTO.builder()
                     .accessToken(accessToken)
@@ -85,20 +72,7 @@ public class AuthServiceImpl implements AuthService {
                 String newAccessToken = jwtService.generateToken(userDetails);
                 String newRefreshToken = jwtService.generateRefreshToken(userDetails);
 
-                UserInfoDTO userInfo = UserInfoDTO.builder()
-                        .id(user.getId())
-                        .firstName(user.getFirstName())
-                        .lastName(user.getLastName())
-                        .email(user.getEmail())
-                        .phone(user.getPhone())
-                        .age(user.getAge())
-                        .birthDate(user.getBirthDate())
-                        .address(user.getAddress())
-                        .role(user.getRole())
-                        .status(user.getStatus().toString())
-                        .joinDate(user.getJoinDate())
-                        .avatar(user.getAvatar())
-                        .build();
+                UserTypeDTO userInfo = new UserTypeDTO(user);
 
                 return AuthResponseDTO.builder()
                         .accessToken(newAccessToken)
@@ -110,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
             }
         } catch (Exception e) {
             log.error("Token refresh failed", e);
-            throw new RuntimeException("Invalid refresh token");
+            throw new RuntimeException("Token refresh failed");
         }
     }
 } 

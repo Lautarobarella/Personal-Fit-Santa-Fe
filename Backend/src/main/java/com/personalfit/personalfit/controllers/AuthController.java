@@ -2,7 +2,7 @@ package com.personalfit.personalfit.controllers;
 
 import com.personalfit.personalfit.dto.AuthRequestDTO;
 import com.personalfit.personalfit.dto.AuthResponseDTO;
-import com.personalfit.personalfit.dto.UserInfoDTO;
+import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.services.AuthService;
@@ -40,7 +40,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserInfoDTO> getCurrentUser() {
+    public ResponseEntity<UserTypeDTO> getCurrentUser() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String userEmail = authentication.getName();
@@ -48,20 +48,7 @@ public class AuthController {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            UserInfoDTO userInfo = UserInfoDTO.builder()
-                    .id(user.getId())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .email(user.getEmail())
-                    .phone(user.getPhone())
-                    .age(user.getAge())
-                    .birthDate(user.getBirthDate())
-                    .address(user.getAddress())
-                    .role(user.getRole())
-                    .status(user.getStatus().toString())
-                    .joinDate(user.getJoinDate())
-                    .avatar(user.getAvatar())
-                    .build();
+            UserTypeDTO userInfo = new UserTypeDTO(user);
 
             return ResponseEntity.ok(userInfo);
         } catch (Exception e) {
