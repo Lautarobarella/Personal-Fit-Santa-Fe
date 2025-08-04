@@ -1,7 +1,6 @@
 "use client"
 
 import { getAccessToken } from "@/lib/auth";
-import { buildFileUrl } from "@/lib/config";
 import { useState, useEffect } from "react";
 
 interface AuthenticatedImageProps {
@@ -38,13 +37,9 @@ export function AuthenticatedImage({
           throw new Error('No access token available');
         }
 
-        const url = buildFileUrl(fileId);
-        if (!url) {
-          throw new Error('Invalid file URL');
-        }
+        // Usar el endpoint proxy del frontend
+        const url = `/api/files/${fileId}`;
 
-        // Crear una URL con el token como parámetro de consulta
-        // Esto es temporal - en producción deberías usar el endpoint proxy
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -52,7 +47,7 @@ export function AuthenticatedImage({
         });
 
         if (!response.ok) {
-          throw new Error('Failed to load image');
+          throw new Error(`Failed to load image: ${response.status}`);
         }
 
         const blob = await response.blob();

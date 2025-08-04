@@ -19,15 +19,21 @@ export async function GET(
     }
 
     // Hacer la petición al backend con el token
-    const response = await fetch(`${API_CONFIG.FILES_URL}/api/files/${fileId}`, {
+    // Usar la URL del backend directamente, no la del frontend
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://72.60.1.76:8080';
+    const response = await fetch(`${backendUrl}/api/files/${fileId}`, {
       headers: {
         'Authorization': authHeader,
       },
     });
 
     if (!response.ok) {
+      console.error(`Backend responded with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Backend error response: ${errorText}`);
+      
       return NextResponse.json(
-        { error: 'File not found or access denied' },
+        { error: 'File not found or access denied', details: errorText },
         { status: response.status }
       );
     }
@@ -53,7 +59,7 @@ export async function GET(
   } catch (error) {
     console.error('Error serving file:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

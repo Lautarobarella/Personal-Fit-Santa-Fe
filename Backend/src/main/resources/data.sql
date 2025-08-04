@@ -12,12 +12,12 @@ INSERT INTO app_user (id, first_name, last_name, password, phone, email, avatar,
 
 -- Clientes
 INSERT INTO app_user (id, first_name, last_name, password, phone, email, avatar, join_date, address, birth_date, dni, role, status, deleted_at) VALUES
-(4,'Carlos', 'García', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567893', 'carlos@personalfit.com', 'CG', '2024-01-04', '321 Fitness St', '1988-12-10', 45678901, 'client', 'active', NULL),
-(5,'Ana', 'Martínez', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567894', 'ana@personalfit.com', 'AM', '2024-01-05', '654 Health Ave', '1992-03-25', 56789012, 'client', 'active', NULL),
-(6,'Luis', 'Fernández', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567895', 'luis@personalfit.com', 'LF', '2024-01-06', '987 Wellness Rd', '1990-07-15', 67890123, 'client', 'active', NULL),
-(7,'Sofia', 'López', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567896', 'sofia@personalfit.com', 'SL', '2024-01-07', '147 Active St', '1995-11-30', 78901234, 'client', 'active', NULL),
-(8,'Diego', 'Hernández', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567897', 'diego@personalfit.com', 'DH', '2024-01-08', '258 Sport Ave', '1987-04-12', 89012345, 'client', 'active', NULL),
-(9,'Valentina', 'Torres', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567898', 'valentina@personalfit.com', 'VT', '2024-01-09', '369 Fitness Blvd', '1993-09-18', 90123456, 'client', 'active', NULL);
+(4,'Carlos', 'García', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567893', 'carlos@personalfit.com', 'CG', '2024-01-04', '321 Fitness St', '1988-12-10', 45678901, 'client', 'inactive', NULL),
+(5,'Ana', 'Martínez', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567894', 'ana@personalfit.com', 'AM', '2024-01-05', '654 Health Ave', '1992-03-25', 56789012, 'client', 'inactive', NULL),
+(6,'Luis', 'Fernández', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567895', 'luis@personalfit.com', 'LF', '2024-01-06', '987 Wellness Rd', '1990-07-15', 67890123, 'client', 'inactive', NULL),
+(7,'Sofia', 'López', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567896', 'sofia@personalfit.com', 'SL', '2024-01-07', '147 Active St', '1995-11-30', 78901234, 'client', 'inactive', NULL),
+(8,'Diego', 'Hernández', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567897', 'diego@personalfit.com', 'DH', '2024-01-08', '258 Sport Ave', '1987-04-12', 89012345, 'client', 'inactive', NULL),
+(9,'Valentina', 'Torres', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567898', 'valentina@personalfit.com', 'VT', '2024-01-09', '369 Fitness Blvd', '1993-09-18', 90123456, 'client', 'inactive', NULL);
 
 -- Actividades
 -- Actividad 1: Ya pasó (completed) - tuvo 3 inscritos, asistieron 2

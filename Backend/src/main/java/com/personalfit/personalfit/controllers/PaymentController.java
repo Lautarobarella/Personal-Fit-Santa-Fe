@@ -80,11 +80,18 @@ public class PaymentController {
     }
 
     @PutMapping("/pending/{id}")
-    public ResponseEntity<String> putPayment(
+    public ResponseEntity<Map<String, Object>> putPayment(
             @PathVariable Long id,
             @RequestBody InUpdatePaymentStatusDTO dto) {
         paymentService.updatePaymentStatus(id, dto);
-        return ResponseEntity.ok("Estado actualizado correctamente");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Estado actualizado correctamente");
+        response.put("paymentId", id);
+        response.put("newStatus", dto.getStatus());
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/getFile/{id}")
