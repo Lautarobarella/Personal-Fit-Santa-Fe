@@ -20,13 +20,6 @@ export async function POST(request: NextRequest) {
 
         // Verificar variables de entorno
         const mpToken = process.env.MP_ACCESS_TOKEN;
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-        console.log('Variables de entorno:', {
-            hasMpToken: !!mpToken,
-            mpTokenLength: mpToken?.length,
-            baseUrl,
-            nodeEnv: process.env.NODE_ENV
-        });
 
         if (!mpToken) {
             console.error('Token de MercadoPago no configurado');

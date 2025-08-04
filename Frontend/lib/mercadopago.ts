@@ -22,6 +22,27 @@ const client = new MercadoPagoConfig({
 // Instancia de Preference para crear preferencias de pago
 const pref = new Preference(client);
 
+// Configuración central para las URLs de la API (misma lógica que config.ts)
+const getApiBaseUrl = () => {
+  // Usar variable de entorno si está disponible
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  
+  // En desarrollo (fuera de Docker), usar localhost
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:8080';
+  }
+  
+  // Si estamos en el servidor de producción (72.60.1.76), usar la IP del servidor
+  if (typeof window !== 'undefined' && window.location.hostname === '72.60.1.76') {
+    return 'http://72.60.1.76:8080';
+  }
+  
+  // En Docker, usar el nombre del servicio
+  return 'http://personalfit-backend:8080';
+};
+
 /**
  * Tipos de datos para crear preferencias de pago
  */
@@ -48,7 +69,7 @@ export async function createSingleProductPreference(options: CreatePrefOptions) 
         throw new Error('Token de acceso de MercadoPago no configurado');
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL 
+    const baseUrl = getApiBaseUrl();
 
     const preferenceBody = {
         items: [
@@ -489,7 +510,7 @@ function mapPaymentMethod(mpMethod: string): string {
         default:
             return 'cash';
     }
-} 
+}
 
 /**
  * Prueba la configuración de Mercado Pago y verifica que todos los métodos estén habilitados
@@ -535,4 +556,4 @@ export async function testMercadoPagoConfiguration() {
             error: error instanceof Error ? error.message : 'Error desconocido'
         };
     }
-} 
+}

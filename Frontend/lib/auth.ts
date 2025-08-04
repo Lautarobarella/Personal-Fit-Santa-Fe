@@ -1,6 +1,7 @@
+import { getApiBaseUrl } from "./api"
 import type { UserType, UserRole } from "./types"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
+const API_BASE_URL = getApiBaseUrl()
 
 export interface AuthResponse {
   accessToken: string
