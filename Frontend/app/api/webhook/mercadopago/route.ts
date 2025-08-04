@@ -71,7 +71,6 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         endpoints: {
             webhook: '/api/webhook/mercadopago',
-            test: '/api/test-mercadopago',
             pending: '/api/process-pending-payments'
         }
     });

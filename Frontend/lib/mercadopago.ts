@@ -4,7 +4,6 @@ import {
     Payment,
     Preference
 } from "mercadopago";
-import { createPaymentWithStatus } from "../api/payment/paymentsApi";
 import { getProductById } from "./products";
 
 /**
@@ -22,25 +21,15 @@ const client = new MercadoPagoConfig({
 // Instancia de Preference para crear preferencias de pago
 const pref = new Preference(client);
 
-// Configuración central para las URLs de la API (misma lógica que config.ts)
+// Configuración central para las URLs de la API (versión para servidor)
 const getApiBaseUrl = () => {
   // Usar variable de entorno si está disponible
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL;
   }
   
-  // En desarrollo (fuera de Docker), usar localhost
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:8080';
-  }
-  
-  // Si estamos en el servidor de producción (72.60.1.76), usar la IP del servidor
-  if (typeof window !== 'undefined' && window.location.hostname === '72.60.1.76') {
-    return 'http://72.60.1.76:8080';
-  }
-  
-  // En Docker, usar el nombre del servicio
-  return 'http://personalfit-backend:8080';
+  // En el servidor, usar la IP del servidor de producción
+  return 'http://72.60.1.76:8080';
 };
 
 /**
@@ -445,9 +434,6 @@ async function mapPaymentToClient(mpPayment: any) {
             console.log(`   - Fecha: ${new Date(paymentInfo.paymentDate).toLocaleString('es-AR')}`);
             console.log(`   - ID MercadoPago: ${paymentInfo.mpPaymentId}`);
             
-            // Crear el pago real en el sistema
-            await simulatePaymentCreation(paymentInfo);
-            
             return paymentInfo;
         }
         
@@ -458,26 +444,6 @@ async function mapPaymentToClient(mpPayment: any) {
         console.error("Error al mapear pago con cliente:", error);
         return null;
     }
-}
-
-/**
- * Crea un pago real en el sistema usando la API del backend
- */
-async function simulatePaymentCreation(paymentInfo: any) {
-    const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
-    
-    if (newStatus === 'paid') {
-        const paymentData = {
-            clientDni: paymentInfo.clientDni,
-            amount: paymentInfo.amount,
-            createdAt: new Date().toISOString().split('T')[0],
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        };
-        
-        return await createPaymentWithStatus(paymentData, true);
-    }
-    
-    return null;
 }
 
 /**
@@ -509,51 +475,5 @@ function mapPaymentMethod(mpMethod: string): string {
             return 'transfer';
         default:
             return 'cash';
-    }
-}
-
-/**
- * Prueba la configuración de Mercado Pago y verifica que todos los métodos estén habilitados
- * Esta función es útil para diagnosticar problemas de configuración
- */
-export async function testMercadoPagoConfiguration() {
-    try {
-        console.log("🧪 === PRUEBA DE CONFIGURACIÓN MERCADOPAGO ===");
-        
-        // Verificar token
-        const accessToken = process.env.MP_ACCESS_TOKEN;
-        if (!accessToken) {
-            throw new Error('Token de acceso de MercadoPago no configurado');
-        }
-        
-        console.log(`✅ Token configurado: ${accessToken.substring(0, 10)}...`);
-        console.log(`🌍 Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
-        
-        // Verificar public key
-        const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
-        if (publicKey) {
-            console.log(`🔑 Public Key configurado: ${publicKey.substring(0, 10)}...`);
-        } else {
-            console.log(`⚠️  Public Key no configurado`);
-        }
-        
-        console.log("✅ Configuración verificada - Solo tokens, sin preferencias de prueba");
-        
-        return {
-            success: true,
-            message: "Configuración de MercadoPago verificada correctamente",
-            config: {
-                accessToken: accessToken.substring(0, 10) + "...",
-                environment: accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN',
-                publicKey: publicKey ? publicKey.substring(0, 10) + "..." : 'No configurado'
-            }
-        };
-        
-    } catch (error) {
-        console.error("❌ Error en prueba de configuración:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Error desconocido'
-        };
     }
 }
