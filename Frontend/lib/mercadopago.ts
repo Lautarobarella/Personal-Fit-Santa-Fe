@@ -4,6 +4,7 @@ import {
     Payment,
     Preference
 } from "mercadopago";
+import { createPaymentWithStatus } from "../api/payment/paymentsApi";
 import { getProductById } from "./products";
 
 /**
@@ -539,6 +540,9 @@ async function mapPaymentToClient(mpPayment: any) {
             console.log(`   - Fecha: ${new Date(paymentInfo.paymentDate).toLocaleString('es-AR')}`);
             console.log(`   - ID MercadoPago: ${paymentInfo.mpPaymentId}`);
             
+            // Crear el pago real en el sistema
+            await createPaymentMP(paymentInfo);
+            
             return paymentInfo;
         }
         
@@ -549,6 +553,26 @@ async function mapPaymentToClient(mpPayment: any) {
         console.error("Error al mapear pago con cliente:", error);
         return null;
     }
+}
+
+/**
+ * Crea un pago real en el sistema usando la API del backend
+ */
+async function createPaymentMP(paymentInfo: any) {
+    const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
+    
+    if (newStatus === 'paid') {
+        const paymentData = {
+            clientDni: paymentInfo.clientDni,
+            amount: paymentInfo.amount,
+            createdAt: new Date().toISOString().split('T')[0],
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        };
+        
+        return await createPaymentWithStatus(paymentData, true);
+    }
+    
+    return null;
 }
 
 /**
