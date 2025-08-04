@@ -51,7 +51,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
+      #NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
       NEXT_PUBLIC_IS_DOCKER: "true"
       NEXT_PUBLIC_BASE_URL: http://72.60.1.76:3000
       MP_ACCESS_TOKEN: TEST-3942377988418193-080311-8084950108cc03a2a313a97295909394-288248460

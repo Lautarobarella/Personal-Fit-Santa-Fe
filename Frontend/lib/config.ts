@@ -1,8 +1,8 @@
 // Configuración central para las URLs de la API
 const getApiBaseUrl = () => {
   // Usar variable de entorno si está disponible
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
   }
   
   // En desarrollo (fuera de Docker), usar localhost
