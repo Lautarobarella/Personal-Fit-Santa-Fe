@@ -49,51 +49,51 @@ INSERT INTO attendance (id, user_id, activity_id, attendance, created_at, update
 
 -- Actividad 3 no tiene inscripciones (como solicitaste)
 
--- Archivos de pago de ejemplo
-INSERT INTO payment_file (id, file_path, file_name, content_type) VALUES
-(1, '/uploads/payments/comprobante_carlos_enero.pdf', 'comprobante_carlos_enero.pdf', 'application/pdf'),
-(2, '/uploads/payments/comprobante_ana_febrero.jpg', 'comprobante_ana_febrero.jpg', 'image/jpeg'),
-(3, '/uploads/payments/comprobante_luis_marzo.pdf', 'comprobante_luis_marzo.pdf', 'application/pdf'),
-(4, '/uploads/payments/comprobante_sofia_abril.png', 'comprobante_sofia_abril.png', 'image/png'),
-(5, '/uploads/payments/comprobante_diego_mayo.pdf', 'comprobante_diego_mayo.pdf', 'application/pdf');
+-- -- Archivos de pago de ejemplo
+-- INSERT INTO payment_file (id, file_path, file_name, content_type) VALUES
+-- (1, '/uploads/payments/comprobante_carlos_enero.pdf', 'comprobante_carlos_enero.pdf', 'application/pdf'),
+-- (2, '/uploads/payments/comprobante_ana_febrero.jpg', 'comprobante_ana_febrero.jpg', 'image/jpeg'),
+-- (3, '/uploads/payments/comprobante_luis_marzo.pdf', 'comprobante_luis_marzo.pdf', 'application/pdf'),
+-- (4, '/uploads/payments/comprobante_sofia_abril.png', 'comprobante_sofia_abril.png', 'image/png'),
+-- (5, '/uploads/payments/comprobante_diego_mayo.pdf', 'comprobante_diego_mayo.pdf', 'application/pdf');
 
--- Pagos de ejemplo
--- Pago pagado con comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(1, 1001, NULL, 50000.0, 'transfer', '2024-01-15 10:00:00', '2024-01-15 14:30:00', '2024-01-15 14:30:00', '2024-02-15 23:59:59', 1, 4, 'paid', 1);
+-- -- Pagos de ejemplo
+-- -- Pago pagado con comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (1, 1001, NULL, 50000.0, 'transfer', '2024-01-15 10:00:00', '2024-01-15 14:30:00', '2024-01-15 14:30:00', '2024-02-15 23:59:59', 1, 4, 'paid', 1);
 
--- Pago pagado con comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(2, 1002, NULL, 75000.0, 'card', '2024-02-01 09:15:00', '2024-02-01 16:45:00', '2024-02-01 16:45:00', '2024-03-01 23:59:59', 1, 5, 'paid', 2);
+-- -- Pago pagado con comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (2, 1002, NULL, 75000.0, 'card', '2024-02-01 09:15:00', '2024-02-01 16:45:00', '2024-02-01 16:45:00', '2024-03-01 23:59:59', 1, 5, 'paid', 2);
 
--- Pago pagado con comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(3, 1003, NULL, 60000.0, 'cash', '2024-03-10 11:30:00', '2024-03-10 15:20:00', '2024-03-10 15:20:00', '2024-04-10 23:59:59', 1, 6, 'paid', 3);
+-- -- Pago pagado con comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (3, 1003, NULL, 60000.0, 'cash', '2024-03-10 11:30:00', '2024-03-10 15:20:00', '2024-03-10 15:20:00', '2024-04-10 23:59:59', 1, 6, 'paid', 3);
 
--- Pago pagado con comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(4, 1004, NULL, 80000.0, 'transfer', '2024-04-05 08:45:00', '2024-04-05 12:15:00', '2024-04-05 12:15:00', '2024-05-05 23:59:59', 1, 7, 'paid', 4);
+-- -- Pago pagado con comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (4, 1004, NULL, 80000.0, 'transfer', '2024-04-05 08:45:00', '2024-04-05 12:15:00', '2024-04-05 12:15:00', '2024-05-05 23:59:59', 1, 7, 'paid', 4);
 
--- Pago pagado con comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(5, 1005, NULL, 65000.0, 'card', '2024-05-20 14:20:00', '2024-05-20 17:30:00', '2024-05-20 17:30:00', '2024-06-20 23:59:59', 1, 8, 'paid', 5);
+-- -- Pago pagado con comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (5, 1005, NULL, 65000.0, 'card', '2024-05-20 14:20:00', '2024-05-20 17:30:00', '2024-05-20 17:30:00', '2024-06-20 23:59:59', 1, 8, 'paid', 5);
 
--- Pago pendiente sin comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(6, 1006, NULL, 55000.0, 'transfer', '2024-06-01 10:00:00', NULL, '2024-06-01 10:00:00', '2024-07-01 23:59:59', NULL, 9, 'pending', NULL);
+-- -- Pago pendiente sin comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (6, 1006, NULL, 55000.0, 'transfer', '2024-06-01 10:00:00', NULL, '2024-06-01 10:00:00', '2024-07-01 23:59:59', NULL, 9, 'pending', NULL);
 
--- Pago pendiente sin comprobante
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(7, 1007, NULL, 70000.0, 'card', '2024-06-15 16:30:00', NULL, '2024-06-15 16:30:00', '2024-07-15 23:59:59', NULL, 4, 'pending', NULL);
+-- -- Pago pendiente sin comprobante
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (7, 1007, NULL, 70000.0, 'card', '2024-06-15 16:30:00', NULL, '2024-06-15 16:30:00', '2024-07-15 23:59:59', NULL, 4, 'pending', NULL);
 
--- Pago rechazado
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(8, 1008, 'Comprobante ilegible, no se puede verificar el monto', 45000.0, 'transfer', '2024-05-10 09:00:00', NULL, '2024-05-10 11:30:00', '2024-06-10 23:59:59', 1, 5, 'rejected', NULL);
+-- -- Pago rechazado
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (8, 1008, 'Comprobante ilegible, no se puede verificar el monto', 45000.0, 'transfer', '2024-05-10 09:00:00', NULL, '2024-05-10 11:30:00', '2024-06-10 23:59:59', 1, 5, 'rejected', NULL);
 
--- Pago deudor (expirado)
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(9, 1009, NULL, 60000.0, 'cash', '2024-04-01 12:00:00', NULL, '2024-04-01 12:00:00', '2024-05-01 23:59:59', NULL, 6, 'debtor', NULL);
+-- -- Pago deudor (expirado)
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (9, 1009, NULL, 60000.0, 'cash', '2024-04-01 12:00:00', NULL, '2024-04-01 12:00:00', '2024-05-01 23:59:59', NULL, 6, 'debtor', NULL);
 
--- Pago pendiente reciente
-INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
-(10, 1010, NULL, 85000.0, 'transfer', '2024-06-20 13:45:00', NULL, '2024-06-20 13:45:00', '2024-07-20 23:59:59', NULL, 7, 'pending', NULL); 
+-- -- Pago pendiente reciente
+-- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
+-- (10, 1010, NULL, 85000.0, 'transfer', '2024-06-20 13:45:00', NULL, '2024-06-20 13:45:00', '2024-07-20 23:59:59', NULL, 7, 'pending', NULL); 
