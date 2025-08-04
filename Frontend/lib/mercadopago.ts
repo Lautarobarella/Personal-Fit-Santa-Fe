@@ -604,8 +604,10 @@ async function createPaymentServerSide(paymentData: any) {
             clientDni: paymentData.clientDni,
             amount: paymentData.amount,
             createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
-            expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
             paymentStatus: "paid", // MercadoPago payments are always paid
+            confNumber: paymentData.mpPaymentId, // Use MercadoPago payment ID as confNumber
+            methodType: mapPaymentMethod(paymentData.paymentMethod), // Map MercadoPago method to backend enum
         };
 
         const response = await fetch(url, {

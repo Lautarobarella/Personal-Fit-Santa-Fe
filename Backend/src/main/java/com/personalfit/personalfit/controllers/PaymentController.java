@@ -68,7 +68,7 @@ public class PaymentController {
     @PostMapping("/webhook/mercadopago")
     public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(@RequestBody InCreatePaymentDTO payment) {
         try {
-            paymentService.registerPayment(payment);
+            paymentService.registerWebhookPayment(payment); // Use the new method
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
