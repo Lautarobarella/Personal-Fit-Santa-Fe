@@ -1,5 +1,4 @@
-import { ConstructionIcon } from 'lucide-react';
-import { getAccessToken, refreshAccessToken } from './auth'
+import { getAccessToken, refreshAccessToken } from './auth';
 
 // Configuración central para las URLs de la API (misma lógica que config.ts)
 export const getApiBaseUrl = () => {
@@ -52,7 +51,6 @@ class JWTPermissionsApi {
     }
     return {
       'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
     }
   }
 
@@ -105,8 +103,12 @@ class JWTPermissionsApi {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
     console.log("URL: ", url)
     const requestHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...headers,
+    }
+
+    // Solo establecer Content-Type si no es FormData
+    if (!(body instanceof FormData)) {
+      requestHeaders['Content-Type'] = 'application/json'
     }
 
     if (requireAuth) {
@@ -125,7 +127,8 @@ class JWTPermissionsApi {
     }
 
     if (body) {
-      config.body = JSON.stringify(body)
+      // Si es FormData, enviarlo directamente, sino JSON.stringify
+      config.body = body instanceof FormData ? body : JSON.stringify(body)
     }
 
     try {
