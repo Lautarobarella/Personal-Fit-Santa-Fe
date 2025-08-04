@@ -48,7 +48,7 @@ export async function createSingleProductPreference(options: CreatePrefOptions) 
         throw new Error('Token de acceso de MercadoPago no configurado');
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL 
 
     const preferenceBody = {
         items: [

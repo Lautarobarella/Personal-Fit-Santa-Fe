@@ -1,6 +1,6 @@
 import { getAccessToken, refreshAccessToken } from './auth'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
 
 // Custom error class for API errors
 export class ApiError extends Error {

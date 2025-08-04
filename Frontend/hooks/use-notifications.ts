@@ -1,5 +1,4 @@
 
-import { fetchNotificationsMock } from "@/api/notifications/notificationsApi"
 import { useCallback, useState } from "react"
 import { Notification } from "@/lib/types"
 
@@ -12,7 +11,7 @@ export function useNotifications() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetchNotificationsMock()
+            const res = await fetchNotifications()
             const data: Notification[] = await res.json()
             setNotifications(data)
         } catch (err) {
