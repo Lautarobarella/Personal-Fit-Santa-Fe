@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
     try {
         console.log('=== WEBHOOK MERCADOPAGO RECIBIDO ===');
         console.log('Timestamp:', new Date().toISOString());
+        console.log('Headers:', Object.fromEntries(request.headers.entries()));
 
         // Responder inmediatamente para evitar timeout
         const responsePromise = NextResponse.json({ 
@@ -43,10 +44,13 @@ async function processWebhookAsync(request: NextRequest) {
         
         const payload: WebhookPayload = await request.json();
         console.log('📦 Payload recibido:', JSON.stringify(payload, null, 2));
+        console.log('🔍 Tipo de notificación:', payload.type || payload.topic);
+        console.log('🔍 Acción:', payload.action);
+        console.log('🔍 ID del recurso:', payload.data?.id || payload.resource);
 
         // Procesar la notificación
         const result = await processWebhookNotification(payload);
-        console.log('✅ Resultado del procesamiento:', result);
+        console.log('✅ Resultado del procesamiento:', JSON.stringify(result, null, 2));
 
         // Aquí puedes agregar lógica adicional como:
         // - Actualizar base de datos local
@@ -71,7 +75,10 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         endpoints: {
             webhook: '/api/webhook/mercadopago',
-            pending: '/api/process-pending-payments'
+            test: '/api/webhook/test',
+            pending: '/api/process-pending-payments',
+            health: '/api/health',
+            config: '/api/test-mercadopago-config'
         }
     });
 }

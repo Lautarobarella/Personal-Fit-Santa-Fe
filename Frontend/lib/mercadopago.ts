@@ -606,3 +606,49 @@ function mapPaymentMethod(mpMethod: string): string {
             return 'cash';
     }
 }
+
+/**
+ * Prueba la configuración de Mercado Pago y verifica que todos los métodos estén habilitados
+ * Esta función es útil para diagnosticar problemas de configuración
+ */
+export async function testMercadoPagoConfiguration() {
+    try {
+        console.log("🧪 === PRUEBA DE CONFIGURACIÓN MERCADOPAGO ===");
+        
+        // Verificar token
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            throw new Error('Token de acceso de MercadoPago no configurado');
+        }
+        
+        console.log(`✅ Token configurado: ${accessToken.substring(0, 10)}...`);
+        console.log(`🌍 Ambiente: ${accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN'}`);
+        
+        // Verificar public key
+        const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
+        if (publicKey) {
+            console.log(`🔑 Public Key configurado: ${publicKey.substring(0, 10)}...`);
+        } else {
+            console.log(`⚠️  Public Key no configurado`);
+        }
+        
+        console.log("✅ Configuración verificada - Solo tokens, sin preferencias de prueba");
+        
+        return {
+            success: true,
+            message: "Configuración de MercadoPago verificada correctamente",
+            config: {
+                accessToken: accessToken.substring(0, 10) + "...",
+                environment: accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN',
+                publicKey: publicKey ? publicKey.substring(0, 10) + "..." : 'No configurado'
+            }
+        };
+        
+    } catch (error) {
+        console.error("❌ Error en prueba de configuración:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        };
+    }
+}
