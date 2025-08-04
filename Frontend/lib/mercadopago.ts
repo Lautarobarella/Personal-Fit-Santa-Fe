@@ -4,7 +4,6 @@ import {
     Payment,
     Preference
 } from "mercadopago";
-import { createPaymentWithStatus } from "../api/payment/paymentsApi";
 import { getProductById } from "./products";
 
 /**
