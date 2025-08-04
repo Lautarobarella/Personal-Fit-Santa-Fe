@@ -562,6 +562,8 @@ async function createPaymentMP(paymentInfo: any) {
     const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
     
     if (newStatus === 'paid') {
+        console.log("✅ Pago aprobado - registrando en sistema y activando usuario...");
+        
         const paymentData = {
             clientDni: paymentInfo.clientDni,
             amount: paymentInfo.amount,
@@ -569,7 +571,19 @@ async function createPaymentMP(paymentInfo: any) {
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         };
         
-        return await createPaymentWithStatus(paymentData, true);
+        try {
+            const result = await createPaymentWithStatus(paymentData, true);
+            console.log("✅ Pago registrado exitosamente y usuario activado");
+            console.log(`   - ID del pago: ${result.id}`);
+            console.log(`   - Cliente DNI: ${paymentInfo.clientDni}`);
+            console.log(`   - Estado: ${result.paymentStatus || 'paid'}`);
+            return result;
+        } catch (error) {
+            console.error("❌ Error al registrar pago:", error);
+            throw error;
+        }
+    } else {
+        console.log(`⚠️ Pago no aprobado (estado: ${newStatus}) - no se registra ni activa usuario`);
     }
     
     return null;
