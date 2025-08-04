@@ -32,6 +32,17 @@ const getApiBaseUrl = () => {
   return 'http://72.60.1.76:8080';
 };
 
+// Configuración para las URLs del frontend (donde están los webhooks)
+const getFrontendBaseUrl = () => {
+  // Usar variable de entorno si está disponible
+  if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
+    return process.env.NEXT_PUBLIC_FRONTEND_URL;
+  }
+  
+  // En el servidor, usar la IP del servidor de producción para el frontend
+  return 'http://72.60.1.76:3000';
+};
+
 /**
  * Tipos de datos para crear preferencias de pago
  */
@@ -59,6 +70,7 @@ export async function createSingleProductPreference(options: CreatePrefOptions) 
     }
 
     const baseUrl = getApiBaseUrl();
+    const frontendUrl = getFrontendBaseUrl();
 
     const preferenceBody = {
         items: [
@@ -72,11 +84,11 @@ export async function createSingleProductPreference(options: CreatePrefOptions) 
             },
         ],
         back_urls: {
-            success: `${baseUrl}/success`,
-            failure: `${baseUrl}/failure`,
-            pending: `${baseUrl}/pending`,
+            success: `${frontendUrl}/payments/result/success`,
+            failure: `${frontendUrl}/payments/result/failure`,
+            pending: `${frontendUrl}/payments/result/pending`,
         },
-        notification_url: `${baseUrl}/api/webhook/mercadopago`,
+        notification_url: `${frontendUrl}/api/webhook/mercadopago`,
         external_reference: options.transactionId,
     };
 
