@@ -163,7 +163,7 @@ public class PaymentServiceImpl implements IPaymentService {
 
     @Transactional
     @Override
-    public void registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file) {
+    public Payment registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file) {
 
         User user = userService.getUserByDni(newPayment.getClientDni());
 
@@ -186,10 +186,11 @@ public class PaymentServiceImpl implements IPaymentService {
                 .build();
 
         try {
-            paymentRepository.save(payment);
-
+            Payment savedPayment = paymentRepository.save(payment);
+            return savedPayment;
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
 
     }

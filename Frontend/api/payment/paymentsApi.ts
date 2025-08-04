@@ -40,20 +40,54 @@ export async function createPayment(paymentData: NewPaymentInput) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/payments/new`, {
-      method: "POST",
-      body: formData,
-    })
+    return await jwtPermissionsApi.post('/api/payments/new', formData);
+  } catch (error) {
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al crear el pago');
+    }
+    throw error;
+  }
+}
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || 'Error al crear el pago')
+export async function createPaymentWithStatus(paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean = false) {
+  const paymentStatus = isMercadoPagoPayment ? "paid" : "pending"
+  const formData = new FormData()
+
+  const payment = {
+    clientDni: paymentData.clientDni,
+    amount: paymentData.amount,
+    createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
+    expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
+    paymentStatus,
+  }
+
+  formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }))
+
+  if (paymentData.file) {
+    formData.append("file", paymentData.file)
+  }
+
+  try {
+    const result = await jwtPermissionsApi.post('/api/payments/new', formData);
+
+    if (isMercadoPagoPayment && result.id) {
+      try {
+        await updatePayment(result.id, "paid")
+      } catch (error) {
+        // Silencioso - no romper si falla la activación
+      }
     }
 
-    return await response.json()
+    return result;
   } catch (error) {
-    handleApiError(error, 'Error al crear el pago')
-    throw error
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al crear el pago');
+    }
+    throw error;
   }
 }
 
@@ -88,7 +122,11 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
   try {
     return await jwtPermissionsApi.put(`/api/payments/pending/${id}`, { status, rejectionReason });
   } catch (error) {
-    handleApiError(error, 'Error al actualizar el pago');
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al actualizar el pago');
+    }
     throw error;
   }
 }

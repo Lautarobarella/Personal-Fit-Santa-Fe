@@ -64,15 +64,34 @@
     @apply border-border;
   }
   
-  html, body {
-    overflow-x: hidden; /* ❌ Evita scroll horizontal */
-    width: 100%;
+  html {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
     height: 100%;
-    touch-action: pan-y; /* ❌ Solo permite scroll vertical */
+    overflow-x: hidden;
   }
-
+  
   body {
     @apply bg-background text-foreground;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100); /* Use JS-calculated viewport height */
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  
+  #__next {
+    height: 100%;
+    overflow-x: hidden;
     overscroll-behavior-x: none; /* ❌ Previene el estiramiento lateral en móviles */
   }
 }
@@ -119,15 +138,42 @@
 
 /* PWA specific styles */
 @media (display-mode: standalone) {
+  html {
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+  
   body {
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+    height: 100vh !important;
+    height: calc(var(--vh, 1vh) * 100) !important;
+  }
+  
+  /* Force recalibration after PWA navigation */
+  .pwa-recalibrate {
+    height: 100vh !important;
+    height: calc(var(--vh, 1vh) * 100) !important;
   }
 }
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .container {
-    @apply px-4;
+    @apply px-4 max-w-full;
+    width: 100% !important;
+    overflow-x: hidden;
+  }
+  
+  /* Prevent horizontal scroll */
+  * {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  /* Fix viewport issues */
+  body {
+    width: 100vw !important;
+    overflow-x: hidden !important;
   }
 }

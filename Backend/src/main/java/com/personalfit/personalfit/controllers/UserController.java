@@ -4,7 +4,6 @@ import com.personalfit.personalfit.dto.*;
 import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.services.IUserService;
-import com.personalfit.personalfit.utils.UserStatus;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/users")

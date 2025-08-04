@@ -26,7 +26,7 @@ public class Payment {
     private LocalDateTime verifiedAt; // Fecha de verificación del pago
     private LocalDateTime updatedAt; // Fecha de actualización del pago
     private LocalDateTime expiresAt; // Fecha de expiración del pago
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "verified_by_user_id")
     private User verifiedBy;
     @ManyToOne
@@ -37,6 +37,7 @@ public class Payment {
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "payment_file_id")
     private PaymentFile paymentFile; // Comprobante de pago asociado
+    
 
     // // Convenience methods for compatibility
     // public MethodType getMethod() {

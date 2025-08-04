@@ -1,18 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
 import { useAuth } from "@/components/providers/auth-provider"
 import { usePayment } from "@/hooks/use-payment"
+import Link from "next/link"
+import { useState } from "react"
 
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
+import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import {
     Calendar,
@@ -120,7 +120,7 @@ export default function PaymentsContent() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-20">
+        <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
             <MobileHeader
                 title="Pagos"
                 actions={
@@ -135,7 +135,7 @@ export default function PaymentsContent() {
                                         Verificar ({pendingPayments.length})
                                     </Button>
                                 </Link>
-                                <Link href="/payments/new">
+                                <Link href="/payments/method-select">
                                     <Button size="sm">
                                         <Plus className="h-4 w-4" />
                                         Nuevo
@@ -143,7 +143,7 @@ export default function PaymentsContent() {
                                 </Link>
                             </>
                         ) : user.role === "client" ? (
-                            <Link href="/payments/new">
+                            <Link href="/payments/method-select">
                                 <Button size="sm">
                                     <Plus className="h-4 w-4" />
                                     Nuevo

@@ -2,10 +2,8 @@ package com.personalfit.personalfit.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.cglib.core.Local;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 

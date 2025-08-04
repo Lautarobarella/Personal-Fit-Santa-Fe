@@ -5,7 +5,6 @@ import com.personalfit.personalfit.dto.ActivityFormTypeDTO;
 import com.personalfit.personalfit.dto.ActivityTypeDTO;
 import com.personalfit.personalfit.dto.EnrollmentRequestDTO;
 import com.personalfit.personalfit.dto.EnrollmentResponseDTO;
-import com.personalfit.personalfit.dto.LocalDateTimeDTO;
 import com.personalfit.personalfit.services.IActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
