@@ -15,6 +15,7 @@ import com.personalfit.personalfit.dto.InCreatePaymentWithFileDTO;
 import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
+import com.personalfit.personalfit.exceptions.PaymentAlreadyExistsException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
 import com.personalfit.personalfit.models.User;
@@ -42,6 +43,9 @@ public class PaymentServiceImpl implements IPaymentService {
     public void registerPayment(InCreatePaymentDTO newPayment) {
 
         User user = userService.getUserById(newPayment.getClientId());
+        
+        // Validar que el usuario pueda crear un nuevo pago
+        validateUserCanCreatePayment(user);
 
         Payment payment = Payment.builder()
                 .user(user)
@@ -162,11 +166,32 @@ public class PaymentServiceImpl implements IPaymentService {
                 .build();
     }
 
+    /**
+     * Valida si un usuario puede crear un nuevo pago
+     * @param user El usuario que intenta crear el pago
+     * @throws PaymentAlreadyExistsException Si el usuario ya tiene un pago activo o pendiente
+     */
+    private void validateUserCanCreatePayment(User user) {
+        List<Payment> userPayments = user.getPayments();
+        
+        // Verificar si tiene pagos activos (paid) o pendientes (pending)
+        boolean hasActiveOrPendingPayment = userPayments.stream()
+                .anyMatch(payment -> payment.getStatus() == PaymentStatus.paid || 
+                                   payment.getStatus() == PaymentStatus.pending);
+        
+        if (hasActiveOrPendingPayment) {
+            throw new PaymentAlreadyExistsException();
+        }
+    }
+
     @Transactional
     @Override
     public Payment registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file) {
 
         User user = userService.getUserByDni(newPayment.getClientDni());
+        
+        // Validar que el usuario pueda crear un nuevo pago
+        validateUserCanCreatePayment(user);
 
         Optional<Long> idFile = Optional.empty();
         PaymentFile pFile = null;
@@ -202,6 +227,9 @@ public class PaymentServiceImpl implements IPaymentService {
 
         for (InCreatePaymentDTO newPayment : newPayments) {
             User user = userService.getUserById(newPayment.getClientId());
+            
+            // Validar que el usuario pueda crear un nuevo pago
+            validateUserCanCreatePayment(user);
 
             Payment payment = Payment.builder()
                     .user(user)
@@ -230,6 +258,9 @@ public class PaymentServiceImpl implements IPaymentService {
 
         for (InCreatePaymentWithFileDTO newPayment : newPayments) {
             User user = userService.getUserByDni(newPayment.getClientDni());
+            
+            // Validar que el usuario pueda crear un nuevo pago
+            validateUserCanCreatePayment(user);
 
             Optional<Long> idFile = Optional.empty();
             PaymentFile pFile = null;
@@ -267,6 +298,9 @@ public class PaymentServiceImpl implements IPaymentService {
         for (int i = 0; i < newPayments.size(); i++) {
             InCreatePaymentDTO newPayment = newPayments.get(i);
             User user = userService.getUserByDni(newPayment.getClientDni());
+            
+            // Validar que el usuario pueda crear un nuevo pago
+            validateUserCanCreatePayment(user);
 
             Optional<Long> idFile = Optional.empty();
             PaymentFile pFile = null;

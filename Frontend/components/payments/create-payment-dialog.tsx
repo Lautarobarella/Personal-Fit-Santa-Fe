@@ -179,10 +179,19 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             //  Cerramos el diálogo y redirigimos
             handleClose()
 
-        } catch (error) {
+        } catch (error: any) {
+            // Manejar errores específicos del backend
+            let errorMessage = "No se pudo crear el pago"
+            
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message
+            } else if (error?.message) {
+                errorMessage = error.message
+            }
+            
             toast({
                 title: "Error",
-                description: "No se pudo crear el pago",
+                description: errorMessage,
                 variant: "destructive",
             })
         } finally {

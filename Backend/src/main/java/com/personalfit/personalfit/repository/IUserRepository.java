@@ -1,11 +1,11 @@
 package com.personalfit.personalfit.repository;
 
-import com.personalfit.personalfit.models.User;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.personalfit.personalfit.models.User;
 
 @Repository
 public interface IUserRepository extends JpaRepository<User, Long> {
