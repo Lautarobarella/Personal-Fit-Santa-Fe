@@ -8,13 +8,14 @@ export const API_CONFIG = {
   // URL base del frontend - definida en docker-compose
   FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://72.60.1.76:3000',
   
-  // URL para archivos (comprobantes de pago)
-  FILES_URL: process.env.NEXT_PUBLIC_FILES_URL || 'http://72.60.1.76:8080',
+  // URL para archivos (comprobantes de pago) - usar proxy del frontend
+  FILES_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://72.60.1.76:3000',
 } as const;
 
 // Función helper para construir URLs de archivos
 export function buildFileUrl(fileId: number | null | undefined): string | null {
   if (!fileId) return null;
+  // Usar el endpoint proxy del frontend que maneja la autenticación
   return `${API_CONFIG.FILES_URL}/api/files/${fileId}`;
 }
 

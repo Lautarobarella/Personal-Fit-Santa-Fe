@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { AuthenticatedImage } from "@/components/ui/authenticated-image"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentType } from "@/lib/types"
@@ -174,23 +175,26 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
           </Card>
 
           {/* Receipt Display */}
-          {selectedPayment.receiptUrl ? (
+          {selectedPayment.receiptId ? (
             <Card>
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
                 <div className="border rounded-lg overflow-hidden">
-                  <img
-                    src={selectedPayment.receiptUrl || "/placeholder.svg"}
+                  <AuthenticatedImage
+                    fileId={selectedPayment.receiptId}
                     alt="Comprobante de pago"
                     className="w-full max-h-[400px] object-contain bg-gray-50 mx-auto"
+                    fallbackSrc="/placeholder.svg"
                   />
-
                 </div>
                 <div className="mt-2 flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(selectedPayment.receiptUrl as string, "_blank")}
+                    onClick={() => {
+                      const url = selectedPayment.receiptUrl;
+                      if (url) window.open(url, "_blank");
+                    }}
                     className="bg-transparent"
                   >
                     Ver en tamaño completo
