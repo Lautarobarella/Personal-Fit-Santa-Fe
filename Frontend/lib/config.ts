@@ -1,29 +1,24 @@
-// Configuración central para las URLs de la API
-const getApiBaseUrl = () => {
-  // Usar variable de entorno si está disponible
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  
-  // En desarrollo (fuera de Docker), usar localhost
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:8080';
-  }
-  
-  // Si estamos en el servidor de producción (72.60.1.76), usar la IP del servidor
-  if (typeof window !== 'undefined' && window.location.hostname === '72.60.1.76') {
-    return 'http://72.60.1.76:8080';
-  }
-  
-  // En Docker, usar el nombre del servicio
-  return 'http://personalfit-backend:8080';
-};
+// Configuración centralizada para URLs de la aplicación
+// Todas las URLs se obtienen de variables de entorno definidas en docker-compose
 
 export const API_CONFIG = {
-  BASE_URL: getApiBaseUrl(),
-  PAYMENT_URL: `${getApiBaseUrl()}/api/payment`,
-  USER_URL: `${getApiBaseUrl()}/api/user`,
-  ACTIVITIES_URL: `${getApiBaseUrl()}/api/activities`,
-  NOTIFICATION_URL: `${getApiBaseUrl()}/api/notification`,
-  FILES_URL: `${getApiBaseUrl()}/api/files`,
-}; 
+  // URL base del backend - definida en docker-compose
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://72.60.1.76:8080',
+  
+  // URL base del frontend - definida en docker-compose
+  FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://72.60.1.76:3000',
+  
+  // URL para archivos (comprobantes de pago)
+  FILES_URL: process.env.NEXT_PUBLIC_FILES_URL || 'http://72.60.1.76:8080',
+} as const;
+
+// Función helper para construir URLs de archivos
+export function buildFileUrl(fileId: number | null | undefined): string | null {
+  if (!fileId) return null;
+  return `${API_CONFIG.FILES_URL}/api/files/${fileId}`;
+}
+
+// Función helper para construir URLs de la API
+export function buildApiUrl(endpoint: string): string {
+  return `${API_CONFIG.BASE_URL}${endpoint}`;
+} 

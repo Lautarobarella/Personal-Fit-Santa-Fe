@@ -1,7 +1,5 @@
-import { getApiBaseUrl } from "./api"
+import { API_CONFIG } from "./config"
 import type { UserType, UserRole } from "./types"
-
-const API_BASE_URL = getApiBaseUrl()
 
 export interface AuthResponse {
   accessToken: string
@@ -12,7 +10,7 @@ export interface AuthResponse {
 
 export const authenticate = async (email: string, password: string): Promise<UserType | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +70,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     const refreshToken = localStorage.getItem('refreshToken')
     if (!refreshToken) return null
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh?refreshToken=${refreshToken}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh?refreshToken=${refreshToken}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

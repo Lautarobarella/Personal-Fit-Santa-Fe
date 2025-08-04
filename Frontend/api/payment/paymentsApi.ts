@@ -1,8 +1,7 @@
 import { jwtPermissionsApi } from "@/lib/api";
 import { NewPaymentInput } from "@/lib/types";
 import { handleApiError, isValidationError, handleValidationError } from "@/lib/error-handler";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { buildFileUrl } from "@/lib/config";
 
 export async function fetchPayments() {
   try {
@@ -132,8 +131,7 @@ export async function updatePayment(id: number, status: "paid" | "rejected", rej
 }
 
 export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
-  if (!receiptId) return null
-  return `${API_BASE_URL}/api/files/${receiptId}`
+  return buildFileUrl(receiptId);
 }
 
 

@@ -51,13 +51,19 @@ services:
     ports:
       - "3000:3000"
     environment:
-      #NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
-      NEXT_PUBLIC_IS_DOCKER: "true"
-      NEXT_PUBLIC_BASE_URL: http://72.60.1.76:3000
+      # URLs centralizadas - todas apuntan al servidor de producción
+      NEXT_PUBLIC_API_URL: http://72.60.1.76:8080
+      NEXT_PUBLIC_FRONTEND_URL: http://72.60.1.76:3000
+      NEXT_PUBLIC_FILES_URL: http://72.60.1.76:8080
+      
+      # Configuración de MercadoPago
       MP_ACCESS_TOKEN: TEST-3942377988418193-080311-8084950108cc03a2a313a97295909394-288248460
       NEXT_PUBLIC_MP_PUBLIC_KEY: TEST-191ffd30-141f-46be-97ed-b4a82a1804a9
       NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+      
+      # Configuración de Next.js
       NODE_ENV: development
+      NEXT_PUBLIC_IS_DOCKER: "true"
 
   pgadmin:
     image: dpage/pgadmin4

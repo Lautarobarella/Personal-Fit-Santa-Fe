@@ -1,27 +1,5 @@
 import { getAccessToken, refreshAccessToken } from './auth';
-
-// Configuración central para las URLs de la API (misma lógica que config.ts)
-export const getApiBaseUrl = () => {
-  // Usar variable de entorno si está disponible
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  
-  // En desarrollo (fuera de Docker), usar localhost
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:8080';
-  }
-  
-  // Si estamos en el servidor de producción (72.60.1.76), usar la IP del servidor
-  if (typeof window !== 'undefined' && window.location.hostname === '72.60.1.76') {
-    return 'http://72.60.1.76:8080';
-  }
-  
-  // En Docker, usar el nombre del servicio
-  return 'http://personalfit-backend:8080';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { API_CONFIG } from './config';
 
 // Custom error class for API errors
 export class ApiError extends Error {
@@ -100,7 +78,7 @@ class JWTPermissionsApi {
       requireAuth = true,
     } = options
 
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
+    const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BASE_URL}${endpoint}`
     console.log("URL: ", url)
     const requestHeaders: Record<string, string> = {
       ...headers,
