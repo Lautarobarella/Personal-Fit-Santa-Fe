@@ -4,7 +4,6 @@ import {
     Payment,
     Preference
 } from "mercadopago";
-import { getProductById } from "./products";
 
 /**
  * Configuración del cliente de MercadoPago
@@ -507,13 +506,11 @@ async function mapPaymentToClient(mpPayment: any) {
             console.log(`📦 Producto ID: ${productId}`);
             console.log(`⏰ Timestamp: ${timestamp}`);
             
-            // Obtener información del producto
-            const product = await getProductById(productId);
-            
-            // Información del pago
+            // Información del pago - usar directamente los datos de MercadoPago
+            // No depender de getProductById que puede fallar en el contexto del servidor
             const paymentInfo = {
                 productId: productId,
-                productName: product?.name || 'Producto desconocido',
+                productName: 'Cuota mensual gimnasio', // Nombre fijo del producto
                 transactionId: externalRef,
                 amount: mpPayment.transaction_amount,
                 currency: mpPayment.currency_id,
@@ -568,6 +565,8 @@ async function createPaymentMP(paymentInfo: any) {
             amount: paymentInfo.amount,
             createdAt: new Date().toISOString().split('T')[0],
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            mpPaymentId: paymentInfo.mpPaymentId, // Add mpPaymentId
+            paymentMethod: paymentInfo.paymentMethod, // Add paymentMethod
         };
         
         try {
@@ -593,7 +592,14 @@ async function createPaymentMP(paymentInfo: any) {
  * Crea un pago real en el sistema usando la API del backend (versión servidor)
  * Esta función no depende de localStorage ni toast, por lo que puede ejecutarse en el servidor
  */
-async function createPaymentServerSide(paymentData: any) {
+async function createPaymentServerSide(paymentData: {
+    clientDni: number;
+    amount: number;
+    createdAt: string;
+    expiresAt: string;
+    mpPaymentId: string; // Add mpPaymentId
+    paymentMethod: string; // Add paymentMethod
+}) {
     try {
         console.log("🔧 Creando pago desde servidor...");
         
@@ -603,8 +609,8 @@ async function createPaymentServerSide(paymentData: any) {
         const payment = {
             clientDni: paymentData.clientDni,
             amount: paymentData.amount,
-            createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
+            createdAt: new Date(paymentData.createdAt).toISOString().slice(0, 19), // Ensure correct format
+            expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
             paymentStatus: "paid", // MercadoPago payments are always paid
             confNumber: paymentData.mpPaymentId, // Use MercadoPago payment ID as confNumber
             methodType: mapPaymentMethod(paymentData.paymentMethod), // Map MercadoPago method to backend enum
