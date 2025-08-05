@@ -3,29 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
     try {
-        console.log('=== WEBHOOK MERCADOPAGO RECIBIDO ===');
-        console.log('Timestamp:', new Date().toISOString());
-        console.log('Headers:', Object.fromEntries(request.headers.entries()));
-
-        // Responder inmediatamente para evitar timeout
         const responsePromise = NextResponse.json({ 
             success: true, 
             message: 'Webhook recibido correctamente',
             timestamp: new Date().toISOString()
         });
 
-        // Procesar el webhook de forma asíncrona
-        processWebhookAsync(request).catch(error => {
-            console.error('Error en procesamiento asíncrono del webhook:', error);
+        processWebhookAsync(request).catch(() => {
+            // Error handling without logging
         });
 
-        // Retornar respuesta inmediata
         return responsePromise;
 
     } catch (error) {
-        console.error('❌ Error en webhook:', error);
-        
-        // Aún así responder para evitar timeout
         return NextResponse.json(
             { 
                 success: false, 
@@ -37,38 +27,17 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Función asíncrona para procesar el webhook sin bloquear la respuesta
 async function processWebhookAsync(request: NextRequest) {
     try {
-        console.log('🔄 Iniciando procesamiento asíncrono del webhook...');
-        
         const payload: WebhookPayload = await request.json();
-        console.log('📦 Payload recibido:', JSON.stringify(payload, null, 2));
-        console.log('🔍 Tipo de notificación:', payload.type || payload.topic);
-        console.log('🔍 Acción:', payload.action);
-        console.log('🔍 ID del recurso:', payload.data?.id || payload.resource);
-
-        // Procesar la notificación
-        const result = await processWebhookNotification(payload);
-        console.log('✅ Resultado del procesamiento:', JSON.stringify(result, null, 2));
-
-        // Aquí puedes agregar lógica adicional como:
-        // - Actualizar base de datos local
-        // - Enviar notificaciones al usuario
-        // - Registrar el pago en tu sistema
-        
-        console.log('🎉 Webhook procesado exitosamente');
-
+        await processWebhookNotification(payload);
     } catch (error) {
-        console.error('❌ Error en procesamiento asíncrono:', error);
-        // No relanzar el error para no afectar la respuesta
+        // Error handling without logging
     }
 }
 
 // Método GET para verificar que el webhook está funcionando
 export async function GET() {
-    console.log('🔍 Verificación de webhook solicitada');
-    
     return NextResponse.json({ 
         success: true,
         message: 'Webhook de MercadoPago funcionando correctamente',
@@ -76,7 +45,6 @@ export async function GET() {
         endpoints: {
             webhook: '/api/webhook/mercadopago',
             test: '/api/webhook/test',
-            pending: '/api/process-pending-payments',
             health: '/api/health',
             config: '/api/test-mercadopago-config'
         }

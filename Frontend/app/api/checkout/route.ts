@@ -1,64 +1,65 @@
-import { createSingleProductPreference } from '@/lib/mercadopago';
+import { MercadoPagoConfig, Preference } from "mercadopago";
 import { NextRequest, NextResponse } from 'next/server';
+
+const client = new MercadoPagoConfig({
+    accessToken: process.env.MP_ACCESS_TOKEN!,
+    options: {
+        timeout: 5000,
+        idempotencyKey: 'abc'
+    }
+});
+
+const pref = new Preference(client);
+
+const getBaseUrl = () => {
+    if (process.env.NEXT_PUBLIC_BASE_URL) {
+        return process.env.NEXT_PUBLIC_BASE_URL;
+    }
+    return 'https://personalfitsantafe.com';
+};
 
 export async function POST(request: NextRequest) {
     try {
-        console.log('=== INICIO DE CHECKOUT ===');
-        
         const { productId, productName, productPrice, userEmail, userDni } = await request.json();
-        console.log('Datos recibidos:', { productId, productName, productPrice, userEmail, userDni });
 
-        // Validar que se envió el productId, productName, productPrice, userEmail y userDni
         if (!productId || !productName || !productPrice || !userEmail || !userDni) {
-            console.error('Datos faltantes:', { productId, productName, productPrice, userEmail, userDni });
             return NextResponse.json(
                 { error: 'Faltan datos requeridos: productId, productName, productPrice, userEmail y userDni' },
                 { status: 400 }
             );
         }
 
-        // Verificar variables de entorno
-        const mpToken = process.env.MP_ACCESS_TOKEN;
-
-        if (!mpToken) {
-            console.error('Token de MercadoPago no configurado');
+        if (!process.env.MP_ACCESS_TOKEN) {
             return NextResponse.json(
                 { error: 'Configuración de MercadoPago incompleta' },
                 { status: 500 }
             );
         }
 
-        // Usar los datos del producto que ya fueron enviados desde el frontend
-        console.log('Usando datos del producto enviados desde el frontend:');
-        console.log('- ID:', productId);
-        console.log('- Nombre:', productName);
-        console.log('- Precio:', productPrice);
-
-        // Generar ID de transacción único incluyendo el DNI del usuario
         const transactionId = `${userDni}-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        console.log('Transaction ID generado:', transactionId);
+        const baseUrl = getBaseUrl();
 
-        // Crear preferencia de MercadoPago
-        console.log('Creando preferencia de MercadoPago...');
-        const preference = await createSingleProductPreference({
-            productName: productName,
-            productDescription: 'Cuota mensual gimnasio Personal Fit',
-            productId: productId,
-            productPrice: productPrice,
-            userEmail,
-            userDni,
-            transactionId,
-        });
+        const preferenceBody = {
+            items: [
+                {
+                    id: productId,
+                    title: productName,
+                    description: 'Cuota mensual gimnasio Personal Fit',
+                    quantity: 1,
+                    currency_id: "ARS",
+                    unit_price: productPrice,
+                },
+            ],
+            back_urls: {
+                success: `${baseUrl}/payments/result/success`,
+                failure: `${baseUrl}/payments/result/failure`,
+                pending: `${baseUrl}/payments/result/pending`,
+            },
+            notification_url: `${baseUrl}/api/webhook/mercadopago`,
+            external_reference: transactionId,
+        };
 
-        console.log('Preferencia creada exitosamente:', {
-            id: preference.id,
-            initPoint: preference.init_point,
-            sandboxInitPoint: preference.sandbox_init_point
-        });
-
-        // NO crear pago pendiente aquí - solo crear la preferencia
-        // El pago se creará automáticamente cuando llegue el webhook de Mercado Pago
-        console.log('Preferencia creada - esperando pago de Mercado Pago...');
+        const preference = await pref.create({ body: preferenceBody });
 
         return NextResponse.json({
             preferenceId: preference.id,
@@ -68,11 +69,6 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('=== ERROR EN CHECKOUT ===');
-        console.error('Error completo:', error);
-        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-        
-        // Determinar el tipo de error
         let errorMessage = 'Error interno del servidor';
         let statusCode = 500;
 

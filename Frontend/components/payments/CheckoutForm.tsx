@@ -40,38 +40,15 @@ export default function CheckoutForm({
             return;
         }
 
-        // Validar que el usuario tenga email y DNI
         if (!user.email || !user.dni) {
             setError('Datos de usuario incompletos. Por favor, contacta al administrador.');
-            console.error('Usuario sin email o DNI:', user);
             return;
         }
-
-        // Debug: mostrar información del usuario
-        console.log('Usuario actual:', user);
-        console.log('DNI del usuario:', user.dni);
-        console.log('Email del usuario:', user.email);
 
         setLoading(true);
         setError('');
 
         try {
-            const checkoutData = {
-                productId,
-                userEmail: user.email,
-                userDni: user.dni,
-            };
-
-            console.log('Datos enviados al checkout:', checkoutData);
-            console.log('Verificando datos antes de enviar:');
-            console.log('- productId:', productId);
-            console.log('- productName:', productName);
-            console.log('- productPrice:', productPrice);
-            console.log('- userEmail:', user.email);
-            console.log('- userDni:', user.dni);
-            console.log('- userDni como string:', user.dni.toString());
-
-            // Usar la función del API de checkout
             const { createCheckoutPreference } = await import('@/api/checkout/checkoutApi');
             const data = await createCheckoutPreference(productId, productName, productPrice, user.email, user.dni.toString());
 
