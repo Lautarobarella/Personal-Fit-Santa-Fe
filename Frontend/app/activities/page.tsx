@@ -30,7 +30,7 @@ export default function ActivitiesPage() {
   const { 
     activities,
     loading,
-    error, 
+    error,
     loadActivitiesByWeek,
     enrollIntoActivity,
     unenrollFromActivity,
@@ -59,7 +59,6 @@ export default function ActivitiesPage() {
       loadActivitiesByWeek(currentWeek)
     }
   }, [currentWeek, loadActivitiesByWeek])
-
 
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean

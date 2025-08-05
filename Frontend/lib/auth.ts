@@ -1,4 +1,4 @@
-import { API_CONFIG } from "./config"
+import { API_CONFIG } from "../api/JWTAuth/config"
 import type { UserType, UserRole } from "./types"
 
 export interface AuthResponse {

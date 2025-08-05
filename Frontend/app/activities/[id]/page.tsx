@@ -30,11 +30,16 @@ export default function EditActivityPage({ params }: { params: { id: number } })
     editActivity,
     loadActivityDetail,
     trainers,
-    loadTrainers } = useActivities()
+    loadTrainers,
+    loading } = useActivities()
     
   useEffect(() => {
     loadTrainers()
     loadActivityDetail(params.id)
+  }, [params.id, loadTrainers, loadActivityDetail])
+
+  // Efecto separado para precargar el formulario cuando selectedActivity cambie
+  useEffect(() => {
     if (selectedActivity) {
       setForm({
         id: selectedActivity.id.toString(),
@@ -48,12 +53,39 @@ export default function EditActivityPage({ params }: { params: { id: number } })
         maxParticipants: selectedActivity.maxParticipants.toString(),
       })
     }
-  }, [params.id])
+  }, [selectedActivity, setForm])
 
   const [errors, setErrors] = useState<Partial<ActivityFormType>>({})
 
   if (!user || (user.role !== "admin" && user.role !== "trainer")) {
-    return <div>No tienes permisos para crear actividades</div>
+    return <div>No tienes permisos para editar actividades</div>
+  }
+
+  // Mostrar loading mientras se cargan los datos
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Cargando actividad...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Verificar que la actividad existe
+  if (!selectedActivity) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-medium">Actividad no encontrada</p>
+          <p className="text-muted-foreground">La actividad que buscas no existe o ha sido eliminada.</p>
+          <Button onClick={() => router.back()} className="mt-4">
+            Volver
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   const validateForm = (): boolean => {
@@ -88,17 +120,19 @@ export default function EditActivityPage({ params }: { params: { id: number } })
     setIsLoading(true)
 
     try {
+      console.log("Enviando datos del formulario:", form)
       editActivity(form)
       toast({
-        title: "Actividad creada",
-        description: "La actividad ha sido creada exitosamente",
+        title: "Actividad actualizada",
+        description: "La actividad ha sido actualizada exitosamente",
       })
 
       router.push("/activities")
     } catch (error) {
+      console.error("Error al actualizar actividad:", error)
       toast({
         title: "Error",
-        description: "No se pudo crear la actividad",
+        description: "No se pudo actualizar la actividad",
         variant: "destructive",
       })
     } finally {
@@ -115,14 +149,14 @@ export default function EditActivityPage({ params }: { params: { id: number } })
 
   return (
     <div className="min-h-screen bg-background">
-      <MobileHeader title="Nueva Actividad" showBack onBack={() => router.back()} />
+      <MobileHeader title="Editar Actividad" showBack onBack={() => router.back()} />
 
       <div className="container-centered py-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Crear Nueva Actividad
+              Editar Actividad
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -259,7 +293,7 @@ export default function EditActivityPage({ params }: { params: { id: number } })
                 </Button>
                 <Button type="submit" disabled={isLoading} className="flex-1">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Crear Actividad
+                  Actualizar Actividad
                 </Button>
               </div>
             </form>

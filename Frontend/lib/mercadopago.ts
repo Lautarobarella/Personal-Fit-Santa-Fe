@@ -29,8 +29,8 @@ const getApiBaseUrl = () => {
     return process.env.NEXT_PUBLIC_BASE_URL;
   }
   
-  // En el servidor, usar la IP del servidor de producción
-  return 'http://72.60.1.76:8080';
+  // En el servidor, usar el dominio de producción
+  return 'https://personalfitsantafe.com';
 };
 
 // Configuración para las URLs del frontend (donde están los webhooks)
@@ -40,8 +40,8 @@ const getFrontendBaseUrl = () => {
     return process.env.NEXT_PUBLIC_FRONTEND_URL;
   }
   
-  // En el servidor, usar la IP del servidor de producción para el frontend
-  return 'http://72.60.1.76:3000';
+  // En el servidor, usar el dominio de producción para el frontend
+  return 'https://personalfitsantafe.com';
 };
 
 /**

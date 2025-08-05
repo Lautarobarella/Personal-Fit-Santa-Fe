@@ -1,4 +1,4 @@
-import { ApiError } from './api'
+import { ApiError } from '../api/JWTAuth/api'
 import { toast } from '@/hooks/use-toast'
 
 /**

@@ -18,9 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useClients } from "@/hooks/use-client"
 
 
-//  HACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER
-
-export default function NewClientPage() {
+export default function EditClientPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -30,7 +28,7 @@ export default function NewClientPage() {
   const [errors, setErrors] = useState<Partial<UserFormType>>({})
 
   if (!user || user.role !== "admin") {
-    return <div>No tienes permisos para crear clientes</div>
+    return <div>No tienes permisos para editar clientes</div>
   }
 
   const validateForm = (): boolean => {

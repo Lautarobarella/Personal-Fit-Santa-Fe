@@ -134,6 +134,18 @@ public class ActivityServiceImpl implements IActivityService {
         
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
         
+        // Actualizar fecha y hora si se proporcionan
+        LocalDateTime newDateTime = null;
+        if (activity.getDate() != null && activity.getTime() != null) {
+            newDateTime = LocalDateTime.of(activity.getDate(), activity.getTime());
+        } else if (activity.getDate() != null) {
+            // Si solo se proporciona la fecha, mantener la hora actual
+            newDateTime = LocalDateTime.of(activity.getDate(), existingActivity.getDate().toLocalTime());
+        } else if (activity.getTime() != null) {
+            // Si solo se proporciona la hora, mantener la fecha actual
+            newDateTime = LocalDateTime.of(existingActivity.getDate().toLocalDate(), activity.getTime());
+        }
+        
         existingActivity.setName(activity.getName());
         existingActivity.setDescription(activity.getDescription());
         existingActivity.setLocation(activity.getLocation());
@@ -141,6 +153,11 @@ public class ActivityServiceImpl implements IActivityService {
         existingActivity.setDuration(Integer.parseInt(activity.getDuration()));
         existingActivity.setTrainer(trainer);
         existingActivity.setIsRecurring(activity.getIsRecurring());
+        
+        // Actualizar la fecha solo si se proporcionó una nueva
+        if (newDateTime != null) {
+            existingActivity.setDate(newDateTime);
+        }
         
         try {
             activityRepository.save(existingActivity);

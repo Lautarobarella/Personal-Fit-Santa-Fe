@@ -1,4 +1,4 @@
-import { getAccessToken, refreshAccessToken } from './auth';
+import { getAccessToken, refreshAccessToken } from '../../lib/auth';
 import { API_CONFIG } from './config';
 
 // Custom error class for API errors

@@ -1,5 +1,5 @@
-import { jwtPermissionsApi } from "@/lib/api";
-import { buildFileUrl } from "@/lib/config";
+import { jwtPermissionsApi } from "@/api/JWTAuth/api";
+import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
 import { NewPaymentInput } from "@/lib/types";
 

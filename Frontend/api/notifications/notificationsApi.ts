@@ -1,4 +1,4 @@
-import { jwtPermissionsApi } from "@/lib/api";
+import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { handleApiError } from "@/lib/error-handler";
 
 export async function fetchNotifications() {

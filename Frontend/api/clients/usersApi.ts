@@ -1,4 +1,4 @@
-import { jwtPermissionsApi } from "@/lib/api";
+import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { UserFormType } from "@/lib/types";
 import { handleApiError, isValidationError, handleValidationError } from "@/lib/error-handler";
 

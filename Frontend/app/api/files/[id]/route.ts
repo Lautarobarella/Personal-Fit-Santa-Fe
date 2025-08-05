@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_CONFIG } from '@/lib/config';
+import { API_CONFIG } from '@/api/JWTAuth/config';
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +20,7 @@ export async function GET(
 
     // Hacer la petición al backend con el token
     // Usar la URL del backend directamente, no la del frontend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://72.60.1.76:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://personalfitsantafe.com';
     const response = await fetch(`${backendUrl}/api/files/${fileId}`, {
       headers: {
         'Authorization': authHeader,

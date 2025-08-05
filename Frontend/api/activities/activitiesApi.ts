@@ -1,4 +1,4 @@
-import { jwtPermissionsApi } from "@/lib/api";
+import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { ActivityFormType, Attendance, EnrollmentRequest } from "@/lib/types";
 import { handleApiError, isValidationError, handleValidationError } from "@/lib/error-handler";
 
@@ -29,7 +29,7 @@ export async function fetchActivitiesByDate(date: Date) {
 
 export async function fetchActivityDetail(id: number) {
   try {
-    return await jwtPermissionsApi.get(`/api/activities/info/${id}`);
+    return await jwtPermissionsApi.get(`/api/activities/${id}`);
   } catch (error) {
     handleApiError(error, 'Error al cargar los detalles de la actividad');
     throw error;
@@ -51,7 +51,14 @@ export async function newActivity(activity: ActivityFormType) {
 
 export async function editActivityBack(activity: ActivityFormType) {
   try {
-    return await jwtPermissionsApi.put(`/api/activities/${activity.id}`, activity);
+    // Transformar los datos para que coincidan con el formato esperado por el backend
+    const transformedActivity = {
+      ...activity,
+      date: activity.date, // El backend espera LocalDate
+      time: activity.time, // El backend espera LocalTime
+    };
+    
+    return await jwtPermissionsApi.put(`/api/activities/${activity.id}`, transformedActivity);
   } catch (error) {
     if (isValidationError(error)) {
       handleValidationError(error);

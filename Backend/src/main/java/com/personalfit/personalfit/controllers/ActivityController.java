@@ -51,7 +51,7 @@ public class ActivityController {
         return ResponseEntity.ok(activities);
     }
 
-    @GetMapping("/info/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ActivityDetailInfoDTO> getActivityInfo(@PathVariable Long id) {
         ActivityDetailInfoDTO activityInfo = activityService.getActivityDetailInfo(id);
         return ResponseEntity.ok(activityInfo);
