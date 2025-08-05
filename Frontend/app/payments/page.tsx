@@ -2,8 +2,9 @@
 
 import { useAuth } from "@/components/providers/auth-provider"
 import { usePayment } from "@/hooks/use-payment"
+import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -27,11 +28,20 @@ import {
 export default function PaymentsPage() {
     const { user } = useAuth()
     const [searchTerm, setSearchTerm] = useState("")
+    const queryClient = useQueryClient()
 
     const {
         payments,
         updatePaymentStatus,
+        isLoading,
     } = usePayment(user?.id, user?.role === "admin")
+
+    // Forzar actualización de datos cuando se monta el componente
+    useEffect(() => {
+        if (user?.id) {
+            queryClient.invalidateQueries({ queryKey: ["payments", user.id] })
+        }
+    }, [user?.id, queryClient])
 
     const [verificationDialog, setVerificationDialog] = useState({
         open: false,
@@ -97,11 +107,18 @@ export default function PaymentsPage() {
             p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase()),
     )
-
     const paidPayments = filteredPayments.filter((p) => p.status === "paid")
     const pendingPayments = filteredPayments.filter((p) => p.status === "pending")
-
     const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0)
+
+    // Lógica para determinar si el cliente puede crear un nuevo pago
+    const canCreateNewPayment = user.role === "client" && 
+        user.status !== "active" && 
+        pendingPayments.length === 0
+
+    // Obtener información del plan activo si existe
+    const activePayment = paidPayments.find(p => p.status === "paid")
+    const pendingPayment = pendingPayments.find(p => p.status === "pending")
 
     const handleVerificationClick = (id: number) => {
         setVerificationDialog({ open: true, paymentId: id })
@@ -116,9 +133,14 @@ export default function PaymentsPage() {
                         {user.role === "admin" ? (
                             <>
                                 <Link href={pendingPayments.length <= 0 ? '#' : '/payments/verify'}
-                                    className={pendingPayments.length <= 0 ? 'disabled-link' : ''}
+                                    className={pendingPayments.length <= 0 ? 'pointer-events-none' : ''}
                                     aria-disabled={pendingPayments.length <= 0}>
-                                    <Button size="sm" variant="outline" className="bg-transparent">
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className={`bg-transparent ${pendingPayments.length <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        disabled={pendingPayments.length <= 0}
+                                    >
                                         <FileCheck className="h-4 w-4" />
                                         Verificar ({pendingPayments.length})
                                     </Button>
@@ -131,14 +153,41 @@ export default function PaymentsPage() {
                                 </Link>
                             </>
                         ) : user.role === "client" ? (
-                            <Link href="/payments/method-select" className={((user.status === "active") || pendingPayments.length > 0)? 'disabled-link' : ''}
-                            aria-disabled={((user.status === "active") || pendingPayments.length > 0)}
-                            tabIndex={((user.status === "active") || pendingPayments.length > 0) ? -1 : 0}>
-                                <Button size="sm">
-                                    <Plus className="h-4 w-4" />
-                                    {((user.status === "active") || pendingPayments.length > 0)? 'condicion activa' : 'inactiva'}
-                                </Button>
-                            </Link>
+                            <div className="relative">
+                                {isLoading ? (
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="btn-disabled"
+                                        disabled
+                                    >
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500 mr-2"></div>
+                                        Cargando...
+                                    </Button>
+                                ) : canCreateNewPayment ? (
+                                    <Link href="/payments/method-select">
+                                        <Button size="sm">
+                                            <Plus className="h-4 w-4" />
+                                            Nuevo
+                                        </Button>
+                                    </Link>
+                                ) : (
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="btn-disabled"
+                                        disabled
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        {activePayment 
+                                            ? `Plan vigente hasta: ${formatDate(activePayment.expiresAt)}`
+                                            : pendingPayment 
+                                                ? "Pago pendiente de revisión"
+                                                : "Nuevo"
+                                        }
+                                    </Button>
+                                )}
+                            </div>
                         ) : null}
                     </div>
                 }

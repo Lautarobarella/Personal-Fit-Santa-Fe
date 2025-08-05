@@ -98,6 +98,21 @@
 
 @layer components {
   /* Custom container that centers content on all screen sizes */
+  
+  /* Estilos para botones deshabilitados */
+  .btn-disabled {
+    @apply opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-300;
+    pointer-events: none;
+  }
+  
+  .btn-disabled:hover {
+    @apply opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-300;
+  }
+  
+  .btn-disabled:focus {
+    @apply opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-300;
+    outline: none;
+  }
   .container-centered {
     @apply w-full max-w-4xl mx-auto px-4;
   }
