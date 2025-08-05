@@ -65,6 +65,8 @@ export default function CheckoutForm({
             console.log('Datos enviados al checkout:', checkoutData);
             console.log('Verificando datos antes de enviar:');
             console.log('- productId:', productId);
+            console.log('- productName:', productName);
+            console.log('- productPrice:', productPrice);
             console.log('- userEmail:', user.email);
             console.log('- userDni:', user.dni);
             console.log('- userDni como string:', user.dni.toString());

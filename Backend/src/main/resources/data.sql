@@ -1,6 +1,10 @@
 -- Insert test users with encrypted passwords (BCrypt)
 -- Password for all users: "password123"
 
+-- Configuraciones de la aplicación
+INSERT INTO app_settings (setting_key, setting_value, description, created_at) VALUES
+('monthly_fee', '25000', 'Cuota mensual del gimnasio', NOW());
+
 -- Administrador
 INSERT INTO app_user (id, first_name, last_name, password, phone, email, avatar, join_date, address, birth_date, dni, role, status, deleted_at) VALUES
 (1,'Admin', 'Principal', '$2a$12$kgRB78e1gpWApw65ve9x.efM9qpuupQUi6VPTiM4nzW39eoecMB6m', '+1234567890', 'admin@personalfit.com', 'AP', '2024-01-01', '123 Admin St', '1990-01-01', 12345678, 'admin', 'active', NULL);

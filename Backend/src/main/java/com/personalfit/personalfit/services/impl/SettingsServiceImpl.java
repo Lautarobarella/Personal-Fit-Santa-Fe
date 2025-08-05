@@ -1,19 +1,31 @@
 package com.personalfit.personalfit.services.impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.personalfit.personalfit.models.Settings;
+import com.personalfit.personalfit.repository.ISettingsRepository;
 import com.personalfit.personalfit.services.ISettingsService;
 
 @Service
 public class SettingsServiceImpl implements ISettingsService {
     
-    // For now, we'll use a simple in-memory storage
-    // In a production environment, this should be stored in a database
-    private static Double monthlyFee = 25000.0; // Default value
+    @Autowired
+    private ISettingsRepository settingsRepository;
+    
+    private static final String MONTHLY_FEE_KEY = "monthly_fee";
+    private static final Double DEFAULT_MONTHLY_FEE = 25000.0;
 
     @Override
     public Double getMonthlyFee() {
-        return monthlyFee;
+        try {
+            Settings setting = settingsRepository.findByKey(MONTHLY_FEE_KEY)
+                .orElseGet(() -> createDefaultMonthlyFeeSetting());
+            return Double.parseDouble(setting.getValue());
+        } catch (Exception e) {
+            // En caso de error, retornar el valor por defecto
+            return DEFAULT_MONTHLY_FEE;
+        }
     }
 
     @Override
@@ -21,7 +33,26 @@ public class SettingsServiceImpl implements ISettingsService {
         if (amount == null || amount <= 0) {
             throw new IllegalArgumentException("Monthly fee must be a positive number");
         }
-        monthlyFee = amount;
-        return monthlyFee;
+        
+        Settings setting = settingsRepository.findByKey(MONTHLY_FEE_KEY)
+            .orElseGet(() -> new Settings(MONTHLY_FEE_KEY, amount.toString(), "Cuota mensual del gimnasio"));
+        
+        setting.setValue(amount.toString());
+        settingsRepository.save(setting);
+        
+        return amount;
+    }
+    
+    /**
+     * Crea la configuración por defecto de la cuota mensual
+     * @return Settings - Configuración creada
+     */
+    private Settings createDefaultMonthlyFeeSetting() {
+        Settings setting = new Settings(
+            MONTHLY_FEE_KEY, 
+            DEFAULT_MONTHLY_FEE.toString(), 
+            "Cuota mensual del gimnasio"
+        );
+        return settingsRepository.save(setting);
     }
 } 

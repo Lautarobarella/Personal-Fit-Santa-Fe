@@ -1,19 +1,18 @@
 import { createSingleProductPreference } from '@/lib/mercadopago';
-import { getProductById } from '@/lib/products';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
     try {
         console.log('=== INICIO DE CHECKOUT ===');
         
-        const { productId, userEmail, userDni } = await request.json();
-        console.log('Datos recibidos:', { productId, userEmail, userDni });
+        const { productId, productName, productPrice, userEmail, userDni } = await request.json();
+        console.log('Datos recibidos:', { productId, productName, productPrice, userEmail, userDni });
 
-        // Validar que se envió el productId, userEmail y userDni
-        if (!productId || !userEmail || !userDni) {
-            console.error('Datos faltantes:', { productId, userEmail, userDni });
+        // Validar que se envió el productId, productName, productPrice, userEmail y userDni
+        if (!productId || !productName || !productPrice || !userEmail || !userDni) {
+            console.error('Datos faltantes:', { productId, productName, productPrice, userEmail, userDni });
             return NextResponse.json(
-                { error: 'Faltan datos requeridos: productId, userEmail y userDni' },
+                { error: 'Faltan datos requeridos: productId, productName, productPrice, userEmail y userDni' },
                 { status: 400 }
             );
         }
@@ -29,17 +28,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Obtener el producto
-        console.log('Buscando producto con ID:', productId);
-        const product = await getProductById(productId);
-        if (!product) {
-            console.error('Producto no encontrado:', productId);
-            return NextResponse.json(
-                { error: 'Producto no encontrado' },
-                { status: 404 }
-            );
-        }
-        console.log('Producto encontrado:', product);
+        // Usar los datos del producto que ya fueron enviados desde el frontend
+        console.log('Usando datos del producto enviados desde el frontend:');
+        console.log('- ID:', productId);
+        console.log('- Nombre:', productName);
+        console.log('- Precio:', productPrice);
 
         // Generar ID de transacción único incluyendo el DNI del usuario
         const transactionId = `${userDni}-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -48,10 +41,10 @@ export async function POST(request: NextRequest) {
         // Crear preferencia de MercadoPago
         console.log('Creando preferencia de MercadoPago...');
         const preference = await createSingleProductPreference({
-            productName: product.name,
-            productDescription: product.description,
-            productId: product.id,
-            productPrice: product.price,
+            productName: productName,
+            productDescription: 'Cuota mensual gimnasio Personal Fit',
+            productId: productId,
+            productPrice: productPrice,
             userEmail,
             userDni,
             transactionId,
