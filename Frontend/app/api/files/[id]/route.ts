@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_CONFIG } from '@/api/JWTAuth/config';
 
 export async function GET(
   request: NextRequest,
@@ -8,24 +7,10 @@ export async function GET(
   try {
     const fileId = params.id;
     
-    // Obtener el token de autorización del header
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      );
-    }
-
-    // Hacer la petición al backend con el token
+    // Hacer la petición al backend (ahora sin autenticación requerida)
     // Usar la URL del backend directamente, no la del frontend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://personalfitsantafe.com';
-    const response = await fetch(`${backendUrl}/api/files/${fileId}`, {
-      headers: {
-        'Authorization': authHeader,
-      },
-    });
+    const response = await fetch(`${backendUrl}/api/files/${fileId}`);
 
     if (!response.ok) {
       console.error(`Backend responded with status: ${response.status}`);

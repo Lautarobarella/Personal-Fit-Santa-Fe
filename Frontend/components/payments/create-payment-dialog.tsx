@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { getAccessToken } from "@/lib/auth"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
@@ -49,17 +50,41 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [startDate, setStartDate] = useState(startDateStr)
     const [dueDate, setDueDate] = useState(dueDateStr)
 
-    // Auto-populate fields for client role
-    const defaultAmount = user?.role === "client" ? "25000" : ""
-    const [amount, setAmount] = useState(defaultAmount)
+    const [amount, setAmount] = useState("")
+    const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
+    
+    // Fetch monthly fee when component mounts
+    useEffect(() => {
+        const fetchMonthlyFee = async () => {
+            try {
+                const token = getAccessToken()
+                if (!token) return
+
+                const response = await fetch('/api/settings/monthly-fee', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                })
+
+                if (response.ok) {
+                    const fee = await response.json()
+                    setMonthlyFee(fee)
+                }
+            } catch (error) {
+                console.error('Error fetching monthly fee:', error)
+            }
+        }
+
+        fetchMonthlyFee()
+    }, [])
     
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
-        if (open && user?.role === "client") {
+        if (open && user?.role === "client" && monthlyFee !== null) {
             setSelectedClient(user.dni?.toString() || "")
-            setAmount("25000")
+            setAmount(monthlyFee.toString())
         }
-    }, [open, user])
+    }, [open, user, monthlyFee])
     
     const [isUploading, setIsUploading] = useState(false)
     const { toast } = useToast()
@@ -259,7 +284,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             step="0.01"
                             placeholder="150.00"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            readOnly
+                            className="bg-gray-50"
                         />
                     </div>
 

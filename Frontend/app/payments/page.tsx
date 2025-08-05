@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/providers/auth-provider"
 import { usePayment } from "@/hooks/use-payment"
+import { getAccessToken } from "@/lib/auth"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -28,6 +29,7 @@ import {
 export default function PaymentsPage() {
     const { user } = useAuth()
     const [searchTerm, setSearchTerm] = useState("")
+    const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
     const queryClient = useQueryClient()
 
     const {
@@ -42,6 +44,31 @@ export default function PaymentsPage() {
             queryClient.invalidateQueries({ queryKey: ["payments", user.id] })
         }
     }, [user?.id, queryClient])
+
+    // Fetch monthly fee
+    useEffect(() => {
+        const fetchMonthlyFee = async () => {
+            try {
+                const token = getAccessToken()
+                if (!token) return
+
+                const response = await fetch('/api/settings/monthly-fee', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                })
+
+                if (response.ok) {
+                    const fee = await response.json()
+                    setMonthlyFee(fee)
+                }
+            } catch (error) {
+                console.error('Error fetching monthly fee:', error)
+            }
+        }
+
+        fetchMonthlyFee()
+    }, [])
 
     // Forzar actualización adicional cuando se detecta que viene de una página de resultado
     useEffect(() => {
@@ -136,7 +163,8 @@ export default function PaymentsPage() {
     // Lógica para determinar si el cliente puede crear un nuevo pago
     const canCreateNewPayment = user.role === "client" &&
         user.status !== "active" &&
-        pendingPayments.length === 0
+        pendingPayments.length === 0 &&
+        monthlyFee !== null
 
     // Obtener información del plan activo si existe
     const activePayment = paidPayments.find(p => p.status === "paid")

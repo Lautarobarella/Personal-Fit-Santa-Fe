@@ -1,7 +1,6 @@
 "use client"
 
-import { getAccessToken } from "@/lib/auth";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface AuthenticatedImageProps {
   fileId: number | null | undefined;
@@ -32,19 +31,10 @@ export function AuthenticatedImage({
         setIsLoading(true);
         setError(false);
 
-        const token = getAccessToken();
-        if (!token) {
-          throw new Error('No access token available');
-        }
-
-        // Usar el endpoint proxy del frontend
+        // Usar el endpoint proxy del frontend (ahora sin autenticación requerida)
         const url = `/api/files/${fileId}`;
 
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(url);
 
         if (!response.ok) {
           throw new Error(`Failed to load image: ${response.status}`);
