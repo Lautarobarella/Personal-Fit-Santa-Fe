@@ -56,20 +56,9 @@ export default function CheckoutForm({
 
             console.log('Datos enviados al checkout:', checkoutData);
 
-            // Usar el endpoint del frontend (Next.js API route)
-            const response = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(checkoutData),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Error al crear la preferencia de pago');
-            }
+            // Usar la función del API de checkout
+            const { createCheckoutPreference } = await import('@/api/checkout/checkoutApi');
+            const data = await createCheckoutPreference(productId, productName, productPrice);
 
             if (data.sandboxInitPoint) {
                 window.location.href = data.sandboxInitPoint;

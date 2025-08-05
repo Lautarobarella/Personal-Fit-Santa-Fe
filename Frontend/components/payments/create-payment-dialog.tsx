@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { getAccessToken } from "@/lib/auth"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
@@ -57,19 +56,9 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     useEffect(() => {
         const fetchMonthlyFee = async () => {
             try {
-                const token = getAccessToken()
-                if (!token) return
-
-                const response = await fetch('/api/settings/monthly-fee', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                })
-
-                if (response.ok) {
-                    const fee = await response.json()
-                    setMonthlyFee(fee)
-                }
+                const { fetchMonthlyFee: fetchFee } = await import('@/api/settings/settingsApi')
+                const fee = await fetchFee()
+                setMonthlyFee(fee)
             } catch (error) {
                 console.error('Error fetching monthly fee:', error)
             }
@@ -80,8 +69,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
-        if (open && user?.role === "client" && monthlyFee !== null) {
-            setSelectedClient(user.dni?.toString() || "")
+        if (open && user && monthlyFee !== null) {
+            setSelectedClient((user.role==="client")? user.dni?.toString() : "")
             setAmount(monthlyFee.toString())
         }
     }, [open, user, monthlyFee])

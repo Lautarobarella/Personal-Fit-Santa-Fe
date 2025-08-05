@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/components/providers/auth-provider"
 import { usePayment } from "@/hooks/use-payment"
-import { getAccessToken } from "@/lib/auth"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -49,19 +48,9 @@ export default function PaymentsPage() {
     useEffect(() => {
         const fetchMonthlyFee = async () => {
             try {
-                const token = getAccessToken()
-                if (!token) return
-
-                const response = await fetch('/api/settings/monthly-fee', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                })
-
-                if (response.ok) {
-                    const fee = await response.json()
-                    setMonthlyFee(fee)
-                }
+                const { fetchMonthlyFee: fetchFee } = await import('@/api/settings/settingsApi')
+                const fee = await fetchFee()
+                setMonthlyFee(fee)
             } catch (error) {
                 console.error('Error fetching monthly fee:', error)
             }

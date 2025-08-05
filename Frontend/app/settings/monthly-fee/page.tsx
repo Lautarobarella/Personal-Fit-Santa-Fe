@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useToast } from "@/hooks/use-toast"
-import { getAccessToken } from "@/lib/auth"
 import { ArrowLeft, DollarSign } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -33,19 +32,9 @@ export default function MonthlyFeePage() {
     const fetchMonthlyFee = async () => {
       try {
         setIsLoading(true)
-        const token = getAccessToken()
-        if (!token) return
-
-        const response = await fetch('/api/settings/monthly-fee', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-
-        if (response.ok) {
-          const fee = await response.json()
-          setMonthlyFee(fee.toString())
-        }
+        const { fetchMonthlyFee: fetchFee } = await import('@/api/settings/settingsApi')
+        const fee = await fetchFee()
+        setMonthlyFee(fee.toString())
       } catch (error) {
         console.error('Error fetching monthly fee:', error)
         toast({
@@ -66,9 +55,6 @@ export default function MonthlyFeePage() {
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      const token = getAccessToken()
-      if (!token) return
-
       const amount = parseFloat(monthlyFee)
       if (isNaN(amount) || amount <= 0) {
         toast({
@@ -79,24 +65,14 @@ export default function MonthlyFeePage() {
         return
       }
 
-      const response = await fetch('/api/settings/monthly-fee', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount }),
-      })
+      const { updateMonthlyFee } = await import('@/api/settings/settingsApi')
+      await updateMonthlyFee(amount)
 
-      if (response.ok) {
-        toast({
-          title: "Éxito",
-          description: "El valor de la cuota se actualizó correctamente",
-        })
-        router.push("/settings")
-      } else {
-        throw new Error('Failed to update monthly fee')
-      }
+      toast({
+        title: "Éxito",
+        description: "El valor de la cuota se actualizó correctamente",
+      })
+      router.push("/settings")
     } catch (error) {
       console.error('Error updating monthly fee:', error)
       toast({
