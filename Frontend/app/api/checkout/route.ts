@@ -71,11 +71,7 @@ export async function POST(request: NextRequest) {
             payment_methods: {
                 excluded_payment_methods: [
                     { id: "rapipago" },
-                    { id: "pagofacil" },
-                    { id: "bapropagos" },
-                    { id: "cargavirtual" },
-                    { id: "redlink" },
-                    { id: "account_money" }
+                    { id: "pagofacil" }
                 ],
                 excluded_payment_types: [
                     { id: "ticket" },
