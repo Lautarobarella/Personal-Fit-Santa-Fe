@@ -18,10 +18,10 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   const queryClient = useQueryClient()
 
   const { data: payments = [], isLoading, error } = useQuery<PaymentType[]>({
-    queryKey: ["payments", userId],
+    queryKey: isAdmin ? ["payments", "admin"] : ["payments", userId],
     queryFn: () =>
       isAdmin ? fetchPayments() : fetchPaymentsById(userId ?? 0),
-    enabled: !!userId, // evita cargar si no hay usuario
+    enabled: isAdmin || !!userId, // evita cargar si no hay usuario y no es admin
   })
 
   const fetchSinglePayment = useCallback(
@@ -39,7 +39,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) => 
       createPaymentWithStatus(data.paymentData, data.isMercadoPagoPayment),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
+      // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
     },
   })
 
@@ -54,7 +55,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       rejectionReason?: string
     }) => updatePayment(id, status, rejectionReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
+      // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
     },
   })
 

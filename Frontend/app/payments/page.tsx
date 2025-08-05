@@ -39,8 +39,9 @@ export default function PaymentsPage() {
 
     // Forzar actualización de datos cuando se monta el componente
     useEffect(() => {
-        if (user?.id) {
-            queryClient.invalidateQueries({ queryKey: ["payments", user.id] })
+        if (user?.id || user?.role === "admin") {
+            const queryKey = user?.role === "admin" ? ["payments", "admin"] : ["payments", user.id]
+            queryClient.invalidateQueries({ queryKey })
             
             // Verificar si hay un flag de actualización desde un pago nuevo
             const shouldRefresh = localStorage.getItem('refreshPayments')
@@ -48,11 +49,11 @@ export default function PaymentsPage() {
                 localStorage.removeItem('refreshPayments')
                 // Forzar actualización adicional después de un breve delay
                 setTimeout(() => {
-                    queryClient.invalidateQueries({ queryKey: ["payments", user.id] })
+                    queryClient.invalidateQueries({ queryKey })
                 }, 1000)
             }
         }
-    }, [user?.id, queryClient])
+    }, [user?.id, user?.role, queryClient])
 
     // Fetch monthly fee
     useEffect(() => {
@@ -79,8 +80,9 @@ export default function PaymentsPage() {
                 referrer.includes('/payments/result/pending') ||
                 referrer.includes('/payments/result/failure')
             )) {
-                if (user?.id) {
-                    queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
+                if (user?.id || user?.role === "admin") {
+                    const queryKey = user?.role === "admin" ? ["payments", "admin"] : ["payments", user.id]
+                    queryClient.invalidateQueries({ queryKey });
                 }
             }
         };
@@ -88,7 +90,7 @@ export default function PaymentsPage() {
         // Ejecutar después de un pequeño delay para asegurar que el componente esté montado
         const timer = setTimeout(checkIfFromPaymentResult, 100);
         return () => clearTimeout(timer);
-    }, [user?.id, queryClient]);
+    }, [user?.id, user?.role, queryClient]);
 
     const [verificationDialog, setVerificationDialog] = useState({
         open: false,
