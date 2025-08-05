@@ -13,9 +13,9 @@ services:
     networks:
       - personalfit-network
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: personalfit
+      POSTGRES_USER: personalfit_user
+      POSTGRES_PASSWORD: secret123
       POSTGRES_INITDB_ARGS: "--auth-host=md5"
     volumes:
       - pgdata:/var/lib/postgresql/data
