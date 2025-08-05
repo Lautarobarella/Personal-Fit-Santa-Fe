@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Textarea } from "../ui/textarea"
@@ -49,7 +49,18 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [startDate, setStartDate] = useState(startDateStr)
     const [dueDate, setDueDate] = useState(dueDateStr)
 
-    const [amount, setAmount] = useState("")
+    // Auto-populate fields for client role
+    const defaultAmount = user?.role === "client" ? "25000" : ""
+    const [amount, setAmount] = useState(defaultAmount)
+    
+    // Auto-populate fields when dialog opens for client role
+    useEffect(() => {
+        if (open && user?.role === "client") {
+            setSelectedClient(user.dni?.toString() || "")
+            setAmount("25000")
+        }
+    }, [open, user])
+    
     const [isUploading, setIsUploading] = useState(false)
     const { toast } = useToast()
     const [selectedFile, setSelectedFile] = useState<File | null>(null)

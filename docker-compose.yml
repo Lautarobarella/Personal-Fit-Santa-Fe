@@ -53,10 +53,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # URLs para producción - frontend maneja sus propias API routes
-      NEXT_PUBLIC_API_URL: https://personalfitsantafe.com
+      # URLs para comunicación interna entre servicios Docker
+      NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
       NEXT_PUBLIC_FRONTEND_URL: https://personalfitsantafe.com
-      NEXT_PUBLIC_FILES_URL: https://personalfitsantafe.com
+      NEXT_PUBLIC_FILES_URL: http://personalfit-backend:8080
       
       # Configuración de MercadoPago
       MP_ACCESS_TOKEN: TEST-1385388116353883-080413-b197af2289492f91ced7a5efe5ac0029-288248460
