@@ -131,7 +131,9 @@ export default function PaymentsPage() {
                                 </Link>
                             </>
                         ) : user.role === "client" ? (
-                            <Link href="/payments/method-select">
+                            <Link href="/payments/method-select" className={((user.status === "active" && user.role==='client') || pendingPayments.length > 0)? 'pointer-events-none' : ''}
+                            aria-disabled={((user.status === "active" && user.role==='client') || pendingPayments.length > 0)}
+                            tabIndex={((user.status === "active" && user.role==='client') || pendingPayments.length > 0) ? -1 : undefined}>
                                 <Button size="sm">
                                     <Plus className="h-4 w-4" />
                                     Nuevo
