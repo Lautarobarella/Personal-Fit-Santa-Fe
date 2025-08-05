@@ -89,12 +89,12 @@ export default function CheckoutForm({
     // Si no hay usuario, mostrar mensaje
     if (!user) {
         return (
-            <div className="card">
+            <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="text-center py-8">
                     <p className="text-gray-600 mb-4">Debes estar logueado para realizar un pago</p>
                     <button
                         onClick={() => router.push('/login')}
-                        className="btn-primary"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
                     >
                         Iniciar Sesión
                     </button>
@@ -104,31 +104,31 @@ export default function CheckoutForm({
     }
 
     return (
-        <div className="card">
-            <div className="card-header">
-                <h3 className="text-lg font-semibold">Confirmar Pago</h3>
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Confirmar Pago</h3>
             </div>
-            <div className="card-body">
-                <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Producto:</span>
-                        <span className="font-medium">{productName}</span>
+            <div className="p-6">
+                <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="text-gray-600 text-sm">Producto:</span>
+                        <span className="font-medium text-gray-900">{productName}</span>
                     </div>
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Precio:</span>
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="text-gray-600 text-sm">Precio:</span>
                         <span className="text-xl font-bold text-green-600">
                             ${productPrice.toLocaleString('es-AR')}
                         </span>
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Cliente:</span>
-                        <span className="font-medium">{user.firstName} {user.lastName}</span>
+                        <span className="text-gray-600 text-sm">Cliente:</span>
+                        <span className="font-medium text-gray-900">{user.firstName} {user.lastName}</span>
                     </div>
                 </div>
 
                 {error && (
-                    <div className="alert alert-danger mb-4">
-                        {error}
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                        <p className="text-red-600 text-sm">{error}</p>
                     </div>
                 )}
 
@@ -136,7 +136,7 @@ export default function CheckoutForm({
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="btn-secondary flex-1"
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={loading}
                     >
                         Cancelar
@@ -144,7 +144,7 @@ export default function CheckoutForm({
                     <button
                         type="submit"
                         onClick={handleSubmit}
-                        className="btn-primary flex-1"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={loading}
                     >
                         {loading ? 'Procesando...' : 'Pagar con MercadoPago'}
