@@ -1,29 +1,27 @@
 package com.personalfit.personalfit.services.impl;
 
-import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
-import com.personalfit.personalfit.dto.InCreateUserDTO;
-import com.personalfit.personalfit.dto.PaymentTypeDTO;
-import com.personalfit.personalfit.dto.UserDetailInfoDTO;
-import com.personalfit.personalfit.dto.UserTypeDTO;
-import com.personalfit.personalfit.exceptions.NoUserWithDniException;
-import com.personalfit.personalfit.exceptions.NoUserWithIdException;
-import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
-import com.personalfit.personalfit.models.Payment;
-import com.personalfit.personalfit.models.User;
-import com.personalfit.personalfit.repository.IUserRepository;
-import com.personalfit.personalfit.services.IPaymentService;
-import com.personalfit.personalfit.services.IUserService;
-import com.personalfit.personalfit.utils.UserRole;
-import com.personalfit.personalfit.utils.UserStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.personalfit.personalfit.dto.InCreateUserDTO;
+import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
+import com.personalfit.personalfit.dto.UserDetailInfoDTO;
+import com.personalfit.personalfit.dto.UserTypeDTO;
+import com.personalfit.personalfit.exceptions.NoUserWithDniException;
+import com.personalfit.personalfit.exceptions.NoUserWithIdException;
+import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
+import com.personalfit.personalfit.models.User;
+import com.personalfit.personalfit.repository.IUserRepository;
+import com.personalfit.personalfit.services.IUserService;
+import com.personalfit.personalfit.utils.UserRole;
+import com.personalfit.personalfit.utils.UserStatus;
 
 @Service
 public class UserServiceImpl implements IUserService {

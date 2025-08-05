@@ -12,44 +12,6 @@ export async function fetchPayments() {
   }
 }
 
-export async function createPayment(paymentData: NewPaymentInput) {
-  const {
-    clientDni,
-    amount,
-    createdAt,
-    expiresAt,
-    file,
-    paymentStatus,
-  } = paymentData
-
-  const formData = new FormData()
-
-  const payment = {
-    clientDni,
-    amount,
-    createdAt: new Date(createdAt + "T00:00:00").toISOString().slice(0, 19),
-    expiresAt: new Date(expiresAt + "T00:00:00").toISOString().slice(0, 19),
-    paymentStatus,
-  }
-
-  formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }))
-
-  if (file) {
-    formData.append("file", file)
-  }
-
-  try {
-    return await jwtPermissionsApi.post('/api/payments/new', formData);
-  } catch (error) {
-    if (isValidationError(error)) {
-      handleValidationError(error);
-    } else {
-      handleApiError(error, 'Error al crear el pago');
-    }
-    throw error;
-  }
-}
-
 export async function createPaymentWithStatus(paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean = false) {
   const paymentStatus = isMercadoPagoPayment ? "paid" : "pending"
   const formData = new FormData()
@@ -104,15 +66,6 @@ export async function fetchPaymentDetail(id: number) {
     return await jwtPermissionsApi.get(`/api/payments/info/${id}`);
   } catch (error) {
     handleApiError(error, 'Error al cargar los detalles del pago');
-    throw error;
-  }
-}
-
-export async function fetchPendingPaymentDetail() {
-  try {
-    return await jwtPermissionsApi.get('/api/payments/info/pending');
-  } catch (error) {
-    handleApiError(error, 'Error al cargar los pagos pendientes');
     throw error;
   }
 }

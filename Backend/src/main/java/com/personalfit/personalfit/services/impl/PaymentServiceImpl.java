@@ -15,6 +15,7 @@ import com.personalfit.personalfit.dto.InCreatePaymentWithFileDTO;
 import com.personalfit.personalfit.dto.InUpdatePaymentStatusDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
+import com.personalfit.personalfit.exceptions.PaymentAlreadyExistsException;
 import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
 import com.personalfit.personalfit.models.User;
@@ -22,6 +23,7 @@ import com.personalfit.personalfit.repository.IPaymentRepository;
 import com.personalfit.personalfit.services.IPaymentFileService;
 import com.personalfit.personalfit.services.IPaymentService;
 import com.personalfit.personalfit.services.IUserService;
+import com.personalfit.personalfit.utils.MethodType;
 import com.personalfit.personalfit.utils.PaymentStatus;
 import com.personalfit.personalfit.utils.UserStatus;
 
@@ -41,6 +43,9 @@ public class PaymentServiceImpl implements IPaymentService {
     public void registerPayment(InCreatePaymentDTO newPayment) {
 
         User user = userService.getUserById(newPayment.getClientId());
+        
+        // Validar que el usuario pueda crear un nuevo pago
+        validateUserCanCreatePayment(user);
 
         Payment payment = Payment.builder()
                 .user(user)
@@ -161,11 +166,32 @@ public class PaymentServiceImpl implements IPaymentService {
                 .build();
     }
 
+    /**
+     * Valida si un usuario puede crear un nuevo pago
+     * @param user El usuario que intenta crear el pago
+     * @throws PaymentAlreadyExistsException Si el usuario ya tiene un pago activo o pendiente
+     */
+    private void validateUserCanCreatePayment(User user) {
+        List<Payment> userPayments = user.getPayments();
+        
+        // Verificar si tiene pagos activos (paid) o pendientes (pending)
+        boolean hasActiveOrPendingPayment = userPayments.stream()
+                .anyMatch(payment -> payment.getStatus() == PaymentStatus.paid || 
+                                   payment.getStatus() == PaymentStatus.pending);
+        
+        if (hasActiveOrPendingPayment) {
+            throw new PaymentAlreadyExistsException();
+        }
+    }
+
     @Transactional
     @Override
     public Payment registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file) {
 
         User user = userService.getUserByDni(newPayment.getClientDni());
+        
+        // Validar que el usuario pueda crear un nuevo pago
+        validateUserCanCreatePayment(user);
 
         Optional<Long> idFile = Optional.empty();
         PaymentFile pFile = null;
@@ -201,6 +227,9 @@ public class PaymentServiceImpl implements IPaymentService {
 
         for (InCreatePaymentDTO newPayment : newPayments) {
             User user = userService.getUserById(newPayment.getClientId());
+            
+            // Validar que el usuario pueda crear un nuevo pago
+            validateUserCanCreatePayment(user);
 
             Payment payment = Payment.builder()
                     .user(user)
@@ -229,6 +258,9 @@ public class PaymentServiceImpl implements IPaymentService {
 
         for (InCreatePaymentWithFileDTO newPayment : newPayments) {
             User user = userService.getUserByDni(newPayment.getClientDni());
+            
+            // Validar que el usuario pueda crear un nuevo pago
+            validateUserCanCreatePayment(user);
 
             Optional<Long> idFile = Optional.empty();
             PaymentFile pFile = null;
@@ -266,6 +298,9 @@ public class PaymentServiceImpl implements IPaymentService {
         for (int i = 0; i < newPayments.size(); i++) {
             InCreatePaymentDTO newPayment = newPayments.get(i);
             User user = userService.getUserByDni(newPayment.getClientDni());
+            
+            // Validar que el usuario pueda crear un nuevo pago
+            validateUserCanCreatePayment(user);
 
             Optional<Long> idFile = Optional.empty();
             PaymentFile pFile = null;
@@ -296,6 +331,39 @@ public class PaymentServiceImpl implements IPaymentService {
         }
         return true;
 
+    }
+
+    @Override
+    public Payment registerWebhookPayment(InCreatePaymentDTO newPayment) {
+        User user = userService.getUserByDni(newPayment.getClientDni());
+
+        // Check if a payment with this confNumber (MercadoPago ID) already exists to prevent duplicates
+        Optional<Payment> existingPayment = paymentRepository.findByConfNumber(newPayment.getConfNumber());
+        if (existingPayment.isPresent()) {
+            // If it exists and is already paid, just return it. If it's pending, update it.
+            Payment payment = existingPayment.get();
+            if (payment.getStatus() != PaymentStatus.paid) {
+                payment.setStatus(PaymentStatus.paid);
+                payment.setUpdatedAt(LocalDateTime.now());
+                userService.updateUserStatus(user, UserStatus.active);
+                return paymentRepository.save(payment);
+            }
+            return payment; // Already paid, no action needed
+        }
+
+        Payment payment = Payment.builder()
+                .user(user)
+                .confNumber(newPayment.getConfNumber())
+                .amount(newPayment.getAmount())
+                .methodType(newPayment.getMethodType() != null ? newPayment.getMethodType() : MethodType.card) // Default to card if not provided
+                .createdAt(newPayment.getCreatedAt() != null ? newPayment.getCreatedAt() : LocalDateTime.now())
+                .expiresAt(newPayment.getExpiresAt() != null ? newPayment.getExpiresAt() : LocalDateTime.now().plusMonths(1))
+                .status(PaymentStatus.paid) // Always 'paid' for successful webhooks
+                .build();
+
+        Payment savedPayment = paymentRepository.save(payment);
+        userService.updateUserStatus(user, UserStatus.active); // Activate user upon successful payment
+        return savedPayment;
     }
 
 }

@@ -4,7 +4,6 @@ import {
     Payment,
     Preference
 } from "mercadopago";
-import { createPaymentWithStatus } from "../api/payment/paymentsApi";
 import { getProductById } from "./products";
 
 /**
@@ -572,7 +571,8 @@ async function createPaymentMP(paymentInfo: any) {
         };
         
         try {
-            const result = await createPaymentWithStatus(paymentData, true);
+            // Usar la función del servidor que no depende de localStorage ni toast
+            const result = await createPaymentServerSide(paymentData);
             console.log("✅ Pago registrado exitosamente y usuario activado");
             console.log(`   - ID del pago: ${result.id}`);
             console.log(`   - Cliente DNI: ${paymentInfo.clientDni}`);
@@ -587,6 +587,51 @@ async function createPaymentMP(paymentInfo: any) {
     }
     
     return null;
+}
+
+/**
+ * Crea un pago real en el sistema usando la API del backend (versión servidor)
+ * Esta función no depende de localStorage ni toast, por lo que puede ejecutarse en el servidor
+ */
+async function createPaymentServerSide(paymentData: any) {
+    try {
+        console.log("🔧 Creando pago desde servidor...");
+        
+        const baseUrl = getApiBaseUrl();
+        const url = `${baseUrl}/api/payments/webhook/mercadopago`;
+        
+        const payment = {
+            clientDni: paymentData.clientDni,
+            amount: paymentData.amount,
+            createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
+            paymentStatus: "paid", // MercadoPago payments are always paid
+            confNumber: paymentData.mpPaymentId, // Use MercadoPago payment ID as confNumber
+            methodType: mapPaymentMethod(paymentData.paymentMethod), // Map MercadoPago method to backend enum
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payment),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("❌ Error en respuesta del servidor:", response.status, errorText);
+            throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("✅ Pago creado exitosamente en servidor:", result);
+        return result;
+        
+    } catch (error) {
+        console.error("❌ Error al crear pago en servidor:", error);
+        throw error;
+    }
 }
 
 /**

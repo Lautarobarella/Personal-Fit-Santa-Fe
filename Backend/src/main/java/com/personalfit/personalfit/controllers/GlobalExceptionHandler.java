@@ -1,8 +1,9 @@
 package com.personalfit.personalfit.controllers;
 
-import com.personalfit.personalfit.dto.ErrorDTO;
-import com.personalfit.personalfit.exceptions.*;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -12,9 +13,18 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import com.personalfit.personalfit.dto.ErrorDTO;
+import com.personalfit.personalfit.exceptions.FileSizeException;
+import com.personalfit.personalfit.exceptions.NoActivityWithIdException;
+import com.personalfit.personalfit.exceptions.NoPaymentFileWithIdException;
+import com.personalfit.personalfit.exceptions.NoPaymentWithIdException;
+import com.personalfit.personalfit.exceptions.NoUserWithDniException;
+import com.personalfit.personalfit.exceptions.NoUserWithIdException;
+import com.personalfit.personalfit.exceptions.PaymentAlreadyExistsException;
+import com.personalfit.personalfit.exceptions.UnsupportedFileExtension;
+import com.personalfit.personalfit.exceptions.UserDniAlreadyExistsException;
+
+import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
 @Slf4j
@@ -118,7 +128,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
                 .error("Payment Already Exists")
-                .message("El pago ya existe para este usuario y actividad")
+                .message(ex.getMessage())
                 .path("/api/payments/create")
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

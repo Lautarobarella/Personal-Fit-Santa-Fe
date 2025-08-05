@@ -1,5 +1,6 @@
 package com.personalfit.personalfit.controllers;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +63,27 @@ public class PaymentController {
         response.put("message", "Pago creado exitosamente");
         
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/webhook/mercadopago")
+    public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(@RequestBody InCreatePaymentDTO payment) {
+        try {
+            paymentService.registerWebhookPayment(payment); // Use the new method
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Pago registrado exitosamente desde webhook");
+            response.put("timestamp", LocalDateTime.now());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Error al registrar pago: " + e.getMessage());
+            response.put("timestamp", LocalDateTime.now());
+            
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @GetMapping("/getAll")
