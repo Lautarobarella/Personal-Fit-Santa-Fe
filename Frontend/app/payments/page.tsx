@@ -41,6 +41,16 @@ export default function PaymentsPage() {
     useEffect(() => {
         if (user?.id) {
             queryClient.invalidateQueries({ queryKey: ["payments", user.id] })
+            
+            // Verificar si hay un flag de actualización desde un pago nuevo
+            const shouldRefresh = localStorage.getItem('refreshPayments')
+            if (shouldRefresh) {
+                localStorage.removeItem('refreshPayments')
+                // Forzar actualización adicional después de un breve delay
+                setTimeout(() => {
+                    queryClient.invalidateQueries({ queryKey: ["payments", user.id] })
+                }, 1000)
+            }
         }
     }, [user?.id, queryClient])
 
@@ -52,7 +62,7 @@ export default function PaymentsPage() {
                 const fee = await fetchFee()
                 setMonthlyFee(fee)
             } catch (error) {
-                console.error('Error fetching monthly fee:', error)
+                // Error fetching monthly fee
             }
         }
 
@@ -70,7 +80,6 @@ export default function PaymentsPage() {
                 referrer.includes('/payments/result/failure')
             )) {
                 if (user?.id) {
-                    console.log('🔄 Forzando actualización desde resultado de pago...');
                     queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
                 }
             }
@@ -149,15 +158,19 @@ export default function PaymentsPage() {
     const pendingPayments = filteredPayments.filter((p) => p.status === "pending")
     const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0)
 
+    // Obtener información del plan activo y pendiente
+    const activePayment = paidPayments.find(p => {
+        const now = new Date()
+        const expiresAt = new Date(p.expiresAt)
+        return p.status === "paid" && expiresAt > now
+    })
+    const pendingPayment = pendingPayments.find(p => p.status === "pending")
+
     // Lógica para determinar si el cliente puede crear un nuevo pago
     const canCreateNewPayment = user.role === "client" &&
-        user.status !== "active" &&
-        pendingPayments.length === 0 &&
+        !activePayment &&
+        !pendingPayment &&
         monthlyFee !== null
-
-    // Obtener información del plan activo si existe
-    const activePayment = paidPayments.find(p => p.status === "paid")
-    const pendingPayment = pendingPayments.find(p => p.status === "pending")
 
     const handleVerificationClick = (id: number) => {
         setVerificationDialog({ open: true, paymentId: id })
@@ -216,8 +229,10 @@ export default function PaymentsPage() {
                                          variant="outline" 
                                          className={`${
                                              activePayment 
-                                                 ? 'bg-green-200 border-green-400 text-green-900 hover:bg-green-300 font-semibold' 
-                                                 : 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100'
+                                                 ? 'bg-green-600 border-green-700 text-white hover:bg-green-700 font-semibold shadow-md' 
+                                                 : pendingPayment
+                                                 ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
+                                                 : 'bg-gray-100 border-gray-300 text-gray-600'
                                          } cursor-not-allowed`}
                                          disabled
                                      >
@@ -225,7 +240,7 @@ export default function PaymentsPage() {
                                              ? `Plan vigente hasta: ${formatDate(activePayment.expiresAt)}`
                                              : pendingPayment 
                                                  ? "Pago pendiente de revisión"
-                                                 : "Nuevo"
+                                                 : "Membresía vencida"
                                          }
                                      </Button>
                                  )}

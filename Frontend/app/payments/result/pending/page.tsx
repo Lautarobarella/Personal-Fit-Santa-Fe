@@ -19,6 +19,9 @@ function PendingPageContent() {
     const externalReference = searchParams.get('external_reference');
 
     const handleGoToPayments = async () => {
+        // Marcar flag para forzar actualización en la página de pagos
+        localStorage.setItem('refreshPayments', 'true');
+        
         // Revalidar usuario y invalidar queries antes de navegar
         try {
             await revalidateUser();
@@ -26,7 +29,7 @@ function PendingPageContent() {
                 queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
             }
         } catch (error) {
-            console.error('Error revalidating user:', error);
+            // Error revalidating user
         }
         router.push('/payments');
     };

@@ -7,12 +7,9 @@ import { handleApiError } from "@/lib/error-handler";
  */
 export async function fetchMonthlyFee(): Promise<number> {
   try {
-    console.log('🔍 Solicitando cuota mensual desde la API...');
     const fee = await jwtPermissionsApi.get('/api/settings/monthly-fee');
-    console.log('✅ Cuota mensual recibida desde el backend:', fee);
     return fee;
   } catch (error) {
-    console.error('❌ Error al obtener la cuota mensual:', error);
     handleApiError(error, 'Error al obtener la cuota mensual');
     throw error;
   }

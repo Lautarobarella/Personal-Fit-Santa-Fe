@@ -57,6 +57,21 @@ export async function POST(request: NextRequest) {
             },
             notification_url: `${baseUrl}/api/webhook/mercadopago`,
             external_reference: transactionId,
+            payment_methods: {
+                excluded_payment_methods: [
+                    { id: "rapipago" },
+                    { id: "pagofacil" },
+                    { id: "bapropagos" },
+                    { id: "cargavirtual" },
+                    { id: "redlink" },
+                    { id: "account_money" }
+                ],
+                excluded_payment_types: [
+                    { id: "ticket" },
+                    { id: "atm" }
+                ],
+                installments: 1
+            }
         };
 
         const preference = await pref.create({ body: preferenceBody });

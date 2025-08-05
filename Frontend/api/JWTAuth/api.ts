@@ -79,7 +79,6 @@ class JWTPermissionsApi {
     } = options
 
     const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BASE_URL}${endpoint}`
-    console.log("URL: ", url)
     const requestHeaders: Record<string, string> = {
       ...headers,
     }
@@ -94,7 +93,6 @@ class JWTPermissionsApi {
         const authHeaders = await this.getAuthHeaders()
         Object.assign(requestHeaders, authHeaders)
       } catch (error) {
-        console.error('Failed to get auth headers:', error)
         throw new Error('Authentication required')
       }
     }
@@ -113,7 +111,6 @@ class JWTPermissionsApi {
       const response = await fetch(url, config)
       return await this.handleResponse(response)
     } catch (error) {
-      console.error('API request failed:', error)
       throw error
     }
   }
