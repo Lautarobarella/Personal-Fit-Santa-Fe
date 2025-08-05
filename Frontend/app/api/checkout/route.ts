@@ -20,16 +20,24 @@ const getBaseUrl = () => {
 
 export async function POST(request: NextRequest) {
     try {
+        console.log('=== CHECKOUT API CALL ===');
         const { productId, productName, productPrice, userEmail, userDni } = await request.json();
+        console.log('Datos recibidos:', { productId, productName, productPrice, userEmail, userDni });
 
         if (!productId || !productName || !productPrice || !userEmail || !userDni) {
+            console.log('Faltan datos requeridos');
             return NextResponse.json(
                 { error: 'Faltan datos requeridos: productId, productName, productPrice, userEmail y userDni' },
                 { status: 400 }
             );
         }
 
-        if (!process.env.MP_ACCESS_TOKEN) {
+        const mpToken = process.env.MP_ACCESS_TOKEN;
+        console.log('MP Token configurado:', mpToken ? 'SI' : 'NO');
+        console.log('MP Token value:', mpToken);
+        
+        if (!mpToken) {
+            console.log('Error: Token de MercadoPago no configurado');
             return NextResponse.json(
                 { error: 'Configuración de MercadoPago incompleta' },
                 { status: 500 }
@@ -38,6 +46,9 @@ export async function POST(request: NextRequest) {
 
         const transactionId = `${userDni}-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         const baseUrl = getBaseUrl();
+        
+        console.log('Transaction ID:', transactionId);
+        console.log('Base URL:', baseUrl);
 
         const preferenceBody = {
             items: [
@@ -74,7 +85,16 @@ export async function POST(request: NextRequest) {
             }
         };
 
+        console.log('Preference body:', JSON.stringify(preferenceBody, null, 2));
+        
+        console.log('Creando preferencia...');
         const preference = await pref.create({ body: preferenceBody });
+        
+        console.log('Preferencia creada:', {
+            id: preference.id,
+            initPoint: preference.init_point,
+            sandboxInitPoint: preference.sandbox_init_point
+        });
 
         return NextResponse.json({
             preferenceId: preference.id,
@@ -84,6 +104,8 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
+        console.error('Error completo en checkout:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
         let errorMessage = 'Error interno del servidor';
         let statusCode = 500;
 

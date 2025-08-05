@@ -61,6 +61,7 @@ export default function CheckoutForm({
             }
 
         } catch (error) {
+            console.error('Error en checkout:', error);
             setError(error instanceof Error ? error.message : 'Error al procesar el pago');
         } finally {
             setLoading(false);
