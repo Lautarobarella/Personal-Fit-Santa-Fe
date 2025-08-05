@@ -20,4 +20,7 @@ public interface IUserService {
     List<UserTypeDTO> getAllTrainers();
     Boolean saveAll(List<InCreateUserDTO> newUsers);
     void updateUserStatus(User user, UserStatus status);
+    List<User> getAllAdmins();
+    List<User> getAll(List<Long> id);
+    void updateLastAttendanceByDni(Integer dni);
 }

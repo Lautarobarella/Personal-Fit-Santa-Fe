@@ -8,19 +8,23 @@ import com.personalfit.personalfit.repository.IActivityRepository;
 import com.personalfit.personalfit.services.IActivityService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.ActivityStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ActivityServiceImpl implements IActivityService {
 
@@ -134,30 +138,47 @@ public class ActivityServiceImpl implements IActivityService {
                 .collect(Collectors.toList());
     }
 
-//    @Scheduled(cron = "0 0 3 * * *")
-//    public void generateWeeklyActivities() { //TODO
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        List<Activity> activitiesToRepeat = activityRepository.findAll().stream()
-//                .filter(a -> Boolean.TRUE.equals(a.getRepeatEveryWeek()))
-//                .filter(a -> a.getDate().toLocalDate().isEqual(now.toLocalDate())) // se repite hoy
-//                .toList();
-//
-//        for (Activity activity : activitiesToRepeat) {
-//            Activity newActivity = Activity.builder()
-//                    .name(activity.getName())
-//                    .description(activity.getDescription())
-//                    .slots(activity.getSlots())
-//                    .date(activity.getDate().plusWeeks(1))
-//                    .repeatEveryWeek(true)
-//                    .duration(activity.getDuration())
-//                    .status(ActivityStatus.active)
-//                    .trainer(activity.getTrainer())
-//                    .createdAt(LocalDateTime.now())
-//                    .build();
-//
-//            activityRepository.save(newActivity);
-//        }
-//    }
+    @Scheduled(cron = "0 */30 * * * *")
+    @Transactional
+    public void checkCompletedActivies() {
+        log.info("Checking completed activities...");
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Activity> activities = activityRepository.findByDateBeforeAndStatus(now, ActivityStatus.active);
+        List<Activity> toUpdate = new ArrayList<>();
+        List<Activity> toCreate = new ArrayList<>();
+
+        for (Activity activity : activities) {
+            if (activity.getDate().isAfter(now)) continue;
+            activity.setStatus(ActivityStatus.completed);
+            log.info("Activity with ID {} marked as completed", activity.getId());
+            toUpdate.add(activity);
+
+            if(!activity.getRepeatEveryWeek()) continue;
+            else {
+                log.info("Activity with ID {} generates a new activity for the next week", activity.getId());
+                LocalDateTime nextDate = activity.getDate().plusWeeks(1);
+                Activity newActivity = Activity.builder()
+                        .name(activity.getName())
+                        .description(activity.getDescription())
+                        .slots(activity.getSlots())
+                        .date(nextDate)
+                        .repeatEveryWeek(true)
+                        .duration(activity.getDuration())
+                        .status(ActivityStatus.active)
+                        .trainer(activity.getTrainer())
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                toCreate.add(newActivity);
+            }
+        }
+
+        // TODO: Logica transaccional para crear y actualizar actividades
+        if (!toUpdate.isEmpty()) activityRepository.saveAll(toUpdate);
+        if (!toCreate.isEmpty()) activityRepository.saveAll(toCreate);
+
+        log.info("Activities completed and generated succesfully. End of checkCompletedActivities process.");
+
+    }
 
 }

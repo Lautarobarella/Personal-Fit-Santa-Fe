@@ -71,6 +71,12 @@ public class UserController {
     //     return new ResponseEntity<>(HttpStatus.OK);
     // }
 
+    @PutMapping("/lastAttendance/{dni}")
+    public ResponseEntity<Void> updateLastAttendance(@PathVariable Integer dni) {
+        userService.updateLastAttendanceByDni(dni);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @Transactional
     @PostMapping("/batch")
     public ResponseEntity<Void> saveUsers(@Valid @RequestBody List<InCreateUserDTO> newUsers) {

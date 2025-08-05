@@ -1,6 +1,7 @@
 package com.personalfit.personalfit.repository;
 
 import com.personalfit.personalfit.models.Activity;
+import com.personalfit.personalfit.utils.ActivityStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,4 +11,6 @@ import java.util.List;
 @Repository
 public interface IActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByDateBetween(LocalDateTime dateAfter, LocalDateTime dateBefore);
+
+    List<Activity> findByDateBeforeAndStatus(LocalDateTime date, ActivityStatus activityStatus);
 }

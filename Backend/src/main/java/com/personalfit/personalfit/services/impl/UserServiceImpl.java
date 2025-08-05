@@ -12,6 +12,7 @@ import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IPaymentRepository;
 import com.personalfit.personalfit.repository.IUserRepository;
+import com.personalfit.personalfit.services.INotificationService;
 import com.personalfit.personalfit.services.IPaymentService;
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.UserRole;
@@ -37,8 +38,9 @@ public class UserServiceImpl implements IUserService {
 
     @Autowired
     private IPaymentRepository paymentRepository;
+
     @Autowired
-    private IPaymentRepository iPaymentRepository;
+    private INotificationService notificationService;
 
     public Boolean createNewUser(InCreateUserDTO newUser) {
 
@@ -176,6 +178,25 @@ public class UserServiceImpl implements IUserService {
         userRepository.save(user);
     }
 
+    @Override
+    public List<User> getAllAdmins() {
+        return userRepository.findAllByRole(UserRole.admin);
+    }
+
+    @Override
+    public List<User> getAll(List<Long> id) {
+        return userRepository.findByIdIn(id);
+    }
+
+    @Override
+    public void updateLastAttendanceByDni(Integer dni) {
+        Optional<User> user = userRepository.findByDni(dni);
+        if (user.isEmpty()) throw new NoUserWithDniException();
+
+        user.get().setLastAttendance(LocalDateTime.now());
+        userRepository.save(user.get());
+    }
+
     // batch function to save multiple users
     @Override
     public Boolean saveAll(List<InCreateUserDTO> newUsers) {
@@ -211,10 +232,12 @@ public class UserServiceImpl implements IUserService {
         List<User> users = userRepository.findAllByStatus(UserStatus.active);
         List<User> toUpdate = new ArrayList<>();
         users.stream().forEach(u -> {
-            Optional<Payment> payment = paymentRepository.findTopByUserOrderByCreatedAtDesc(u);
-            if(payment.isEmpty()) return;
+            if(u.getRole().equals(UserRole.trainer) || u.getRole().equals(UserRole.admin)) return;
 
-            if(payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())){
+            Optional<Payment> payment = paymentRepository.findTopByUserOrderByCreatedAtDesc(u);
+
+            if(payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())
+                    || payment.isEmpty()){
                 u.setStatus(UserStatus.inactive);
                 toUpdate.add(u);
                 log.info("User {} has been set to inactive due to expired payment.", u.getFullName());
@@ -222,6 +245,7 @@ public class UserServiceImpl implements IUserService {
             // Actualizar todos
             userRepository.saveAll(toUpdate);
             // TODO lógica de envio de notificación al usuario y al admin
+            notificationService.createPaymentExpiredNotification(toUpdate, getAllAdmins());
         });
     }
 
@@ -232,5 +256,17 @@ public class UserServiceImpl implements IUserService {
         log.info("Found {} users with birthday today.", users.size());
 
         //TODO logica para enviar notificaciones a los usuarios y al admin del cumpleañero
+        notificationService.createBirthdayNotification(users, getAllAdmins());
+    }
+
+    @Scheduled(cron = "0 45 2 * * ?")
+    public void userAttendanceCheck() {
+        log.info("Daily user attendance checking started at {}", LocalDateTime.now());
+        LocalDateTime dateLimit = LocalDateTime.now().minusDays(7); // 1 semana de inasistencias
+//        List<User> users = userRepository.findActiveUsersWithLastAttendanceBefore(UserStatus.active, dateLimit); // Este le envia todos los dias
+        List<User> users = userRepository.findActiveUsersWithLastAttendanceOn(UserStatus.active, dateLimit.toLocalDate()); // Este le envia solo a los que cumplen 4 dias hoy (es decir, 1 vez)
+
+        notificationService.createAttendanceWarningNotification(users, getAllAdmins());
+
     }
 }

@@ -33,6 +33,7 @@ public class User {
     private LocalDate joinDate; // Fecha de alta del usuario
     private String address;
     private LocalDate birthDate; // Fecha de nacimiento del usuario
+    private LocalDateTime lastAttendance; // Fecha de la última asistencia del usuario
 //    @Column(unique = true)
     private Integer dni;
     @Enumerated(EnumType.STRING)
