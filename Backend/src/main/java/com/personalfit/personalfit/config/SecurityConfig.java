@@ -46,6 +46,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/checkout").permitAll() // Permitir checkout sin autenticación
                 .requestMatchers("/api/webhook/mercadopago").permitAll() // Permitir webhooks de MercadoPago sin autenticación
                 .requestMatchers("/api/payments/webhook/**").permitAll() // Permitir creación de pagos desde webhooks
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
