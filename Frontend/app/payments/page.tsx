@@ -133,10 +133,10 @@ export default function PaymentsPage() {
                         ) : user.role === "client" ? (
                             <Link href="/payments/method-select" className={((user.status === "active") || pendingPayments.length > 0)? 'disabled-link' : ''}
                             aria-disabled={((user.status === "active") || pendingPayments.length > 0)}
-                            tabIndex={((user.status === "active") || pendingPayments.length > 0) ? -1 : undefined}>
+                            tabIndex={((user.status === "active") || pendingPayments.length > 0) ? -1 : 0}>
                                 <Button size="sm">
                                     <Plus className="h-4 w-4" />
-                                    Nuevo
+                                    {((user.status === "active") || pendingPayments.length > 0)? 'condicion activa' : 'inactiva'}
                                 </Button>
                             </Link>
                         ) : null}
