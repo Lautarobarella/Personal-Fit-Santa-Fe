@@ -17,11 +17,8 @@ async function getMonthlyFee(): Promise<number> {
         // Importar dinámicamente para evitar problemas de SSR
         const { fetchMonthlyFee } = await import('@/api/settings/settingsApi');
         const fee = await fetchMonthlyFee();
-        console.log('✅ Cuota mensual obtenida desde la API:', fee);
         return fee;
     } catch (error) {
-        console.error('❌ Error fetching monthly fee:', error);
-        console.log('⚠️ Usando valor por defecto: 25000');
         // Retornar un valor por defecto en caso de error
         return 25000;
     }

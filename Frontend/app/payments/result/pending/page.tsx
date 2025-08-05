@@ -12,7 +12,7 @@ function PendingPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, revalidateUser } = useAuth();
+    const { user } = useAuth();
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');
@@ -22,14 +22,9 @@ function PendingPageContent() {
         // Marcar flag para forzar actualización en la página de pagos
         localStorage.setItem('refreshPayments', 'true');
         
-        // Revalidar usuario y invalidar queries antes de navegar
-        try {
-            await revalidateUser();
-            if (user?.id) {
-                queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
-            }
-        } catch (error) {
-            // Error revalidating user
+        // Invalidar queries antes de navegar
+        if (user?.id) {
+            queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
         }
         router.push('/payments');
     };

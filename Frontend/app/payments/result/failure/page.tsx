@@ -12,21 +12,16 @@ function FailurePageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, revalidateUser } = useAuth();
+    const { user } = useAuth();
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');
     const externalReference = searchParams.get('external_reference');
 
     const handleGoToPayments = async () => {
-        // Revalidar usuario y invalidar queries antes de navegar
-        try {
-            await revalidateUser();
-            if (user?.id) {
-                queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
-            }
-        } catch (error) {
-            console.error('Error revalidating user:', error);
+        // Invalidar queries antes de navegar
+        if (user?.id) {
+            queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
         }
         router.push('/payments');
     };

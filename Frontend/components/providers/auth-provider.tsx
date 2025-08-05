@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { authenticate, logout as authLogout, getCurrentUser, isAuthenticated, revalidateUser } from "@/lib/auth"
+import { authenticate, logout as authLogout, getCurrentUser, isAuthenticated } from "@/lib/auth"
 import type { UserType } from "@/lib/types"
 import { createContext, useContext, useEffect, useState } from "react"
 
@@ -11,7 +11,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   loading: boolean
-  revalidateUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -54,18 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authLogout()
   }
 
-  const handleRevalidateUser = async () => {
-    try {
-      const updatedUser = await revalidateUser()
-      if (updatedUser) {
-        setUser(updatedUser)
-      }
-    } catch (error) {
-      console.error('Error revalidating user:', error)
-    }
-  }
-
-  return <AuthContext.Provider value={{ user, login, logout, loading, revalidateUser: handleRevalidateUser }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, login, logout, loading }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
