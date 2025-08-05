@@ -40,9 +40,17 @@ export default function CheckoutForm({
             return;
         }
 
+        // Validar que el usuario tenga email y DNI
+        if (!user.email || !user.dni) {
+            setError('Datos de usuario incompletos. Por favor, contacta al administrador.');
+            console.error('Usuario sin email o DNI:', user);
+            return;
+        }
+
         // Debug: mostrar información del usuario
         console.log('Usuario actual:', user);
         console.log('DNI del usuario:', user.dni);
+        console.log('Email del usuario:', user.email);
 
         setLoading(true);
         setError('');
@@ -55,10 +63,15 @@ export default function CheckoutForm({
             };
 
             console.log('Datos enviados al checkout:', checkoutData);
+            console.log('Verificando datos antes de enviar:');
+            console.log('- productId:', productId);
+            console.log('- userEmail:', user.email);
+            console.log('- userDni:', user.dni);
+            console.log('- userDni como string:', user.dni.toString());
 
             // Usar la función del API de checkout
             const { createCheckoutPreference } = await import('@/api/checkout/checkoutApi');
-            const data = await createCheckoutPreference(productId, productName, productPrice);
+            const data = await createCheckoutPreference(productId, productName, productPrice, user.email, user.dni.toString());
 
             if (data.sandboxInitPoint) {
                 window.location.href = data.sandboxInitPoint;
@@ -112,6 +125,14 @@ export default function CheckoutForm({
                     <div className="flex justify-between items-center">
                         <span className="text-gray-600 text-sm">Cliente:</span>
                         <span className="font-medium text-gray-900">{user.firstName} {user.lastName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Email:</span>
+                        <span className="font-medium text-gray-900">{user.email}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">DNI:</span>
+                        <span className="font-medium text-gray-900">{user.dni}</span>
                     </div>
                 </div>
 
