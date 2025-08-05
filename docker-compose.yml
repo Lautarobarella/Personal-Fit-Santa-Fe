@@ -53,7 +53,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # URLs centralizadas - todas apuntan al servidor de producción
+      # URLs para producción - frontend maneja sus propias API routes
       NEXT_PUBLIC_API_URL: https://personalfitsantafe.com
       NEXT_PUBLIC_FRONTEND_URL: https://personalfitsantafe.com
       NEXT_PUBLIC_FILES_URL: https://personalfitsantafe.com
