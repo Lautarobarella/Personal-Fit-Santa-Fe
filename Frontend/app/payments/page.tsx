@@ -199,7 +199,7 @@ export default function PaymentsPage() {
                                          variant="outline" 
                                          className={`${
                                              activePayment 
-                                                 ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' 
+                                                 ? 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200 font-medium' 
                                                  : 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100'
                                          } cursor-not-allowed`}
                                          disabled

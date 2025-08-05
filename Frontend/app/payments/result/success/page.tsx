@@ -13,7 +13,7 @@ function SuccessPageContent() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const queryClient = useQueryClient();
-    const { user } = useAuth();
+    const { user, revalidateUser } = useAuth();
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');
@@ -27,10 +27,15 @@ function SuccessPageContent() {
         }, 2000);
     }, []);
 
-    const handleGoToPayments = () => {
-        // Invalidar queries antes de navegar para forzar actualización
-        if (user?.id) {
-            queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
+    const handleGoToPayments = async () => {
+        // Revalidar usuario y invalidar queries antes de navegar
+        try {
+            await revalidateUser();
+            if (user?.id) {
+                queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
+            }
+        } catch (error) {
+            console.error('Error revalidating user:', error);
         }
         router.push('/payments');
     };

@@ -1,5 +1,5 @@
 import { API_CONFIG } from "../api/JWTAuth/config"
-import type { UserType, UserRole } from "./types"
+import type { UserRole, UserType } from "./types"
 
 export interface AuthResponse {
   accessToken: string
@@ -110,4 +110,34 @@ export const hasPermission = (userRole: UserRole, requiredRole: UserRole): boole
 
 export const isAuthenticated = (): boolean => {
   return getAccessToken() !== null
+}
+
+export const revalidateUser = async (): Promise<UserType | null> => {
+  try {
+    const token = getAccessToken()
+    if (!token) return null
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      console.error('Failed to revalidate user:', response.statusText)
+      return null
+    }
+
+    const userData: UserType = await response.json()
+    
+    // Update user in localStorage
+    localStorage.setItem('user', JSON.stringify(userData))
+    
+    return userData
+  } catch (error) {
+    console.error('User revalidation error:', error)
+    return null
+  }
 }
