@@ -43,6 +43,28 @@ export default function PaymentsPage() {
         }
     }, [user?.id, queryClient])
 
+    // Forzar actualización adicional cuando se detecta que viene de una página de resultado
+    useEffect(() => {
+        const checkIfFromPaymentResult = () => {
+            // Verificar si viene de una página de resultado de MercadoPago
+            const referrer = document.referrer;
+            if (referrer && (
+                referrer.includes('/payments/result/success') ||
+                referrer.includes('/payments/result/pending') ||
+                referrer.includes('/payments/result/failure')
+            )) {
+                if (user?.id) {
+                    console.log('🔄 Forzando actualización desde resultado de pago...');
+                    queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
+                }
+            }
+        };
+
+        // Ejecutar después de un pequeño delay para asegurar que el componente esté montado
+        const timer = setTimeout(checkIfFromPaymentResult, 100);
+        return () => clearTimeout(timer);
+    }, [user?.id, queryClient]);
+
     const [verificationDialog, setVerificationDialog] = useState({
         open: false,
         paymentId: null as number | null,
@@ -112,8 +134,8 @@ export default function PaymentsPage() {
     const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0)
 
     // Lógica para determinar si el cliente puede crear un nuevo pago
-    const canCreateNewPayment = user.role === "client" && 
-        user.status !== "active" && 
+    const canCreateNewPayment = user.role === "client" &&
+        user.status !== "active" &&
         pendingPayments.length === 0
 
     // Obtener información del plan activo si existe
@@ -135,9 +157,9 @@ export default function PaymentsPage() {
                                 <Link href={pendingPayments.length <= 0 ? '#' : '/payments/verify'}
                                     className={pendingPayments.length <= 0 ? 'pointer-events-none' : ''}
                                     aria-disabled={pendingPayments.length <= 0}>
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline" 
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
                                         className={`bg-transparent ${pendingPayments.length <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         disabled={pendingPayments.length <= 0}
                                     >
@@ -155,9 +177,9 @@ export default function PaymentsPage() {
                         ) : user.role === "client" ? (
                             <div className="relative">
                                 {isLoading ? (
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline" 
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
                                         className="btn-disabled"
                                         disabled
                                     >
@@ -171,22 +193,25 @@ export default function PaymentsPage() {
                                             Nuevo
                                         </Button>
                                     </Link>
-                                ) : (
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="btn-disabled"
-                                        disabled
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                        {activePayment 
-                                            ? `Plan vigente hasta: ${formatDate(activePayment.expiresAt)}`
-                                            : pendingPayment 
-                                                ? "Pago pendiente de revisión"
-                                                : "Nuevo"
-                                        }
-                                    </Button>
-                                )}
+                                                                 ) : (
+                                     <Button 
+                                         size="sm" 
+                                         variant="outline" 
+                                         className={`${
+                                             activePayment 
+                                                 ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' 
+                                                 : 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100'
+                                         } cursor-not-allowed`}
+                                         disabled
+                                     >
+                                         {activePayment 
+                                             ? `Plan vigente hasta: ${formatDate(activePayment.expiresAt)}`
+                                             : pendingPayment 
+                                                 ? "Pago pendiente de revisión"
+                                                 : "Nuevo"
+                                         }
+                                     </Button>
+                                 )}
                             </div>
                         ) : null}
                     </div>

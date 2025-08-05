@@ -1,7 +1,9 @@
 "use client";
 
+import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQueryClient } from '@tanstack/react-query';
 import { XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -9,10 +11,20 @@ import { Suspense } from 'react';
 function FailurePageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
+    const { user } = useAuth();
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');
     const externalReference = searchParams.get('external_reference');
+
+    const handleGoToPayments = () => {
+        // Invalidar queries antes de navegar para forzar actualización
+        if (user?.id) {
+            queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
+        }
+        router.push('/payments');
+    };
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center">
@@ -44,7 +56,7 @@ function FailurePageContent() {
                             Intentar nuevamente
                         </Button>
                         <Button
-                            onClick={() => router.push('/payments')}
+                            onClick={handleGoToPayments}
                             variant="outline"
                             className="w-full"
                         >

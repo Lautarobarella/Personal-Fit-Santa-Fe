@@ -1,7 +1,9 @@
 "use client";
 
+import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -10,6 +12,8 @@ function SuccessPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const { user } = useAuth();
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');
@@ -22,6 +26,14 @@ function SuccessPageContent() {
             setLoading(false);
         }, 2000);
     }, []);
+
+    const handleGoToPayments = () => {
+        // Invalidar queries antes de navegar para forzar actualización
+        if (user?.id) {
+            queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
+        }
+        router.push('/payments');
+    };
 
     if (loading) {
         return (
@@ -68,7 +80,7 @@ function SuccessPageContent() {
 
                     <div className="space-y-2">
                         <Button 
-                            onClick={() => router.push('/payments')} 
+                            onClick={handleGoToPayments} 
                             className="w-full"
                         >
                             Ver mis pagos
