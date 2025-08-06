@@ -10,9 +10,9 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
-  // Deshabilitar SWC para Jest
+  // Habilitar SWC para mejor rendimiento
   experimental: {
-    swcMinify: false,
+    swcMinify: true,
   },
   // Configuración para evitar warnings
   webpack: (config, { isServer }) => {
