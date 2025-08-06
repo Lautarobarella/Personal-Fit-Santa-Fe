@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -133,13 +133,36 @@ jobs:
     - name: Deploy to Hostinger VPS
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.HOSTINGER_HOST }}
-        username: ${{ secrets.HOSTINGER_USERNAME }}
-        key: ${{ secrets.HOSTINGER_SSH_KEY }}
-        port: ${{ secrets.HOSTINGER_PORT }}
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        envs: MP_ACCESS_TOKEN,NEXT_PUBLIC_MP_PUBLIC_KEY
         script: |
-          cd /home/${{ secrets.HOSTINGER_USERNAME }}/Personal-Fit-Santa-Fe
+          # Exportar variables de entorno para Docker Compose
+          export MP_ACCESS_TOKEN="${{ secrets.MP_ACCESS_TOKEN }}"
+          export NEXT_PUBLIC_MP_PUBLIC_KEY="${{ secrets.NEXT_PUBLIC_MP_PUBLIC_KEY }}"
+          
+          # Navegar al directorio del proyecto en /opt
+          cd /opt
+          
+          # Si el directorio no existe, clonarlo
+          if [ ! -d "Personal-Fit-Santa-Fe" ]; then
+            git clone https://github.com/${{ github.repository }}.git Personal-Fit-Santa-Fe
+          fi
+          
+          cd Personal-Fit-Santa-Fe
+          
+          # Hacer backup de cambios locales si los hay
+          if ! git diff-index --quiet HEAD --; then
+            git stash push -m "Backup before deployment $(date '+%Y%m%d_%H%M%S')"
+          fi
+          
+          # Actualizar código
+          git fetch origin
+          git checkout main
           git pull origin main
-          docker-compose down
-          docker-compose up -d --build
-          docker system prune -f 
+          
+          # Hacer el deployment
+          chmod +x deploy.sh
+          ./deploy.sh 
