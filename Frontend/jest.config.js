@@ -28,10 +28,10 @@ const customJestConfig = {
   },
   // Deshabilitar coverage para evitar problemas
   collectCoverage: false,
-  // Configuración para transformaciones
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
-  },
+  // Configuración para evitar problemas con SWC
+  transformIgnorePatterns: [
+    'node_modules/(?!(next|@next|swc|@swc)/)',
+  ],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
