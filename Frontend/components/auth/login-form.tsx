@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/components/providers/auth-provider"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Dumbbell, Image } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -32,9 +32,10 @@ export function LoginForm() {
         })
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Ocurrió un error durante el login"
       toast({
-        title: "Error",
-        description: "Ocurrió un error durante el login",
+        title: "Error de autenticación",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -82,10 +83,10 @@ export function LoginForm() {
           <div className="mt-6 text-sm text-muted-foreground">
             <p className="font-medium mb-2">Cuentas de prueba:</p>
             <div className="space-y-1">
-              <p>Admin: admin@fittrainer.com</p>
-              <p>Trainer: trainer@fittrainer.com</p>
-              <p>Client: client@fittrainer.com</p>
-              <p className="text-xs">Contraseña: password</p>
+              <p>Admin: maria@email.com</p>
+              <p>Trainer: juan@email.com</p>
+              <p>Client: carlos@email.com</p>
+              <p className="text-xs">Contraseña: admin123, trainer123, user123</p>
             </div>
           </div>
         </CardContent>

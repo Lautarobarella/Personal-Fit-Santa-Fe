@@ -1,13 +1,13 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { User, Bell, Shield, Smartphone, LogOut, SettingsIcon, Moon, Globe, HelpCircle, Users } from "lucide-react"
+import { BottomNav } from "@/components/ui/bottom-nav"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Switch } from "@/components/ui/switch"
+import { Bell, DollarSign, Globe, HelpCircle, LogOut, Moon, SettingsIcon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
@@ -25,22 +25,19 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader title="Configuración" />
 
-      <div className="container py-6 space-y-6">
+      <div className="container-centered py-6 space-y-6">
         {/* Profile Section */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarFallback className="text-lg">
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {`${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-semibold">{user.name}</h2>
-                <p className="text-muted-foreground">{user.email}</p>
+                <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
+                {/* <p className="text-muted-foreground">{user.email}</p> */}
                 <p className="text-sm text-blue-600 capitalize">{user.role}</p>
               </div>
               <Button variant="outline" size="sm">
@@ -148,7 +145,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Admin Settings */}
-        {user.role === "administrator" && (
+        {user.role === "admin" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -157,9 +154,13 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                <Users className="h-4 w-4 mr-3" />
-                Gestión de Usuarios
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent"
+                onClick={() => router.push('/settings/monthly-fee')}
+              >
+                <DollarSign className="h-4 w-4 mr-3" />
+                Establecer valor de la cuota
               </Button>
 
               <Button variant="outline" className="w-full justify-start bg-transparent">

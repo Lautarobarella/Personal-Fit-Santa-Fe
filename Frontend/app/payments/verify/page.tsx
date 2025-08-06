@@ -1,224 +1,328 @@
 "use client"
 
-import { useState } from "react"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, CreditCard, Calendar, DollarSign } from "lucide-react"
-import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Textarea } from "@/components/ui/textarea"
+import { usePayment } from "@/hooks/use-payment"
+import { usePendingPayments } from "@/hooks/use-pending-payments"
+import { useToast } from "@/hooks/use-toast"
+import { PaymentType } from "@/lib/types"
+import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
-// Mock data
-const mockPayments = [
-  {
-    id: "1",
-    clientId: "1",
-    clientName: "María González",
-    activityId: "1",
-    activityName: "Yoga Matutino",
-    amount: 25,
-    date: new Date("2024-01-14"),
-    status: "completed" as const,
-    method: "card" as const,
-  },
-  {
-    id: "2",
-    clientId: "2",
-    clientName: "Juan Pérez",
-    activityId: "2",
-    activityName: "CrossFit Avanzado",
-    amount: 35,
-    date: new Date("2024-01-13"),
-    status: "completed" as const,
-    method: "cash" as const,
-  },
-  {
-    id: "3",
-    clientId: "3",
-    clientName: "Ana Martín",
-    activityId: "1",
-    activityName: "Yoga Matutino",
-    amount: 25,
-    date: new Date("2024-01-15"),
-    status: "pending" as const,
-    method: "transfer" as const,
-  },
-]
-
-export default function PaymentsPage() {
+export default function PaymentVerificationPage() {
   const { user } = useAuth()
-  const [payments] = useState(mockPayments)
+  const router = useRouter()
+  const { toast } = useToast()
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [show, setShow] = useState(true)
+  const [reviewedCount, setReviewedCount] = useState(0)
 
-  if (!user) return null
+  // NUEVO: Hook externo con la lista inicial de pendientes
+  const { pendingPayments, loading, totalPendingPayments } = usePendingPayments(user?.id, true)
+  const { updatePaymentStatus, fetchSinglePayment } = usePayment(user?.id, true)
 
-  const canManagePayments = user.role === "administrator" || user.role === "trainer"
-  const userPayments = user.role === "client" ? payments.filter((payment) => payment.clientId === user.id) : payments
+  // Inicializa y congela la cantidad total de pagos al primer render
+  const initialPendingCount = useRef<number | null>(null)
+  useEffect(() => {
+    // Solo setea cuando: no está cargando y nunca se seteo
+    if (!loading && initialPendingCount.current === null) {
+      initialPendingCount.current = pendingPayments.length
+    }
+  }, [loading, pendingPayments])
 
-  const completedPayments = userPayments.filter((p) => p.status === "completed")
-  const pendingPayments = userPayments.filter((p) => p.status === "pending")
-  const totalRevenue = completedPayments.reduce((sum, p) => sum + p.amount, 0)
+  const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
+  useEffect(() => {
+    const fetchPayment = async () => {
+      const payment =
+        pendingPayments[currentIndex]
+          ? await fetchSinglePayment(pendingPayments[currentIndex].id)
+          : null;
+      setCurrentPayment(payment);
+    };
+    fetchPayment();
+  }, [currentIndex, pendingPayments, fetchSinglePayment]);
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date)
+
+
+  // Redirige si no es admin
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.replace("/payments")
+    }
+  }, [user, router])
+
+  // Salir al finalizar
+  if (
+    !loading &&
+    initialPendingCount.current !== null &&
+    reviewedCount >= initialPendingCount.current &&
+    initialPendingCount.current > 0
+  ) {
+    setTimeout(() => router.replace("/payments"), 2000)
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Check className="h-16 w-16 text-success mb-4" />
+        <h2 className="text-2xl font-bold mb-2">¡Verificación Completada!</h2>
+        <p className="text-muted-foreground mb-6">Has verificado {initialPendingCount.current} pagos exitosamente.</p>
+        <Button onClick={() => router.replace("/payments")}>Volver a Pagos</Button>
+      </div>
+    )
   }
 
+  if (
+    !loading &&
+    initialPendingCount.current === 0
+  ) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Check className="h-16 w-16 text-success mb-4" />
+        <h2 className="text-2xl font-bold mb-2">No hay pagos pendientes</h2>
+        <Button onClick={() => router.replace("/payments")}>Volver a Pagos</Button>
+      </div>
+    )
+  }
+
+
+  // Estado de carga
+  if (loading || !user || user.role !== "admin") {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin mb-2" />
+        <p className="text-muted-foreground">Cargando pagos pendientes...</p>
+      </div>
+    )
+  }
+
+  // // NUEVO: Mientras no se haya seteado el valor total, mostrar loader
+  // if (loading && initialPendingCount.current === null) {
+  //   return (
+  //     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+  //       <Loader2 className="h-8 w-8 animate-spin mb-2" />
+  //       <p className="text-muted-foreground">Cargando pagos pendientes...</p>
+  //     </div>
+  //   )
+  // }
+
+
+  // Helper visual
+  const formatDateTime = (date: Date | string) => {
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(date))
+  }
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
-        return "default"
-      case "pending":
-        return "secondary"
-      case "failed":
-        return "destructive"
-      default:
-        return "secondary"
+      case "paid": return "success"
+      case "rejected": return "destructive"
+      case "pending": return "warning"
+      default: return "secondary"
     }
   }
-
   const getStatusText = (status: string) => {
     switch (status) {
-      case "completed":
-        return "Completado"
-      case "pending":
-        return "Pendiente"
-      case "failed":
-        return "Fallido"
-      default:
-        return status
+      case "paid": return "Pagado"
+      case "rejected": return "Rechazado"
+      case "pending": return "Pendiente"
+      default: return status
     }
   }
 
-  const getMethodText = (method: string) => {
-    switch (method) {
-      case "cash":
-        return "Efectivo"
-      case "card":
-        return "Tarjeta"
-      case "transfer":
-        return "Transferencia"
-      default:
-        return method
+  // Acción de aprobar/rechazar
+  const handleStatusUpdate = async (status: "paid" | "rejected") => {
+    if (!currentPayment) return
+
+    if (status === "rejected" && !rejectionReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Debes proporcionar una razón para rechazar el pago",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsVerifying(true)
+    try {
+      await updatePaymentStatus({
+        id: currentPayment.id,
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason : undefined,
+      })
+
+      toast({
+        title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
+        description: `El pago de ${currentPayment.clientName} ha sido ${status === "paid" ? "aprobado" : "rechazado"}`,
+      })
+
+      setRejectionReason("")
+      setShow(false)
+      setTimeout(() => {
+        setShow(true)
+        setCurrentIndex((prev) => prev + 1)
+        setReviewedCount((prev) => prev + 1)
+      }, 350)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo procesar la verificación",
+        variant: "destructive",
+      })
+    } finally {
+      setIsVerifying(false)
     }
   }
 
+  // Render principal
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background space-y-3 p-4">
+      <MobileHeader
+        title="Verificar Pagos"
+        showBack
+        onBack={() => router.replace("/payments")}
+      />
 
-      <div className="container py-6 space-y-6">
-        {/* Stats */}
-        {canManagePayments && (
-          <div>
+      <div className="flex items-center justify-between text-sm mb-1">
+        <span className="font-medium">Progreso</span>
+        <span className="text-muted-foreground">
+          {reviewedCount} completados, {totalPendingPayments} totales
+        </span>
+      </div>
+      <div className="w-full bg-muted rounded-full h-2">
+        <div
+          className="bg-primary h-2 rounded-full transition-all duration-300"
+          style={{
+            width: (!initialPendingCount.current || reviewedCount === 0)
+              ? "0%"
+              : `${(reviewedCount / (initialPendingCount.current ?? 1)) * 100}%`
+          }}
+        />
+      </div>
+      <div className="w-full h-px bg-border my-3" />
+
+      <div className={`transition-opacity duration-300 mt-2 p-2 ${show ? "opacity-100" : "opacity-0"}`}>
+        {/* Renderiza solo si hay currentPayment */}
+        {currentPayment && (
+          <>
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pendientes</p>
-                    <p className="text-2xl font-bold">{pendingPayments.length}</p>
+              <CardContent className="p-1 items-center justify-between">
+                <div className="grid grid-cols-2 gap-2 ml-5 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{currentPayment.clientName}</span>
                   </div>
-                  <Calendar className="h-8 w-8 text-orange-600" />
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>{formatDateTime(currentPayment.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-bold text-lg">{currentPayment.amount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Badge variant={getStatusColor(currentPayment.status)}>
+                      {getStatusText(currentPayment.status)}
+                    </Badge>
+                  </div>
+                </div>
+                {currentPayment.receiptUrl && (
+                  <div className="mt-2 pt-2 border-t">
+                    <span className="text-sm text-muted-foreground">
+                      Comprobante subido: {formatDateTime(currentPayment.createdAt)}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="mt-2">
+              <CardContent className="p-2">
+                <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
+                <div className="border rounded-lg overflow-hidden">
+                  <img
+                    src={currentPayment.receiptUrl || "/placeholder.svg"}
+                    alt="Comprobante de pago"
+                    className="w-full max-h-[400px] object-contain bg-gray-50 mx-auto"
+                  />
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(currentPayment.receiptUrl!, "_blank")}
+                    className="bg-transparent"
+                  >
+                    Ver en tamaño completo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const link = document.createElement("a")
+                      link.href = currentPayment.receiptUrl!
+                      link.download = `comprobante-${currentPayment.clientName}-${currentPayment.createdAt}.jpg`
+                      link.click()
+                    }}
+                    className="bg-transparent"
+                  >
+                    Descargar
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </>
         )}
 
-        {/* Payments Tabs */}
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="completed">Completados</TabsTrigger>
-            <TabsTrigger value="pending">Pendientes</TabsTrigger>
-          </TabsList>
+        {/* Siempre visible */}
+        <Card className="mt-2">
+          <CardContent className="p-2">
+            <Label htmlFor="rejectionReason">Razón del rechazo</Label>
+            <Textarea
+              id="rejectionReason"
+              placeholder="Explica por qué se rechaza el pago..."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={2}
+              className="resize-none text-sm"
+              disabled={!currentPayment}
+            />
+          </CardContent>
+        </Card>
 
-          <TabsContent value="all" className="space-y-3 mt-4">
-            {userPayments.map((payment) => (
-              <Card key={payment.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{payment.activityName}</h3>
-                      {canManagePayments && <p className="text-sm text-muted-foreground">{payment.clientName}</p>}
-                    </div>
-                    <Badge variant={getStatusColor(payment.status)}>{getStatusText(payment.status)}</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">{formatDate(payment.date)}</span>
-                      <span className="text-muted-foreground">{getMethodText(payment.method)}</span>
-                    </div>
-                    <span className="font-bold text-lg">${payment.amount}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="completed" className="space-y-3 mt-4">
-            {completedPayments.map((payment) => (
-              <Card key={payment.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{payment.activityName}</h3>
-                      {canManagePayments && <p className="text-sm text-muted-foreground">{payment.clientName}</p>}
-                    </div>
-                    <Badge variant="default">Completado</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">{formatDate(payment.date)}</span>
-                      <span className="text-muted-foreground">{getMethodText(payment.method)}</span>
-                    </div>
-                    <span className="font-bold text-lg">${payment.amount}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="pending" className="space-y-3 mt-4">
-            {pendingPayments.map((payment) => (
-              <Card key={payment.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{payment.activityName}</h3>
-                      {canManagePayments && <p className="text-sm text-muted-foreground">{payment.clientName}</p>}
-                    </div>
-                    <Badge variant="secondary">Pendiente</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">{formatDate(payment.date)}</span>
-                      <span className="text-muted-foreground">{getMethodText(payment.method)}</span>
-                    </div>
-                    <span className="font-bold text-lg">${payment.amount}</span>
-                  </div>
-
-                  {user.role === "client" && (
-                    <Button className="w-full" size="sm">
-                      Completar Pago
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        </Tabs>
-
+        {/* Botones */}
+        <div className="sticky mt-2 bottom-0 left-0 right-0 bg-background flex gap-3 z-10">
+          <Button
+            variant="secondary"
+            onClick={() => handleStatusUpdate("rejected")}
+            disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
+            className="w-1/2 py-3 text-base font-semibold"
+          >
+            {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {!isVerifying && <X className="mr-2 h-4 w-4" />}
+            Rechazar
+          </Button>
+          <Button
+            variant="default"
+            onClick={() => handleStatusUpdate("paid")}
+            disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
+            className="w-1/2 py-3 text-base font-semibold"
+          >
+            {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {!isVerifying && <Check className="mr-2 h-4 w-4" />}
+            Aprobar
+          </Button>
+        </div>
       </div>
-
-      <BottomNav />
     </div>
   )
 }

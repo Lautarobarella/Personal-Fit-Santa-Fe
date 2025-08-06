@@ -2,11 +2,12 @@
 
 import type React from "react"
 
+import { authenticate, logout as authLogout, getCurrentUser, isAuthenticated } from "@/lib/auth"
+import type { UserType } from "@/lib/types"
 import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "@/lib/types"
 
 interface AuthContextType {
-  user: User | null
+  user: UserType | null
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   loading: boolean
@@ -15,33 +16,33 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    // Check for stored user session and token
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        const currentUser = getCurrentUser()
+        if (currentUser) {
+          setUser(currentUser)
+        }
+      }
+      setLoading(false)
     }
-    setLoading(false)
+
+    checkAuth()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setLoading(true)
     try {
-      const { authenticate } = await import("@/lib/auth")
       const authenticatedUser = await authenticate(email, password)
-
-      if (authenticatedUser) {
-        setUser(authenticatedUser)
-        localStorage.setItem("user", JSON.stringify(authenticatedUser))
-        return true
-      }
-      return false
+      setUser(authenticatedUser)
+      return true
     } catch (error) {
       console.error("Login error:", error)
-      return false
+      throw error // Re-throw to let the login form handle the error
     } finally {
       setLoading(false)
     }
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem("user")
+    authLogout()
   }
 
   return <AuthContext.Provider value={{ user, login, logout, loading }}>{children}</AuthContext.Provider>

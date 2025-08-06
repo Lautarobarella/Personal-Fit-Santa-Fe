@@ -11,47 +11,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/hooks/use-toast"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ActivityType } from "@/lib/types"
 
 interface DeleteActivityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  activity: {
-    id: string
-    name: string
-    currentParticipants: number
-    date: Date
-  }
-  onDelete: (activityId: string) => void
+  activity: ActivityType
+  onDelete: (activityId: number) => void
 }
 
 export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }: DeleteActivityDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false)
-  const { toast } = useToast()
 
   const handleDelete = async () => {
     setIsDeleting(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      onDelete(activity.id)
-
-      toast({
-        title: "Actividad eliminada",
-        description: `"${activity.name}" ha sido eliminada exitosamente`,
-      })
-
+      await onDelete(activity.id)
       onOpenChange(false)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar la actividad",
-        variant: "destructive",
-      })
+      // Error handling is done in the parent component
+      console.error("Error in delete dialog:", error)
     } finally {
       setIsDeleting(false)
     }

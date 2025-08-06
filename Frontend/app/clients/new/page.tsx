@@ -11,56 +11,48 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { User, Phone, Loader2 } from "lucide-react"
+import { User, Loader2 } from "lucide-react"
+import { UserFormType } from "@/lib/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useClients } from "@/hooks/use-client"
 
-interface ClientForm {
-  name: string
-  email: string
-  phone: string
-  dni: string
-  dateOfBirth: string
-  address: string
-}
+
+//  HACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER
 
 export default function NewClientPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const { form, setForm, createClient } = useClients()
 
-  const [form, setForm] = useState<ClientForm>({
-    name: "",
-    email: "",
-    phone: "",
-    dni: "",
-    dateOfBirth: "",
-    address: "",
-  })
+  const [errors, setErrors] = useState<Partial<UserFormType>>({})
 
-  const [errors, setErrors] = useState<Partial<ClientForm>>({})
-
-  if (!user || user.role !== "administrator") {
+  if (!user || user.role !== "admin") {
     return <div>No tienes permisos para crear clientes</div>
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ClientForm> = {}
+    const newErrors: Partial<UserFormType> = {}
 
-    if (!form.name.trim()) newErrors.name = "El nombre es requerido"
+    if (!form.dni.trim()) newErrors.dni = "El DNI es requerido"
+    if (!form.firstName.trim()) newErrors.firstName = "El nombre es requerido"
+    if (!form.lastName.trim()) newErrors.lastName = "El nombre es requerido"
     if (!form.email.trim()) newErrors.email = "El email es requerido"
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email inválido"
     if (!form.phone.trim()) newErrors.phone = "El teléfono es requerido"
-    if (!form.dateOfBirth) newErrors.dateOfBirth = "La fecha de nacimiento es requerida"
-
+    if (!form.birthDate) newErrors.birthDate = "La fecha de nacimiento es requerida"
+    if (!form.address.trim()) newErrors.address = "La dirección es requerida"
+    if (!form.password.trim()) newErrors.password = "La contraseña es requerida"
+    
     // Validate age (must be at least 16)
-    if (form.dateOfBirth) {
-      const birthDate = new Date(form.dateOfBirth)
+    if (form.birthDate) {
+      const birthDate = new Date(form.birthDate)
       const today = new Date()
       const age = today.getFullYear() - birthDate.getFullYear()
       if (age < 16) {
-        newErrors.dateOfBirth = "El cliente debe tener al menos 16 años"
+        newErrors.birthDate = "El cliente debe tener al menos 16 años"
       }
     }
 
@@ -71,30 +63,19 @@ export default function NewClientPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    form.password = form.dni.toString()
+
     if (!validateForm()) return
 
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const newClient = {
-        id: Date.now().toString(),
-        ...form,
-        status: "active",
-        joinDate: new Date(),
-        activitiesCount: 0,
-        lastActivity: null,
-      }
-
-      console.log("Creating client:", newClient)
-
+      await createClient(form)
       toast({
         title: "Cliente creado",
         description: "El cliente ha sido registrado exitosamente",
       })
-
       router.push("/clients")
     } catch (error) {
       toast({
@@ -107,7 +88,7 @@ export default function NewClientPage() {
     }
   }
 
-  const handleInputChange = (field: keyof ClientForm, value: string) => {
+  const handleInputChange = (field: keyof UserFormType, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
@@ -118,7 +99,7 @@ export default function NewClientPage() {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Nuevo Cliente" showBack onBack={() => router.back()} />
 
-      <div className="container py-6">
+      <div className="container-centered py-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -133,66 +114,78 @@ export default function NewClientPage() {
                 <h3 className="text-lg font-medium">Información Personal</h3>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre Completo</Label>
-                  <Input
-                    id="name"
-                    value={form.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Ej: María González López"
-                    className={errors.name ? "border-destructive" : ""}
-                  />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      placeholder="maria@email.com"
-                      className={errors.email ? "border-destructive" : ""}
-                    />
-                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      placeholder="+34 666 123 456"
-                      className={errors.phone ? "border-destructive" : ""}
-                    />
-                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                  </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="name">DNI</Label>
                   <Input
                     id="dni"
                     value={form.dni}
                     onChange={(e) => handleInputChange("dni", e.target.value)}
                     placeholder="123456789"
-                    className={errors.name ? "border-destructive" : ""}
+                    className={errors.dni ? "border-error" : ""}
                   />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                  {errors.dni && <p className="text-sm text-error">{errors.dni}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Fecha de Nacimiento</Label>
+                  <Label htmlFor="firstName">Nombre</Label>
                   <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={form.dateOfBirth}
-                    onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                    max={new Date().toISOString().split("T")[0]}
-                    className={errors.dateOfBirth ? "border-destructive" : ""}
+                    id="firstName"
+                    value={form.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    placeholder="María"
+                    className={errors.firstName ? "border-error" : ""}
                   />
-                  {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
+                  {errors.firstName && <p className="text-sm text-error">{errors.firstName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Apellido</Label>
+                  <Input
+                    id="lastName"
+                    value={form.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    placeholder="Gonzalez"
+                    className={errors.firstName ? "border-error" : ""}
+                  />
+                  {errors.firstName && <p className="text-sm text-error">{errors.firstName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    placeholder="maria@email.com"
+                    className={errors.email ? "border-error" : ""}
+                  />
+                  {errors.email && <p className="text-sm text-error">{errors.email}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    placeholder="+34 666 123 456"
+                    className={errors.phone ? "border-error" : ""}
+                  />
+                  {errors.phone && <p className="text-sm text-error">{errors.phone}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                  <Input
+                    id="birthDate"
+                    type="date"
+                    value={form.birthDate}
+                    onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                    max={new Date().toISOString().split("T")[0]}
+                    className={errors.birthDate ? "border-error" : ""}
+                  />
+                  {errors.birthDate && <p className="text-sm text-error">{errors.birthDate}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -204,6 +197,21 @@ export default function NewClientPage() {
                     placeholder="Calle, número, ciudad, código postal"
                     rows={2}
                   />
+                  {errors.address && <p className="text-sm text-error">{errors.address}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="trainer">Rol</Label>
+                    <Select value={form.role} onValueChange={(value) => handleInputChange("role", value)}>
+                      <SelectTrigger className={errors.role ? "border-error" : ""}>
+                        <SelectValue placeholder="Seleccionar rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="client">Cliente</SelectItem>
+                        <SelectItem value="trainer">Entrenador</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.role && <p className="text-sm text-error">{errors.role}</p>}
                 </div>
               </div>
 
@@ -212,7 +220,7 @@ export default function NewClientPage() {
                 <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 bg-transparent">
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading} className="flex-1">
+                <Button type="submit" disabled={isLoading} onClick={handleSubmit} className="flex-1">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Crear Cliente
                 </Button>

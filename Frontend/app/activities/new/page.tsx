@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -12,58 +12,59 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Users, Loader2 } from "lucide-react"
+import { Calendar, Clock, Users, Loader2, Repeat } from "lucide-react"
+import { ActivityFormType } from "@/lib/types"
+import { useActivities } from "@/hooks/use-activity"
 
-interface ActivityForm {
-  name: string
-  description: string
-  date: string
-  time: string
-  duration: number
-  maxParticipants: number
-  trainer: string
-}
+const DAYS_OF_WEEK = [
+  { key: 0, label: "Lunes", short: "Lun" },
+  { key: 1, label: "Martes", short: "Mar" },
+  { key: 2, label: "Miércoles", short: "Mié" },
+  { key: 3, label: "Jueves", short: "Jue" },
+  { key: 4, label: "Viernes", short: "Vie" },
+  { key: 5, label: "Sábado", short: "Sáb" },
+  { key: 6, label: "Domingo", short: "Dom" },
+]
 
 export default function NewActivityPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const { form, setForm, createActivity, loadTrainers, trainers, resetForm } = useActivities()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  
+  useEffect(() =>{ 
+    loadTrainers()
+  }, [])
 
-  const [form, setForm] = useState<ActivityForm>({
-    name: "",
-    description: "",
-    date: "",
-    time: "",
-    duration: 60,
-    maxParticipants: 10,
-    trainer: user?.role === "trainer" ? user.name : "",
-  })
-
-  const [errors, setErrors] = useState<Partial<ActivityForm>>({})
-
-  if (!user || (user.role !== "administrator" && user.role !== "trainer")) {
+  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
     return <div>No tienes permisos para crear actividades</div>
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ActivityForm> = {}
+    const newErrors: Record<string, string> = {}
 
+    try {
     if (!form.name.trim()) newErrors.name = "El nombre es requerido"
     if (!form.description.trim()) newErrors.description = "La descripción es requerida"
-    if (!form.date) newErrors.date = "La fecha es requerida"
     if (!form.time) newErrors.time = "La hora es requerida"
-    if (form.duration <= 0) newErrors.duration = "La duración debe ser mayor a 0"
-    if (form.maxParticipants <= 0) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainer.trim()) newErrors.trainer = "El entrenador es requerido"
+    if (!form.duration) newErrors.duration = "La duración debe ser mayor a 0"
+    if (!form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
+    if (!form.trainerId.trim()) form.trainerId = user.id.toString()
 
-    // Validate date is not in the past
-    const selectedDate = new Date(`${form.date}T${form.time}`)
-    if (selectedDate <= new Date()) {
-      newErrors.date = "La fecha debe ser futura"
+    // Validate recurring activity settings
+    if (form.isRecurring) {
+      if (!form.weeklySchedule?.some(day => day)) {
+        newErrors.weeklySchedule = "Debe seleccionar al menos un día de la semana"
+      }
     }
-
+    } catch (error) {
+      console.error("Error validating form:", error)
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -76,26 +77,13 @@ export default function NewActivityPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const newActivity = {
-        id: Date.now().toString(),
-        ...form,
-        date: new Date(`${form.date}T${form.time}`),
-        trainerId: user.id,
-        currentParticipants: 0,
-        status: "active" as const,
-        participants: [],
-      }
-
-      console.log("Creating activity:", newActivity)
-
+      await createActivity(form)
       toast({
         title: "Actividad creada",
         description: "La actividad ha sido creada exitosamente",
       })
 
+      resetForm()
       router.push("/activities")
     } catch (error) {
       toast({
@@ -108,18 +96,27 @@ export default function NewActivityPage() {
     }
   }
 
-  const handleInputChange = (field: keyof ActivityForm, value: string | number) => {
+  const handleInputChange = (field: keyof Partial<ActivityFormType>, value: string | number | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }))
+    // Clear error for this field if it exists
+    if (errors[field as string]) {
+      const newErrors = { ...errors }
+      delete newErrors[field as string]
+      setErrors(newErrors)
     }
+  }
+
+  const handleWeeklyScheduleChange = (dayIndex: number, checked: boolean) => {
+    const newSchedule = [...(form.weeklySchedule || [false, false, false, false, false, false, false])]
+    newSchedule[dayIndex] = checked
+    setForm(prev => ({ ...prev, weeklySchedule: newSchedule }))
   }
 
   return (
     <div className="min-h-screen bg-background">
       <MobileHeader title="Nueva Actividad" showBack onBack={() => router.back()} />
 
-      <div className="container py-6">
+      <div className="container-centered py-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -131,7 +128,7 @@ export default function NewActivityPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Información Básica</h3>
+                <h3 className="text-md font-medium">Información Básica</h3>
 
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre de la Actividad</Label>
@@ -158,63 +155,52 @@ export default function NewActivityPage() {
                   {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
-                {user.role === "administrator" && (
+                {user.role === "admin" && (
                   <div className="space-y-2">
-                    <Label htmlFor="trainer">Entrenador asignado</Label>
-                    <Select value={form.trainer} onValueChange={(value) => handleInputChange("trainer", value)}>
-                      <SelectTrigger className={errors.trainer ? "border-destructive" : ""}>
+                    <Label htmlFor="trainerName">Entrenador asignado</Label>
+
+                    <Select value={form.trainerId} onValueChange={(value) => handleInputChange("trainerId", value)}>
+                      <SelectTrigger className={errors.trainerId ? "border-destructive" : ""}>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ana García">Ana García</SelectItem>
-                        <SelectItem value="Carlos López">Carlos López</SelectItem>
-                        <SelectItem value="María Rodríguez">María Rodríguez</SelectItem>
+                      <SelectContent>                    
+                        {trainers.map((trainer) => (
+                            <SelectItem key={trainer.id} value={trainer.id.toString()}>
+                              {trainer.firstName + " " + trainer.lastName}
+                            </SelectItem>
+                        ))}
                       </SelectContent>
-                    </Select>
-                    {errors.trainer && <p className="text-sm text-destructive">{errors.trainer}</p>}
+                    </Select> 
+
+                    {errors.trainerId && <p className="text-sm text-destructive">{errors.trainerId}</p>}
                   </div>
                 )}
               </div>
 
               {/* Schedule */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
+                <h3 className="text-md font-medium flex items-center gap-2">
                   <Clock className="h-5 w-5" />
                   Horario
                 </h3>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Fecha</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={form.date}
-                      onChange={(e) => handleInputChange("date", e.target.value)}
-                      min={new Date().toISOString().split("T")[0]}
-                      className={errors.date ? "border-destructive" : ""}
-                    />
-                    {errors.date && <p className="text-sm text-destructive">{errors.date}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Hora de inicio</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={form.time}
-                      onChange={(e) => handleInputChange("time", e.target.value)}
-                      className={errors.time ? "border-destructive" : ""}
-                    />
-                    {errors.time && <p className="text-sm text-destructive">{errors.time}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time">Hora de inicio</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={form.time}
+                    onChange={(e) => handleInputChange("time", e.target.value)}
+                    className={errors.time ? "border-destructive" : ""}
+                  />
+                  {errors.time && <p className="text-sm text-destructive">{errors.time}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="duration">Duración (minutos)</Label>
                   <Select
                     value={form.duration.toString()}
-                    onValueChange={(value) => handleInputChange("duration", Number.parseInt(value))}
+                    onValueChange={(value) => handleInputChange("duration", value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -229,11 +215,68 @@ export default function NewActivityPage() {
                   </Select>
                   {errors.duration && <p className="text-sm text-destructive">{errors.duration}</p>}
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Ubicación</Label>
+                  <Input
+                    id="location"
+                    value={form.location}
+                    onChange={(e) => handleInputChange("location", e.target.value)}
+                    placeholder="Ej: Gimnasio principal"
+                    className={errors.location ? "border-destructive" : ""}
+                  />
+                  {errors.location && <p className="text-sm text-destructive">{errors.location}</p>}
+                </div>
               </div>
 
-              {/* Capacity & Pricing */}
+              {/* Recurring Schedule */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-md font-medium flex items-center gap-2">
+                    <Repeat className="h-5 w-5" />
+                    Repetir semanalmente
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="recurring"
+                      checked={form.isRecurring}
+                      onCheckedChange={(checked) => handleInputChange("isRecurring", checked)}
+                    />
+                    
+                  </div>
+                </div>
+
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div className="space-y-2">
+                      <Label>Días de la semana</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Selecciona los días en los que se realizará esta actividad. Se crearán actividades separadas para cada día seleccionado.
+                      </p>
+                      <div className="grid grid-cols-7 gap-2">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <div key={day.key} className="flex flex-col items-center space-y-1">
+                            <Checkbox
+                              id={`day-${day.key}`}
+                              checked={form.weeklySchedule?.[day.key] || false}
+                              onCheckedChange={(checked) => 
+                                handleWeeklyScheduleChange(day.key, checked as boolean)
+                              }
+                            />
+                            <Label htmlFor={`day-${day.key}`} className="text-xs">
+                              {day.short}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                      {errors.weeklySchedule && (
+                        <p className="text-sm text-destructive">{errors.weeklySchedule}</p>
+                      )}
+                    </div>
+                  </div>
+              </div>
+
+              {/* Capacity */}
+              <div className="space-y-4">
+                <h3 className="text-md font-medium flex items-center gap-2">
                   <Users className="h-5 w-5" />
                   Capacidad
                 </h3>

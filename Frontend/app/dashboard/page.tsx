@@ -1,11 +1,11 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
 import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Activity, CreditCard, TrendingUp, Clock } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MobileHeader } from "@/components/ui/mobile-header"
+import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
@@ -14,7 +14,7 @@ export default function DashboardPage() {
   if (!user) return null
 
   const getDashboardStats = () => {
-    if (user.role === "administrator") {
+    if (user.role === "admin") {
       return [
         { title: "Total Actividades", value: "24", icon: Activity, color: "text-blue-600" },
         { title: "Clientes Activos", value: "156", icon: Users, color: "text-green-600" },
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   }
 
   const getQuickActions = () => {
-    if (user.role === "administrator") {
+    if (user.role === "admin") {
       return [
         { title: "Crear Actividad", href: "/activities/new", icon: Activity },
         { title: "Gestionar Clientes", href: "/clients", icon: Users },
@@ -56,7 +56,7 @@ export default function DashboardPage() {
       return [
         { title: "Ver Actividades", href: "/activities", icon: Activity },
         { title: "Mis Inscripciones", href: "/enrollments", icon: Calendar },
-        { title: "Realizar Pago", href: "/payments/new", icon: CreditCard },
+        { title: "Realizar Pago", href: "/payments/method-select", icon: CreditCard },
       ]
     }
   }
@@ -66,15 +66,15 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader title={`Hola, ${user.name.split(" ")[0]}`} />
+      <MobileHeader title={`Hola, ${user.firstName}`} />
 
-      <div className="container py-6 space-y-6">
+      <div className="container-centered py-6 space-y-6">
         {/* Welcome Card */}
-        <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+        <Card className="bg-gradient-to-r from-primary to-orange-400 text-white">
           <CardHeader>
             <CardTitle>Bienvenido de vuelta</CardTitle>
             <CardDescription className="text-blue-100">
-              {user.role === "administrator" && "Panel de administración completo"}
+              {user.role === "admin" && "Panel de administración completo"}
               {user.role === "trainer" && "Gestiona tus clases y clientes"}
               {user.role === "client" && "Mantente activo con tus entrenamientos"}
             </CardDescription>
