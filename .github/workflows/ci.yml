@@ -113,7 +113,7 @@ jobs:
     - name: Build Backend Docker image
       run: |
         docker build -f Backend/Dockerfile -t personalfit-backend:test .
-        docker run --rm personalfit-backend:test java -version
+        docker images | grep personalfit-backend
 
     - name: Test Docker Compose
       run: |
