@@ -16,7 +16,6 @@ services:
       POSTGRES_DB: personalfit
       POSTGRES_USER: personalfit_user
       POSTGRES_PASSWORD: secret123
-      POSTGRES_INITDB_ARGS: "--auth-host=md5"
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -38,9 +37,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: admin123
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
+      SPRING_DATASOURCE_USERNAME: personalfit_user
+      SPRING_DATASOURCE_PASSWORD: secret123
       # Configuración de MercadoPago para el backend
       MP_ACCESS_TOKEN: TEST-1385388116353883-080413-b197af2289492f91ced7a5efe5ac0029-288248460
       # Configuración de conexión de base de datos
