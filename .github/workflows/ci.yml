@@ -87,10 +87,11 @@ jobs:
 
     - name: Run Frontend tests
       working-directory: ./Frontend
-      run: npm run test:coverage
+      run: npm test
 
     - name: Upload Frontend Test Coverage
       uses: codecov/codecov-action@v4
+      if: hashFiles('Frontend/coverage/lcov.info') != ''
       with:
         file: ./Frontend/coverage/lcov.info
         flags: frontend

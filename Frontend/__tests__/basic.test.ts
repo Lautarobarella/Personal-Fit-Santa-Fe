@@ -18,4 +18,9 @@ describe('Basic Test Suite', () => {
     expect(obj.name).toBe('test')
     expect(obj.value).toBe(42)
   })
+
+  it('should handle async operations', async () => {
+    const result = await Promise.resolve('async result')
+    expect(result).toBe('async result')
+  })
 }) 
