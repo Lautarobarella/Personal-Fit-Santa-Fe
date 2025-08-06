@@ -52,6 +52,17 @@ if [ -z "$MP_ACCESS_TOKEN" ]; then
     log "⚠️  MP_ACCESS_TOKEN no está configurada. Usando valor por defecto."
 fi
 
+if [ -z "$NEXT_PUBLIC_MP_PUBLIC_KEY" ]; then
+    log "⚠️  NEXT_PUBLIC_MP_PUBLIC_KEY no está configurada. Usando valor por defecto."
+fi
+
+# Crear archivo .env temporal con las variables de entorno
+log "📝 Creando archivo .env temporal..."
+cat > .env << EOF
+MP_ACCESS_TOKEN=$MP_ACCESS_TOKEN
+NEXT_PUBLIC_MP_PUBLIC_KEY=$NEXT_PUBLIC_MP_PUBLIC_KEY
+EOF
+
 # Parar los contenedores actuales (si existen)
 log "🛑 Deteniendo contenedores actuales..."
 docker-compose down || true
