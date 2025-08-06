@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class Payment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private Long confNumber;
     private String rejectionReason;
@@ -26,7 +26,7 @@ public class Payment {
     private LocalDateTime verifiedAt; // Fecha de verificación del pago
     private LocalDateTime updatedAt; // Fecha de actualización del pago
     private LocalDateTime expiresAt; // Fecha de expiración del pago
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "verified_by_user_id")
     private User verifiedBy;
     @ManyToOne
@@ -37,5 +37,19 @@ public class Payment {
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "payment_file_id")
     private PaymentFile paymentFile; // Comprobante de pago asociado
+    
+
+    // // Convenience methods for compatibility
+    // public MethodType getMethod() {
+    //     return methodType;
+    // }
+
+    // public Long getReceiptId() {
+    //     return paymentFile != null ? paymentFile.getId() : null;
+    // }
+
+    // public String getReceiptUrl() {
+    //     return paymentFile != null ? paymentFile.getFileUrl() : null;
+    // }
 
 }

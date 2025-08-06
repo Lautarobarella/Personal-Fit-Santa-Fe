@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,10 +20,14 @@ public class ActivityTypeDTO {
     private String description;
     private String location;
     private String trainerName;
-    private LocalDateTime date;          // Usa LocalDateTime si querés manejar fecha y hora juntos
-    private Integer duration;            // En minutos
-    private List<Long> participants;     // IDs de los participantes
+    private LocalDateTime date;
+    private Integer duration;
+    private List<Long> participants;
     private Integer maxParticipants;
     private Integer currentParticipants;
     private ActivityStatus status;
+    
+    // Fields for recurring activities
+    private Boolean isRecurring;
+    private List<Boolean> weeklySchedule;
 }

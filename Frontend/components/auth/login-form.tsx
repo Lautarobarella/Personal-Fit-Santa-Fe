@@ -32,9 +32,10 @@ export function LoginForm() {
         })
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Ocurrió un error durante el login"
       toast({
-        title: "Error",
-        description: "Ocurrió un error durante el login",
+        title: "Error de autenticación",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

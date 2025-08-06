@@ -1,13 +1,18 @@
 package com.personalfit.personalfit.dto;
 
+import com.personalfit.personalfit.utils.MethodType;
 import com.personalfit.personalfit.utils.PaymentStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PaymentTypeDTO {
     private Long id;
     private Long clientId;
@@ -22,5 +27,6 @@ public class PaymentTypeDTO {
     private LocalDateTime updatedAt;
     private LocalDateTime expiresAt;
     private Long receiptId;
+    private MethodType method;
 
 }

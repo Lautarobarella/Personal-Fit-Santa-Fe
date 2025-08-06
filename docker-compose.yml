@@ -1,10 +1,17 @@
 version: '3.8'
 
+networks:
+  personalfit-network:
+    driver: bridge
+    name: personalfit-network
+
 services:
   postgres:
     image: postgres:15
     container_name: personalfit-db
     restart: unless-stopped
+    networks:
+      - personalfit-network
     environment:
       POSTGRES_DB: personalfit
       POSTGRES_USER: personalfit_user
@@ -13,18 +20,31 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U personalfit_user -d personalfit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   personalfit-backend:
     build:
       context: .
       dockerfile: Backend/Dockerfile
     container_name: personalfit-backend
+    networks:
+      - personalfit-network
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
       SPRING_DATASOURCE_USERNAME: personalfit_user
       SPRING_DATASOURCE_PASSWORD: secret123
+      # Configuración de MercadoPago para el backend
+      MP_ACCESS_TOKEN: TEST-1385388116353883-080413-b197af2289492f91ced7a5efe5ac0029-288248460
+      # Configuración de conexión de base de datos
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
     ports:
       - "8080:8080"
     volumes:
@@ -35,17 +55,34 @@ services:
       context: .
       dockerfile: Frontend/Dockerfile
     container_name: personalfit-frontend
+    networks:
+      - personalfit-network
     depends_on:
       - personalfit-backend
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      # URLs para comunicación interna entre servicios Docker
+      NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
+      NEXT_PUBLIC_BASE_URL: https://personalfitsantafe.com
+      NEXT_PUBLIC_FRONTEND_URL: https://personalfitsantafe.com
+      NEXT_PUBLIC_FILES_URL: http://personalfit-backend:8080
+      
+      # Configuración de MercadoPago
+      MP_ACCESS_TOKEN: TEST-1385388116353883-080413-b197af2289492f91ced7a5efe5ac0029-288248460
+      NEXT_PUBLIC_MP_PUBLIC_KEY: TEST-48801865-274c-4366-947c-963cb39867ef
+      NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+      
+      # Configuración de Next.js
+      NODE_ENV: development
+      NEXT_PUBLIC_IS_DOCKER: "true"
 
   pgadmin:
     image: dpage/pgadmin4
     container_name: personalfit-pgadmin
     restart: unless-stopped
+    networks:
+      - personalfit-network
     ports:
       - "5050:80"
     environment:

@@ -14,7 +14,8 @@ public interface IPaymentService {
     void registerPayment(InCreatePaymentDTO newPayment);
     List<PaymentTypeDTO> getAllPaymentsTypeDto();
     List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id);
-    void registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file);
+    Payment registerPaymentWithFile(InCreatePaymentDTO newPayment, MultipartFile file);
+    Payment registerWebhookPayment(InCreatePaymentDTO newPayment);
     Boolean saveAll(List<InCreatePaymentDTO> newPayments);
     Boolean saveAllWithFiles(List<InCreatePaymentWithFileDTO> newPayments);
     Boolean saveAllWithFilesFromArray(List<InCreatePaymentDTO> newPayments, MultipartFile[] files);

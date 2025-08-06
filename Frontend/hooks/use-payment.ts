@@ -1,16 +1,16 @@
 import {
-  createPayment,
-  fetchPaymentDetail,
-  fetchPayments,
-  fetchPaymentsById,
-  updatePayment,
-  buildReceiptUrl,
+    buildReceiptUrl,
+    createPaymentWithStatus,
+    fetchPaymentDetail,
+    fetchPayments,
+    fetchPaymentsById,
+    updatePayment,
 } from "@/api/payment/paymentsApi"
-import { PaymentType, NewPaymentInput } from "@/lib/types"
+import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
+    useMutation,
+    useQuery,
+    useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -18,10 +18,10 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   const queryClient = useQueryClient()
 
   const { data: payments = [], isLoading, error } = useQuery<PaymentType[]>({
-    queryKey: ["payments", userId],
+    queryKey: isAdmin ? ["payments", "admin"] : ["payments", userId],
     queryFn: () =>
       isAdmin ? fetchPayments() : fetchPaymentsById(userId ?? 0),
-    enabled: !!userId, // evita cargar si no hay usuario
+    enabled: isAdmin || !!userId, // evita cargar si no hay usuario y no es admin
   })
 
   const fetchSinglePayment = useCallback(
@@ -35,27 +35,12 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     [] // sin dependencias, así se memoriza una sola vez
   )
 
-  const fetchAllPendingPayments = useCallback(async (): Promise<(PaymentType & { receiptUrl: string | null })[]> => {
-    try {
-      const response = await fetch("/api/payment/pending")
-      const rawPayments: PaymentType[] = await response.json()
-
-      const enrichedPayments = await Promise.all(
-        rawPayments.map((p) => fetchSinglePayment(p.id))
-      )
-
-      return enrichedPayments
-    } catch (error) {
-      console.error("Error al cargar pagos pendientes:", error)
-      return []
-    }
-  }, [fetchSinglePayment])
-
-
-  const createPaymentMutation = useMutation({
-    mutationFn: (data: NewPaymentInput) => createPayment(data),
+  const createPaymentWithStatusMutation = useMutation({
+    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) => 
+      createPaymentWithStatus(data.paymentData, data.isMercadoPagoPayment),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
+      // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
     },
   })
 
@@ -70,7 +55,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       rejectionReason?: string
     }) => updatePayment(id, status, rejectionReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments", userId] })
+      // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
     },
   })
 
@@ -78,9 +64,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     payments,
     isLoading,
     error,
-    createNewPayment: createPaymentMutation.mutateAsync,
+    createPaymentWithStatus: createPaymentWithStatusMutation.mutateAsync,
     updatePaymentStatus: updatePaymentMutation.mutateAsync,
     fetchSinglePayment,
-    fetchAllPendingPayments,
   }
 }

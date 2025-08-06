@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, ChevronLeft, ChevronRight, Calendar, Clock, Users, MapPin, MoreVertical, Search } from "lucide-react"
+import { Plus, ChevronLeft, ChevronRight, Calendar, Clock, Users, MapPin, MoreVertical, Search, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,20 +17,26 @@ import { DeleteActivityDialog } from "@/components/activities/delete-activity-di
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
 import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
+import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
 import { useActivities } from "@/hooks/use-activity"
 import { ActivityType } from "@/lib/types"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 
 export default function ActivitiesPage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const { 
     activities,
     loading,
-    error, 
+    error,
     loadActivitiesByWeek,
     enrollIntoActivity,
     unenrollFromActivity,
+    deleteActivityById,
+    isUserEnrolled,
+    getUserEnrollmentStatus,
    } = useActivities()
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -53,7 +59,6 @@ export default function ActivitiesPage() {
       loadActivitiesByWeek(currentWeek)
     }
   }, [currentWeek, loadActivitiesByWeek])
-
 
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean
@@ -87,6 +92,14 @@ export default function ActivitiesPage() {
   })
 
   if (!user) return null
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
 
   const canManageActivities = user.role === "admin" || user.role === "trainer"
 
@@ -192,9 +205,6 @@ export default function ActivitiesPage() {
   //   return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
   // }
 
-  const isUserEnrolled = (activity: ActivityType) =>
-    activity.participants.some((p) => p === user.id)
-
   const handleDeleteActivity = (activity: ActivityType) => {
     setDeleteDialog({
       open: true,
@@ -202,26 +212,57 @@ export default function ActivitiesPage() {
     })
   }
 
-  const handleConfirmDelete = (activityId: number) => {
-    // Here you would call your delete API
-    console.log("Deleting activity:", activityId)
-    // For demo purposes, we'll just close the dialog
-    setDeleteDialog({ open: false, activity: null })
+  const handleConfirmDelete = async (activityId: number) => {
+    try {
+      const result = await deleteActivityById(activityId)
+      
+      if (result.success) {
+        toast({
+          title: "Éxito",
+          description: result.message,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al eliminar la actividad",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteDialog({ open: false, activity: null })
+    }
   }
 
   const handleEnrollActivity = (activity: ActivityType) => {
     setEnrollDialog({
       open: true,
       activity,
-      isEnrolled: isUserEnrolled(activity),
+      isEnrolled: isUserEnrolled(activity, user.id),
     })
   }
 
   const handleConfirmEnroll = async (activity: ActivityType) => {
-    if (enrollDialog.isEnrolled) {
-      unenrollFromActivity(activity.id, user.id)
-    } else {
-      enrollIntoActivity(activity.id, user.id)
+    try {
+      if (enrollDialog.isEnrolled) {
+        const result = await unenrollFromActivity(activity.id, user.id)
+        if (result.success) {
+          // Mostrar toast de éxito
+        }
+      } else {
+        const result = await enrollIntoActivity(activity.id, user.id)
+        if (result.success) {
+          // Mostrar toast de éxito
+        }
+      }
+    } catch (error) {
+      console.error("Error al manejar inscripción:", error)
     }
 
     setEnrollDialog({ open: false, activity: null, isEnrolled: false })
@@ -257,7 +298,7 @@ export default function ActivitiesPage() {
         }
       />
 
-      <div className="container py-6 space-y-6">
+      <div className="container-centered py-6 space-y-6">
         {/* Week Navigation */}
         <Card>
           <CardContent className="p-4">
@@ -377,6 +418,16 @@ export default function ActivitiesPage() {
                                   <span>{activity.location}</span>
                                 </div>
                               </div>
+                              
+                              {/* Mostrar horario semanal si es una actividad recurrente */}
+                              {activity.isRecurring && activity.weeklySchedule && (
+                                <div className="mt-2">
+                                  <WeeklyScheduleDisplay 
+                                    weeklySchedule={activity.weeklySchedule}
+                                    className="text-xs"
+                                  />
+                                </div>
+                              )}
                             </div>
 
                             {canManageActivities && (
@@ -391,7 +442,7 @@ export default function ActivitiesPage() {
                                     Ver Detalles
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/activities/${activity.id}/edit`}>Editar</Link>
+                                    <Link href={`/activities/${activity.id}`}>Editar</Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>Ver Asistencia</DropdownMenuItem>
                                   <DropdownMenuItem
@@ -423,11 +474,11 @@ export default function ActivitiesPage() {
                               <Button
                                 size="sm"
                                 onClick={() => handleEnrollActivity(activity)}
-                                disabled={activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity)}
+                                disabled={activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id)}
                                 className="text-xs"
-                                variant={isUserEnrolled(activity) ? "destructive" : "default"}
+                                variant={isUserEnrolled(activity, user.id) ? "destructive" : "default"}
                               >
-                                {isUserEnrolled(activity)
+                                {isUserEnrolled(activity, user.id)
                                   ? "Desinscribir"
                                   : activity.currentParticipants >= activity.maxParticipants
                                     ? "Completo"

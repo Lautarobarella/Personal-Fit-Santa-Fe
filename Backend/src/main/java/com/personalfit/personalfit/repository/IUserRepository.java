@@ -3,15 +3,18 @@ package com.personalfit.personalfit.repository;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.personalfit.personalfit.models.User;
 
 @Repository
 public interface IUserRepository extends JpaRepository<User, Long> {
@@ -20,6 +23,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     List<User> findAllByBirthDate(LocalDate now);
     List<User> findAllByRole(UserRole userRole);
     List<User> findByIdIn(List<Long> id);
+
     // IUserRepository.java
     @Query("SELECT u FROM User u WHERE u.status = :status AND u.lastAttendance < :dateLimit")
     List<User> findActiveUsersWithLastAttendanceBefore(
@@ -32,4 +36,5 @@ public interface IUserRepository extends JpaRepository<User, Long> {
             @Param("status") UserStatus status,
             @Param("dateLimit") LocalDate dateLimit
     );
+    Optional<User> findByEmail(String email);
 }

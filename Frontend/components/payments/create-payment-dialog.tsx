@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Textarea } from "../ui/textarea"
@@ -50,6 +50,31 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [dueDate, setDueDate] = useState(dueDateStr)
 
     const [amount, setAmount] = useState("")
+    const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
+    
+    // Fetch monthly fee when component mounts
+    useEffect(() => {
+        const fetchMonthlyFee = async () => {
+            try {
+                const { fetchMonthlyFee: fetchFee } = await import('@/api/settings/settingsApi')
+                const fee = await fetchFee()
+                setMonthlyFee(fee)
+            } catch (error) {
+                console.error('Error fetching monthly fee:', error)
+            }
+        }
+
+        fetchMonthlyFee()
+    }, [])
+    
+    // Auto-populate fields when dialog opens for client role
+    useEffect(() => {
+        if (open && user && monthlyFee !== null) {
+            setSelectedClient((user.role==="client")? user.dni?.toString() : "")
+            setAmount(monthlyFee.toString())
+        }
+    }, [open, user, monthlyFee])
+    
     const [isUploading, setIsUploading] = useState(false)
     const { toast } = useToast()
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -179,10 +204,19 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             //  Cerramos el diálogo y redirigimos
             handleClose()
 
-        } catch (error) {
+        } catch (error: any) {
+            // Manejar errores específicos del backend
+            let errorMessage = "No se pudo crear el pago"
+            
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message
+            } else if (error?.message) {
+                errorMessage = error.message
+            }
+            
             toast({
                 title: "Error",
-                description: "No se pudo crear el pago",
+                description: errorMessage,
                 variant: "destructive",
             })
         } finally {
@@ -239,7 +273,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             step="0.01"
                             placeholder="150.00"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            readOnly
+                            className="bg-gray-50"
                         />
                     </div>
 

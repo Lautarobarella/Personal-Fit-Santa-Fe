@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "../ui/avatar"
 import { Card, CardContent } from "../ui/card"
 import { CheckCircle, AlertCircle, Loader2, Users, MailWarningIcon } from "lucide-react"
 import { useActivities } from "@/hooks/use-activity"
+import { useToast } from "@/hooks/use-toast"
 
 interface AttendanceActivityDialogProps {
   open: boolean
@@ -25,6 +26,7 @@ interface AttendanceActivityDialogProps {
 
 export function AttendanceActivityDialog({ open, onOpenChange, activityId }: AttendanceActivityDialogProps) {
   const [isAttending, setIsAttending] = useState(false)
+  const { toast } = useToast()
   const { selectedActivity, loadActivityDetail, markParticipantPresent } = useActivities()
 
   useEffect(() => {
@@ -51,7 +53,93 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
   }
 
   const handleMarkPresent = async (participantId: number) => {
-    markParticipantPresent(selectedActivity, participantId)
+    setIsAttending(true)
+    
+    try {
+      const result = await markParticipantPresent(selectedActivity.id, participantId, "present")
+      
+      if (result.success) {
+        toast({
+          title: "Asistencia marcada",
+          description: result.message,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al marcar la asistencia",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAttending(false)
+    }
+  }
+
+  const handleMarkAbsent = async (participantId: number) => {
+    setIsAttending(true)
+    
+    try {
+      const result = await markParticipantPresent(selectedActivity.id, participantId, "absent")
+      
+      if (result.success) {
+        toast({
+          title: "Ausencia marcada",
+          description: result.message,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al marcar la ausencia",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAttending(false)
+    }
+  }
+
+  const handleMarkLate = async (participantId: number) => {
+    setIsAttending(true)
+    
+    try {
+      const result = await markParticipantPresent(selectedActivity.id, participantId, "late")
+      
+      if (result.success) {
+        toast({
+          title: "Tardanza marcada",
+          description: result.message,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al marcar la tardanza",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAttending(false)
+    }
   }
 
   const handleClose = () => {
@@ -70,8 +158,22 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Lista de Participantes</h3>
+          <div className="flex gap-2 text-sm">
+            <Badge variant="success">
+              {selectedActivity.participants.filter(p => p.status === "present").length} Presentes
+            </Badge>
+            <Badge variant="destructive">
+              {selectedActivity.participants.filter(p => p.status === "absent").length} Ausentes
+            </Badge>
+            <Badge variant="secondary">
+              {selectedActivity.participants.filter(p => p.status === "late").length} Tardanzas
+            </Badge>
+            <Badge variant="warning">
+              {selectedActivity.participants.filter(p => p.status === "pending").length} Pendientes
+            </Badge>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -115,17 +217,80 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                           Pendiente
                         </Badge>
                       )}
+                      {p.status === "late" && (
+                        <Badge variant={'secondary'}>
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Tardanza
+                        </Badge>
+                      )}
                     </>
 
-                    {/* Botón para marcar como presente solo si es pending y la actividad aún no comenzó */}
+                    {/* Botones para marcar asistencia */}
+                    {p.status === "present" && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAbsent(p.id)}
+                          disabled={isAttending}
+                        >
+                          {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Ausente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkLate(p.id)}
+                          disabled={isAttending}
+                        >
+                          {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Tardanza
+                        </Button>
+                      </div>
+                    )}
                     {(p.status === "pending" || p.status === "absent") && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkPresent(p.id)}
-                      >
-                        Marcar presente
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkPresent(p.id)}
+                          disabled={isAttending}
+                        >
+                          {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Presente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkLate(p.id)}
+                          disabled={isAttending}
+                        >
+                          {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Tardanza
+                        </Button>
+                      </div>
+                    )}
+                    {p.status === "late" && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkPresent(p.id)}
+                          disabled={isAttending}
+                        >
+                          {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Presente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAbsent(p.id)}
+                          disabled={isAttending}
+                        >
+                          {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Ausente
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>

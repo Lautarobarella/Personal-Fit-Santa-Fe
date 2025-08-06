@@ -1,7 +1,10 @@
 package com.personalfit.personalfit.controllers;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -32,7 +35,7 @@ import com.personalfit.personalfit.services.IPaymentService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/payment")
+@RequestMapping("/api/payments")
 public class PaymentController {
 
     @Autowired
@@ -49,12 +52,38 @@ public class PaymentController {
     }
 
     @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> newPaymentWithFile(
+    public ResponseEntity<Map<String, Object>> newPaymentWithFile(
             @RequestPart("payment") InCreatePaymentDTO payment,
             @RequestPart(value = "file", required = false) MultipartFile file) {
 
-        paymentService.registerPaymentWithFile(payment, file);
-        return ResponseEntity.created(null).build();
+        Payment createdPayment = paymentService.registerPaymentWithFile(payment, file);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", createdPayment.getId());
+        response.put("message", "Pago creado exitosamente");
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/webhook/mercadopago")
+    public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(@RequestBody InCreatePaymentDTO payment) {
+        try {
+            paymentService.registerWebhookPayment(payment); // Use the new method
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Pago registrado exitosamente desde webhook");
+            response.put("timestamp", LocalDateTime.now());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Error al registrar pago: " + e.getMessage());
+            response.put("timestamp", LocalDateTime.now());
+            
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @GetMapping("/getAll")
@@ -73,11 +102,18 @@ public class PaymentController {
     }
 
     @PutMapping("/pending/{id}")
-    public ResponseEntity<String> putPayment(
+    public ResponseEntity<Map<String, Object>> putPayment(
             @PathVariable Long id,
             @RequestBody InUpdatePaymentStatusDTO dto) {
         paymentService.updatePaymentStatus(id, dto);
-        return ResponseEntity.ok("Estado actualizado correctamente");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Estado actualizado correctamente");
+        response.put("paymentId", id);
+        response.put("newStatus", dto.getStatus());
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/getFile/{id}")

@@ -28,11 +28,11 @@ export function MobileHeader({
   const { user } = useAuth()
 
   // Mock unread notifications count - in real app this would come from context/API
-  const unreadCount = 3
+  const unreadCount = 10
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container-centered flex h-14 items-center justify-between">
         <div className="flex items-center gap-2">
           {showBack && (
             <Button variant="ghost" size="sm" onClick={onBack}>

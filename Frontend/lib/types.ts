@@ -88,6 +88,8 @@ export interface ActivityDetailInfo {
   createdAt: Date
   lastModified?: Date
   notes?: string
+  isRecurring?: boolean
+  weeklySchedule?: boolean[] // [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
 }
 
 interface ActivityUserDetails {
@@ -110,6 +112,8 @@ export interface ActivityType {
   maxParticipants: number
   currentParticipants: number
   status: ActivityStatus
+  isRecurring?: boolean
+  weeklySchedule?: boolean[]
 }
 
 export interface ActivityFormType {
@@ -122,6 +126,8 @@ export interface ActivityFormType {
   time: string
   duration: string
   maxParticipants: string
+  isRecurring?: boolean
+  weeklySchedule?: boolean[]
 }
 
 export interface Attendance {
@@ -165,4 +171,27 @@ export interface NewPaymentInput {
   expiresAt: string
   paymentStatus: "pending" | "paid"
   file?: File
+}
+
+export interface EnrollmentRequest {
+  activityId: number
+  userId: number
+  status: ClientStatus
+  createdAt: Date
+}
+
+export interface EnrollmentResponse {
+  success: boolean
+  message: string
+  enrollment?: Attendance
+}
+
+export interface WeeklySchedule {
+  monday: boolean
+  tuesday: boolean
+  wednesday: boolean
+  thursday: boolean
+  friday: boolean
+  saturday: boolean
+  sunday: boolean
 }

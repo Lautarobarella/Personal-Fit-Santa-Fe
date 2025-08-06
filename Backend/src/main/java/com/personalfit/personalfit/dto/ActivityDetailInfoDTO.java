@@ -31,4 +31,8 @@ public class ActivityDetailInfoDTO {
     private LocalDateTime createdAt;
     private LocalDateTime lastModified;
     private String notes;
+    
+    // Fields for recurring activities
+    private Boolean isRecurring;
+    private List<Boolean> weeklySchedule;
 }

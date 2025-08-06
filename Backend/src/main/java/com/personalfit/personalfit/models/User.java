@@ -10,6 +10,7 @@ import org.hibernate.annotations.Where;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.List;
 
 @Getter
@@ -47,11 +48,16 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 
-
     private LocalDateTime deletedAt = null;
 
     public String getFullName() {
         return firstName + " " + lastName;
     }
 
+    public Integer getAge() {
+        if (birthDate == null) {
+            return null;
+        }
+        return Period.between(birthDate, LocalDate.now()).getYears();
+    }
 }

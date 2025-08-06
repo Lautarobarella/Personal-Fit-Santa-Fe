@@ -1,6 +1,6 @@
 package com.personalfit.personalfit.dto;
 
-import com.personalfit.personalfit.utils.UserStatus;
+import com.personalfit.personalfit.utils.AttendanceStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +17,5 @@ public class ActivityUserDetailDTO {
     private String firstName;
     private String lastName;
     private LocalDateTime createdAt;
-    private UserStatus status;
+    private AttendanceStatus status;
 }

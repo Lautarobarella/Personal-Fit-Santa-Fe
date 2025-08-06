@@ -16,7 +16,7 @@ import java.util.List;
 public class Activity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String name;
     private String description;
@@ -28,6 +28,10 @@ public class Activity {
     private Integer duration; // Minutes
     @Enumerated(EnumType.STRING)
     private ActivityStatus status;
+    
+    // Field for weekly repetition
+    private Boolean isRecurring;
+    
     @ManyToOne
     @JoinColumn(name = "trainer_id", nullable = false)
     private User trainer;

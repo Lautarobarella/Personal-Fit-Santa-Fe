@@ -11,9 +11,6 @@ const nextConfig = {
   },
   output: 'standalone',
   // Configuración para evitar warnings
-  experimental: {
-    esmExternals: 'loose',
-  },
   webpack: (config, { isServer }) => {
     // Suprimir warnings de webpack
     config.infrastructureLogging = {

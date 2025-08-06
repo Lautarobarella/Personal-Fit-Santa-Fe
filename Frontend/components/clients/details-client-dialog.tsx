@@ -95,7 +95,7 @@ export function ClientDetailsDialog({
     switch (status) {
       case "completed":
         return "success"
-      case "enrolled":
+      case "active":
         return "default"
       case "cancelled":
         return "destructive"
@@ -108,8 +108,8 @@ export function ClientDetailsDialog({
     switch (status) {
       case "completed":
         return "Completada"
-      case "enrolled":
-        return "Inscrita"
+      case "active":
+        return "Activa"
       case "cancelled":
         return "Cancelada"
       default:
@@ -120,11 +120,13 @@ export function ClientDetailsDialog({
   const getAttendanceColor = (attendance: string | undefined) => {
     switch (attendance) {
       case "present":
-        return "text-success"
+        return "text-green-600"
       case "absent":
-        return "text-error"
+        return "text-red-600"
       case "late":
-        return "text-warning"
+        return "text-yellow-600"
+      case "pending":
+        return "text-blue-600"
       default:
         return "text-muted-foreground"
     }
@@ -138,6 +140,8 @@ export function ClientDetailsDialog({
         return "Ausente"
       case "late":
         return "Tarde"
+      case "pending":
+        return "Pendiente"
       default:
         return "N/A"
     }
@@ -344,17 +348,15 @@ export function ClientDetailsDialog({
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h4 className="font-medium">{activity.name}</h4>
-                        <p className="text-sm text-muted-foreground">Entrenador: {activity.name}</p>
+                        <p className="text-sm text-muted-foreground">Entrenador: {activity.trainerName}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={getActivityStatusColor(activity.activityStatus)} className="text-xs">
                           {getActivityStatusText(activity.activityStatus)}
                         </Badge>
-                        {activity.activityStatus === "completed" && (
-                          <span className={`text-xs font-medium ${getAttendanceColor(activity.clientStatus)}`}>
-                            {getAttendanceText(activity.clientStatus)}
-                          </span>
-                        )}
+                        <span className={`text-xs font-medium ${getAttendanceColor(activity.clientStatus)}`}>
+                          {getAttendanceText(activity.clientStatus)}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -372,6 +374,27 @@ export function ClientDetailsDialog({
                         </span>
                       </div>
                     </div>
+                    
+                    {/* Mostrar información adicional según el estado */}
+                    {activity.activityStatus === "completed" && (
+                      <div className="mt-2 pt-2 border-t border-muted">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-muted-foreground">Asistencia:</span>
+                          <span className={`font-medium ${getAttendanceColor(activity.clientStatus)}`}>
+                            {getAttendanceText(activity.clientStatus)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {activity.activityStatus === "active" && activity.clientStatus === "pending" && (
+                      <div className="mt-2 pt-2 border-t border-muted">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-muted-foreground">Estado:</span>
+                          <span className="text-blue-600 font-medium">Inscrito - Pendiente</span>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

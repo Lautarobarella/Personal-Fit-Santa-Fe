@@ -1,5 +1,16 @@
 package com.personalfit.personalfit.services.impl;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
 import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.PaymentTypeDTO;
@@ -42,6 +53,9 @@ public class UserServiceImpl implements IUserService {
     @Autowired
     private INotificationService notificationService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public Boolean createNewUser(InCreateUserDTO newUser) {
 
         Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
@@ -61,7 +75,7 @@ public class UserServiceImpl implements IUserService {
         userToCreate.setJoinDate(LocalDate.now());
         userToCreate.setAddress(newUser.getAddress());
         userToCreate.setBirthDate(newUser.getBirthDate());
-        userToCreate.setPassword(newUser.getPassword());
+        userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword())); // Encriptar contraseña
         userToCreate.setStatus(newUser.getStatus());
         userRepository.save(userToCreate);
 
@@ -157,15 +171,9 @@ public class UserServiceImpl implements IUserService {
 
     public List<UserTypeDTO> getAllTrainers() {
         List<User> users = userRepository.findAll();
-        return users.stream().filter(u -> u.getRole().equals(UserRole.trainer))
-                .map(u -> {
-                    UserTypeDTO userDto = new UserTypeDTO(u);
-                    Integer age = getUserAge(u);
-                    userDto.setAge(age);
-                    userDto.setLastActivity(LocalDate.now());
-                    userDto.setActivitiesCount(u.getAttendances().size());
-                    return userDto;
-                })
+        return users.stream()
+                .filter(user -> user.getRole().equals(UserRole.trainer))
+                .map(UserTypeDTO::new)
                 .collect(Collectors.toList());
     }
 
@@ -221,7 +229,7 @@ public class UserServiceImpl implements IUserService {
             userToCreate.setBirthDate(newUser.getBirthDate());
             userToCreate.setPassword(newUser.getPassword());
             userToCreate.setStatus(newUser.getStatus());
-            userRepository.save(userToCreate);
+            userRepository.save(userToCreate); // TODO refactorizar para que guarde los nuevos usuarios en lotes
         }
         return true;
     }

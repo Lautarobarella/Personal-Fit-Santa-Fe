@@ -18,5 +18,10 @@ public class UserDetailInfoDTO extends UserTypeDTO {
         super(user);
     }
 
+    public UserDetailInfoDTO(User user, List<UserActivityDetailsDTO> listActivity, List<PaymentTypeDTO> listPayments) {
+        super(user);
+        this.listActivity = listActivity;
+        this.listPayments = listPayments;
+    }
 
 }
