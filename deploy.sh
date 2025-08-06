@@ -54,7 +54,7 @@ fi
 
 # Parar los contenedores actuales (si existen)
 log "🛑 Deteniendo contenedores actuales..."
-docker-compose down || true
+docker compose down || true
 
 # Limpiar imágenes y contenedores no utilizados
 log "🧹 Limpiando Docker..."
@@ -62,7 +62,7 @@ docker system prune -f
 
 # Construir y levantar los nuevos contenedores
 log "🏗️  Construyendo y levantando contenedores..."
-docker-compose up --build
+docker compose up --build
 
 # Esperar a que los servicios estén listos
 log "⏳ Esperando a que los servicios estén listos..."
@@ -70,7 +70,7 @@ sleep 30
 
 # Verificar que los servicios están corriendo
 log "✅ Verificando estado de los servicios..."
-docker-compose ps
+docker compose ps
 
 # Verificar la salud de los servicios
 log "🏥 Verificando salud de la aplicación..."
@@ -88,10 +88,10 @@ fi
 
 # Mostrar logs de los últimos 50 líneas para debugging
 log "📋 Últimos logs del frontend:"
-docker-compose logs --tail=50 personalfit-frontend
+docker compose logs --tail=50 personalfit-frontend
 
 log "📋 Últimos logs del backend:"
-docker-compose logs --tail=50 personalfit-backend
+docker compose logs --tail=50 personalfit-backend
 
 log "🎉 ¡Deployment completado con éxito!"
 log "🌐 La aplicación debería estar disponible en:"
@@ -101,7 +101,7 @@ log "   - PgAdmin: http://personalfitsantafe.com:5050"
 
 # Información adicional
 log "ℹ️  Para ver logs en tiempo real:"
-log "   docker-compose logs -f"
+log "   docker compose logs -f"
 log "ℹ️  Para reiniciar un servicio específico:"
-log "   docker-compose restart personalfit-frontend"
-log "   docker-compose restart personalfit-backend"
+log "   docker compose restart personalfit-frontend"
+log "   docker compose restart personalfit-backend"

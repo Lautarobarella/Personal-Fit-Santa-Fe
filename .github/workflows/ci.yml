@@ -117,8 +117,8 @@ jobs:
 
     - name: Test Docker Compose
       run: |
-        docker-compose -f docker-compose.yml config
-        docker-compose -f docker-compose.yml build
+        docker compose -f docker-compose.yml config
+        docker compose -f docker-compose.yml build
 
   # Job para deployment (solo en main)
   deploy:
