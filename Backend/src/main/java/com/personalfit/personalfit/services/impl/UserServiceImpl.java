@@ -245,17 +245,18 @@ public class UserServiceImpl implements IUserService {
 
             Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u, PaymentStatus.paid);
 
-            if(payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())
-                    || payment.isEmpty()){
+            if( payment.isEmpty() ||
+                    payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())){
                 u.setStatus(UserStatus.inactive);
                 toUpdate.add(u);
                 log.info("User {} has been set to inactive due to expired payment.", u.getFullName());
             }
-            // Actualizar todos
-            userRepository.saveAll(toUpdate);
-            // TODO lógica de envio de notificación al usuario y al admin
-            notificationService.createPaymentExpiredNotification(toUpdate, getAllAdmins());
         });
+        if (!toUpdate.isEmpty()) {
+            userRepository.saveAll(toUpdate);
+            // TODO: enviar notificación a usuarios y admins
+            notificationService.createPaymentExpiredNotification(toUpdate, getAllAdmins());
+        }
     }
 
     @Scheduled(cron = "0 1 0 * * ?")

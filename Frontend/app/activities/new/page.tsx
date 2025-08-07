@@ -2,22 +2,22 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Users, Loader2, Repeat } from "lucide-react"
-import { ActivityFormType } from "@/lib/types"
+import { Textarea } from "@/components/ui/textarea"
 import { useActivities } from "@/hooks/use-activity"
+import { useToast } from "@/hooks/use-toast"
+import { ActivityFormType } from "@/lib/types"
+import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 const DAYS_OF_WEEK = [
   { key: 0, label: "Lunes", short: "Lun" },
@@ -77,10 +77,10 @@ export default function NewActivityPage() {
     setIsLoading(true)
 
     try {
-      await createActivity(form)
+      const response = await createActivity(form)
       toast({
-        title: "Actividad creada",
-        description: "La actividad ha sido creada exitosamente",
+        title: "Éxito",
+        description: response?.message || "La actividad ha sido creada exitosamente",
       })
 
       resetForm()
