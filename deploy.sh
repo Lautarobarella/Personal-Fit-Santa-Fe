@@ -63,9 +63,9 @@ MP_ACCESS_TOKEN=$MP_ACCESS_TOKEN
 NEXT_PUBLIC_MP_PUBLIC_KEY=$NEXT_PUBLIC_MP_PUBLIC_KEY
 EOF
 
-# Parar solo los contenedores de aplicación (no la base de datos)
-log "🛑 Deteniendo contenedores de aplicación..."
-docker-compose stop personalfit-frontend personalfit-backend || true
+# Parar todos los contenedores pero preservar volúmenes
+log "🛑 Deteniendo contenedores (preservando volúmenes)..."
+docker-compose down || true
 
 # Esperar un momento para asegurar que los contenedores se detengan
 sleep 5
@@ -74,8 +74,8 @@ sleep 5
 log "🧹 Limpiando imágenes no utilizadas..."
 docker image prune -f || true
 
-# Construir y levantar los contenedores
-log "🏗️  Construyendo y levantando contenedores..."
+# Construir y levantar los contenedores (esto reconstruirá con los cambios)
+log "🏗️  Construyendo y levantando contenedores con cambios..."
 docker-compose up --build -d
 
 # Esperar a que los servicios estén listos
