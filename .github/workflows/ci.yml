@@ -176,42 +176,31 @@ jobs:
             exit 1
           fi
           echo "Variables de entorno configuradas correctamente"
-          echo "MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:0:10}..."  # Mostrar solo los primeros 10 caracteres
-          echo "NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY:0:10}..."  # Mostrar solo los primeros 10 caracteres
-          
-          # Verificar estado actual antes del deployment
-          echo "Estado actual de Docker antes del deployment:"
-          docker-compose ps || echo "No hay contenedores corriendo"
+          echo "MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:0:10}..."
+          echo "NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY:0:10}..."
           
           # Hacer el deployment
           chmod +x deploy.sh
           ./deploy.sh
           
-          # Verificación post-deployment
+          # Verificación post-deployment simple
           echo "Verificación post-deployment..."
-          sleep 30
+          sleep 10
           
           # Verificar que los servicios estén corriendo
           echo "Estado final de los servicios:"
           docker-compose ps
           
-          # Verificar conectividad
+          # Verificar conectividad de forma simple
           echo "Verificando conectividad..."
           if curl -f http://localhost:3000 > /dev/null 2>&1; then
             echo "✅ Frontend accesible"
           else
-            echo "❌ Frontend no accesible"
+            echo "⚠️  Frontend aún no accesible (puede necesitar más tiempo)"
           fi
           
           if curl -f http://localhost:8080 > /dev/null 2>&1; then
             echo "✅ Backend accesible"
           else
-            echo "❌ Backend no accesible"
-          fi
-          
-          # Mostrar logs finales para debugging
-          echo "Logs finales del frontend:"
-          docker-compose logs --tail=20 personalfit-frontend
-          
-          echo "Logs finales del backend:"
-          docker-compose logs --tail=20 personalfit-backend 
+            echo "⚠️  Backend aún no accesible (puede necesitar más tiempo)"
+          fi 

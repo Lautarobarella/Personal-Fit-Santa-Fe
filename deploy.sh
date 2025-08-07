@@ -63,106 +63,49 @@ MP_ACCESS_TOKEN=$MP_ACCESS_TOKEN
 NEXT_PUBLIC_MP_PUBLIC_KEY=$NEXT_PUBLIC_MP_PUBLIC_KEY
 EOF
 
-# Función para verificar si un servicio está saludable
-check_service_health() {
-    local service_name=$1
-    local port=$2
-    local endpoint=$3
-    local max_attempts=30
-    local attempt=1
-    
-    log "🏥 Verificando salud de $service_name en puerto $port..."
-    
-    while [ $attempt -le $max_attempts ]; do
-        if curl -f "http://localhost:$port$endpoint" > /dev/null 2>&1; then
-            log "✅ $service_name está respondiendo correctamente"
-            return 0
-        else
-            log "⏳ Intento $attempt/$max_attempts: $service_name aún no está listo..."
-            sleep 10
-            attempt=$((attempt + 1))
-        fi
-    done
-    
-    log "❌ $service_name no respondió después de $max_attempts intentos"
-    return 1
-}
+# Parar solo los contenedores de aplicación (no la base de datos)
+log "🛑 Deteniendo contenedores de aplicación..."
+docker-compose stop personalfit-frontend personalfit-backend || true
 
-# Parar los contenedores actuales de forma más agresiva
-log "🛑 Deteniendo contenedores actuales..."
-docker-compose down --remove-orphans --volumes || true
-
-# Esperar un momento para asegurar que los contenedores se detengan completamente
+# Esperar un momento para asegurar que los contenedores se detengan
 sleep 5
 
-# Limpiar imágenes y contenedores no utilizados (más agresivo)
-log "🧹 Limpiando Docker..."
-docker system prune -f --volumes || true
+# Limpiar solo imágenes no utilizadas (sin volúmenes)
+log "🧹 Limpiando imágenes no utilizadas..."
+docker image prune -f || true
 
-# Eliminar imágenes específicas para forzar rebuild
-log "🗑️  Eliminando imágenes existentes para forzar rebuild..."
-docker rmi personalfit-frontend personalfit-backend 2>/dev/null || true
-
-# Construir y levantar los nuevos contenedores
+# Construir y levantar los contenedores
 log "🏗️  Construyendo y levantando contenedores..."
 docker-compose up --build -d
 
-# Esperar a que PostgreSQL esté listo antes de verificar otros servicios
-log "⏳ Esperando a que PostgreSQL esté listo..."
-sleep 15
+# Esperar a que los servicios estén listos
+log "⏳ Esperando a que los servicios estén listos..."
+sleep 30
 
 # Verificar que los servicios están corriendo
 log "✅ Verificando estado de los servicios..."
 docker-compose ps
 
-# Verificar la salud de los servicios con reintentos
+# Verificar la salud de los servicios de forma simple
 log "🏥 Verificando salud de la aplicación..."
-
-# Verificar backend primero
-if check_service_health "Backend" "8080" "/api/users/fail"; then
-    log "✅ Backend verificado correctamente"
-else
-    log "❌ Backend no está respondiendo, mostrando logs..."
-    docker-compose logs --tail=50 personalfit-backend
-    # No fallar aquí, continuar con el frontend
-fi
-
-# Verificar frontend
-if check_service_health "Frontend" "3000" "/api/health"; then
-    log "✅ Frontend verificado correctamente"
-else
-    log "❌ Frontend no está respondiendo, mostrando logs..."
-    docker-compose logs --tail=50 personalfit-frontend
-    # No fallar aquí, continuar
-fi
-
-# Verificación final de todos los servicios
-log "🔍 Verificación final de todos los servicios..."
-docker-compose ps
-
-# Mostrar logs de los últimos 50 líneas para debugging
-log "📋 Últimos logs del frontend:"
-docker-compose logs --tail=50 personalfit-frontend
-
-log "📋 Últimos logs del backend:"
-docker-compose logs --tail=50 personalfit-backend
-
-log "📋 Últimos logs de PostgreSQL:"
-docker-compose logs --tail=20 postgres
-
-# Verificación final de conectividad
-log "🌐 Verificación final de conectividad..."
 if curl -f http://localhost:3000 > /dev/null 2>&1; then
-    log "✅ Frontend accesible en localhost:3000"
+    log "✅ Frontend está respondiendo correctamente"
 else
-    log "⚠️  Frontend no accesible en localhost:3000"
+    log "⚠️  Frontend aún no está respondiendo (puede necesitar más tiempo)"
 fi
 
 if curl -f http://localhost:8080 > /dev/null 2>&1; then
-    log "✅ Backend accesible en localhost:8080"
+    log "✅ Backend está respondiendo correctamente"
 else
-    log "⚠️  Backend no accesible en localhost:8080"
+    log "⚠️  Backend aún no está respondiendo (puede necesitar más tiempo)"
 fi
+
+# Mostrar logs de los últimos 20 líneas para debugging
+log "📋 Últimos logs del frontend:"
+docker-compose logs --tail=20 personalfit-frontend
+
+log "📋 Últimos logs del backend:"
+docker-compose logs --tail=20 personalfit-backend
 
 log "🎉 ¡Deployment completado!"
 log "🌐 La aplicación debería estar disponible en:"
@@ -177,4 +120,4 @@ log "ℹ️  Para reiniciar un servicio específico:"
 log "   docker-compose restart personalfit-frontend"
 log "   docker-compose restart personalfit-backend"
 log "ℹ️  Para reiniciar todo si hay problemas:"
-log "   docker-compose down -v && docker-compose up --build -d"
+log "   docker-compose down && docker-compose up --build -d"
