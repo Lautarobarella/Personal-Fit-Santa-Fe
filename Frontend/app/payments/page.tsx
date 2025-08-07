@@ -16,7 +16,10 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import {
+    AlertCircle,
     Calendar,
+    CheckCircle,
+    Clock,
     DollarSign,
     Eye,
     FileCheck,
@@ -42,7 +45,7 @@ export default function PaymentsPage() {
         if (user?.id || user?.role === "admin") {
             const queryKey = user?.role === "admin" ? ["payments", "admin"] : ["payments", user.id]
             queryClient.invalidateQueries({ queryKey })
-            
+
             // Verificar si hay un flag de actualización desde un pago nuevo
             const shouldRefresh = localStorage.getItem('refreshPayments')
             if (shouldRefresh) {
@@ -99,14 +102,16 @@ export default function PaymentsPage() {
 
     if (!user) return null
 
-    const formatMonth = (date: Date) => {
+    const formatMonth = (date: Date | string | null) => {
+        if (!date) return ""
         return new Intl.DateTimeFormat("es-ES", {
             month: "long",
             year: "numeric",
         }).format(new Date(date))
     }
 
-    const formatDate = (date: Date) => {
+    const formatDate = (date: Date | string | null) => {
+        if (!date) return ""
         return new Intl.DateTimeFormat("es-ES", {
             day: "numeric",
             month: "short",
@@ -163,8 +168,8 @@ export default function PaymentsPage() {
     // Obtener información del plan activo y pendiente
     const activePayment = paidPayments.find(p => {
         const now = new Date()
-        const expiresAt = new Date(p.expiresAt)
-        return p.status === "paid" && expiresAt > now
+        const expiresAt = p.expiresAt ? new Date(p.expiresAt) : null
+        return p.status === "paid" && expiresAt && expiresAt > now
     })
     const pendingPayment = pendingPayments.find(p => p.status === "pending")
 
@@ -207,54 +212,24 @@ export default function PaymentsPage() {
                                 </Link>
                             </>
                         ) : user.role === "client" ? (
-                            <div className="relative">
-                                {isLoading ? (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="btn-disabled"
-                                        disabled
-                                    >
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500 mr-2"></div>
-                                        Cargando...
-                                    </Button>
-                                ) : canCreateNewPayment ? (
-                                    <Link href="/payments/method-select">
-                                        <Button size="sm">
-                                            <Plus className="h-4 w-4" />
-                                            Nuevo
-                                        </Button>
-                                    </Link>
-                                                                 ) : (
-                                     <Button 
-                                         size="sm" 
-                                         variant="outline" 
-                                         className={`${
-                                             activePayment 
-                                                 ? 'bg-green-600 border-green-700 text-white hover:bg-green-700 font-semibold shadow-md' 
-                                                 : pendingPayment
-                                                 ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
-                                                 : 'bg-gray-100 border-gray-300 text-gray-600'
-                                         } cursor-not-allowed`}
-                                         disabled
-                                     >
-                                         {activePayment 
-                                             ? `Plan vigente hasta: ${formatDate(activePayment.expiresAt)}`
-                                             : pendingPayment 
-                                                 ? "Pago pendiente de revisión"
-                                                 : "Membresía vencida"
-                                         }
-                                     </Button>
-                                 )}
-                            </div>
+                            <Link href="/payments/method-select">
+                                <Button 
+                                    size="sm"
+                                    disabled={!canCreateNewPayment}
+                                    className={!canCreateNewPayment ? 'opacity-50 cursor-not-allowed' : ''}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Nuevo
+                                </Button>
+                            </Link>
                         ) : null}
                     </div>
                 }
             />
 
             <div className="container-centered py-6 space-y-6">
-                {/* Search */}
-                <div className="relative">
+                {/* Search - Solo para admin */}
+                {user.role === "admin" && <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Buscar por cliente o mes..."
@@ -263,6 +238,48 @@ export default function PaymentsPage() {
                         className="pl-10"
                     />
                 </div>
+                }
+
+                {/* Card informativa para clientes */}
+                {user.role === "client" && (
+                    <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                {activePayment ? (
+                                    <>
+                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-green-800">Plan Vigente</h3>
+                                            <p className="text-sm text-green-700">
+                                                Tu plan está activo hasta {formatDate(activePayment.expiresAt)}
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : pendingPayment ? (
+                                    <>
+                                        <Clock className="h-5 w-5 text-yellow-600" />
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-yellow-800">Pago Pendiente</h3>
+                                            <p className="text-sm text-yellow-700">
+                                                Tu pago está pendiente de verificación
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <AlertCircle className="h-5 w-5 text-gray-600" />
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-800">Membresía Vencida</h3>
+                                            <p className="text-sm text-gray-700">
+                                                Tu membresía ha expirado. Realiza un nuevo pago para continuar.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Stats - Solo para admin */}
                 {user.role === "admin" && (
