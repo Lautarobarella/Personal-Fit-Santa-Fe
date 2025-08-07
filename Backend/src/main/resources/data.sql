@@ -117,11 +117,23 @@ SELECT setval(pg_get_serial_sequence('attendance', 'id'), (SELECT MAX(id) FROM a
 -- Resetear secuencia de app_settings (último ID usado: 1)
 SELECT setval(pg_get_serial_sequence('app_settings', 'id'), (SELECT MAX(id) FROM app_settings), true);
 
--- Resetear secuencia de notification (si existe)
-SELECT setval(pg_get_serial_sequence('notification', 'id'), COALESCE((SELECT MAX(id) FROM notification), 0), true);
+-- Resetear secuencia de notification (si existe y tiene datos, sino establecer en 1)
+SELECT setval(pg_get_serial_sequence('notification', 'id'), 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM notification) > 0 THEN (SELECT MAX(id) FROM notification)
+        ELSE 1
+    END, true);
 
--- Resetear secuencia de payment_file (si existe)
-SELECT setval(pg_get_serial_sequence('payment_file', 'id'), COALESCE((SELECT MAX(id) FROM payment_file), 0), true);
+-- Resetear secuencia de payment_file (si existe y tiene datos, sino establecer en 1)
+SELECT setval(pg_get_serial_sequence('payment_file', 'id'), 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM payment_file) > 0 THEN (SELECT MAX(id) FROM payment_file)
+        ELSE 1
+    END, true);
 
--- Resetear secuencia de payment (si existe)
-SELECT setval(pg_get_serial_sequence('payment', 'id'), COALESCE((SELECT MAX(id) FROM payment), 0), true); 
+-- Resetear secuencia de payment (si existe y tiene datos, sino establecer en 1)
+SELECT setval(pg_get_serial_sequence('payment', 'id'), 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM payment) > 0 THEN (SELECT MAX(id) FROM payment)
+        ELSE 1
+    END, true); 
