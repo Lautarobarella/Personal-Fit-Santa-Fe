@@ -1,16 +1,16 @@
 import {
-    buildReceiptUrl,
-    createPaymentWithStatus,
-    fetchPaymentDetail,
-    fetchPayments,
-    fetchPaymentsById,
-    updatePayment,
+  buildReceiptUrl,
+  createPaymentWithStatus,
+  fetchPaymentDetail,
+  fetchPayments,
+  fetchPaymentsById,
+  updatePayment,
 } from "@/api/payment/paymentsApi"
 import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-    useMutation,
-    useQuery,
-    useQueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -21,7 +21,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     queryKey: isAdmin ? ["payments", "admin"] : ["payments", userId],
     queryFn: () =>
       isAdmin ? fetchPayments() : fetchPaymentsById(userId ?? 0),
-    enabled: (isAdmin || !!userId) && typeof window !== 'undefined', // evita cargar si no hay usuario y no es admin, y durante SSR
+    enabled: isAdmin || !!userId, // evita cargar si no hay usuario y no es admin
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 1,
   })

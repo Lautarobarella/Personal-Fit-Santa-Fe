@@ -14,7 +14,7 @@ import { useEffect, useState } from "react"
 
 // Forzar renderizado dinámico
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const revalidate = false
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -25,6 +25,7 @@ export default function DashboardPage() {
     attendanceRate: 0
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   // Usar hooks de forma segura
   const paymentHook = usePayment(user?.id, user?.role === "admin")
@@ -36,9 +37,14 @@ export default function DashboardPage() {
   const clients = clientsHook?.clients || []
   const activities = activitiesHook?.activities || []
 
+  // Marcar como montado para evitar SSR
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Calcular estadísticas reales
   useEffect(() => {
-    if (!user) {
+    if (!user || !mounted) {
       setIsLoading(false)
       return
     }
@@ -93,10 +99,10 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [user, payments, clients, activities])
+  }, [user, payments, clients, activities, mounted])
 
   // Evitar renderizado durante SSR
-  if (typeof window === 'undefined') {
+  if (!mounted) {
     return null
   }
 

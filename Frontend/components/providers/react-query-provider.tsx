@@ -14,8 +14,6 @@ export function ReactQueryProvider({ children }: { children: ReactNode }) {
                 retry: 1,
                 // Tiempo de stale data más largo
                 staleTime: 5 * 60 * 1000, // 5 minutos
-                // Evitar queries durante SSR
-                enabled: typeof window !== 'undefined',
             },
             mutations: {
                 // Retry solo una vez para mutaciones
