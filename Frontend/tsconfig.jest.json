@@ -7,16 +7,20 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["jest", "node"]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "**/*.js",
     "**/*.jsx",
-    "jest.setup.js"
+    "jest.setup.js",
+    "__tests__/**/*"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next",
+    "coverage"
   ]
 } 

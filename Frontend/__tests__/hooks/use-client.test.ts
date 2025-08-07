@@ -1,22 +1,24 @@
 import { act, renderHook } from '@testing-library/react'
-import { useClient } from '@/hooks/use-client'
+import { useClients } from '@/hooks/use-client'
 
 // Mock the API calls
-jest.mock('@/api/clients/clientsApi', () => ({
-  getClients: jest.fn(),
-  getClientById: jest.fn(),
-  createClient: jest.fn(),
-  updateClient: jest.fn(),
-  deleteClient: jest.fn(),
+jest.mock('@/api/clients/usersApi', () => ({
+  fetchUsers: jest.fn(),
+  fetchUserDetail: jest.fn(),
+  createUser: jest.fn(),
 }))
 
-describe('useClient', () => {
+jest.mock('@/api/payment/paymentsApi', () => ({
+  fetchPaymentsById: jest.fn(),
+}))
+
+describe('useClients', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
   it('should initialize with default state', () => {
-    const { result } = renderHook(() => useClient())
+    const { result } = renderHook(() => useClients())
 
     expect(result.current.clients).toEqual([])
     expect(result.current.loading).toBe(false)
@@ -29,13 +31,13 @@ describe('useClient', () => {
       { id: 2, firstName: 'Jane', lastName: 'Smith' },
     ]
 
-    const { getClients } = require('@/api/clients/clientsApi')
-    getClients.mockResolvedValue(mockClients)
+    const { fetchUsers } = require('@/api/clients/usersApi')
+    fetchUsers.mockResolvedValue(mockClients)
 
-    const { result } = renderHook(() => useClient())
+    const { result } = renderHook(() => useClients())
 
     await act(async () => {
-      await result.current.fetchClients()
+      await result.current.loadClients()
     })
 
     expect(result.current.clients).toEqual(mockClients)
@@ -45,16 +47,16 @@ describe('useClient', () => {
 
   it('should handle fetch error', async () => {
     const mockError = new Error('Failed to fetch clients')
-    const { getClients } = require('@/api/clients/clientsApi')
-    getClients.mockRejectedValue(mockError)
+    const { fetchUsers } = require('@/api/clients/usersApi')
+    fetchUsers.mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useClient())
+    const { result } = renderHook(() => useClients())
 
     await act(async () => {
-      await result.current.fetchClients()
+      await result.current.loadClients()
     })
 
-    expect(result.current.error).toBe(mockError.message)
+    expect(result.current.error).toBe('Error al cargar los clientes')
     expect(result.current.loading).toBe(false)
   })
 }) 

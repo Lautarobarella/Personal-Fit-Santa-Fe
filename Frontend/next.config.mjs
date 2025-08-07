@@ -10,6 +10,10 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
+  // Habilitar SWC para mejor rendimiento
+  experimental: {
+    swcMinify: true,
+  },
   // Configuración para evitar warnings
   webpack: (config, { isServer }) => {
     // Suprimir warnings de webpack
