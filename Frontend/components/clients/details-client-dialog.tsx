@@ -57,17 +57,30 @@ export function ClientDetailsDialog({
   if (loading) return <div>Cargando detalles del cliente...</div>
   if (error) return <div>{error}</div>
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(date))
+  const formatDate = (date: Date | string | null | undefined) => {
+    try {
+      if (!date) return "N/A";
+      
+      const parsedDate = typeof date === "string" ? new Date(date) : date;
+      
+      if (isNaN(parsedDate.getTime())) {
+        console.warn("Fecha inválida:", date);
+        return "N/A";
+      }
+      
+      return new Intl.DateTimeFormat("es-ES", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(parsedDate);
+    } catch (err) {
+      console.error("Error al formatear fecha:", err, date);
+      return "N/A";
+    }
   }
 
-  const formatFullDate = (date: Date): string => {
+  const formatFullDate = (date: Date | string | null | undefined): string => {
     try {
-
       if (!date) return "N/A";
 
       const parsedDate = typeof date === "string" ? new Date(date) : date;
@@ -85,7 +98,7 @@ export function ClientDetailsDialog({
         minute: "2-digit",
       }).format(parsedDate);
     } catch (err) {
-      console.error("Error al formatear fecha:", err);
+      console.error("Error al formatear fecha:", err, date);
       return "N/A";
     }
   };

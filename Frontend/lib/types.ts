@@ -15,12 +15,12 @@ export interface UserDetailInfo {
   email: string
   phone: string
   age: number
-  birthDate: Date
+  birthDate: Date | string | null
   address: string
   role: UserRole
   status: "active" | "inactive"
-  joinDate: Date
-  lastActivity: Date | null
+  joinDate: Date | string | null
+  lastActivity: Date | string | null
   password: string
   avatar?: string
   listActivity: UserActivityDetails[]
@@ -31,7 +31,7 @@ interface UserActivityDetails {
   id: number
   name: string
   trainerName: string
-  date: Date
+  date: Date | string | null
   activityStatus: ActivityStatus
   clientStatus: ClientStatus // esto es la asistencia del cliente
 }
@@ -44,13 +44,13 @@ export interface UserType {
   email: string
   phone: string
   age: number
-  birthDate: Date
+  birthDate: Date | string | null
   address: string
   role: UserRole
   status: "active" | "inactive"
-  joinDate: Date
+  joinDate: Date | string | null
   activitiesCount: number
-  lastActivity: Date | null
+  lastActivity: Date | string | null
   password: string
   avatar?: string
 }
@@ -143,10 +143,10 @@ export interface PaymentType {
   clientId: number
   clientName: string
   amount: number
-  createdAt: Date
-  expiresAt: Date
+  createdAt: Date | string | null
+  expiresAt: Date | string | null
   status: PaymentStatus
-  verifiedAt?: Date
+  verifiedAt?: Date | string | null
   method: MethodType
   rejectionReason?: string
   receiptId?: number | null
