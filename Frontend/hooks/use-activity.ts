@@ -1,15 +1,16 @@
-import { useState, useCallback } from "react"
-import type { ActivityDetailInfo, ActivityFormType, ActivityType, Attendance, UserType, EnrollmentRequest, EnrollmentResponse } from "@/lib/types"
-import { 
-  editActivityBack, 
-  enrollActivity, 
-  fetchActivities, 
-  fetchActivitiesByDate, 
-  fetchActivityDetail, 
-  fetchTrainers, 
-  newActivity, 
-  unenrollActivity,
-  deleteActivity } from "@/api/activities/activitiesApi"
+import {
+    deleteActivity,
+    editActivityBack,
+    enrollActivity,
+    fetchActivities,
+    fetchActivitiesByDate,
+    fetchActivityDetail,
+    fetchTrainers,
+    newActivity,
+    unenrollActivity
+} from "@/api/activities/activitiesApi"
+import type { ActivityDetailInfo, ActivityFormType, ActivityType, EnrollmentRequest, EnrollmentResponse, UserType } from "@/lib/types"
+import { useCallback, useState } from "react"
 
 export function useActivities() {
   const [activities, setActivities] = useState<ActivityType[]>([])
@@ -90,9 +91,10 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      await newActivity(activity) 
+      const response = await newActivity(activity) 
       // Recargar actividades después de crear una nueva
       await loadActivities()
+      return response // Retornar la respuesta para que el componente pueda mostrar el mensaje
     } catch (err) {
       setError("Error al crear la actividad")
       throw err

@@ -1,13 +1,23 @@
 package com.personalfit.personalfit.controllers;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.personalfit.personalfit.dto.AttendanceDTO;
 import com.personalfit.personalfit.services.IAttendanceService;
 import com.personalfit.personalfit.utils.AttendanceStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -23,9 +33,14 @@ public class AttendanceController {
     }
     
     @DeleteMapping("/unenroll/{userId}/{activityId}")
-    public ResponseEntity<Void> unenrollUser(@PathVariable Long userId, @PathVariable Long activityId) {
+    public ResponseEntity<Map<String, Object>> unenrollUser(@PathVariable Long userId, @PathVariable Long activityId) {
         attendanceService.unenrollUser(userId, activityId);
-        return ResponseEntity.ok().build();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Usuario desinscrito exitosamente");
+        response.put("success", true);
+        response.put("userId", userId);
+        response.put("activityId", activityId);
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping("/activity/{activityId}")
@@ -41,11 +56,16 @@ public class AttendanceController {
     }
     
     @PutMapping("/{attendanceId}/status")
-    public ResponseEntity<Void> updateAttendanceStatus(
+    public ResponseEntity<Map<String, Object>> updateAttendanceStatus(
             @PathVariable Long attendanceId, 
             @RequestParam AttendanceStatus status) {
         attendanceService.updateAttendanceStatus(attendanceId, status);
-        return ResponseEntity.ok().build();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Estado de asistencia actualizado exitosamente");
+        response.put("success", true);
+        response.put("attendanceId", attendanceId);
+        response.put("status", status);
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping("/{activityId}/enrolled/{userId}")

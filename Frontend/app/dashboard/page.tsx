@@ -44,13 +44,13 @@ export default function DashboardPage() {
         { title: "Crear Actividad", href: "/activities/new", icon: Activity },
         { title: "Gestionar Clientes", href: "/clients", icon: Users },
         { title: "Ver Pagos", href: "/payments", icon: CreditCard },
-        { title: "Asistencias", href: "/attendance", icon: Calendar },
+        { title: "Ver Actividades", href: "/activities", icon: Calendar },
       ]
     } else if (user.role === "trainer") {
       return [
         { title: "Mis Actividades", href: "/activities", icon: Activity },
         { title: "Mis Clientes", href: "/clients", icon: Users },
-        { title: "Tomar Asistencia", href: "/attendance", icon: Calendar },
+        { title: "Ver Actividades", href: "/activities", icon: Calendar },
       ]
     } else {
       return [

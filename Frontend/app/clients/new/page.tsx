@@ -2,20 +2,20 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { User, Loader2 } from "lucide-react"
-import { UserFormType } from "@/lib/types"
+import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { useClients } from "@/hooks/use-client"
+import { useToast } from "@/hooks/use-toast"
+import { UserFormType } from "@/lib/types"
+import { Loader2, User } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 
 //  HACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER
@@ -70,11 +70,10 @@ export default function NewClientPage() {
     setIsLoading(true)
 
     try {
-
-      await createClient(form)
+      const response = await createClient(form)
       toast({
-        title: "Cliente creado",
-        description: "El cliente ha sido registrado exitosamente",
+        title: "Éxito",
+        description: response?.message || "El cliente ha sido registrado exitosamente",
       })
       router.push("/clients")
     } catch (error) {

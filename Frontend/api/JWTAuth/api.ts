@@ -67,7 +67,23 @@ class JWTPermissionsApi {
       }
     }
 
-    return response.json()
+    // Check if response has content before trying to parse JSON
+    const contentType = response.headers.get('content-type')
+    const contentLength = response.headers.get('content-length')
+    
+    // If no content or empty response, return null (for backward compatibility)
+    if (contentLength === '0' || !contentType || !contentType.includes('application/json')) {
+      return null
+    }
+
+    // Try to parse JSON, but handle empty responses gracefully
+    try {
+      const text = await response.text()
+      return text ? JSON.parse(text) : null
+    } catch (parseError) {
+      // If parsing fails, return null (for backward compatibility)
+      return null
+    }
   }
 
   async request(endpoint: string, options: ApiOptions = {}): Promise<any> {

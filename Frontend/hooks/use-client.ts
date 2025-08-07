@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react"
-import { fetchUsers, fetchUserDetail, createUser } from "@/api/clients/usersApi"
-import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
+import { createUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
 import { fetchPaymentsById } from "@/api/payment/paymentsApi"
+import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
+import { useCallback, useState } from "react"
 
 export function useClients() {
   const [clients, setClients] = useState<UserType[]>([])
@@ -55,11 +55,14 @@ export function useClients() {
     setLoading(true)
     setError(null)
     try {
-      createUser(clientData)
+      const response = await createUser(clientData)
+      return response // Retornar la respuesta para que el componente pueda mostrar el mensaje
     } catch (err) {
       setError("Error al crear el cliente")
+      throw err
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   // Limpiar cliente seleccionado

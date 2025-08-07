@@ -1,18 +1,28 @@
 package com.personalfit.personalfit.controllers;
 
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.personalfit.personalfit.dto.ActivityDetailInfoDTO;
 import com.personalfit.personalfit.dto.ActivityFormTypeDTO;
 import com.personalfit.personalfit.dto.ActivityTypeDTO;
 import com.personalfit.personalfit.dto.EnrollmentRequestDTO;
 import com.personalfit.personalfit.dto.EnrollmentResponseDTO;
 import com.personalfit.personalfit.services.IActivityService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/activities")
@@ -22,21 +32,32 @@ public class ActivityController {
     private IActivityService activityService;
 
     @PostMapping("/new")
-    public ResponseEntity<Void> newActivity(@RequestBody ActivityFormTypeDTO activity) {
+    public ResponseEntity<Map<String, Object>> newActivity(@RequestBody ActivityFormTypeDTO activity) {
         activityService.createActivity(activity);
-        return ResponseEntity.ok().build();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Actividad creada exitosamente");
+        response.put("success", true);
+        return ResponseEntity.ok(response);
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateActivity(@PathVariable Long id, @RequestBody ActivityFormTypeDTO activity) {
+    public ResponseEntity<Map<String, Object>> updateActivity(@PathVariable Long id, @RequestBody ActivityFormTypeDTO activity) {
         activityService.updateActivity(id, activity);
-        return ResponseEntity.ok().build();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Actividad actualizada exitosamente");
+        response.put("success", true);
+        response.put("activityId", id);
+        return ResponseEntity.ok(response);
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteActivity(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> deleteActivity(@PathVariable Long id) {
         activityService.deleteActivity(id);
-        return ResponseEntity.ok().build();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Actividad eliminada exitosamente");
+        response.put("success", true);
+        response.put("activityId", id);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/getAll")

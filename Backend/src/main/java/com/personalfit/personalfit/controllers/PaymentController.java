@@ -46,9 +46,13 @@ public class PaymentController {
 
     // DEPRECATED
     @PostMapping
-    public ResponseEntity<Void> newPayment(@RequestBody InCreatePaymentDTO payment) {
+    public ResponseEntity<Map<String, Object>> newPayment(@RequestBody InCreatePaymentDTO payment) {
         paymentService.registerPayment(payment);
-        return ResponseEntity.created(null).build();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Pago registrado exitosamente (método deprecated)");
+        response.put("success", true);
+        response.put("warning", "Este endpoint está deprecated, use /new en su lugar");
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
