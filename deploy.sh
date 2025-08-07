@@ -106,6 +106,18 @@ docker-compose up -d postgres
 log "🏗️  Construyendo imágenes actualizadas..."
 docker-compose build personalfit-backend personalfit-frontend
 
+# Workaround docker-compose v1: limpiar contenedor e imagen antiguos del frontend para evitar 'ContainerConfig'
+log "🧼 Limpiando artefactos antiguos del frontend (sin tocar volúmenes)..."
+# Eliminar contenedor antiguo si existe
+if docker ps -a --format '{{.Names}}' | grep -q '^personalfit-frontend$'; then
+  docker rm -f personalfit-frontend || true
+fi
+# Eliminar imagen anterior del frontend si existe (no afecta la DB ni volúmenes)
+OLD_FE_IMG_ID=$(docker images --format '{{.Repository}} {{.ID}}' | awk '/personalfit-frontend/ {print $2; exit}')
+if [ -n "${OLD_FE_IMG_ID:-}" ]; then
+  docker rmi -f "$OLD_FE_IMG_ID" || true
+fi
+
 # Levantar/recrear backend y frontend sin bajar la base de datos
 log "🚢 Recreando servicios de app (sin deps ni DB)..."
 docker-compose up -d --no-deps --build personalfit-backend personalfit-frontend
@@ -133,7 +145,7 @@ fi
 # Esperar patrones de arranque (sin localhost)
 log "🔎 Esperando confirmación por logs..."
 wait_for_log personalfit-backend "Started .* in .* seconds" 40 3 || log "⚠️  No se detectó patrón de arranque en backend (continuando)"
-wait_for_log personalfit-frontend "ready - started server on" 40 3 || log "⚠️  No se detectó patrón de arranque en frontend (continuando)"
+wait_for_log personalfit-frontend "(ready - started server on|Listening on)" 40 3 || log "⚠️  No se detectó patrón de arranque en frontend (continuando)"
 
 # Recarga suave de nginx si existe
 if command -v nginx >/dev/null 2>&1; then
