@@ -35,6 +35,23 @@ retry_curl_head() {
   return 1
 }
 
+# Esperar patrón en logs del contenedor
+wait_for_log() {
+  local service_name="$1"
+  local pattern="$2"
+  local attempts=${3:-40}
+  local wait_seconds=${4:-3}
+
+  for i in $(seq 1 "$attempts"); do
+    if docker-compose logs "$service_name" | grep -Eqi "$pattern"; then
+      return 0
+    fi
+    log "⏳ Esperando logs de $service_name (intento $i/$attempts)"
+    sleep "$wait_seconds"
+  done
+  return 1
+}
+
 # Verificar que estamos en el directorio correcto
 log "📂 Navegando al directorio del proyecto: $PROJECT_DIR"
 cd /opt
@@ -101,20 +118,33 @@ docker-compose up -d --remove-orphans
 log "✅ Estado de servicios (docker-compose ps):"
 docker-compose ps
 
-# Esperar a que los servicios estén listos (checks suaves contra dominio)
-log "⏳ Esperando disponibilidad pública..."
-if retry_curl_head "$APP_DOMAIN" 20 5; then
-  log "✅ Frontend accesible en $APP_DOMAIN"
-else
-  log "⚠️  Frontend aún no responde en $APP_DOMAIN (se continuará igualmente)"
+# Validar que backend y frontend están en ejecución
+if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-backend$'; then
+  log "❌ Backend no está corriendo tras el deploy"
+  docker-compose logs --no-color --tail=200 personalfit-backend | sed 's/^/BE | /'
+  exit 1
+fi
+if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-frontend$'; then
+  log "❌ Frontend no está corriendo tras el deploy. Mostrando logs:"
+  docker-compose logs --no-color --tail=200 personalfit-frontend | sed 's/^/FE | /'
+  exit 1
 fi
 
-# Chequeo simple del backend vía puerto público sin localhost
-if retry_curl_head "$BACKEND_PUBLIC" 20 5; then
-  log "✅ Backend accesible en $BACKEND_PUBLIC"
-else
-  log "⚠️  Backend aún no responde en $BACKEND_PUBLIC (se continuará igualmente)"
+# Esperar patrones de arranque (sin localhost)
+log "🔎 Esperando confirmación por logs..."
+wait_for_log personalfit-backend "Started .* in .* seconds" 40 3 || log "⚠️  No se detectó patrón de arranque en backend (continuando)"
+wait_for_log personalfit-frontend "ready - started server on" 40 3 || log "⚠️  No se detectó patrón de arranque en frontend (continuando)"
+
+# Recarga suave de nginx si existe
+if command -v nginx >/dev/null 2>&1; then
+  log "🔄 Recargando Nginx (si configuración es válida)..."
+  (nginx -t && systemctl reload nginx) || log "⚠️  No se pudo recargar Nginx (continuando)"
 fi
+
+# Esperar a que los servicios estén listos (checks suaves contra dominio)
+log "⏳ Esperando disponibilidad pública..."
+retry_curl_head "$APP_DOMAIN" 20 5 && log "✅ Frontend accesible en $APP_DOMAIN" || log "⚠️  Frontend aún no responde en $APP_DOMAIN (se continuará igualmente)"
+retry_curl_head "$BACKEND_PUBLIC" 20 5 && log "✅ Backend accesible en $BACKEND_PUBLIC" || log "⚠️  Backend aún no responde en $BACKEND_PUBLIC (se continuará igualmente)"
 
 # Mostrar últimos logs para diagnóstico rápido
 log "📋 Últimos logs del frontend:" 
