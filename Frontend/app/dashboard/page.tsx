@@ -12,63 +12,112 @@ import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+// Forzar renderizado dinámico
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default function DashboardPage() {
   const { user } = useAuth()
-  const { payments } = usePayment(user?.id, user?.role === "admin")
-  const { clients } = useClients()
-  const { activities } = useActivities()
   const [dashboardStats, setDashboardStats] = useState({
     monthlyRevenue: 0,
     activeClients: 0,
     todayActivities: 0,
     attendanceRate: 0
   })
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Usar hooks de forma segura
+  const paymentHook = usePayment(user?.id, user?.role === "admin")
+  const clientsHook = useClients()
+  const activitiesHook = useActivities()
+
+  // Extraer datos de forma segura
+  const payments = paymentHook?.payments || []
+  const clients = clientsHook?.clients || []
+  const activities = activitiesHook?.activities || []
 
   // Calcular estadísticas reales
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
 
-    // 1. Ingresos del mes (solo pagos pagados)
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
-    const monthlyRevenue = payments
-      .filter(p => {
-        const paymentDate = p.createdAt ? new Date(p.createdAt) : null
-        return p.status === "paid" && 
-               paymentDate && 
-               paymentDate.getMonth() === currentMonth && 
-               paymentDate.getFullYear() === currentYear
+    try {
+      // 1. Ingresos del mes (solo pagos pagados)
+      const currentMonth = new Date().getMonth()
+      const currentYear = new Date().getFullYear()
+      const monthlyRevenue = payments
+        .filter(p => {
+          const paymentDate = p.createdAt ? new Date(p.createdAt) : null
+          return p.status === "paid" &&
+            paymentDate &&
+            paymentDate.getMonth() === currentMonth &&
+            paymentDate.getFullYear() === currentYear
+        })
+        .reduce((sum, p) => sum + p.amount, 0)
+
+      // 2. Clientes activos
+      const activeClients = clients.filter(c => c.status === "active").length
+
+      // 3. Actividades de hoy (que aún no han terminado)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      const todayActivities = activities.filter(a => {
+        const activityDate = new Date(a.date)
+        return activityDate >= today &&
+          activityDate < tomorrow &&
+          a.status === "active"
+      }).length
+
+      // 4. Tasa de asistencia (simulada por ahora)
+      const attendanceRate = 87 // Esto se puede calcular más adelante con datos reales
+
+      setDashboardStats({
+        monthlyRevenue,
+        activeClients,
+        todayActivities,
+        attendanceRate
       })
-      .reduce((sum, p) => sum + p.amount, 0)
-
-    // 2. Clientes activos
-    const activeClients = clients.filter(c => c.status === "active").length
-
-    // 3. Actividades de hoy (que aún no han terminado)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    const todayActivities = activities.filter(a => {
-      const activityDate = new Date(a.date)
-      return activityDate >= today && 
-             activityDate < tomorrow && 
-             a.status === "active"
-    }).length
-
-    // 4. Tasa de asistencia (simulada por ahora)
-    const attendanceRate = 87 // Esto se puede calcular más adelante con datos reales
-
-    setDashboardStats({
-      monthlyRevenue,
-      activeClients,
-      todayActivities,
-      attendanceRate
-    })
+    } catch (error) {
+      console.error('Error calculating dashboard stats:', error)
+      setDashboardStats({
+        monthlyRevenue: 0,
+        activeClients: 0,
+        todayActivities: 0,
+        attendanceRate: 87
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }, [user, payments, clients, activities])
 
-  if (!user) return null
+  // Evitar renderizado durante SSR
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  if (!user || isLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <MobileHeader title="Cargando..." />
+        <div className="container-centered py-6 space-y-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-2">Cargando dashboard...</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <BottomNav />
+      </div>
+    )
+  }
 
   const getDashboardStats = () => {
     if (user.role === "admin") {

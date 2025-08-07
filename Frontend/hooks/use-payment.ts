@@ -21,7 +21,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     queryKey: isAdmin ? ["payments", "admin"] : ["payments", userId],
     queryFn: () =>
       isAdmin ? fetchPayments() : fetchPaymentsById(userId ?? 0),
-    enabled: isAdmin || !!userId, // evita cargar si no hay usuario y no es admin
+    enabled: (isAdmin || !!userId) && typeof window !== 'undefined', // evita cargar si no hay usuario y no es admin, y durante SSR
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    retry: 1,
   })
 
   const fetchSinglePayment = useCallback(
@@ -40,7 +42,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       createPaymentWithStatus(data.paymentData, data.isMercadoPagoPayment),
     onSuccess: () => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["payments"] })
+      }
     },
   })
 
@@ -56,7 +60,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     }) => updatePayment(id, status, rejectionReason),
     onSuccess: () => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["payments"] })
+      }
     },
   })
 
