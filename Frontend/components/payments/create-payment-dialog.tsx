@@ -228,7 +228,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const handleClose = () => {
         onOpenChange(false)
-        router.push("/payments")
+        router.push("/payments/method-select")
     }
 
 

@@ -5,21 +5,130 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { useActivities } from "@/hooks/use-activity"
+import { useClients } from "@/hooks/use-client"
+import { usePayment } from "@/hooks/use-payment"
 import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
-export default function DashboardPage() {
+// Componente que se renderiza solo en el cliente
+function DashboardContent() {
   const { user } = useAuth()
+  const [dashboardStats, setDashboardStats] = useState({
+    monthlyRevenue: 0,
+    activeClients: 0,
+    todayActivities: 0,
+    attendanceRate: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
-  if (!user) return null
+  // Usar hooks de forma segura
+  const paymentHook = usePayment(user?.id, user?.role === "admin")
+  const { clients, loadClients } = useClients()
+  const { activities, loadActivities } = useActivities()
+
+  // Extraer datos de forma segura
+  const payments = paymentHook?.payments || []
+  // const clients = clientsHook?.clients || []
+  // const activities = activitiesHook?.activities || []
+
+  // Marcar como montado para evitar SSR
+  useEffect(() => {
+    setMounted(true)
+    loadClients()
+    loadActivities()
+  }, [loadClients, loadActivities])
+
+  // Calcular estadísticas reales
+  useEffect(() => {
+    if (!user || !mounted) {
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      // 1. Ingresos del mes (solo pagos pagados)
+      const currentMonth = new Date().getMonth()
+      const currentYear = new Date().getFullYear()
+      const monthlyRevenue = payments
+        .filter(p => {
+          const paymentDate = p.createdAt ? new Date(p.createdAt) : null
+          return p.status === "paid" &&
+            paymentDate &&
+            paymentDate.getMonth() === currentMonth &&
+            paymentDate.getFullYear() === currentYear
+        })
+        .reduce((sum, p) => sum + p.amount, 0)
+
+      // 2. Clientes activos
+      const activeClients = clients.filter(c => c.status === "active").length
+      // 3. Actividades de hoy (que aún no han terminado)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+
+      const todayActivities = activities.filter(a => {
+        // const activityDate = new Date(a.date)
+        return a.status === "active"
+      }).length
+
+      // 4. Tasa de asistencia (simulada por ahora)
+      const attendanceRate = 87 // Esto se puede calcular más adelante con datos reales
+
+      setDashboardStats({
+        monthlyRevenue,
+        activeClients,
+        todayActivities,
+        attendanceRate
+      })
+    } catch (error) {
+      console.error('Error calculating dashboard stats:', error)
+      setDashboardStats({
+        monthlyRevenue: 0,
+        activeClients: 0,
+        todayActivities: 0,
+        attendanceRate: 87
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user, payments, clients, activities, mounted])
+
+  // Evitar renderizado durante SSR
+  if (!mounted) {
+    return null
+  }
+
+  if (!user || isLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <MobileHeader title="Cargando..." />
+        <div className="container-centered py-6 space-y-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-2">Cargando dashboard...</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <BottomNav />
+      </div>
+    )
+  }
 
   const getDashboardStats = () => {
     if (user.role === "admin") {
       return [
-        { title: "Total Actividades", value: "24", icon: Activity, color: "text-blue-600" },
-        { title: "Clientes Activos", value: "156", icon: Users, color: "text-green-600" },
-        { title: "Ingresos del Mes", value: "$12,450", icon: CreditCard, color: "text-purple-600" },
-        { title: "Asistencia Promedio", value: "87%", icon: TrendingUp, color: "text-orange-600" },
+        { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600" },
+        { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600" },
+        { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600" },
+        { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600" },
       ]
     } else if (user.role === "trainer") {
       return [
@@ -55,7 +164,7 @@ export default function DashboardPage() {
     } else {
       return [
         { title: "Ver Actividades", href: "/activities", icon: Activity },
-        { title: "Mis Inscripciones", href: "/enrollments", icon: Calendar },
+        { title: "Mis Inscripciones", href: "/activities", icon: Calendar },
         { title: "Realizar Pago", href: "/payments/method-select", icon: CreditCard },
       ]
     }
@@ -152,4 +261,19 @@ export default function DashboardPage() {
       <BottomNav />
     </div>
   )
+}
+
+// Componente principal que se renderiza solo en el cliente
+export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
+  return <DashboardContent />
 }

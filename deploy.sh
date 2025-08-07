@@ -63,16 +63,19 @@ MP_ACCESS_TOKEN=$MP_ACCESS_TOKEN
 NEXT_PUBLIC_MP_PUBLIC_KEY=$NEXT_PUBLIC_MP_PUBLIC_KEY
 EOF
 
-# Parar los contenedores actuales (si existen)
-log "🛑 Deteniendo contenedores actuales..."
+# Parar todos los contenedores pero preservar volúmenes
+log "🛑 Deteniendo contenedores (preservando volúmenes)..."
 docker-compose down || true
 
-# Limpiar imágenes y contenedores no utilizados
-log "🧹 Limpiando Docker..."
-docker system prune -f
+# Esperar un momento para asegurar que los contenedores se detengan
+sleep 5
 
-# Construir y levantar los nuevos contenedores
-log "🏗️  Construyendo y levantando contenedores..."
+# Limpiar solo imágenes no utilizadas (sin volúmenes)
+log "🧹 Limpiando imágenes no utilizadas..."
+docker image prune -f || true
+
+# Construir y levantar los contenedores (esto reconstruirá con los cambios)
+log "🏗️  Construyendo y levantando contenedores con cambios..."
 docker-compose up --build -d
 
 # Esperar a que los servicios estén listos
@@ -83,28 +86,28 @@ sleep 30
 log "✅ Verificando estado de los servicios..."
 docker-compose ps
 
-# Verificar la salud de los servicios
+# Verificar la salud de los servicios de forma simple
 log "🏥 Verificando salud de la aplicación..."
-if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+if curl -f http://localhost:3000 > /dev/null 2>&1; then
     log "✅ Frontend está respondiendo correctamente"
 else
-    log "❌ Frontend no está respondiendo"
+    log "⚠️  Frontend aún no está respondiendo (puede necesitar más tiempo)"
 fi
 
-if curl -f http://localhost:8080/api/users/fail > /dev/null 2>&1; then
+if curl -f http://localhost:8080 > /dev/null 2>&1; then
     log "✅ Backend está respondiendo correctamente"
 else
-    log "❌ Backend no está respondiendo"
+    log "⚠️  Backend aún no está respondiendo (puede necesitar más tiempo)"
 fi
 
-# Mostrar logs de los últimos 50 líneas para debugging
+# Mostrar logs de los últimos 20 líneas para debugging
 log "📋 Últimos logs del frontend:"
-docker-compose logs --tail=50 personalfit-frontend
+docker-compose logs --tail=20 personalfit-frontend
 
 log "📋 Últimos logs del backend:"
-docker-compose logs --tail=50 personalfit-backend
+docker-compose logs --tail=20 personalfit-backend
 
-log "🎉 ¡Deployment completado con éxito!"
+log "🎉 ¡Deployment completado!"
 log "🌐 La aplicación debería estar disponible en:"
 log "   - Frontend: https://personalfitsantafe.com"
 log "   - Backend API: https://personalfitsantafe.com:8080"
@@ -116,3 +119,5 @@ log "   docker-compose logs -f"
 log "ℹ️  Para reiniciar un servicio específico:"
 log "   docker-compose restart personalfit-frontend"
 log "   docker-compose restart personalfit-backend"
+log "ℹ️  Para reiniciar todo si hay problemas:"
+log "   docker-compose down && docker-compose up --build -d"

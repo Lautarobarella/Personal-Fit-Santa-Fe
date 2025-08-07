@@ -1,16 +1,16 @@
 import {
-    buildReceiptUrl,
-    createPaymentWithStatus,
-    fetchPaymentDetail,
-    fetchPayments,
-    fetchPaymentsById,
-    updatePayment,
+  buildReceiptUrl,
+  createPaymentWithStatus,
+  fetchPaymentDetail,
+  fetchPayments,
+  fetchPaymentsById,
+  updatePayment,
 } from "@/api/payment/paymentsApi"
 import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-    useMutation,
-    useQuery,
-    useQueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -22,6 +22,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     queryFn: () =>
       isAdmin ? fetchPayments() : fetchPaymentsById(userId ?? 0),
     enabled: isAdmin || !!userId, // evita cargar si no hay usuario y no es admin
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    retry: 1,
   })
 
   const fetchSinglePayment = useCallback(
@@ -40,7 +42,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       createPaymentWithStatus(data.paymentData, data.isMercadoPagoPayment),
     onSuccess: () => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["payments"] })
+      }
     },
   })
 
@@ -56,7 +60,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     }) => updatePayment(id, status, rejectionReason),
     onSuccess: () => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["payments"] })
+      }
     },
   })
 

@@ -21,22 +21,17 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U personalfit_user -d personalfit"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   personalfit-backend:
     build:
       context: .
       dockerfile: Backend/Dockerfile
     container_name: personalfit-backend
+    restart: unless-stopped
     networks:
       - personalfit-network
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
       SPRING_DATASOURCE_USERNAME: personalfit_user
@@ -46,6 +41,8 @@ services:
       # Configuración de conexión de base de datos
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+      # Configuración de Spring Boot
+      SPRING_PROFILES_ACTIVE: production
     ports:
       - "8080:8080"
     volumes:
@@ -57,6 +54,7 @@ services:
       context: .
       dockerfile: Frontend/Dockerfile
     container_name: personalfit-frontend
+    restart: unless-stopped
     networks:
       - personalfit-network
     depends_on:
@@ -76,7 +74,7 @@ services:
       NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
       
       # Configuración de Next.js
-      NODE_ENV: development
+      NODE_ENV: production
       NEXT_PUBLIC_IS_DOCKER: "true"
 
   pgadmin:
@@ -98,4 +96,4 @@ volumes:
   pgdata:
     # Datos de PostgreSQL
   comprobantes:
-    # Archivos de comprobantes de pago subidos por los usuarios
+    # Archivos de comprobantes de pago

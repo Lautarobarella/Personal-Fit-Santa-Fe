@@ -1,4 +1,6 @@
 import { AuthProvider } from "@/components/providers/auth-provider"
+import { ReactQueryProvider } from "@/components/providers/react-query-provider"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
 import type { Metadata, Viewport } from "next"
@@ -33,21 +35,25 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <div className="min-h-screen flex justify-center">
-            <div className="w-full max-w-4xl">
-              {children}
-            </div>
-          </div>
-          <Toaster />
-        </AuthProvider>
+        <ThemeProvider>
+          <ReactQueryProvider>
+            <AuthProvider>
+              <div className="min-h-screen flex justify-center">
+                <div className="w-full max-w-4xl">
+                  {children}
+                </div>
+              </div>
+              <Toaster />
+            </AuthProvider>
+          </ReactQueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
