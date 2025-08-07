@@ -33,7 +33,7 @@ function PendingPageContent() {
         <div className="min-h-screen bg-background flex items-center justify-center">
             <Card className="w-full max-w-md mx-4">
                 <CardHeader className="text-center">
-                    <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                    <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
                         <Clock className="h-8 w-8 text-yellow-600" />
                     </div>
                     <CardTitle className="text-yellow-600">Pago Pendiente</CardTitle>
@@ -44,14 +44,14 @@ function PendingPageContent() {
                     </p>
                     
                     {paymentId && (
-                        <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                        <div className="rounded-lg text-sm p-3 bg-gray-50 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
                             <p><strong>ID de Pago:</strong> {paymentId}</p>
                             {status && <p><strong>Estado:</strong> {status}</p>}
                             {externalReference && <p><strong>Referencia:</strong> {externalReference}</p>}
                         </div>
                     )}
 
-                    <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
+                    <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg text-sm text-blue-800 dark:text-blue-100">
                         <p>
                             <strong>¿Qué significa esto?</strong><br />
                             Algunos medios de pago requieren confirmación adicional. 
