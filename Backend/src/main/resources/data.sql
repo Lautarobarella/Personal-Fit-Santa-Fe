@@ -101,3 +101,27 @@ INSERT INTO attendance (id, user_id, activity_id, attendance, created_at, update
 -- -- Pago pendiente reciente
 -- INSERT INTO payment (id, conf_number, rejection_reason, amount, method_type, created_at, verified_at, updated_at, expires_at, verified_by_user_id, user_id, status, payment_file_id) VALUES
 -- (10, 1010, NULL, 85000.0, 'transfer', '2024-06-20 13:45:00', NULL, '2024-06-20 13:45:00', '2024-07-20 23:59:59', NULL, 7, 'pending', NULL); 
+
+-- Resetear las secuencias de PostgreSQL para que empiecen después de los IDs existentes
+-- Esto evita conflictos de duplicate key cuando se crean nuevas entidades
+
+-- Resetear secuencia de app_user (último ID usado: 9)
+SELECT setval(pg_get_serial_sequence('app_user', 'id'), (SELECT MAX(id) FROM app_user), true);
+
+-- Resetear secuencia de activity (último ID usado: 3)
+SELECT setval(pg_get_serial_sequence('activity', 'id'), (SELECT MAX(id) FROM activity), true);
+
+-- Resetear secuencia de attendance (último ID usado: 8)
+SELECT setval(pg_get_serial_sequence('attendance', 'id'), (SELECT MAX(id) FROM attendance), true);
+
+-- Resetear secuencia de app_settings (último ID usado: 1)
+SELECT setval(pg_get_serial_sequence('app_settings', 'id'), (SELECT MAX(id) FROM app_settings), true);
+
+-- Resetear secuencia de notification (si existe)
+SELECT setval(pg_get_serial_sequence('notification', 'id'), COALESCE((SELECT MAX(id) FROM notification), 0), true);
+
+-- Resetear secuencia de payment_file (si existe)
+SELECT setval(pg_get_serial_sequence('payment_file', 'id'), COALESCE((SELECT MAX(id) FROM payment_file), 0), true);
+
+-- Resetear secuencia de payment (si existe)
+SELECT setval(pg_get_serial_sequence('payment', 'id'), COALESCE((SELECT MAX(id) FROM payment), 0), true); 
