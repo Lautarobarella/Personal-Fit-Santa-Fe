@@ -26,12 +26,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   personalfit-backend:
     build:
       context: .
       dockerfile: Backend/Dockerfile
     container_name: personalfit-backend
+    restart: unless-stopped
     networks:
       - personalfit-network
     depends_on:
@@ -46,21 +48,31 @@ services:
       # Configuración de conexión de base de datos
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+      # Configuración de Spring Boot
+      SPRING_PROFILES_ACTIVE: production
     ports:
       - "8080:8080"
     volumes:
       # Volumen persistente para los archivos de comprobantes de pago
       - comprobantes:/app/comprobantes
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/users/fail || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   personalfit-frontend:
     build:
       context: .
       dockerfile: Frontend/Dockerfile
     container_name: personalfit-frontend
+    restart: unless-stopped
     networks:
       - personalfit-network
     depends_on:
-      - personalfit-backend
+      personalfit-backend:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
@@ -76,8 +88,14 @@ services:
       NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
       
       # Configuración de Next.js
-      NODE_ENV: development
+      NODE_ENV: production
       NEXT_PUBLIC_IS_DOCKER: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   pgadmin:
     image: dpage/pgadmin4
@@ -98,4 +116,4 @@ volumes:
   pgdata:
     # Datos de PostgreSQL
   comprobantes:
-    # Archivos de comprobantes de pago subidos por los usuarios
+    # Archivos de comprobantes de pago

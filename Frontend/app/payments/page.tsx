@@ -212,16 +212,23 @@ export default function PaymentsPage() {
                                 </Link>
                             </>
                         ) : user.role === "client" ? (
-                            <Link href="/payments/method-select">
+                            canCreateNewPayment ? (
+                                <Link href="/payments/method-select">
+                                    <Button size="sm">
+                                        <Plus className="h-4 w-4" />
+                                        Nuevo
+                                    </Button>
+                                </Link>
+                            ) : (
                                 <Button 
                                     size="sm"
-                                    disabled={!canCreateNewPayment}
-                                    className={!canCreateNewPayment ? 'opacity-50 cursor-not-allowed' : ''}
+                                    disabled={true}
+                                    className="opacity-50 cursor-not-allowed"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Nuevo
                                 </Button>
-                            </Link>
+                            )
                         ) : null}
                     </div>
                 }
@@ -242,7 +249,7 @@ export default function PaymentsPage() {
 
                 {/* Card informativa para clientes */}
                 {user.role === "client" && (
-                    <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
                                 {activePayment ? (
@@ -267,10 +274,10 @@ export default function PaymentsPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <AlertCircle className="h-5 w-5 text-gray-600" />
+                                        <AlertCircle className="h-5 w-5 text-red-600" />
                                         <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-800">Membresía Vencida</h3>
-                                            <p className="text-sm text-gray-700">
+                                            <h3 className="font-semibold text-red-800">Membresía Vencida</h3>
+                                            <p className="text-sm text-red-700">
                                                 Tu membresía ha expirado. Realiza un nuevo pago para continuar.
                                             </p>
                                         </div>
