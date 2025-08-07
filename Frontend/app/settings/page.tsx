@@ -7,19 +7,21 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
+import { useThemeToggle } from "@/hooks/use-theme"
 import { Bell, DollarSign, Globe, HelpCircle, LogOut, Moon, SettingsIcon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
-
-  if (!user) return null
+  const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
 
   const handleLogout = () => {
     logout()
     router.push("/")
   }
+
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -38,7 +40,12 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
                 {/* <p className="text-muted-foreground">{user.email}</p> */}
-                <p className="text-sm text-blue-600 capitalize">{user.role}</p>
+                <p className="text-sm text-blue-600 capitalize">
+                  {user.role ==="admin" && "Administrador"}
+                  {user.role ==="trainer" && "Entrenador"}
+                  {user.role ==="client" && "Cliente"}
+
+                </p>
               </div>
               <Button variant="outline" size="sm">
                 <User className="h-4 w-4 mr-2" />
@@ -73,10 +80,16 @@ export default function SettingsPage() {
                 <Moon className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Modo Oscuro</p>
-                  <p className="text-sm text-muted-foreground">Cambiar tema de la aplicación</p>
+                  <p className="text-sm text-muted-foreground">
+                    {mounted ? (isDark ? "Activado" : "Desactivado") : "Cargando..."}
+                  </p>
                 </div>
               </div>
-              <Switch />
+              <Switch 
+                checked={mounted ? isDark : false}
+                onCheckedChange={toggleTheme}
+                disabled={!mounted}
+              />
             </div>
 
             <div className="flex items-center justify-between">

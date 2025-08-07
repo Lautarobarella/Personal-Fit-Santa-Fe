@@ -5,21 +5,78 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { useActivities } from "@/hooks/use-activity"
+import { useClients } from "@/hooks/use-client"
+import { usePayment } from "@/hooks/use-payment"
 import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const { payments } = usePayment(user?.id, user?.role === "admin")
+  const { clients } = useClients()
+  const { activities } = useActivities()
+  const [dashboardStats, setDashboardStats] = useState({
+    monthlyRevenue: 0,
+    activeClients: 0,
+    todayActivities: 0,
+    attendanceRate: 0
+  })
+
+  // Calcular estadísticas reales
+  useEffect(() => {
+    if (!user) return
+
+    // 1. Ingresos del mes (solo pagos pagados)
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    const monthlyRevenue = payments
+      .filter(p => {
+        const paymentDate = p.createdAt ? new Date(p.createdAt) : null
+        return p.status === "paid" && 
+               paymentDate && 
+               paymentDate.getMonth() === currentMonth && 
+               paymentDate.getFullYear() === currentYear
+      })
+      .reduce((sum, p) => sum + p.amount, 0)
+
+    // 2. Clientes activos
+    const activeClients = clients.filter(c => c.status === "active").length
+
+    // 3. Actividades de hoy (que aún no han terminado)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const todayActivities = activities.filter(a => {
+      const activityDate = new Date(a.date)
+      return activityDate >= today && 
+             activityDate < tomorrow && 
+             a.status === "active"
+    }).length
+
+    // 4. Tasa de asistencia (simulada por ahora)
+    const attendanceRate = 87 // Esto se puede calcular más adelante con datos reales
+
+    setDashboardStats({
+      monthlyRevenue,
+      activeClients,
+      todayActivities,
+      attendanceRate
+    })
+  }, [user, payments, clients, activities])
 
   if (!user) return null
 
   const getDashboardStats = () => {
     if (user.role === "admin") {
       return [
-        { title: "Total Actividades", value: "24", icon: Activity, color: "text-blue-600" },
-        { title: "Clientes Activos", value: "156", icon: Users, color: "text-green-600" },
-        { title: "Ingresos del Mes", value: "$12,450", icon: CreditCard, color: "text-purple-600" },
-        { title: "Asistencia Promedio", value: "87%", icon: TrendingUp, color: "text-orange-600" },
+        { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600" },
+        { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600" },
+        { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600" },
+        { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600" },
       ]
     } else if (user.role === "trainer") {
       return [
@@ -55,7 +112,7 @@ export default function DashboardPage() {
     } else {
       return [
         { title: "Ver Actividades", href: "/activities", icon: Activity },
-        { title: "Mis Inscripciones", href: "/enrollments", icon: Calendar },
+        { title: "Mis Inscripciones", href: "/activities", icon: Calendar },
         { title: "Realizar Pago", href: "/payments/method-select", icon: CreditCard },
       ]
     }
