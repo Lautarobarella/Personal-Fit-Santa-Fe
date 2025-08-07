@@ -183,24 +183,26 @@ jobs:
           chmod +x deploy.sh
           ./deploy.sh
           
-          # Verificación post-deployment simple
-          echo "Verificación post-deployment..."
-          sleep 10
-          
-          # Verificar que los servicios estén corriendo
+          # Verificación post-deployment suave (sin localhost)
+          echo "Verificación post-deployment (retry suave)..."
+          FRONTEND_URL="https://personalfitsantafe.com"
+          BACKEND_URL="http://personalfitsantafe.com:8080"
+
+          retry_check() {
+            url=$1; attempts=${2:-15}; delay=${3:-5}
+            for i in $(seq 1 "$attempts"); do
+              if curl -sS -I --max-time 5 "$url" > /dev/null; then
+                echo "OK: $url"
+                return 0
+              fi
+              echo "Esperando $url (intento $i/$attempts)"
+              sleep "$delay"
+            done
+            return 1
+          }
+
+          retry_check "$FRONTEND_URL" 20 5 || echo "Frontend aún no responde (se continuará igualmente)"
+          retry_check "$BACKEND_URL" 20 5 || echo "Backend aún no responde (se continuará igualmente)"
+
           echo "Estado final de los servicios:"
-          docker-compose ps
-          
-          # Verificar conectividad de forma simple
-          echo "Verificando conectividad..."
-          if curl -f http://localhost:3000 > /dev/null 2>&1; then
-            echo "✅ Frontend accesible"
-          else
-            echo "⚠️  Frontend aún no accesible (puede necesitar más tiempo)"
-          fi
-          
-          if curl -f http://localhost:8080 > /dev/null 2>&1; then
-            echo "✅ Backend accesible"
-          else
-            echo "⚠️  Backend aún no accesible (puede necesitar más tiempo)"
-          fi 
+          docker-compose ps 
