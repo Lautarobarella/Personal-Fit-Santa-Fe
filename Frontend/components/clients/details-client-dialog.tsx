@@ -383,11 +383,10 @@ export function ClientDetailsDialog({
                           {new Intl.DateTimeFormat("es-ES", {
                             hour: "2-digit",
                             minute: "2-digit",
-                          }).format(activity.date)}
+                          }).format(activity.date ? new Date(activity.date) : new Date())}
                         </span>
                       </div>
                     </div>
-                    
                     {/* Mostrar información adicional según el estado */}
                     {activity.activityStatus === "completed" && (
                       <div className="mt-2 pt-2 border-t border-muted">
