@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.personalfit.personalfit.utils.PaymentStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -242,7 +243,7 @@ public class UserServiceImpl implements IUserService {
         users.stream().forEach(u -> {
             if(u.getRole().equals(UserRole.trainer) || u.getRole().equals(UserRole.admin)) return;
 
-            Optional<Payment> payment = paymentRepository.findTopByUserOrderByCreatedAtDesc(u);
+            Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u, PaymentStatus.paid);
 
             if(payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())
                     || payment.isEmpty()){
