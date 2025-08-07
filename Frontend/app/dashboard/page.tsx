@@ -26,18 +26,20 @@ function DashboardContent() {
 
   // Usar hooks de forma segura
   const paymentHook = usePayment(user?.id, user?.role === "admin")
-  const clientsHook = useClients()
-  const activitiesHook = useActivities()
+  const { clients, loadClients } = useClients()
+  const { activities, loadActivities } = useActivities()
 
   // Extraer datos de forma segura
   const payments = paymentHook?.payments || []
-  const clients = clientsHook?.clients || []
-  const activities = activitiesHook?.activities || []
+  // const clients = clientsHook?.clients || []
+  // const activities = activitiesHook?.activities || []
 
   // Marcar como montado para evitar SSR
   useEffect(() => {
     setMounted(true)
-  }, [])
+    loadClients()
+    loadActivities()
+  }, [loadClients, loadActivities])
 
   // Calcular estadísticas reales
   useEffect(() => {
@@ -61,19 +63,20 @@ function DashboardContent() {
         .reduce((sum, p) => sum + p.amount, 0)
 
       // 2. Clientes activos
+      console.log(clients)
+      console.log(clients.length)
       const activeClients = clients.filter(c => c.status === "active").length
-
       // 3. Actividades de hoy (que aún no han terminado)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
+      console.log(activities)
+      console.log(activities.length)
       const todayActivities = activities.filter(a => {
-        const activityDate = new Date(a.date)
-        return activityDate >= today &&
-          activityDate < tomorrow &&
-          a.status === "active"
+        // const activityDate = new Date(a.date)
+        return a.status === "active"
       }).length
 
       // 4. Tasa de asistencia (simulada por ahora)
