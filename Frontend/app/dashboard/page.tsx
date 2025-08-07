@@ -12,11 +12,8 @@ import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
-// Forzar renderizado dinámico
-export const dynamic = 'force-dynamic'
-export const revalidate = false
-
-export default function DashboardPage() {
+// Componente que se renderiza solo en el cliente
+function DashboardContent() {
   const { user } = useAuth()
   const [dashboardStats, setDashboardStats] = useState({
     monthlyRevenue: 0,
@@ -264,4 +261,19 @@ export default function DashboardPage() {
       <BottomNav />
     </div>
   )
+}
+
+// Componente principal que se renderiza solo en el cliente
+export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
+  return <DashboardContent />
 }

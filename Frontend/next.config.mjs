@@ -27,12 +27,6 @@ const nextConfig = {
     
     return config
   },
-  // Configuración para evitar prerendering de páginas dinámicas
-  experimental: {
-    // Evitar prerendering de páginas que usan React Query
-    workerThreads: false,
-    cpus: 1,
-  },
 }
 
 export default nextConfig
