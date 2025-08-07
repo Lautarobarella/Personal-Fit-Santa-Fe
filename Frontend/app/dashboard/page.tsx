@@ -63,8 +63,6 @@ function DashboardContent() {
         .reduce((sum, p) => sum + p.amount, 0)
 
       // 2. Clientes activos
-      console.log(clients)
-      console.log(clients.length)
       const activeClients = clients.filter(c => c.status === "active").length
       // 3. Actividades de hoy (que aún no han terminado)
       const today = new Date()
@@ -72,8 +70,7 @@ function DashboardContent() {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
-      console.log(activities)
-      console.log(activities.length)
+
       const todayActivities = activities.filter(a => {
         // const activityDate = new Date(a.date)
         return a.status === "active"
