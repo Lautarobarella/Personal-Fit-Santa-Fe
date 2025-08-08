@@ -207,7 +207,7 @@ done
 
 # VERIFICAR QUE LA BASE DE DATOS SIGUE FUNCIONANDO DESPUÉS DE LA LIMPIEZA
 if ! check_database_status; then
-    log "❌ ERROR: La base de datos se perdió durante la limpieza"
+    log "❌ ERROR: La base de datos se perdió durante la limpieza test"
     exit 1
 fi
 
