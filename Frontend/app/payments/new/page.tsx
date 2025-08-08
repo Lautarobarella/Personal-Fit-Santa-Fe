@@ -39,14 +39,8 @@ export default function NewPaymentPage() {
   }
 
   const handleDialogChange = (open: boolean) => {
-    if (!open) {
-      // Redirigir según el rol del usuario
-      if (user?.role === "client") {
-        router.push("/payments/method-select")
-      } else {
-        router.push("/payments")
-      }
-    }
+    // El diálogo maneja su propia navegación completamente
+    // No necesitamos hacer nada aquí
   }
 
   return (

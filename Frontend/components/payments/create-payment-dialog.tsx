@@ -253,13 +253,16 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const router = useRouter()
 
     const handleClose = () => {
+        // Cerrar el diálogo y navegar según el rol del usuario
         onOpenChange(false)
-        // Redirigir según el rol del usuario
-        if (user?.role === "client") {
-            router.push("/payments/method-select")
-        } else {
-            router.push("/payments")
-        }
+        // Usar setTimeout para evitar conflictos con el onOpenChange
+        setTimeout(() => {
+            if (user?.role === "client") {
+                router.push("/payments/method-select")
+            } else {
+                router.push("/payments")
+            }
+        }, 0)
     }
 
     const handleSuccessfulPayment = () => {
@@ -283,9 +286,12 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             description: message,
         })
 
-        // Cerrar el diálogo y redirigir a payments (ambos roles van a /payments)
+        // Cerrar el diálogo y redirigir a payments (ambos roles van a /payments después de un pago exitoso)
         onOpenChange(false)
-        router.push("/payments")
+        // Usar setTimeout para evitar conflictos con el onOpenChange
+        setTimeout(() => {
+            router.push("/payments")
+        }, 0)
     }
 
 
