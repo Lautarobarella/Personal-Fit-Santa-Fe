@@ -2,6 +2,18 @@
 
 # Script de deployment para Personal Fit Santa Fe
 # Este script se ejecuta en la máquina remota para hacer el deployment
+#
+# IMPORTANTE: Este script preserva ÚNICAMENTE:
+# - Base de datos (volumen pgdata)
+# - Comprobantes de pago (volumen comprobantes)
+#
+# TODO LO DEMÁS se destruye y se reconstruye desde cero:
+# - Contenedores de aplicación
+# - Imágenes de aplicación
+# - Redes no utilizadas
+# - Volúmenes no utilizados
+#
+# Esto asegura que los cambios del frontend y backend se apliquen correctamente.
 
 set -euo pipefail  # Fallar ante errores y variables no definidas
 
@@ -64,6 +76,35 @@ check_database_status() {
     fi
 }
 
+# Verificar que los volúmenes críticos existen
+check_critical_volumes() {
+    log "🔍 Verificando volúmenes críticos..."
+    local pgdata_exists=false
+    local comprobantes_exists=false
+    
+    # Verificar volumen pgdata
+    if docker volume ls --format "{{.Name}}" | grep -q "^personalfit_pgdata$"; then
+        log "✅ Volumen pgdata existe"
+        pgdata_exists=true
+    else
+        log "⚠️  Volumen pgdata NO existe"
+    fi
+    
+    # Verificar volumen comprobantes
+    if docker volume ls --format "{{.Name}}" | grep -q "^personalfit_comprobantes$"; then
+        log "✅ Volumen comprobantes existe"
+        comprobantes_exists=true
+    else
+        log "⚠️  Volumen comprobantes NO existe"
+    fi
+    
+    if [ "$pgdata_exists" = true ] && [ "$comprobantes_exists" = true ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Verificar que estamos en el directorio correcto
 log "📂 Navegando al directorio del proyecto: $PROJECT_DIR"
 cd /opt
@@ -113,6 +154,9 @@ EOF
 # VERIFICAR ESTADO INICIAL DE LA BASE DE DATOS
 check_database_status
 
+# VERIFICAR VOLÚMENES CRÍTICOS ANTES DE LA LIMPIEZA
+check_critical_volumes
+
 # Asegurar base de datos arriba (NO TOCAR - PROTEGER DATOS)
 log "🗄️  Asegurando base de datos en ejecución..."
 docker-compose up -d postgres
@@ -127,29 +171,39 @@ if ! check_database_status; then
     exit 1
 fi
 
-# LIMPIEZA COMPLETA DE CONTENEDORES E IMÁGENES (SIN TOCAR DB)
-log "🧹 Limpieza completa de contenedores e imágenes (preservando DB)..."
+# LIMPIEZA COMPLETA DE CONTENEDORES E IMÁGENES (PRESERVANDO SOLO DB Y COMPROBANTES)
+log "🧹 LIMPIEZA COMPLETA - Destruyendo todo excepto base de datos y comprobantes..."
 
-# 1. Detener y eliminar contenedores de app (NO postgres)
-log "📦 Deteniendo contenedores de aplicación..."
+# 1. Detener TODOS los contenedores de la aplicación (sin eliminar volúmenes)
+log "📦 Deteniendo TODOS los contenedores de la aplicación..."
 docker-compose stop personalfit-backend personalfit-frontend personalfit-pgadmin 2>/dev/null || true
 docker-compose rm -f personalfit-backend personalfit-frontend personalfit-pgadmin 2>/dev/null || true
 
-# 2. Eliminar contenedores huérfanos
-log "🗑️  Eliminando contenedores huérfanos..."
+# 2. Eliminar TODOS los contenedores huérfanos
+log "🗑️  Eliminando TODOS los contenedores huérfanos..."
 docker container prune -f
 
-# 3. Eliminar imágenes antiguas de la aplicación (NO postgres)
-log "🖼️  Eliminando imágenes antiguas de la aplicación..."
+# 3. Eliminar TODAS las imágenes de la aplicación (NO postgres)
+log "🖼️  Eliminando TODAS las imágenes de la aplicación..."
 docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "(personalfit-backend|personalfit-frontend)" | xargs -r docker rmi -f || true
 
-# 4. Limpiar imágenes no utilizadas
-log "🧽 Limpiando imágenes no utilizadas..."
-docker image prune -f
+# 4. Limpiar TODAS las imágenes no utilizadas
+log "🧽 Limpiando TODAS las imágenes no utilizadas..."
+docker image prune -a -f
 
-# 5. Limpiar redes no utilizadas (preservando la red de la app)
-log "🌐 Limpiando redes no utilizadas..."
+# 5. Limpiar TODAS las redes no utilizadas (preservando la red de la app)
+log "🌐 Limpiando TODAS las redes no utilizadas..."
 docker network prune -f
+
+# 6. Limpiar volúmenes no utilizados (EXCEPTO pgdata y comprobantes)
+log "💾 Limpiando volúmenes no utilizados (preservando pgdata y comprobantes)..."
+# Solo limpiar volúmenes que no sean pgdata o comprobantes y que no estén en uso
+docker volume ls --format "{{.Name}}" | grep -v -E "(personalfit_pgdata|personalfit_comprobantes)" | while read volume; do
+    if ! docker ps -a --filter "volume=$volume" --format "{{.Names}}" | grep -q .; then
+        log "🗑️  Eliminando volumen no utilizado: $volume"
+        docker volume rm "$volume" 2>/dev/null || true
+    fi
+done
 
 # VERIFICAR QUE LA BASE DE DATOS SIGUE FUNCIONANDO DESPUÉS DE LA LIMPIEZA
 if ! check_database_status; then
@@ -157,8 +211,14 @@ if ! check_database_status; then
     exit 1
 fi
 
-# Construir imágenes actualizadas
-log "🏗️  Construyendo imágenes actualizadas..."
+# VERIFICAR QUE LOS VOLÚMENES CRÍTICOS SIGUEN EXISTIENDO
+if ! check_critical_volumes; then
+    log "❌ ERROR: Los volúmenes críticos se perdieron durante la limpieza"
+    exit 1
+fi
+
+# Construir imágenes actualizadas DESDE CERO
+log "🏗️  Construyendo imágenes actualizadas DESDE CERO..."
 docker-compose build --no-cache personalfit-backend personalfit-frontend
 
 # Levantar servicios de aplicación
