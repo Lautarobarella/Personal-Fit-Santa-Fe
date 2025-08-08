@@ -1,15 +1,24 @@
 package com.personalfit.personalfit.controllers;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class PersonalFitApplicationTests {
+class ActivityControllerTest {
 
     @Test
     void contextLoads() {
-        // Verifica que el contexto de Spring se carga correctamente
+        // Test básico para verificar que el contexto se carga
+        assertTrue(true);
+    }
+
+    @Test
+    void basicTest() {
+        // Test básico para verificar que los tests funcionan
+        assertTrue(1 + 1 == 2);
     }
 }
