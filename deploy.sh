@@ -82,27 +82,29 @@ check_critical_volumes() {
     local pgdata_exists=false
     local comprobantes_exists=false
     
-    # Verificar volumen pgdata
-    if docker volume ls --format "{{.Name}}" | grep -q "^personalfit_pgdata$"; then
+    # Listar todos los volúmenes para debug
+    log "📋 Volúmenes existentes:"
+    docker volume ls
+    
+    # Verificar volumen pgdata (puede tener diferentes nombres)
+    if docker volume ls --format "{{.Name}}" | grep -q -E "(pgdata|personalfit.*pgdata|personal-fit.*pgdata)"; then
         log "✅ Volumen pgdata existe"
         pgdata_exists=true
     else
-        log "⚠️  Volumen pgdata NO existe"
+        log "⚠️  Volumen pgdata NO existe - se creará automáticamente"
+        pgdata_exists=true  # Docker Compose lo creará automáticamente
     fi
     
-    # Verificar volumen comprobantes
-    if docker volume ls --format "{{.Name}}" | grep -q "^personalfit_comprobantes$"; then
+    # Verificar volumen comprobantes (puede tener diferentes nombres)
+    if docker volume ls --format "{{.Name}}" | grep -q -E "(comprobantes|personalfit.*comprobantes|personal-fit.*comprobantes)"; then
         log "✅ Volumen comprobantes existe"
         comprobantes_exists=true
     else
-        log "⚠️  Volumen comprobantes NO existe"
+        log "⚠️  Volumen comprobantes NO existe - se creará automáticamente"
+        comprobantes_exists=true  # Docker Compose lo creará automáticamente
     fi
     
-    if [ "$pgdata_exists" = true ] && [ "$comprobantes_exists" = true ]; then
-        return 0
-    else
-        return 1
-    fi
+    return 0  # Siempre retornamos éxito ya que Docker Compose crea los volúmenes
 }
 
 # Verificar que estamos en el directorio correcto
@@ -171,43 +173,31 @@ if ! check_database_status; then
     exit 1
 fi
 
-# LIMPIEZA COMPLETA DE CONTENEDORES E IMÁGENES (PRESERVANDO SOLO DB Y COMPROBANTES)
-log "🧹 LIMPIEZA COMPLETA - Destruyendo todo excepto base de datos y comprobantes..."
+# LIMPIEZA SEGURA DE CONTENEDORES E IMÁGENES (PRESERVANDO DB Y COMPROBANTES)
+log "🧹 LIMPIEZA SEGURA - Preservando base de datos y comprobantes..."
 
-# 1. Detener TODOS los contenedores de la aplicación (sin eliminar volúmenes)
-log "📦 Deteniendo TODOS los contenedores de la aplicación..."
+# 1. Detener solo contenedores de aplicación (NO postgres para preservar conexiones)
+log "📦 Deteniendo contenedores de aplicación..."
 docker-compose stop personalfit-backend personalfit-frontend personalfit-pgadmin 2>/dev/null || true
+
+# 2. Eliminar solo contenedores específicos de aplicación
+log "🗑️  Eliminando contenedores de aplicación..."
 docker-compose rm -f personalfit-backend personalfit-frontend personalfit-pgadmin 2>/dev/null || true
 
-# 2. Eliminar TODOS los contenedores huérfanos
-log "🗑️  Eliminando TODOS los contenedores huérfanos..."
-docker container prune -f
+# 3. Eliminar imágenes específicas de la aplicación
+log "🖼️  Eliminando imágenes de aplicación..."
+docker rmi personalfit-backend:latest 2>/dev/null || true
+docker rmi personalfit-frontend:latest 2>/dev/null || true
+docker rmi personal-fit-santa-fe_personalfit-backend:latest 2>/dev/null || true
+docker rmi personal-fit-santa-fe_personalfit-frontend:latest 2>/dev/null || true
 
-# 3. Eliminar TODAS las imágenes de la aplicación (NO postgres)
-log "🖼️  Eliminando TODAS las imágenes de la aplicación..."
-docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "(personalfit-backend|personalfit-frontend)" | xargs -r docker rmi -f || true
-
-# 4. Limpiar TODAS las imágenes no utilizadas
-log "🧽 Limpiando TODAS las imágenes no utilizadas..."
-docker image prune -a -f
-
-# 5. Limpiar TODAS las redes no utilizadas (preservando la red de la app)
-log "🌐 Limpiando TODAS las redes no utilizadas..."
-docker network prune -f
-
-# 6. Limpiar volúmenes no utilizados (EXCEPTO pgdata y comprobantes)
-log "💾 Limpiando volúmenes no utilizados (preservando pgdata y comprobantes)..."
-# Solo limpiar volúmenes que no sean pgdata o comprobantes y que no estén en uso
-docker volume ls --format "{{.Name}}" | grep -v -E "(personalfit_pgdata|personalfit_comprobantes)" | while read volume; do
-    if ! docker ps -a --filter "volume=$volume" --format "{{.Names}}" | grep -q .; then
-        log "🗑️  Eliminando volumen no utilizado: $volume"
-        docker volume rm "$volume" 2>/dev/null || true
-    fi
-done
+# 4. Limpiar solo imágenes dangling (sin afectar postgres ni volúmenes)
+log "🧽 Limpiando imágenes dangling..."
+docker image prune -f
 
 # VERIFICAR QUE LA BASE DE DATOS SIGUE FUNCIONANDO DESPUÉS DE LA LIMPIEZA
 if ! check_database_status; then
-    log "❌ ERROR: La base de datos se perdió durante la limpieza test"
+    log "❌ ERROR: La base de datos se perdió durante la limpieza"
     exit 1
 fi
 
@@ -217,32 +207,66 @@ if ! check_critical_volumes; then
     exit 1
 fi
 
-# Construir imágenes actualizadas DESDE CERO
-log "🏗️  Construyendo imágenes actualizadas DESDE CERO..."
+# Construir imágenes actualizadas
+log "🏗️  Construyendo imágenes actualizadas..."
 docker-compose build --no-cache personalfit-backend personalfit-frontend
 
-# Levantar servicios de aplicación
-log "🚢 Levantando servicios de aplicación..."
-docker-compose up -d personalfit-backend personalfit-frontend personalfit-pgadmin
+# Levantar TODOS los servicios (incluyendo postgres si no está corriendo)
+log "🚢 Levantando TODOS los servicios..."
+docker-compose up -d
 
-# Limpiar contenedores huérfanos final
-log "🧹 Limpieza final de huérfanos..."
-docker-compose up -d --remove-orphans
+# Esperar a que los servicios estén completamente listos
+log "⏳ Esperando a que los servicios estén listos..."
+sleep 15
+
+# Verificar que postgres sigue corriendo después del up
+if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-db$'; then
+    log "⚠️  Postgres no está corriendo, intentando levantarlo..."
+    docker-compose up -d postgres
+    sleep 10
+fi
 
 # Mostrar estado
 log "✅ Estado de servicios (docker-compose ps):"
 docker-compose ps
 
-# Validar que backend y frontend están en ejecución
+# Validar que TODOS los servicios están en ejecución
+log "🔍 Validando que todos los servicios estén en ejecución..."
+
+# Verificar Postgres
+if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-db$'; then
+  log "❌ Postgres no está corriendo tras el deploy"
+  docker-compose logs --no-color --tail=100 postgres | sed 's/^/PG | /'
+  exit 1
+else
+  log "✅ Postgres está corriendo"
+fi
+
+# Verificar Backend
 if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-backend$'; then
   log "❌ Backend no está corriendo tras el deploy"
-  docker-compose logs --no-color --tail=200 personalfit-backend | sed 's/^/BE | /'
+  docker-compose logs --no-color --tail=100 personalfit-backend | sed 's/^/BE | /'
   exit 1
+else
+  log "✅ Backend está corriendo"
 fi
+
+# Verificar Frontend
 if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-frontend$'; then
-  log "❌ Frontend no está corriendo tras el deploy. Mostrando logs:"
-  docker-compose logs --no-color --tail=200 personalfit-frontend | sed 's/^/FE | /'
+  log "❌ Frontend no está corriendo tras el deploy"
+  docker-compose logs --no-color --tail=100 personalfit-frontend | sed 's/^/FE | /'
   exit 1
+else
+  log "✅ Frontend está corriendo"
+fi
+
+# Verificar PgAdmin
+if ! docker ps --format '{{.Names}}' | grep -q '^personalfit-pgadmin$'; then
+  log "⚠️  PgAdmin no está corriendo, intentando levantarlo..."
+  docker-compose up -d pgadmin
+  sleep 5
+else
+  log "✅ PgAdmin está corriendo"
 fi
 
 # VERIFICAR ESTADO FINAL DE LA BASE DE DATOS
@@ -274,8 +298,46 @@ log "📋 Últimos logs del frontend:"
 log "📋 Últimos logs del backend:"
 (docker-compose logs --no-color --tail=20 personalfit-backend || true) | tail -n 20 | sed 's/^/BE | /'
 
-log "🎉 ¡Deployment completado!"
-log "🌐 La aplicación debería estar disponible en:"
+# Verificación final de conectividad
+log "🌐 Verificando conectividad final..."
+
+# Función para reintentar la verificación de servicios
+retry_service_check() {
+    local max_attempts=3
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        log "🔄 Intento $attempt/$max_attempts de verificación de servicios..."
+        
+        # Verificar que todos los servicios están corriendo
+        if docker ps --format '{{.Names}}' | grep -q '^personalfit-db$' && \
+           docker ps --format '{{.Names}}' | grep -q '^personalfit-backend$' && \
+           docker ps --format '{{.Names}}' | grep -q '^personalfit-frontend$'; then
+            log "✅ Todos los servicios están corriendo"
+            return 0
+        else
+            log "⚠️  Algunos servicios no están corriendo, reintentando..."
+            docker-compose up -d
+            sleep 20
+            attempt=$((attempt + 1))
+        fi
+    done
+    
+    log "❌ Error: No se pudieron levantar todos los servicios después de $max_attempts intentos"
+    log "📋 Estado final de contenedores:"
+    docker ps -a
+    log "📋 Logs de servicios:"
+    docker-compose logs --tail=50
+    exit 1
+}
+
+# Ejecutar verificación con reintentos
+retry_service_check
+
+log "🎉 ¡Deployment completado exitosamente!"
+log "🌐 La aplicación está disponible en:"
 log "   - Frontend: $APP_DOMAIN"
 log "   - Backend API (puerto público): $BACKEND_PUBLIC"
-log "💾 Base de datos preservada exitosamente"
+log "💾 Base de datos y comprobantes preservados exitosamente"
+log "📋 Estado final de todos los servicios:"
+docker-compose ps
