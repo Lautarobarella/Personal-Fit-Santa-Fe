@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
@@ -20,7 +21,6 @@ import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Textarea } from "../ui/textarea"
-
 
 interface CreatePaymentDialogProps {
     open: boolean
@@ -52,6 +52,12 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [amount, setAmount] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
     
+    // Hook para obtener pagos del cliente
+    const { payments: clientPayments, isLoading: isLoadingPayments } = usePayment(
+        user?.role === "client" ? user.id : undefined,
+        false
+    )
+    
     // Fetch monthly fee when component mounts
     useEffect(() => {
         const fetchMonthlyFee = async () => {
@@ -82,6 +88,17 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [notes, setNotes] = useState("")
 
+    // Función para verificar si el cliente ya tiene un pago activo o pendiente
+    const checkExistingPayment = (): boolean => {
+        if (!clientPayments || clientPayments.length === 0) return false
+        
+        // Verificar si hay algún pago con estado "paid" o "pending"
+        const hasActiveOrPendingPayment = clientPayments.some(payment => 
+            payment.status === "paid" || payment.status === "pending"
+        )
+        
+        return hasActiveOrPendingPayment
+    }
 
     // Generate month options (current month and next 12 months)
     const generateMonthOptions = () => {
@@ -179,6 +196,26 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             return
         }
 
+        // Validar si el cliente ya tiene un pago activo o pendiente
+        if (user?.role === "client") {
+            if (isLoadingPayments) {
+                toast({
+                    title: "Cargando",
+                    description: "Verificando pagos existentes...",
+                })
+                return
+            }
+            
+            if (checkExistingPayment()) {
+                toast({
+                    title: "Error",
+                    description: "Ya tienes un pago activo o pendiente. No puedes crear un nuevo pago hasta que el actual sea procesado o rechazado.",
+                    variant: "destructive",
+                })
+                return
+            }
+        }
+
         setIsCreating(true)
 
         try {
@@ -190,19 +227,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 file: selectedFile ?? undefined,
             })
 
-            // Reset form
-            setSelectedClient("")
-            setStartDate("")
-            setAmount("")
-            setDueDate("")
-
-            toast({
-                title: "Pago creado",
-                description: "El pago se ha registrado correctamente",
-            })
-
-            //  Cerramos el diálogo y redirigimos
-            handleClose()
+            // Manejar el pago exitoso
+            handleSuccessfulPayment()
 
         } catch (error: any) {
             // Manejar errores específicos del backend
@@ -228,7 +254,38 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const handleClose = () => {
         onOpenChange(false)
-        router.push("/payments/method-select")
+        // Redirigir según el rol del usuario
+        if (user?.role === "client") {
+            router.push("/payments/method-select")
+        } else {
+            router.push("/payments")
+        }
+    }
+
+    const handleSuccessfulPayment = () => {
+        // Reset form
+        setSelectedClient("")
+        setStartDate("")
+        setAmount("")
+        setDueDate("")
+        setSelectedFile(null)
+        setPreviewUrl(null)
+        setNotes("")
+
+        // Mensaje según el rol del usuario
+        const isAutomaticPayment = user?.role === "admin"
+        const message = isAutomaticPayment 
+            ? "El pago se ha registrado y el cliente ha sido activado automáticamente"
+            : "El pago se ha registrado correctamente"
+
+        toast({
+            title: "Pago creado",
+            description: message,
+        })
+
+        // Cerrar el diálogo y redirigir a payments (ambos roles van a /payments)
+        onOpenChange(false)
+        router.push("/payments")
     }
 
 
@@ -328,15 +385,15 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
                                 <Button
                                     type="submit" // <- Ahora sí, este es el botón que envía
-                                    disabled={isUploading}
+                                    disabled={isCreating}
                                     className="flex-1"
                                 >
-                                    {isUploading ? (
+                                    {isCreating ? (
                                         <Loader2 className="animate-spin mr-1 h-4 w-2" />
                                     ) : (
                                         <Check className="mr-1 h-4 w-2" />
                                     )}
-                                    {isUploading ? "Subiendo..." : "Aceptar"}
+                                    {isCreating ? "Creando..." : "Aceptar"}
                                 </Button>
                             </div>
                         }

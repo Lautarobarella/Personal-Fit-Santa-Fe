@@ -6,7 +6,6 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
 
 export default function NewPaymentPage() {
   const { toast } = useToast()
@@ -30,26 +29,23 @@ export default function NewPaymentPage() {
         isMercadoPagoPayment: isAutomaticPayment // Si es admin, se marca como pago automático
       })
 
-      toast({
-        title: "Pago creado",
-        description: isAutomaticPayment 
-          ? "El pago se ha registrado y el cliente ha sido activado automáticamente"
-          : "El pago se ha registrado correctamente",
-      })
-
-      router.push("/payments")
+      // El diálogo maneja el toast y la navegación exitosa
+      // No necesitamos hacer nada más aquí
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo crear el pago",
-        variant: "destructive",
-      })
+      // El diálogo maneja los errores internamente
+      // Re-lanzar el error para que el diálogo lo maneje
+      throw error
     }
   }
 
   const handleDialogChange = (open: boolean) => {
     if (!open) {
-      router.push("/payments")
+      // Redirigir según el rol del usuario
+      if (user?.role === "client") {
+        router.push("/payments/method-select")
+      } else {
+        router.push("/payments")
+      }
     }
   }
 
