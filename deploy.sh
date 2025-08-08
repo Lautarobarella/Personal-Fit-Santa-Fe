@@ -43,8 +43,8 @@ force_services_up() {
     docker-compose up --build -d
     
     # Esperar a que se levanten
-    log "⏳ Esperando 30 segundos para que los servicios estén listos..."
-    sleep 30
+    log "⏳ Esperando 45 segundos para que los servicios estén listos..."
+    sleep 45
     
     # Verificar que estén corriendo
     local postgres_running=false
@@ -63,6 +63,8 @@ force_services_up() {
         backend_running=true
     else
         log "❌ Backend NO está corriendo"
+        log "📋 Logs del backend para diagnóstico:"
+        docker-compose logs --tail=30 personalfit-backend || true
     fi
     
     if is_container_running "personalfit-frontend"; then
