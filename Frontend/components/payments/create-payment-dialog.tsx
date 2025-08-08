@@ -255,14 +255,12 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const handleClose = () => {
         // Cerrar el diálogo y navegar según el rol del usuario
         onOpenChange(false)
-        // Usar setTimeout para evitar conflictos con el onOpenChange
-        setTimeout(() => {
-            if (user?.role === "client") {
-                router.push("/payments/method-select")
-            } else {
-                router.push("/payments")
-            }
-        }, 0)
+        // Navegar después de cerrar el diálogo
+        if (user?.role === "client") {
+            router.push("/payments/method-select")
+        } else {
+            router.push("/payments")
+        }
     }
 
     const handleSuccessfulPayment = () => {
@@ -288,15 +286,25 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
         // Cerrar el diálogo y redirigir a payments (ambos roles van a /payments después de un pago exitoso)
         onOpenChange(false)
-        // Usar setTimeout para evitar conflictos con el onOpenChange
-        setTimeout(() => {
-            router.push("/payments")
-        }, 0)
+        router.push("/payments")
+    }
+
+    const handleDialogOpenChange = (open: boolean) => {
+        onOpenChange(open)
+        // Solo manejar navegación cuando se cierra desde la X (no desde botones)
+        if (!open) {
+            // Navegar según el rol del usuario
+            if (user?.role === "client") {
+                router.push("/payments/method-select")
+            } else {
+                router.push("/payments")
+            }
+        }
     }
 
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleDialogOpenChange}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
 
                 <DialogHeader>
@@ -456,4 +464,5 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         </Dialog >
     )
 }
+
 

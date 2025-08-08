@@ -1,19 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, Search, Phone, Mail, MoreVertical, Calendar, Loader2 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import Link from "next/link"
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
+import { useAuth } from "@/components/providers/auth-provider"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { BottomNav } from "@/components/ui/bottom-nav"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { MobileHeader } from "@/components/ui/mobile-header"
 import { useClients } from "@/hooks/use-client"
+import { Calendar, Loader2, Mail, MoreVertical, Phone, Plus, Search } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function ClientsPage() {
 
@@ -75,7 +75,7 @@ export default function ClientsPage() {
   const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
 
   return (
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-background pb-20">
       <MobileHeader
         title="Clientes"
         actions={
