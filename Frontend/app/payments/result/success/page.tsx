@@ -62,7 +62,7 @@ function SuccessPageContent() {
         <div className="min-h-screen bg-background flex items-center justify-center">
             <Card className="w-full max-w-md mx-4">
                 <CardHeader className="text-center">
-                    <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
                         <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
                     <CardTitle className="text-green-600">¡Pago Exitoso!</CardTitle>
@@ -73,7 +73,7 @@ function SuccessPageContent() {
                     </p>
                     
                     {paymentId && (
-                        <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                        <div className="rounded-lg text-sm p-3 bg-gray-50 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
                             <p><strong>ID de Pago:</strong> {paymentId}</p>
                             {status && <p><strong>Estado:</strong> {status}</p>}
                             {externalReference && <p><strong>Referencia:</strong> {externalReference}</p>}

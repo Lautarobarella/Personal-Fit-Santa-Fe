@@ -268,13 +268,11 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         <Label htmlFor="amount">Monto ($) *</Label>
                         <Input
                             id="amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="150.00"
+                            type="text"
                             value={amount}
                             readOnly
-                            className="bg-gray-50"
+                            aria-readonly="true"
+                            onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
                     </div>
 
