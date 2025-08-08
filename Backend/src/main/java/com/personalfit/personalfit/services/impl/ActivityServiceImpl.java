@@ -1,11 +1,8 @@
 package com.personalfit.personalfit.services.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personalfit.personalfit.dto.*;
 import com.personalfit.personalfit.exceptions.NoActivityWithIdException;
-import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Activity;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IActivityRepository;

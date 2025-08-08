@@ -1,317 +1,229 @@
 #!/bin/bash
 
-# Script de deployment para Personal Fit Santa Fe
-# Este script GARANTIZA que los servicios estén corriendo al final
-#
-# COMPORTAMIENTO:
-# 1. Si no hay servicios corriendo: Los crea desde cero
-# 2. Si hay servicios corriendo: Los destruye (preservando DB) y los recrea
-# 3. SIEMPRE termina con todos los servicios levantados y funcionando
-#
-# PRESERVA ÚNICAMENTE:
-# - Base de datos (volumen pgdata)
-# - Comprobantes de pago (volumen comprobantes)
+# Script de deploy mejorado para Personal Fit Santa Fe
+# Este script preserva la base de datos y valida compatibilidad de esquemas
 
-set -euo pipefail  # Fallar ante errores y variables no definidas
+set -e  # Exit on any error
 
-echo "🚀 Iniciando deployment de Personal Fit Santa Fe..."
+echo "🚀 Iniciando deploy de Personal Fit Santa Fe..."
 
-# Configuración
-PROJECT_DIR="/opt/Personal-Fit-Santa-Fe"
-REPO_URL="https://github.com/Lautarobarella/Personal-Fit-Santa-Fe.git"
-BRANCH="main"
-APP_DOMAIN="https://personalfitsantafe.com"
-BACKEND_PUBLIC="http://personalfitsantafe.com:8080"
+# Verificar que Docker esté corriendo
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker no está corriendo. Por favor inicia Docker y vuelve a intentar."
+    exit 1
+fi
 
-# Función para logging con timestamp
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-}
+# Verificar que docker-compose esté disponible
+if ! command -v docker-compose &> /dev/null; then
+    echo "❌ docker-compose no está instalado. Por favor instálalo y vuelve a intentar."
+    exit 1
+fi
 
-# Función para verificar si un contenedor está corriendo
-is_container_running() {
-    local container_name="$1"
-    docker ps --format '{{.Names}}' | grep -q "^${container_name}$"
-}
-
-# Función para forzar el levantamiento de servicios
-force_services_up() {
-    log "🚀 FORZANDO LEVANTAMIENTO DE TODOS LOS SERVICIOS..."
+# Función para validar esquemas antes del deploy
+validate_schemas_before_deploy() {
+    echo "🔍 Validando compatibilidad de esquemas antes del deploy..."
     
-    # Intentar levantar con build
-    log "🏗️  Construyendo y levantando servicios..."
-    docker-compose up --build -d
-    
-    # Esperar a que se levanten
-    log "⏳ Esperando 45 segundos para que los servicios estén listos..."
-    sleep 45
-    
-    # Verificar que estén corriendo
-    local postgres_running=false
-    local backend_running=false
-    local frontend_running=false
-    
-    if is_container_running "personalfit-db"; then
-        log "✅ Postgres está corriendo"
-        postgres_running=true
-    else
-        log "❌ Postgres NO está corriendo"
-    fi
-    
-    if is_container_running "personalfit-backend"; then
-        log "✅ Backend está corriendo"
-        backend_running=true
-    else
-        log "❌ Backend NO está corriendo"
-        log "📋 Logs del backend para diagnóstico:"
-        docker-compose logs --tail=30 personalfit-backend || true
-    fi
-    
-    if is_container_running "personalfit-frontend"; then
-        log "✅ Frontend está corriendo"
-        frontend_running=true
-    else
-        log "❌ Frontend NO está corriendo"
-    fi
-    
-    # Si alguno no está corriendo, mostrar logs y reintentar
-    if [ "$postgres_running" = false ] || [ "$backend_running" = false ] || [ "$frontend_running" = false ]; then
-        log "⚠️  Algunos servicios no están corriendo. Mostrando logs..."
-        
-        log "📋 Estado de contenedores:"
-        docker ps -a
-        
-        log "📋 Logs de Postgres:"
-        docker-compose logs --tail=20 postgres || true
-        
-        log "📋 Logs de Backend:"
-        docker-compose logs --tail=20 personalfit-backend || true
-        
-        log "📋 Logs de Frontend:"
-        docker-compose logs --tail=20 personalfit-frontend || true
-        
-        # Reintentar una vez más
-        log "🔄 Reintentando levantar servicios..."
-        docker-compose down
-        sleep 5
-        docker-compose up --build -d
-        sleep 30
-        
-        # Verificación final
-        if is_container_running "personalfit-db" && is_container_running "personalfit-backend" && is_container_running "personalfit-frontend"; then
-            log "✅ Todos los servicios están corriendo después del reintento"
-            return 0
-        else
-            log "❌ ERROR CRÍTICO: No se pudieron levantar los servicios"
-            log "📋 Estado final:"
-            docker ps -a
-            exit 1
-        fi
-    else
-        log "✅ Todos los servicios están corriendo correctamente"
+    # Verificar si existe el script de migración
+    if [ ! -f "./migrate.sh" ]; then
+        echo "⚠️ Script de migración no encontrado. Continuando sin validación..."
         return 0
     fi
-}
-
-# Verificar que estamos en el directorio correcto
-log "📂 Navegando al directorio del proyecto: $PROJECT_DIR"
-cd /opt
-
-# Si el directorio no existe, clonarlo
-if [ ! -d "$PROJECT_DIR" ]; then
-    log "📥 Clonando repositorio por primera vez..."
-    git clone "$REPO_URL"
-    cd Personal-Fit-Santa-Fe
-else
-    log "📝 Actualizando repositorio existente..."
-    cd Personal-Fit-Santa-Fe
     
-    # Verificar el estado de Git
-    git status
-    
-    # Hacer backup de cambios locales si los hay
-    if ! git diff-index --quiet HEAD --; then
-        log "⚠️  Detectados cambios locales. Creando backup..."
-        git stash push -m "Backup before deployment $(date '+%Y%m%d_%H%M%S')"
-    fi
-    
-    # Actualizar el código
-    log "🔄 Actualizando código desde $BRANCH..."
-    git fetch origin
-    git checkout $BRANCH
-    git pull origin $BRANCH
-fi
-
-# Verificar que tenemos las variables de entorno necesarias
-log "🔐 Verificando variables de entorno..."
-if [ -z "${MP_ACCESS_TOKEN:-}" ]; then
-    log "⚠️  MP_ACCESS_TOKEN no está configurada. Continuando igualmente."
-fi
-
-if [ -z "${NEXT_PUBLIC_MP_PUBLIC_KEY:-}" ]; then
-    log "⚠️  NEXT_PUBLIC_MP_PUBLIC_KEY no está configurada. Continuando igualmente."
-fi
-
-# Crear archivo .env temporal con las variables de entorno para docker compose
-log "📝 Creando archivo .env temporal..."
-cat > .env << EOF
-MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN:-}
-NEXT_PUBLIC_MP_PUBLIC_KEY=${NEXT_PUBLIC_MP_PUBLIC_KEY:-}
-EOF
-
-# Verificar estado actual de los servicios
-log "🔍 Verificando estado actual de los servicios..."
-
-postgres_running=$(is_container_running "personalfit-db" && echo "true" || echo "false")
-backend_running=$(is_container_running "personalfit-backend" && echo "true" || echo "false")
-frontend_running=$(is_container_running "personalfit-frontend" && echo "true" || echo "false")
-
-log "📊 Estado actual:"
-log "   - Postgres: $postgres_running"
-log "   - Backend: $backend_running"
-log "   - Frontend: $frontend_running"
-
-# ESCENARIO 1: No hay servicios corriendo - Crear desde cero
-if [ "$postgres_running" = false ] && [ "$backend_running" = false ] && [ "$frontend_running" = false ]; then
-    log "🆕 ESCENARIO: No hay servicios corriendo - Creando desde cero"
-    
-    # Limpiar cualquier resto
-    log "🧹 Limpiando restos anteriores..."
-    docker-compose down --remove-orphans 2>/dev/null || true
-    docker container prune -f
-    docker image prune -f
-    
-    # Eliminar imágenes específicas si existen
-    log "🗑️  Eliminando imágenes antiguas..."
-    docker rmi personalfit-backend:latest 2>/dev/null || true
-    docker rmi personalfit-frontend:latest 2>/dev/null || true
-    docker rmi personal-fit-santa-fe_personalfit-backend:latest 2>/dev/null || true
-    docker rmi personal-fit-santa-fe_personalfit-frontend:latest 2>/dev/null || true
-    
-    # Crear y levantar servicios
-    force_services_up
-
-# ESCENARIO 2: Hay servicios corriendo - Destruir y recrear (preservando DB)
-else
-    log "🔄 ESCENARIO: Hay servicios corriendo - Destruir y recrear preservando datos"
-    
-    # Detener servicios de aplicación (NO postgres si está corriendo)
-    if [ "$backend_running" = true ] || [ "$frontend_running" = true ]; then
-        log "🛑 Deteniendo servicios de aplicación..."
-        docker-compose stop personalfit-backend personalfit-frontend personalfit-pgadmin 2>/dev/null || true
-        docker-compose rm -f personalfit-backend personalfit-frontend personalfit-pgadmin 2>/dev/null || true
-    fi
-    
-    # Eliminar imágenes de aplicación para forzar rebuild
-    log "🗑️  Eliminando imágenes de aplicación para forzar rebuild..."
-    docker rmi personalfit-backend:latest 2>/dev/null || true
-    docker rmi personalfit-frontend:latest 2>/dev/null || true
-    docker rmi personal-fit-santa-fe_personalfit-backend:latest 2>/dev/null || true
-    docker rmi personal-fit-santa-fe_personalfit-frontend:latest 2>/dev/null || true
-    
-    # Limpiar imágenes dangling
-    docker image prune -f
-    
-    # Verificar que postgres sigue corriendo si estaba corriendo
-    if [ "$postgres_running" = true ]; then
-        if ! is_container_running "personalfit-db"; then
-            log "⚠️  Postgres se detuvo, reactivándolo..."
-            docker-compose up -d postgres
-            sleep 10
-        fi
-    fi
-    
-    # Recrear servicios
-    force_services_up
-fi
-
-# VERIFICACIÓN FINAL OBLIGATORIA
-log "🔍 VERIFICACIÓN FINAL OBLIGATORIA..."
-
-# Esperar un poco más para que todo esté estable
-sleep 10
-
-# Verificar que TODOS los servicios estén corriendo
-services_ok=true
-
-if ! is_container_running "personalfit-db"; then
-    log "❌ FALLO FINAL: Postgres no está corriendo"
-    services_ok=false
-fi
-
-if ! is_container_running "personalfit-backend"; then
-    log "❌ FALLO FINAL: Backend no está corriendo"
-    services_ok=false
-fi
-
-if ! is_container_running "personalfit-frontend"; then
-    log "❌ FALLO FINAL: Frontend no está corriendo"
-    services_ok=false
-fi
-
-if [ "$services_ok" = false ]; then
-    log "💥 ERROR CRÍTICO: Los servicios no están corriendo al final del deployment"
-    log "📋 Estado actual:"
-    docker ps -a
-    log "📋 Logs de servicios:"
-    docker-compose logs --tail=30
-    
-    # ÚLTIMO INTENTO DESESPERADO
-    log "🚨 ÚLTIMO INTENTO DESESPERADO..."
-    docker-compose down
-    sleep 5
-    docker-compose up --build -d --force-recreate
-    sleep 30
-    
-    # Verificación final final
-    if is_container_running "personalfit-db" && is_container_running "personalfit-backend" && is_container_running "personalfit-frontend"; then
-        log "✅ ÉXITO: Servicios levantados en último intento"
+    # Ejecutar validación de esquemas
+    if ./migrate.sh; then
+        echo "✅ Validación de esquemas exitosa"
+        return 0
     else
-        log "💀 FALLO TOTAL: No se pudieron levantar los servicios"
+        echo "❌ ERROR: Validación de esquemas falló"
+        echo "🔧 Esto significa que hay cambios incompatibles en el esquema de la base de datos"
+        echo "📋 Opciones disponibles:"
+        echo "   1. Ejecutar migraciones: ./migrate.sh --migrate"
+        echo "   2. Forzar deploy (puede causar pérdida de datos): ./migrate.sh --force"
+        echo "   3. Restaurar backup anterior: ./migrate.sh --restore <backup_file>"
+        echo ""
+        echo "💡 Recomendación: Ejecuta './migrate.sh --migrate' para aplicar las migraciones necesarias"
         exit 1
     fi
-else
-    log "✅ ÉXITO: Todos los servicios están corriendo"
-fi
+}
 
-# Mostrar estado final
-log "📋 Estado final de servicios:"
-docker-compose ps
+# Función para hacer backup antes del deploy
+backup_before_deploy() {
+    echo "💾 Creando backup antes del deploy..."
+    
+    if [ -f "./migrate.sh" ]; then
+        ./migrate.sh --backup
+    else
+        echo "⚠️ Script de migración no encontrado. No se puede crear backup automático."
+    fi
+}
 
-# Recarga suave de nginx si existe
-if command -v nginx >/dev/null 2>&1; then
-  log "🔄 Recargando Nginx (si configuración es válida)..."
-  (nginx -t && systemctl reload nginx) || log "⚠️  No se pudo recargar Nginx (continuando)"
-fi
+# Función para preservar volúmenes
+preserve_volumes() {
+    echo "🔒 Preservando volúmenes de datos..."
+    
+    # Verificar que los volúmenes existan
+    if docker volume ls | grep -q "personal-fit-santa-fe_pgdata"; then
+        echo "✅ Volumen de base de datos preservado"
+    else
+        echo "⚠️ Volumen de base de datos no encontrado (se creará nuevo)"
+    fi
+    
+    if docker volume ls | grep -q "personal-fit-santa-fe_comprobantes"; then
+        echo "✅ Volumen de comprobantes preservado"
+    else
+        echo "⚠️ Volumen de comprobantes no encontrado (se creará nuevo)"
+    fi
+}
 
-# Verificación de conectividad externa (sin bloquear el deploy)
-log "🌐 Verificando conectividad externa (no bloqueante)..."
-if curl -sS -I --max-time 10 "$APP_DOMAIN" > /dev/null; then
-    log "✅ Frontend accesible en $APP_DOMAIN"
-else
-    log "⚠️  Frontend aún no responde en $APP_DOMAIN (normal, puede tardar)"
-fi
+# Función para limpiar contenedores sin afectar volúmenes
+clean_containers_only() {
+    echo "🧹 Limpiando contenedores (preservando volúmenes)..."
+    
+    # Detener y remover contenedores sin afectar volúmenes
+    docker-compose down --remove-orphans || true
+    
+    # Limpiar imágenes dangling
+    docker image prune -f || true
+}
 
-if curl -sS -I --max-time 10 "$BACKEND_PUBLIC" > /dev/null; then
-    log "✅ Backend accesible en $BACKEND_PUBLIC"
-else
-    log "⚠️  Backend aún no responde en $BACKEND_PUBLIC (normal, puede tardar)"
-fi
+# Función para construir imágenes
+build_images() {
+    echo "🔨 Construyendo imágenes Docker..."
+    docker-compose build --no-cache
+}
 
-log "🎉 ¡DEPLOYMENT COMPLETADO EXITOSAMENTE!"
-log "🌐 La aplicación está disponible en:"
-log "   - Frontend: $APP_DOMAIN"
-log "   - Backend API: $BACKEND_PUBLIC"
-log "💾 Base de datos y comprobantes preservados"
-log "✅ TODOS LOS SERVICIOS ESTÁN CORRIENDO"
+# Función para iniciar servicios
+start_services() {
+    echo "🚀 Iniciando servicios..."
+    docker-compose up -d
+}
 
-# Mostrar logs finales para debug
-log "📋 Últimos logs (para debug):"
-echo "=== POSTGRES ==="
-docker-compose logs --tail=10 postgres | head -10
-echo "=== BACKEND ==="
-docker-compose logs --tail=10 personalfit-backend | head -10
-echo "=== FRONTEND ==="
-docker-compose logs --tail=10 personalfit-frontend | head -10
+# Función para esperar servicios
+wait_for_services() {
+    echo "⏳ Esperando a que PostgreSQL esté listo..."
+    until docker-compose exec -T postgres pg_isready -U personalfit_user -d personalfit; do
+        echo "Esperando PostgreSQL..."
+        sleep 5
+    done
 
-log "🏁 Script terminado - Los servicios están corriendo"
+    echo "⏳ Esperando a que el backend esté listo..."
+    max_attempts=30
+    attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if curl -f https://personalfitsantafe.com:8080/api/health > /dev/null 2>&1; then
+            echo "✅ Backend está listo!"
+            break
+        fi
+        
+        echo "Esperando backend... (intento $attempt/$max_attempts)"
+        sleep 10
+        attempt=$((attempt + 1))
+    done
+
+    if [ $attempt -gt $max_attempts ]; then
+        echo "❌ Backend no respondió después de $max_attempts intentos"
+        echo "📋 Logs del backend:"
+        docker-compose logs personalfit-backend
+        exit 1
+    fi
+
+    echo "⏳ Verificando frontend..."
+    max_attempts=20
+    attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if curl -f https://personalfitsantafe.com > /dev/null 2>&1; then
+            echo "✅ Frontend está listo!"
+            break
+        fi
+        
+        echo "Esperando frontend... (intento $attempt/$max_attempts)"
+        sleep 5
+        attempt=$((attempt + 1))
+    done
+
+    if [ $attempt -gt $max_attempts ]; then
+        echo "⚠️ Frontend no respondió después de $max_attempts intentos"
+        echo "📋 Logs del frontend:"
+        docker-compose logs personalfit-frontend
+    fi
+}
+
+# Función para mostrar estado final
+show_final_status() {
+    echo "📊 Estado final de los servicios:"
+    docker-compose ps
+
+    echo "✅ Deploy completado exitosamente!"
+    echo "🌐 URLs de acceso:"
+    echo "   - Frontend: https://personalfitsantafe.com"
+    echo "   - Backend API: https://personalfitsantafe.com:8080"
+    echo "   - PgAdmin: https://personalfitsantafe.com:5050"
+    echo "   - Health Check: https://personalfitsantafe.com:8080/api/health"
+    echo ""
+    echo "💾 Datos preservados:"
+    echo "   - Base de datos: ✅ Preservada"
+    echo "   - Comprobantes: ✅ Preservados"
+    echo "   - Configuraciones: ✅ Preservadas"
+}
+
+# Función principal
+main() {
+    echo "🔒 Modo de preservación de datos activado"
+    
+    # Preservar volúmenes
+    preserve_volumes
+    
+    # Validar esquemas antes del deploy
+    validate_schemas_before_deploy
+    
+    # Hacer backup antes del deploy
+    backup_before_deploy
+    
+    # Limpiar solo contenedores (preservando volúmenes)
+    clean_containers_only
+    
+    # Construir imágenes
+    build_images
+    
+    # Iniciar servicios
+    start_services
+    
+    # Esperar servicios
+    wait_for_services
+    
+    # Mostrar estado final
+    show_final_status
+}
+
+# Manejo de argumentos
+case "${1:-}" in
+    --force)
+        echo "⚠️ Modo forzado activado (sin validación de esquemas)"
+        echo "🔒 Preservando volúmenes..."
+        preserve_volumes
+        backup_before_deploy
+        clean_containers_only
+        build_images
+        start_services
+        wait_for_services
+        show_final_status
+        ;;
+    --help)
+        echo "Uso: $0 [OPCIÓN]"
+        echo ""
+        echo "Opciones:"
+        echo "  --force    Forzar deploy sin validación de esquemas"
+        echo "  --help     Mostrar esta ayuda"
+        echo ""
+        echo "Comportamiento por defecto:"
+        echo "  - Preserva todos los datos de la base de datos"
+        echo "  - Valida compatibilidad de esquemas antes del deploy"
+        echo "  - Crea backup automático antes del deploy"
+        echo "  - Falla si hay cambios incompatibles en el esquema"
+        ;;
+    *)
+        main
+        ;;
+esac

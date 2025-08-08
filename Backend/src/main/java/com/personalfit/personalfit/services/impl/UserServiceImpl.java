@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 
 import com.personalfit.personalfit.dto.InCreateUserDTO;
 import com.personalfit.personalfit.dto.UserActivityDetailsDTO;
-import com.personalfit.personalfit.dto.InCreateUserDTO;
-import com.personalfit.personalfit.dto.PaymentTypeDTO;
 import com.personalfit.personalfit.dto.UserDetailInfoDTO;
 import com.personalfit.personalfit.dto.UserTypeDTO;
 import com.personalfit.personalfit.exceptions.NoUserWithDniException;
@@ -25,21 +23,13 @@ import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.IPaymentRepository;
 import com.personalfit.personalfit.repository.IUserRepository;
 import com.personalfit.personalfit.services.INotificationService;
-import com.personalfit.personalfit.services.IPaymentService;
+
 import com.personalfit.personalfit.services.IUserService;
 import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service

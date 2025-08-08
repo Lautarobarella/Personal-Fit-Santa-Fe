@@ -5,7 +5,6 @@ import com.personalfit.personalfit.models.Notification;
 import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.INotificationRepository;
 import com.personalfit.personalfit.services.INotificationService;
-import com.personalfit.personalfit.services.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
