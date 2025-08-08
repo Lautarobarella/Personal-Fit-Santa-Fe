@@ -46,7 +46,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
-                .requestMatchers("/api/auth/test-users").permitAll()
+                .requestMatchers("/api/users/public/first-admin").permitAll() // Endpoint público para crear primer admin
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/webhook/mercadopago").permitAll() // Permitir webhooks de MercadoPago sin autenticación
                 .requestMatchers("/api/payments/webhook/**").permitAll() // Permitir creación de pagos desde webhooks

@@ -48,6 +48,48 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // Endpoint público para crear el primer usuario administrador
+    @PostMapping("/public/first-admin")
+    public ResponseEntity<Map<String, Object>> createFirstAdmin(@Valid @RequestBody InCreateUserDTO user) {
+        try {
+            // Verificar si ya existe algún usuario en la base de datos
+            List<UserTypeDTO> existingUsers = userService.getAllUsers();
+            
+            if (!existingUsers.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Ya existen usuarios en la base de datos. Este endpoint solo se puede usar para crear el primer administrador."
+                    ));
+            }
+            
+            // Verificar que el rol sea admin
+            if (user.getRole() == null || !user.getRole().name().equals("admin")) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Este endpoint solo permite crear usuarios con rol admin."
+                    ));
+            }
+            
+            // Crear el usuario administrador
+            userService.createNewUser(user);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Primer administrador creado exitosamente",
+                "user", user
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of(
+                    "success", false,
+                    "message", "Error al crear el administrador: " + e.getMessage()
+                ));
+        }
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
@@ -105,5 +147,4 @@ public class UserController {
         userService.saveAll(newUsers);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
-
 }

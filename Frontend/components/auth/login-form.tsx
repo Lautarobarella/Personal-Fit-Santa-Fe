@@ -79,16 +79,6 @@ export function LoginForm() {
               Iniciar Sesión
             </Button>
           </form>
-
-          <div className="mt-6 text-sm text-muted-foreground">
-            <p className="font-medium mb-2">Cuentas de prueba:</p>
-            <div className="space-y-1">
-              <p>Admin: maria@email.com</p>
-              <p>Trainer: juan@email.com</p>
-              <p>Client: carlos@email.com</p>
-              <p className="text-xs">Contraseña: admin123, trainer123, user123</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
