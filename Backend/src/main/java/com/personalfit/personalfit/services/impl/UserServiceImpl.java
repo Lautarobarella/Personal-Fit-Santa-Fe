@@ -77,7 +77,7 @@ public class UserServiceImpl implements IUserService {
         userToCreate.setAddress(newUser.getAddress());
         userToCreate.setBirthDate(newUser.getBirthDate());
         userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword())); // Encriptar contraseña
-        userToCreate.setStatus(newUser.getStatus());
+        userToCreate.setStatus(UserStatus.inactive);
         userRepository.save(userToCreate);
 
         return true;
