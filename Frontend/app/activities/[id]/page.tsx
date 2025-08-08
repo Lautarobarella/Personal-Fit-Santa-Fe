@@ -120,8 +120,9 @@ export default function EditActivityPage({ params }: { params: { id: number } })
     setIsLoading(true)
 
     try {
-      console.log("Enviando datos del formulario:", form)
-      editActivity(form)
+
+      await editActivity(form)
+
       toast({
         title: "Actividad actualizada",
         description: "La actividad ha sido actualizada exitosamente",
@@ -129,7 +130,6 @@ export default function EditActivityPage({ params }: { params: { id: number } })
 
       router.push("/activities")
     } catch (error) {
-      console.error("Error al actualizar actividad:", error)
       toast({
         title: "Error",
         description: "No se pudo actualizar la actividad",

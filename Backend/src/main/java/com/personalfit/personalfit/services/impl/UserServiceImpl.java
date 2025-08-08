@@ -77,9 +77,51 @@ public class UserServiceImpl implements IUserService {
         userToCreate.setAddress(newUser.getAddress());
         userToCreate.setBirthDate(newUser.getBirthDate());
         userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword())); // Encriptar contraseña
-        userToCreate.setStatus(UserStatus.inactive);
+        
+        // Si es trainer o admin, marcar como activo
+        if (newUser.getRole() == UserRole.trainer || newUser.getRole() == UserRole.admin) {
+            userToCreate.setStatus(UserStatus.active);
+        } else {
+            userToCreate.setStatus(UserStatus.inactive);
+        }
+        
         userRepository.save(userToCreate);
 
+        return true;
+    }
+
+    public Boolean updateUser(Long id, InCreateUserDTO userUpdate) {
+        Optional<User> existingUser = userRepository.findById(id);
+        
+        if (existingUser.isEmpty()) {
+            throw new NoUserWithIdException();
+        }
+
+        User user = existingUser.get();
+        
+
+        // Actualizar campos
+        user.setFirstName(userUpdate.getFirstName());
+        user.setLastName(userUpdate.getLastName());
+        user.setEmail(userUpdate.getEmail());
+        user.setPhone(userUpdate.getPhone());
+        user.setRole(userUpdate.getRole());
+        user.setAvatar(userUpdate.getFirstName().substring(0, 1).toUpperCase() +
+                userUpdate.getLastName().substring(0, 1).toUpperCase());
+        user.setAddress(userUpdate.getAddress());
+        user.setBirthDate(userUpdate.getBirthDate());
+        
+        // Solo actualizar contraseña si se proporciona una nueva
+        if (userUpdate.getPassword() != null && !userUpdate.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userUpdate.getPassword()));
+        }
+        
+        // Si es trainer o admin, marcar como activo
+        if (userUpdate.getRole() == UserRole.trainer || userUpdate.getRole() == UserRole.admin) {
+            user.setStatus(UserStatus.active);
+        }
+        
+        userRepository.save(user);
         return true;
     }
 

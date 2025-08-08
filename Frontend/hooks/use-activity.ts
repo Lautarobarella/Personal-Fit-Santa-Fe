@@ -107,14 +107,17 @@ export function useActivities() {
     setLoading(true)
     setError(null)
     try {
-      await editActivityBack(activity) 
+      const response = await editActivityBack(activity)
+      // Recargar actividades después de editar
+      await loadActivities()
+      return response
     } catch (err) {
       setError("Error al editar la actividad")
       throw err
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadActivities])
 
   const deleteActivityById = useCallback(async (activityId: number) => {
     setLoading(true)

@@ -22,13 +22,35 @@ export async function fetchUserDetail(id: number) {
 
 export async function createUser(user: UserFormType) {
   try {
-          return await jwtPermissionsApi.post('/api/users/new', user);
+    return await jwtPermissionsApi.post('/api/users/new', user);
   } catch (error) {
     if (isValidationError(error)) {
       handleValidationError(error);
     } else {
       handleApiError(error, 'Error al crear el usuario');
     }
+    throw error;
+  }
+}
+
+export async function updateUser(id: number, user: UserFormType) {
+  try {
+    return await jwtPermissionsApi.put(`/api/users/${id}`, user);
+  } catch (error) {
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al actualizar el usuario');
+    }
+    throw error;
+  }
+}
+
+export async function deleteUser(id: number) {
+  try {
+    return await jwtPermissionsApi.delete(`/api/users/delete/${id}`);
+  } catch (error) {
+    handleApiError(error, 'Error al eliminar el usuario');
     throw error;
   }
 }

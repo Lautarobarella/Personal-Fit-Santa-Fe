@@ -1,4 +1,4 @@
-import { createUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
+import { createUser, fetchUserDetail, fetchUsers, updateUser, deleteUser } from "@/api/clients/usersApi"
 import { fetchPaymentsById } from "@/api/payment/paymentsApi"
 import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
 import { useCallback, useState } from "react"
@@ -6,7 +6,7 @@ import { useCallback, useState } from "react"
 export function useClients() {
   const [clients, setClients] = useState<UserType[]>([])
   const [selectedClient, setSelectedClient] = useState<UserDetailInfo | null>(null)
-    const [form, setForm] = useState<UserFormType>({
+  const [form, setForm] = useState<UserFormType>({
     dni: "",
     firstName: "",
     lastName: "",
@@ -17,7 +17,7 @@ export function useClients() {
     joinDate: "",
     birthDate: "",
     password: "",
-    })
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,20 +65,49 @@ export function useClients() {
     }
   }, [])
 
-  // Limpiar cliente seleccionado
-  const clearSelectedClient = () => setSelectedClient(null)
+  const updateClient = useCallback(async (id: number, clientData: UserFormType) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await updateUser(id, clientData)
+      // Recargar la lista de clientes después de actualizar
+      await loadClients()
+      return response
+    } catch (err) {
+      setError("Error al actualizar el cliente")
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [loadClients])
+
+  const deleteClient = useCallback(async (id: number) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await deleteUser(id)
+      // Recargar la lista de clientes después de eliminar
+      await loadClients()
+      return response
+    } catch (err) {
+      setError("Error al eliminar el cliente")
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [loadClients])
 
   return {
     clients,
     selectedClient,
     form,
+    setForm,
     loading,
     error,
-    setForm,
-    createClient,
     loadClients,
     loadClientDetail,
-    clearSelectedClient,
-    setClients, // opcional, por si quieres manipular manualmente
+    createClient,
+    updateClient,
+    deleteClient,
   }
 }

@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public interface IUserService {
     Boolean createNewUser(InCreateUserDTO newUser);
+    Boolean updateUser(Long id, InCreateUserDTO user);
     Boolean deleteUser(Long id);
     User getUserByDni(Integer dni);
     List<UserTypeDTO> getAllUsers();

@@ -90,14 +90,39 @@ public class UserController {
         }
     }
 
+    // Endpoint para actualizar usuario
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long id, @Valid @RequestBody InCreateUserDTO user) {
+        try {
+            userService.updateUser(id, user);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Usuario actualizado exitosamente");
+            response.put("success", true);
+            response.put("userId", id);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Error al actualizar usuario: " + e.getMessage());
+            response.put("success", false);
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Usuario eliminado exitosamente");
-        response.put("success", true);
-        response.put("userId", id);
-        return ResponseEntity.ok(response);
+        try {
+            userService.deleteUser(id);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Usuario eliminado exitosamente");
+            response.put("success", true);
+            response.put("userId", id);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Error al eliminar usuario: " + e.getMessage());
+            response.put("success", false);
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @GetMapping("/findByDni")
