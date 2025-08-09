@@ -10,6 +10,7 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useToast } from "@/hooks/use-toast"
+import { WebSocketTestButton } from "@/components/WebSocketTestButton"
 import {
     AlertTriangle,
     Archive,
@@ -231,12 +232,14 @@ export default function NotificationsPage() {
 
     return (
         <div className="min-h-screen bg-background pb-20">
-            <MobileHeader
-                title="Notificaciones"
-                showBack
-                onBack={() => window.history.back()}
-            />
+            <MobileHeader title="Notificaciones" />
+            
             <div className="container-centered py-6 space-y-6">
+                {/* WebSocket Test Button - Solo para desarrollo */}
+                {process.env.NODE_ENV === 'development' && (
+                    <WebSocketTestButton />
+                )}
+
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4">
                     <Card>
@@ -300,8 +303,8 @@ export default function NotificationsPage() {
                         ) : (
                             <Card>
                                 <CardContent className="py-12 text-center">
-                                    <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">No hay notificaciones leídas</h3>
+                                    <Info className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                    <h3 className="text-lg font-medium mb-2">Sin notificaciones leídas</h3>
                                     <p className="text-muted-foreground">Las notificaciones que marques como leídas aparecerán aquí</p>
                                 </CardContent>
                             </Card>
@@ -318,8 +321,8 @@ export default function NotificationsPage() {
                             <Card>
                                 <CardContent className="py-12 text-center">
                                     <Archive className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">No hay notificaciones archivadas</h3>
-                                    <p className="text-muted-foreground">Las notificaciones archivadas aparecerán aquí</p>
+                                    <h3 className="text-lg font-medium mb-2">Sin notificaciones archivadas</h3>
+                                    <p className="text-muted-foreground">Las notificaciones que archives aparecerán aquí</p>
                                 </CardContent>
                             </Card>
                         )}
@@ -364,7 +367,7 @@ export default function NotificationsPage() {
                     </Card>
                 )}
             </div>
-
+            
             <BottomNav />
         </div>
     )

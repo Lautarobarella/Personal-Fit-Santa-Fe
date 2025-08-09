@@ -20,14 +20,26 @@ public class WebSocketEventListener {
         String sessionId = headerAccessor.getSessionId();
         String userId = headerAccessor.getFirstNativeHeader("userId");
 
+        System.out.println("=== EVENTO DE CONEXIÓN WEB SOCKET ===");
+        System.out.println("Session ID: " + sessionId);
+        System.out.println("User ID: " + userId);
+        System.out.println("Headers disponibles: " + headerAccessor.toNativeHeaderMap());
+
         if (userId != null) {
             webSocketService.registerUserSession(userId, sessionId);
-            System.out.println("Usuario " + userId + " conectado con sesión " + sessionId);
+            System.out.println("✓ Usuario " + userId + " registrado con sesión " + sessionId);
+            
+            // Verificar que se registró correctamente
+            boolean isRegistered = webSocketService.isUserConnected(userId);
+            System.out.println("Usuario " + userId + " está conectado: " + isRegistered);
             
             // Notificar a todos que el usuario se conectó
             // webSocketService.sendToAll("/topic/user-status", 
             //     "User " + userId + " connected");
+        } else {
+            System.out.println("✗ No se pudo obtener userId del header");
         }
+        System.out.println("=== FIN EVENTO DE CONEXIÓN ===");
     }
     
     @EventListener
@@ -36,7 +48,12 @@ public class WebSocketEventListener {
         String sessionId = headerAccessor.getSessionId();
         
         // Buscar y remover la sesión del usuario
-        // Aquí podrías implementar lógica para encontrar el userId por sessionId
+        String userId = webSocketService.getUserIdBySessionId(sessionId);
+        if (userId != null) {
+            webSocketService.removeUserSession(userId);
+            System.out.println("Usuario " + userId + " desconectado de la sesión " + sessionId);
+        }
+        
         webSocketService.sendToAll("/topic/user-status", 
             "User disconnected from session: " + sessionId);
     }

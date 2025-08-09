@@ -39,15 +39,52 @@ public class WebSocketSessionService {
     public boolean isUserConnected(String userId) {
         return userSessions.containsKey(userId);
     }
+    
+    // Obtener sessionId por userId
+    public String getSessionId(String userId) {
+        return userSessions.get(userId);
+    }
+    
+    // Obtener userId por sessionId
+    public String getUserIdBySessionId(String sessionId) {
+        for (Map.Entry<String, String> entry : userSessions.entrySet()) {
+            if (entry.getValue().equals(sessionId)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
 
     public void sendNotificationUpdateToUser(Long userId, String destination, Object payload) {
-        String sessionId = userSessions.get(userId.toString());
-
-        if (sessionId == null) return;
-
-        messagingTemplate.convertAndSendToUser(
-            sessionId,
-            destination, // deberia ser -> /queue/updates para actualizacion de una nueva notificacion
-            payload);
+        try {
+            System.out.println("Enviando notificación WebSocket a usuario " + userId + " en destino " + destination + " con payload: " + payload);
+            
+            // Debug: mostrar estado de las sesiones
+            System.out.println("Estado de sesiones activas:");
+            for (Map.Entry<String, String> entry : userSessions.entrySet()) {
+                System.out.println("  Usuario " + entry.getKey() + " -> Sesión " + entry.getValue());
+            }
+            
+            // Usar el userId directamente en lugar de sessionId para evitar problemas de sincronización
+            messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                destination,
+                payload);
+                
+            System.out.println("Notificación WebSocket enviada exitosamente a usuario " + userId);
+        } catch (Exception e) {
+            System.err.println("Error al enviar notificación WebSocket a usuario " + userId + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // Método de debug para mostrar el estado de las sesiones
+    public void debugSessions() {
+        System.out.println("=== DEBUG: ESTADO DE SESIONES WEB SOCKET ===");
+        System.out.println("Total de sesiones activas: " + userSessions.size());
+        for (Map.Entry<String, String> entry : userSessions.entrySet()) {
+            System.out.println("  Usuario " + entry.getKey() + " -> Sesión " + entry.getValue());
+        }
+        System.out.println("=== FIN DEBUG ===");
     }
 }

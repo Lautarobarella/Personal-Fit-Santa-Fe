@@ -53,12 +53,16 @@ public class NotificationServiceImpl implements INotificationService {
     @Transactional
     public void markAsRead(Long notificationId) {
         notificationRepository.updateReadStatus(notificationId, true);
+        // Enviar actualización por WebSocket
+        sendUnreadCountUpdateForNotification(notificationId);
     }
 
     @Override
     @Transactional
     public void markAsUnread(Long notificationId) {
         notificationRepository.updateReadStatus(notificationId, false);
+        // Enviar actualización por WebSocket
+        sendUnreadCountUpdateForNotification(notificationId);
     }
 
     @Override
@@ -66,24 +70,37 @@ public class NotificationServiceImpl implements INotificationService {
     public void archiveNotification(Long notificationId) {
         notificationRepository.updateArchivedStatus(notificationId, true);
         notificationRepository.updateReadStatus(notificationId, true);
+        // Enviar actualización por WebSocket
+        sendUnreadCountUpdateForNotification(notificationId);
     }
 
     @Override
     @Transactional
     public void unarchiveNotification(Long notificationId) {
         notificationRepository.updateArchivedStatus(notificationId, false);
+        // Enviar actualización por WebSocket
+        sendUnreadCountUpdateForNotification(notificationId);
     }
 
     @Override
     @Transactional
     public void deleteNotification(Long notificationId) {
+        // Obtener la notificación antes de eliminarla para saber a qué usuario pertenece
+        Notification notification = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> new RuntimeException("Notification not found"));
+        Long userId = notification.getUser().getId();
+        
         notificationRepository.deleteById(notificationId);
+        // Enviar actualización por WebSocket
+        sendUnreadCountUpdateForUser(userId);
     }
 
     @Override
     @Transactional
     public void markAllAsRead(Long userId) {
         notificationRepository.markAllAsReadByUserId(userId);
+        // Enviar actualización por WebSocket
+        sendUnreadCountUpdateForUser(userId);
     }
 
     @Override
@@ -112,6 +129,8 @@ public class NotificationServiceImpl implements INotificationService {
     @Override
     @Transactional
     public void createPaymentExpiredNotification(List<User> users, List<User> admins){
+        System.out.println("Creando notificaciones de pago vencido para " + users.size() + " usuarios y " + admins.size() + " admins");
+        
         List<Notification> notifications = new ArrayList<>();
 
         for(User user : users) {
@@ -142,15 +161,19 @@ public class NotificationServiceImpl implements INotificationService {
             }
         }
 
-        notificationRepository.saveAll(notifications);
+        System.out.println("Guardando " + notifications.size() + " notificaciones en la base de datos...");
+        List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
+        System.out.println("Se guardaron " + savedNotifications.size() + " notificaciones exitosamente");
         
         // Enviar contador de notificaciones no leídas por WebSocket
-        sendUnreadCountUpdates(notifications);
+        sendUnreadCountUpdates(savedNotifications);
     }
 
     @Override
     @Transactional
     public void createBirthdayNotification(List<User> users, List<User> admins) {
+        System.out.println("Creando notificaciones de cumpleaños para " + users.size() + " usuarios y " + admins.size() + " admins");
+        
         List<Notification> notifications = new ArrayList<>();
 
         for(User user : users) {
@@ -168,7 +191,7 @@ public class NotificationServiceImpl implements INotificationService {
         }
 
         for(User admin : admins) {
-            // Notificacion para los admins sobre los cumpleaños
+            // Notificacion para los cumpleaños
             for(User user : users) {
                 Notification notificationAdmin = new Notification();
                 notificationAdmin.setTitle("Cumpleaños de " + user.getFirstName());
@@ -183,15 +206,19 @@ public class NotificationServiceImpl implements INotificationService {
             }
         }
 
-        notificationRepository.saveAll(notifications);
+        System.out.println("Guardando " + notifications.size() + " notificaciones de cumpleaños...");
+        List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
+        System.out.println("Se guardaron " + savedNotifications.size() + " notificaciones de cumpleaños exitosamente");
         
         // Enviar contador de notificaciones no leídas por WebSocket
-        sendUnreadCountUpdates(notifications);
+        sendUnreadCountUpdates(savedNotifications);
     }
 
     @Override
     @Transactional
     public void createAttendanceWarningNotification(List<User> users, List<User> admins) {
+        System.out.println("Creando notificaciones de asistencia para " + users.size() + " usuarios y " + admins.size() + " admins");
+        
         List<Notification> notifications = new ArrayList<>();
 
         for(User user : users) {
@@ -224,31 +251,80 @@ public class NotificationServiceImpl implements INotificationService {
             }
         }
 
-        notificationRepository.saveAll(notifications);
+        System.out.println("Guardando " + notifications.size() + " notificaciones de asistencia...");
+        List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
+        System.out.println("Se guardaron " + savedNotifications.size() + " notificaciones de asistencia exitosamente");
         
         // Enviar contador de notificaciones no leídas por WebSocket
-        sendUnreadCountUpdates(notifications);
+        sendUnreadCountUpdates(savedNotifications);
     }
     
     // Método privado para enviar contador de notificaciones no leídas
     private void sendUnreadCountUpdates(List<Notification> notifications) {
+        System.out.println("=== INICIANDO ENVÍO DE ACTUALIZACIONES WEB SOCKET ===");
+        System.out.println("Total de notificaciones a procesar: " + notifications.size());
+        
+        // Debug: mostrar estado de sesiones antes de enviar
+        webSocketService.debugSessions();
+        
         for (Notification notification : notifications) {
             Long userId = notification.getUser().getId();
+            System.out.println("Procesando notificación para usuario: " + userId);
             
-            // Solo enviar WebSocket si el usuario está conectado
-            if (webSocketService.isUserConnected(userId.toString())) {
+            try {
                 // Obtener contador de notificaciones no leídas
                 Long unreadCount = getUnreadCount(userId);
+                System.out.println("Contador de notificaciones no leídas para usuario " + userId + ": " + unreadCount);
                 
-                // Enviar solo el número
+                // Verificar si el usuario está conectado
+                boolean isConnected = webSocketService.isUserConnected(userId.toString());
+                System.out.println("Usuario " + userId + " conectado: " + isConnected);
+                
+                // Enviar actualización por WebSocket (solo si está conectado)
+                if (isConnected) {
+                    System.out.println("Enviando actualización WebSocket a usuario " + userId);
+                    webSocketService.sendNotificationUpdateToUser(
+                        userId,
+                        "/queue/notifications",
+                        unreadCount
+                    );
+                    System.out.println("✓ Contador de notificaciones enviado a usuario " + userId + ": " + unreadCount);
+                } else {
+                    System.out.println("✗ Usuario " + userId + " no está conectado, no se envía WebSocket");
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar notificación WebSocket para usuario " + userId + ": " + e.getMessage());
+                e.printStackTrace();
+                // No fallar la creación de notificaciones por errores de WebSocket
+            }
+        }
+        System.out.println("=== FINALIZADO ENVÍO DE ACTUALIZACIONES WEB SOCKET ===");
+    }
+
+    private void sendUnreadCountUpdateForNotification(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> new RuntimeException("Notification not found"));
+        Long userId = notification.getUser().getId();
+        sendUnreadCountUpdateForUser(userId);
+    }
+
+    private void sendUnreadCountUpdateForUser(Long userId) {
+        try {
+            Long unreadCount = getUnreadCount(userId);
+            boolean isConnected = webSocketService.isUserConnected(userId.toString());
+            if (isConnected) {
                 webSocketService.sendNotificationUpdateToUser(
                     userId,
                     "/queue/notifications",
-                    unreadCount  // Solo el número, no toda la notificación
+                    unreadCount
                 );
-                
-                System.out.println("Contador de notificaciones enviado a usuario " + userId + ": " + unreadCount);
+                System.out.println("✓ Contador de notificaciones enviado a usuario " + userId + ": " + unreadCount);
+            } else {
+                System.out.println("✗ Usuario " + userId + " no está conectado, no se envía WebSocket");
             }
+        } catch (Exception e) {
+            System.err.println("❌ Error al enviar actualización WebSocket para usuario " + userId + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
