@@ -7,7 +7,6 @@ import com.personalfit.personalfit.dto.EnrollmentRequestDTO;
 import com.personalfit.personalfit.dto.EnrollmentResponseDTO;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface IActivityService {

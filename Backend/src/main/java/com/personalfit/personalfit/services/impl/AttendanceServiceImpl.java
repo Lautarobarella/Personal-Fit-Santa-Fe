@@ -2,7 +2,6 @@ package com.personalfit.personalfit.services.impl;
 
 import com.personalfit.personalfit.dto.AttendanceDTO;
 import com.personalfit.personalfit.exceptions.NoActivityWithIdException;
-import com.personalfit.personalfit.exceptions.NoUserWithIdException;
 import com.personalfit.personalfit.models.Activity;
 import com.personalfit.personalfit.models.Attendance;
 import com.personalfit.personalfit.models.User;

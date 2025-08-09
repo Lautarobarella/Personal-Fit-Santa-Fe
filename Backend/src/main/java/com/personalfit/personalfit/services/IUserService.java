@@ -7,7 +7,6 @@ import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.utils.UserStatus;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface IUserService {
     Boolean createNewUser(InCreateUserDTO newUser);

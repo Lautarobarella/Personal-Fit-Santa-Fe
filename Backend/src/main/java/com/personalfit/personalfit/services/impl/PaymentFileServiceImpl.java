@@ -3,7 +3,6 @@ package com.personalfit.personalfit.services.impl;
 import com.personalfit.personalfit.exceptions.FileSizeException;
 import com.personalfit.personalfit.exceptions.NoPaymentFileWithIdException;
 import com.personalfit.personalfit.exceptions.UnsupportedFileExtension;
-import com.personalfit.personalfit.models.Payment;
 import com.personalfit.personalfit.models.PaymentFile;
 import com.personalfit.personalfit.repository.IPaymentFileRepository;
 import com.personalfit.personalfit.services.IPaymentFileService;
