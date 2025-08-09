@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.next/
+out/
+
+# Build outputs
+dist/
+build/
+
+# Config files
+next.config.mjs
+tailwind.config.ts
+postcss.config.mjs
+jest.config.js
+jest.setup.js
+
+# Generated files
+*.d.ts
+public/
+
+# Test files that might have issues
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# Coverage
+coverage/
