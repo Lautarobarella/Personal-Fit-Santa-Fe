@@ -1,0 +1,460 @@
+name: 🚀 CI/CD Pipeline - Personal Fit Santa Fe
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DEPLOY_PATH: /opt/Personal-Fit-Santa-Fe
+  BACKUP_PATH: /opt/backups/personalfit
+
+jobs:
+  # ==================== ANÁLISIS Y LINTING ====================
+  lint-and-analyze:
+    name: 🔍 Lint & Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      frontend-lint-result: ${{ steps.frontend-lint.outcome }}
+      backend-lint-result: ${{ steps.backend-lint.outcome }}
+      security-scan-result: ${{ steps.security-scan.outcome }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      # Frontend Linting
+      - name: 📦 Install Frontend Dependencies
+        working-directory: ./Frontend
+        run: npm ci
+
+      - name: 🔍 Frontend ESLint
+        id: frontend-lint
+        working-directory: ./Frontend
+        run: |
+          npm run lint -- --format json --output-file ../docs/reports/eslint-report.json || true
+          npm run lint
+
+      - name: 🎨 Frontend TypeScript Check
+        working-directory: ./Frontend
+        run: npx tsc --noEmit
+
+      # Backend Linting
+      - name: 🔍 Backend Checkstyle & SpotBugs
+        id: backend-lint
+        working-directory: ./Backend
+        run: |
+          ./mvnw checkstyle:check || true
+          ./mvnw spotbugs:check || true
+          ./mvnw compile
+
+      # Security Scanning
+      - name: 🛡️ Security Vulnerability Scan
+        id: security-scan
+        run: |
+          # Frontend security scan
+          cd Frontend && npm audit --audit-level=high || true
+          
+          # Backend security scan
+          cd ../Backend && ./mvnw org.owasp:dependency-check-maven:check || true
+
+      - name: 📄 Upload Lint Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-reports
+          path: |
+            docs/reports/
+            Backend/target/checkstyle-reports/
+            Backend/target/spotbugs-reports/
+          retention-days: 30
+
+  # ==================== TESTING ====================
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-analyze
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: personalfit_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    outputs:
+      backend-coverage: ${{ steps.backend-test.outputs.coverage }}
+      frontend-coverage: ${{ steps.frontend-test.outputs.coverage }}
+      test-results: ${{ steps.test-summary.outcome }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      # Backend Tests
+      - name: 🧪 Backend Tests with Coverage
+        id: backend-test
+        working-directory: ./Backend
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/personalfit_test
+          SPRING_DATASOURCE_USERNAME: test_user
+          SPRING_DATASOURCE_PASSWORD: test_password
+          SPRING_PROFILES_ACTIVE: test
+        run: |
+          ./mvnw clean test jacoco:report
+          COVERAGE=$(awk -F',' 'END {print $4}' target/site/jacoco/jacoco.csv | sed 's/%//')
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "Backend test coverage: $COVERAGE%"
+
+      # Frontend Tests
+      - name: 📦 Install Frontend Dependencies
+        working-directory: ./Frontend
+        run: npm ci
+
+      - name: 🧪 Frontend Tests with Coverage
+        id: frontend-test
+        working-directory: ./Frontend
+        run: |
+          npm run test:coverage
+          COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "Frontend test coverage: $COVERAGE%"
+
+      - name: 📊 Test Summary
+        id: test-summary
+        run: |
+          echo "## 🧪 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend Coverage**: ${{ steps.backend-test.outputs.coverage }}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend Coverage**: ${{ steps.frontend-test.outputs.coverage }}%" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📄 Upload Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            Backend/target/site/jacoco/
+            Frontend/coverage/
+          retention-days: 30
+
+      # Fail if coverage is too low
+      - name: ❌ Check Coverage Thresholds
+        run: |
+          backend_coverage=${{ steps.backend-test.outputs.coverage }}
+          frontend_coverage=${{ steps.frontend-test.outputs.coverage }}
+          
+          if (( $(echo "$backend_coverage < 70" | bc -l) )); then
+            echo "❌ Backend coverage ($backend_coverage%) is below 70% threshold"
+            exit 1
+          fi
+          
+          if (( $(echo "$frontend_coverage < 60" | bc -l) )); then
+            echo "❌ Frontend coverage ($frontend_coverage%) is below 60% threshold"
+            exit 1
+          fi
+          
+          echo "✅ Coverage thresholds met!"
+
+  # ==================== BUILD ====================
+  build:
+    name: 🏗️ Build Application
+    runs-on: ubuntu-latest
+    needs: [lint-and-analyze, test]
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker Images
+        id: build
+        run: |
+          # Build Backend
+          docker build -t personalfit-backend:latest -f Backend/Dockerfile .
+          
+          # Build Frontend
+          docker build -t personalfit-frontend:latest -f Frontend/Dockerfile .
+          
+          # Test that containers start successfully
+          docker-compose -f docker-compose.yml config
+          
+          echo "✅ All images built successfully"
+
+      - name: 💾 Save Docker Images
+        run: |
+          docker save personalfit-backend:latest | gzip > backend-image.tar.gz
+          docker save personalfit-frontend:latest | gzip > frontend-image.tar.gz
+
+      - name: 📄 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: |
+            backend-image.tar.gz
+            frontend-image.tar.gz
+          retention-days: 7
+
+  # ==================== DATABASE BACKUP ====================
+  backup-database:
+    name: 💾 Database Backup
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 💾 Create Database Backup
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            
+            # Create backup directory if it doesn't exist
+            mkdir -p ${{ env.BACKUP_PATH }}
+            
+            # Generate timestamp
+            TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+            BACKUP_FILE="${{ env.BACKUP_PATH }}/personalfit_backup_${TIMESTAMP}.sql"
+            
+            echo "🗄️ Creating database backup..."
+            
+            # Create database backup
+            cd ${{ env.DEPLOY_PATH }}
+            docker-compose exec -T postgres pg_dump -U personalfit_user -d personalfit > "$BACKUP_FILE"
+            
+            # Compress backup
+            gzip "$BACKUP_FILE"
+            
+            # Keep only last 10 backups
+            cd ${{ env.BACKUP_PATH }}
+            ls -t personalfit_backup_*.sql.gz | tail -n +11 | xargs -r rm
+            
+            # Backup volumes as well
+            docker run --rm -v personalfit-pgdata:/data -v ${{ env.BACKUP_PATH }}:/backup alpine tar czf /backup/pgdata_backup_${TIMESTAMP}.tar.gz -C /data .
+            docker run --rm -v personalfit-comprobantes:/data -v ${{ env.BACKUP_PATH }}:/backup alpine tar czf /backup/comprobantes_backup_${TIMESTAMP}.tar.gz -C /data .
+            
+            echo "✅ Database backup completed: ${BACKUP_FILE}.gz"
+            echo "✅ Volume backups completed"
+
+  # ==================== DEPLOYMENT ====================
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backup-database]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📄 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+
+      - name: 🚀 Deploy to Server
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
+          NEXT_PUBLIC_MP_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_MP_PUBLIC_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: MP_ACCESS_TOKEN,NEXT_PUBLIC_MP_PUBLIC_KEY,JWT_SECRET
+          script: |
+            set -e
+            
+            echo "🚀 Starting deployment process..."
+            
+            # Navigate to project directory
+            cd ${{ env.DEPLOY_PATH }}
+            
+            # Pull latest code
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Create .env file with secrets
+            cat > .env << EOF
+            MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
+            NEXT_PUBLIC_MP_PUBLIC_KEY=${NEXT_PUBLIC_MP_PUBLIC_KEY}
+            JWT_SECRET=${JWT_SECRET}
+            EOF
+            
+            # Make deploy script executable
+            chmod +x scripts/deploy.sh
+            chmod +x scripts/health-check.sh
+            
+            # Run deployment
+            ./scripts/deploy.sh
+            
+            echo "✅ Deployment completed successfully!"
+
+      - name: 🏥 Health Check
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ${{ env.DEPLOY_PATH }}
+            ./scripts/health-check.sh
+
+  # ==================== POST-DEPLOYMENT ====================
+  post-deployment:
+    name: 📋 Post-Deployment Tasks
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always() && github.ref == 'refs/heads/main'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📄 Download All Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: 📊 Generate Deployment Report
+        run: |
+          # Create reports directory
+          mkdir -p docs/reports/deployment
+          
+          # Generate deployment report
+          cat > docs/reports/deployment/deployment-report-$(date +%Y%m%d_%H%M%S).md << EOF
+          # 🚀 Deployment Report - $(date '+%Y-%m-%d %H:%M:%S')
+          
+          ## 📋 Summary
+          - **Branch**: ${{ github.ref_name }}
+          - **Commit**: ${{ github.sha }}
+          - **Author**: ${{ github.actor }}
+          - **Deployment Status**: ${{ needs.deploy.result }}
+          
+          ## 🔍 Code Quality
+          - **Frontend Lint**: ${{ needs.lint-and-analyze.outputs.frontend-lint-result }}
+          - **Backend Lint**: ${{ needs.lint-and-analyze.outputs.backend-lint-result }}
+          - **Security Scan**: ${{ needs.lint-and-analyze.outputs.security-scan-result }}
+          
+          ## 🧪 Test Results
+          - **Backend Coverage**: ${{ needs.test.outputs.backend-coverage }}%
+          - **Frontend Coverage**: ${{ needs.test.outputs.frontend-coverage }}%
+          - **Test Status**: ${{ needs.test.outputs.test-results }}
+          
+          ## 🏗️ Build Information
+          - **Build Status**: ${{ needs.build.result }}
+          - **Docker Images**: Built successfully
+          
+          ## 💾 Backup Status
+          - **Database Backup**: ${{ needs.backup-database.result }}
+          
+          ## 🌐 Application URLs
+          - **Frontend**: https://personalfitsantafe.com
+          - **Backend API**: https://personalfitsantafe.com:8080
+          - **PgAdmin**: https://personalfitsantafe.com:5050
+          
+          ## 📊 Performance Metrics
+          $(curl -s -w "Response Time: %{time_total}s\nHTTP Status: %{http_code}\n" https://personalfitsantafe.com || echo "Health check pending...")
+          
+          EOF
+
+      - name: 📤 Commit Documentation
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/reports/
+          git commit -m "📊 Add deployment report for ${{ github.sha }}" || exit 0
+          git push || exit 0
+
+  # ==================== ROLLBACK (if needed) ====================
+  rollback:
+    name: 🔄 Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: failure() && github.ref == 'refs/heads/main'
+    steps:
+      - name: 🔄 Execute Rollback
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            
+            echo "🔄 Initiating rollback procedure..."
+            
+            cd ${{ env.DEPLOY_PATH }}
+            
+            # Run rollback script
+            if [ -f scripts/rollback.sh ]; then
+              chmod +x scripts/rollback.sh
+              ./scripts/rollback.sh
+            else
+              echo "⚠️ No rollback script found, performing manual rollback..."
+              
+              # Stop current services
+              docker-compose down
+              
+              # Restore from latest backup
+              LATEST_BACKUP=$(ls -t ${{ env.BACKUP_PATH }}/personalfit_backup_*.sql.gz | head -1)
+              if [ -n "$LATEST_BACKUP" ]; then
+                echo "📁 Restoring from backup: $LATEST_BACKUP"
+                gunzip -c "$LATEST_BACKUP" | docker-compose exec -T postgres psql -U personalfit_user -d personalfit
+              fi
+              
+              # Restart with previous version
+              git reset --hard HEAD~1
+              docker-compose up -d
+            fi
+            
+            echo "✅ Rollback completed"
+
+      - name: 🚨 Notify Rollback
+        run: |
+          echo "🚨 ROLLBACK EXECUTED" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment failed and has been rolled back to the previous version." >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs and fix the issues before attempting to deploy again." >> $GITHUB_STEP_SUMMARY

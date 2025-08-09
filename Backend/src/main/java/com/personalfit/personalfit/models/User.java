@@ -5,9 +5,6 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
 
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
-
 import com.personalfit.personalfit.utils.UserRole;
 import com.personalfit.personalfit.utils.UserStatus;
 
@@ -26,8 +23,6 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "app_user")
-@SQLDelete(sql = "UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
 public class User {
 
     @Id
