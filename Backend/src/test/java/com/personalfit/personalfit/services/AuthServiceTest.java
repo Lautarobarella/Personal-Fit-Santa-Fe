@@ -20,6 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -53,15 +54,15 @@ class AuthServiceTest {
     void setUp() {
         testUser = new User();
         testUser.setId(1L);
-        testUser.setName("Test");
-        testUser.setSurname("User");
-        testUser.setDni("12345678");
+        testUser.setFirstName("Test");
+        testUser.setLastName("User");
+        testUser.setDni(12345678);
         testUser.setEmail("test@personalfit.com");
         testUser.setPassword("encodedPassword");
         testUser.setPhone("123456789");
-        testUser.setRole(UserRole.CLIENT);
-        testUser.setStatus(UserStatus.ACTIVE);
-        testUser.setCreatedAt(LocalDateTime.now());
+        testUser.setRole(UserRole.client);
+        testUser.setStatus(UserStatus.active);
+        testUser.setJoinDate(LocalDate.now());
 
         authRequest = new AuthRequestDTO();
         authRequest.setEmail("test@personalfit.com");
@@ -76,9 +77,9 @@ class AuthServiceTest {
                 .thenReturn(mockAuth);
         when(userRepository.findByEmail("test@personalfit.com"))
                 .thenReturn(Optional.of(testUser));
-        when(jwtService.generateToken("test@personalfit.com"))
+        when(jwtService.generateToken(testUser))
                 .thenReturn("access-token");
-        when(jwtService.generateRefreshToken("test@personalfit.com"))
+        when(jwtService.generateRefreshToken(testUser))
                 .thenReturn("refresh-token");
 
         // Act
@@ -86,17 +87,17 @@ class AuthServiceTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals("access-token", response.getToken());
+        assertEquals("access-token", response.getAccessToken());
         assertEquals("refresh-token", response.getRefreshToken());
         assertNotNull(response.getUser());
         assertEquals("test@personalfit.com", response.getUser().getEmail());
-        assertEquals("Test", response.getUser().getName());
-        assertEquals(UserRole.CLIENT, response.getUser().getRole());
+        assertEquals("Test", response.getUser().getFirstName());
+        assertEquals(UserRole.client, response.getUser().getRole());
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail("test@personalfit.com");
-        verify(jwtService).generateToken("test@personalfit.com");
-        verify(jwtService).generateRefreshToken("test@personalfit.com");
+        verify(jwtService).generateToken(testUser);
+        verify(jwtService).generateRefreshToken(testUser);
     }
 
     @Test
@@ -112,7 +113,7 @@ class AuthServiceTest {
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository, never()).findByEmail(anyString());
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -131,7 +132,7 @@ class AuthServiceTest {
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail("test@personalfit.com");
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -141,26 +142,26 @@ class AuthServiceTest {
         String userEmail = "test@personalfit.com";
         
         when(jwtService.extractUsername(refreshToken)).thenReturn(userEmail);
-        when(jwtService.isTokenValid(refreshToken, userEmail)).thenReturn(true);
+        when(jwtService.isTokenValid(refreshToken, testUser)).thenReturn(true);
         when(userRepository.findByEmail(userEmail)).thenReturn(Optional.of(testUser));
-        when(jwtService.generateToken(userEmail)).thenReturn("new-access-token");
-        when(jwtService.generateRefreshToken(userEmail)).thenReturn("new-refresh-token");
+        when(jwtService.generateToken(testUser)).thenReturn("new-access-token");
+        when(jwtService.generateRefreshToken(testUser)).thenReturn("new-refresh-token");
 
         // Act
         AuthResponseDTO response = authService.refreshToken(refreshToken);
 
         // Assert
         assertNotNull(response);
-        assertEquals("new-access-token", response.getToken());
+        assertEquals("new-access-token", response.getAccessToken());
         assertEquals("new-refresh-token", response.getRefreshToken());
         assertNotNull(response.getUser());
         assertEquals(userEmail, response.getUser().getEmail());
 
         verify(jwtService).extractUsername(refreshToken);
-        verify(jwtService).isTokenValid(refreshToken, userEmail);
+        verify(jwtService).isTokenValid(refreshToken, testUser);
         verify(userRepository).findByEmail(userEmail);
-        verify(jwtService).generateToken(userEmail);
-        verify(jwtService).generateRefreshToken(userEmail);
+        verify(jwtService).generateToken(testUser);
+        verify(jwtService).generateRefreshToken(testUser);
     }
 
     @Test
@@ -170,7 +171,7 @@ class AuthServiceTest {
         String userEmail = "test@personalfit.com";
         
         when(jwtService.extractUsername(invalidRefreshToken)).thenReturn(userEmail);
-        when(jwtService.isTokenValid(invalidRefreshToken, userEmail)).thenReturn(false);
+        when(jwtService.isTokenValid(invalidRefreshToken, testUser)).thenReturn(false);
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
@@ -178,9 +179,9 @@ class AuthServiceTest {
         });
 
         verify(jwtService).extractUsername(invalidRefreshToken);
-        verify(jwtService).isTokenValid(invalidRefreshToken, userEmail);
+        verify(jwtService).isTokenValid(invalidRefreshToken, testUser);
         verify(userRepository, never()).findByEmail(anyString());
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -190,7 +191,7 @@ class AuthServiceTest {
         String userEmail = "nonexistent@personalfit.com";
         
         when(jwtService.extractUsername(refreshToken)).thenReturn(userEmail);
-        when(jwtService.isTokenValid(refreshToken, userEmail)).thenReturn(true);
+        when(jwtService.isTokenValid(refreshToken, testUser)).thenReturn(true);
         when(userRepository.findByEmail(userEmail)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -199,15 +200,15 @@ class AuthServiceTest {
         });
 
         verify(jwtService).extractUsername(refreshToken);
-        verify(jwtService).isTokenValid(refreshToken, userEmail);
+        verify(jwtService).isTokenValid(refreshToken, testUser);
         verify(userRepository).findByEmail(userEmail);
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
     void shouldHandleInactiveUserAuthentication() {
         // Arrange
-        testUser.setStatus(UserStatus.INACTIVE);
+        testUser.setStatus(UserStatus.inactive);
         Authentication mockAuth = mock(Authentication.class);
         
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
@@ -222,7 +223,7 @@ class AuthServiceTest {
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail("test@personalfit.com");
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -234,7 +235,7 @@ class AuthServiceTest {
 
         verify(authenticationManager, never()).authenticate(any());
         verify(userRepository, never()).findByEmail(anyString());
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -249,7 +250,7 @@ class AuthServiceTest {
 
         verify(authenticationManager, never()).authenticate(any());
         verify(userRepository, never()).findByEmail(anyString());
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 
     @Test
@@ -264,6 +265,6 @@ class AuthServiceTest {
 
         verify(authenticationManager, never()).authenticate(any());
         verify(userRepository, never()).findByEmail(anyString());
-        verify(jwtService, never()).generateToken(anyString());
+        verify(jwtService, never()).generateToken(any(User.class));
     }
 }

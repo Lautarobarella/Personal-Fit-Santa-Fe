@@ -21,9 +21,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -60,31 +62,31 @@ class UserControllerIntegrationTest {
         
         // Create admin user for authenticated requests
         adminUser = new User();
-        adminUser.setName("Admin");
-        adminUser.setSurname("User");
-        adminUser.setDni("11111111");
+        adminUser.setFirstName("Admin");
+        adminUser.setLastName("User");
+        adminUser.setDni(11111111);
         adminUser.setEmail("admin@personalfit.com");
         adminUser.setPassword(passwordEncoder.encode("admin123"));
         adminUser.setPhone("111111111");
-        adminUser.setRole(UserRole.ADMIN);
-        adminUser.setStatus(UserStatus.ACTIVE);
-        adminUser.setCreatedAt(LocalDateTime.now());
+        adminUser.setRole(UserRole.admin);
+        adminUser.setStatus(UserStatus.active);
+        adminUser.setJoinDate(LocalDate.now());
         adminUser = userRepository.save(adminUser);
         
         // Generate admin token
-        adminToken = jwtService.generateToken(adminUser.getEmail());
+        adminToken = jwtService.generateToken(adminUser);
     }
 
     @Test
     void shouldCreateNewUserSuccessfully() throws Exception {
         InCreateUserDTO newUser = new InCreateUserDTO();
-        newUser.setName("John");
-        newUser.setSurname("Doe");
+        newUser.setFirstName("John");
+        newUser.setLastName("Doe");
         newUser.setDni("12345678");
         newUser.setEmail("john.doe@test.com");
         newUser.setPassword("password123");
         newUser.setPhone("123456789");
-        newUser.setRole(UserRole.CLIENT);
+        newUser.setRole(UserRole.client);
 
         mockMvc.perform(post("/api/users/new")
                 .header("Authorization", "Bearer " + adminToken)
@@ -102,26 +104,26 @@ class UserControllerIntegrationTest {
     void shouldRejectUserWithDuplicateEmail() throws Exception {
         // Create first user
         User existingUser = new User();
-        existingUser.setName("Existing");
-        existingUser.setSurname("User");
-        existingUser.setDni("99999999");
+        existingUser.setFirstName("Existing");
+        existingUser.setLastName("User");
+        existingUser.setDni(99999999);
         existingUser.setEmail("existing@test.com");
         existingUser.setPassword(passwordEncoder.encode("password123"));
         existingUser.setPhone("999999999");
-        existingUser.setRole(UserRole.CLIENT);
-        existingUser.setStatus(UserStatus.ACTIVE);
-        existingUser.setCreatedAt(LocalDateTime.now());
+        existingUser.setRole(UserRole.client);
+        existingUser.setStatus(UserStatus.active);
+        existingUser.setJoinDate(LocalDate.now());
         userRepository.save(existingUser);
 
         // Try to create user with same email
         InCreateUserDTO duplicateUser = new InCreateUserDTO();
-        duplicateUser.setName("Duplicate");
-        duplicateUser.setSurname("User");
+        duplicateUser.setFirstName("Duplicate");
+        duplicateUser.setLastName("User");
         duplicateUser.setDni("88888888");
         duplicateUser.setEmail("existing@test.com"); // Same email
         duplicateUser.setPassword("password123");
         duplicateUser.setPhone("888888888");
-        duplicateUser.setRole(UserRole.CLIENT);
+        duplicateUser.setRole(UserRole.client);
 
         mockMvc.perform(post("/api/users/new")
                 .header("Authorization", "Bearer " + adminToken)
@@ -134,26 +136,26 @@ class UserControllerIntegrationTest {
     void shouldRejectUserWithDuplicateDni() throws Exception {
         // Create first user
         User existingUser = new User();
-        existingUser.setName("Existing");
-        existingUser.setSurname("User");
-        existingUser.setDni("77777777");
+        existingUser.setFirstName("Existing");
+        existingUser.setLastName("User");
+        existingUser.setDni(77777777);
         existingUser.setEmail("existing@test.com");
         existingUser.setPassword(passwordEncoder.encode("password123"));
         existingUser.setPhone("777777777");
-        existingUser.setRole(UserRole.CLIENT);
-        existingUser.setStatus(UserStatus.ACTIVE);
-        existingUser.setCreatedAt(LocalDateTime.now());
+        existingUser.setRole(UserRole.client);
+        existingUser.setStatus(UserStatus.active);
+        existingUser.setJoinDate(LocalDate.now());
         userRepository.save(existingUser);
 
         // Try to create user with same DNI
         InCreateUserDTO duplicateUser = new InCreateUserDTO();
-        duplicateUser.setName("Duplicate");
-        duplicateUser.setSurname("User");
+        duplicateUser.setFirstName("Duplicate");
+        duplicateUser.setLastName("User");
         duplicateUser.setDni("77777777"); // Same DNI
         duplicateUser.setEmail("different@test.com");
         duplicateUser.setPassword("password123");
         duplicateUser.setPhone("666666666");
-        duplicateUser.setRole(UserRole.CLIENT);
+        duplicateUser.setRole(UserRole.client);
 
         mockMvc.perform(post("/api/users/new")
                 .header("Authorization", "Bearer " + adminToken)
@@ -177,13 +179,13 @@ class UserControllerIntegrationTest {
     @Test
     void shouldValidateEmailFormat() throws Exception {
         InCreateUserDTO invalidUser = new InCreateUserDTO();
-        invalidUser.setName("John");
-        invalidUser.setSurname("Doe");
+        invalidUser.setFirstName("John");
+        invalidUser.setLastName("Doe");
         invalidUser.setDni("12345678");
         invalidUser.setEmail("invalid-email-format");
         invalidUser.setPassword("password123");
         invalidUser.setPhone("123456789");
-        invalidUser.setRole(UserRole.CLIENT);
+        invalidUser.setRole(UserRole.client);
 
         mockMvc.perform(post("/api/users/new")
                 .header("Authorization", "Bearer " + adminToken)
@@ -213,7 +215,7 @@ class UserControllerIntegrationTest {
         testUser = userRepository.save(testUser);
 
         InFindByDniDTO findRequest = new InFindByDniDTO();
-        findRequest.setDni("33333333");
+        findRequest.setDni(33333333);
 
         mockMvc.perform(post("/api/users/find")
                 .header("Authorization", "Bearer " + adminToken)
@@ -227,7 +229,7 @@ class UserControllerIntegrationTest {
     @Test
     void shouldReturnNotFoundForNonExistentDni() throws Exception {
         InFindByDniDTO findRequest = new InFindByDniDTO();
-        findRequest.setDni("99999999");
+        findRequest.setDni(99999999);
 
         mockMvc.perform(post("/api/users/find")
                 .header("Authorization", "Bearer " + adminToken)
@@ -261,25 +263,25 @@ class UserControllerIntegrationTest {
         testUser = userRepository.save(testUser);
 
         InCreateUserDTO updateRequest = new InCreateUserDTO();
-        updateRequest.setName("Updated");
-        updateRequest.setSurname("Name");
+        updateRequest.setFirstName("Updated");
+        updateRequest.setLastName("Name");
         updateRequest.setDni("55555555");
         updateRequest.setEmail("updated@user.com");
         updateRequest.setPassword("newpassword123");
         updateRequest.setPhone("555555555");
-        updateRequest.setRole(UserRole.CLIENT);
+        updateRequest.setRole(UserRole.client);
 
         mockMvc.perform(put("/api/users/" + testUser.getId())
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpected(jsonPath("$.message", containsString("actualizado")));
+                .andExpect(jsonPath("$.message", containsString("actualizado")));
 
         // Verify update in database
         User updatedUser = userRepository.findById(testUser.getId()).orElse(null);
         assertNotNull(updatedUser);
-        assertEquals("Updated", updatedUser.getName());
+        assertEquals("Updated", updatedUser.getFirstName());
         assertEquals("updated@user.com", updatedUser.getEmail());
     }
 
@@ -291,7 +293,7 @@ class UserControllerIntegrationTest {
         mockMvc.perform(delete("/api/users/" + testUser.getId())
                 .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpected(jsonPath("$.message", containsString("eliminado")));
+                .andExpect(jsonPath("$.message", containsString("eliminado")));
 
         // Verify deletion in database
         assertFalse(userRepository.findById(testUser.getId()).isPresent());
@@ -300,13 +302,13 @@ class UserControllerIntegrationTest {
     @Test
     void shouldRequireAuthenticationForProtectedEndpoints() throws Exception {
         InCreateUserDTO newUser = new InCreateUserDTO();
-        newUser.setName("John");
-        newUser.setSurname("Doe");
+        newUser.setFirstName("John");
+        newUser.setLastName("Doe");
         newUser.setDni("12345678");
         newUser.setEmail("john.doe@test.com");
         newUser.setPassword("password123");
         newUser.setPhone("123456789");
-        newUser.setRole(UserRole.CLIENT);
+        newUser.setRole(UserRole.client);
 
         mockMvc.perform(post("/api/users/new")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -323,15 +325,15 @@ class UserControllerIntegrationTest {
 
     private User createTestUser(String name, String surname, String dni, String email) {
         User user = new User();
-        user.setName(name);
-        user.setSurname(surname);
-        user.setDni(dni);
+        user.setFirstName(name);
+        user.setLastName(surname);
+        user.setDni(Integer.parseInt(dni));
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode("password123"));
         user.setPhone("123456789");
-        user.setRole(UserRole.CLIENT);
-        user.setStatus(UserStatus.ACTIVE);
-        user.setCreatedAt(LocalDateTime.now());
+        user.setRole(UserRole.client);
+        user.setStatus(UserStatus.active);
+        user.setJoinDate(LocalDate.now());
         return user;
     }
 }

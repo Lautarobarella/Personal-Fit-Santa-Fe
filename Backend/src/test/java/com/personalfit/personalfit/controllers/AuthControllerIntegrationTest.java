@@ -190,7 +190,7 @@ class AuthControllerIntegrationTest {
         
         mockMvc.perform(get("/api/auth/me")
                 .header("Authorization", "Bearer " + expiredToken))
-                .andExpected(status().isUnauthorized());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

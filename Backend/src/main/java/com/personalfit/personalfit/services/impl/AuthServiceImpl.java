@@ -38,8 +38,8 @@ public class AuthServiceImpl implements AuthService {
             User user = userRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            String accessToken = jwtService.generateToken(userDetails);
-            String refreshToken = jwtService.generateRefreshToken(userDetails);
+            String accessToken = jwtService.generateToken(user);
+            String refreshToken = jwtService.generateRefreshToken(user);
 
             UserTypeDTO userInfo = new UserTypeDTO(user);
 
@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+            User userDetails = (User) org.springframework.security.core.userdetails.User.builder()
                     .username(user.getEmail())
                     .password(user.getPassword())
                     .authorities("ROLE_" + user.getRole().name())
