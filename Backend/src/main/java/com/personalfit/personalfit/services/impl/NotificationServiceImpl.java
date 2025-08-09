@@ -6,6 +6,7 @@ import com.personalfit.personalfit.models.User;
 import com.personalfit.personalfit.repository.INotificationRepository;
 import com.personalfit.personalfit.services.INotificationService;
 import com.personalfit.personalfit.services.IUserService;
+import com.personalfit.personalfit.services.impl.WebSocketSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,9 @@ public class NotificationServiceImpl implements INotificationService {
 
     @Autowired
     private INotificationRepository notificationRepository;
+    
+    @Autowired
+    private WebSocketSessionService webSocketService;
 
     @Override
     public List<NotificationDTO> getAllByUserId(Long id) {
@@ -139,6 +143,9 @@ public class NotificationServiceImpl implements INotificationService {
         }
 
         notificationRepository.saveAll(notifications);
+        
+        // Enviar contador de notificaciones no leídas por WebSocket
+        sendUnreadCountUpdates(notifications);
     }
 
     @Override
@@ -177,6 +184,9 @@ public class NotificationServiceImpl implements INotificationService {
         }
 
         notificationRepository.saveAll(notifications);
+        
+        // Enviar contador de notificaciones no leídas por WebSocket
+        sendUnreadCountUpdates(notifications);
     }
 
     @Override
@@ -215,5 +225,30 @@ public class NotificationServiceImpl implements INotificationService {
         }
 
         notificationRepository.saveAll(notifications);
+        
+        // Enviar contador de notificaciones no leídas por WebSocket
+        sendUnreadCountUpdates(notifications);
+    }
+    
+    // Método privado para enviar contador de notificaciones no leídas
+    private void sendUnreadCountUpdates(List<Notification> notifications) {
+        for (Notification notification : notifications) {
+            Long userId = notification.getUser().getId();
+            
+            // Solo enviar WebSocket si el usuario está conectado
+            if (webSocketService.isUserConnected(userId.toString())) {
+                // Obtener contador de notificaciones no leídas
+                Long unreadCount = getUnreadCount(userId);
+                
+                // Enviar solo el número
+                webSocketService.sendNotificationUpdateToUser(
+                    userId,
+                    "/queue/notifications",
+                    unreadCount  // Solo el número, no toda la notificación
+                );
+                
+                System.out.println("Contador de notificaciones enviado a usuario " + userId + ": " + unreadCount);
+            }
+        }
     }
 }

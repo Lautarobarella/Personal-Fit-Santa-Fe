@@ -57,6 +57,9 @@ public class UserServiceImpl implements IUserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private WebSocketSessionService webSocketService;
+
     public Boolean createNewUser(InCreateUserDTO newUser) {
 
         Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
