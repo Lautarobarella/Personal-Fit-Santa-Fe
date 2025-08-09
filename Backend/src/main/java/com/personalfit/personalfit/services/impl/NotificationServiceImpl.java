@@ -1,0 +1,219 @@
+package com.personalfit.personalfit.services.impl;
+
+import com.personalfit.personalfit.dto.NotificationDTO;
+import com.personalfit.personalfit.models.Notification;
+import com.personalfit.personalfit.models.User;
+import com.personalfit.personalfit.repository.INotificationRepository;
+import com.personalfit.personalfit.services.INotificationService;
+import com.personalfit.personalfit.services.IUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class NotificationServiceImpl implements INotificationService {
+
+    @Autowired
+    private INotificationRepository notificationRepository;
+
+    @Override
+    public List<NotificationDTO> getAllByUserId(Long id) {
+        List<Notification> notifications = notificationRepository.findByUserId(id);
+        return convertToDTOList(notifications);
+    }
+
+    @Override
+    public List<NotificationDTO> getUnreadByUserId(Long id) {
+        List<Notification> notifications = notificationRepository.findByUserIdAndReadOrderByDateDesc(id, false);
+        return convertToDTOList(notifications);
+    }
+
+    @Override
+    public List<NotificationDTO> getReadByUserId(Long id) {
+        List<Notification> notifications = notificationRepository.findByUserIdAndReadOrderByDateDesc(id, true);
+        return convertToDTOList(notifications);
+    }
+
+    @Override
+    public List<NotificationDTO> getArchivedByUserId(Long id) {
+        List<Notification> notifications = notificationRepository.findByUserIdAndArchivedOrderByDateDesc(id, true);
+        return convertToDTOList(notifications);
+    }
+
+    @Override
+    @Transactional
+    public void markAsRead(Long notificationId) {
+        notificationRepository.updateReadStatus(notificationId, true);
+    }
+
+    @Override
+    @Transactional
+    public void markAsUnread(Long notificationId) {
+        notificationRepository.updateReadStatus(notificationId, false);
+    }
+
+    @Override
+    @Transactional
+    public void archiveNotification(Long notificationId) {
+        notificationRepository.updateArchivedStatus(notificationId, true);
+        notificationRepository.updateReadStatus(notificationId, true);
+    }
+
+    @Override
+    @Transactional
+    public void unarchiveNotification(Long notificationId) {
+        notificationRepository.updateArchivedStatus(notificationId, false);
+    }
+
+    @Override
+    @Transactional
+    public void deleteNotification(Long notificationId) {
+        notificationRepository.deleteById(notificationId);
+    }
+
+    @Override
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsReadByUserId(userId);
+    }
+
+    @Override
+    public Long getUnreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndRead(userId, false);
+    }
+
+    private List<NotificationDTO> convertToDTOList(List<Notification> notifications) {
+        return notifications.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    private NotificationDTO convertToDTO(Notification notification) {
+        return NotificationDTO.builder()
+                .id(notification.getId())
+                .title(notification.getTitle())
+                .message(notification.getMessage())
+                .date(notification.getDate())
+                .read(notification.getRead())
+                .archived(notification.getArchived())
+                .infoType(notification.getInfoType())
+                .notificationCategory(notification.getNotificationCategory())
+                .createdAt(notification.getDate())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void createPaymentExpiredNotification(List<User> users, List<User> admins){
+        List<Notification> notifications = new ArrayList<>();
+
+        for(User user : users) {
+            // Notificacion para el usuario con pago vencido
+            Notification notification = new Notification();
+            notification.setTitle("Pago vencido");
+            notification.setMessage("Tu pago está vencido. Por favor, realiza el pago lo antes posible.");
+            notification.setUser(user);
+            notification.setDate(LocalDateTime.now());
+            notification.setInfoType("warning");
+            notification.setNotificationCategory("payment");
+            notification.setRead(false);
+            notification.setArchived(false);
+            notifications.add(notification);
+            
+            // Notificacion para los admins
+            for (User admin : admins) {
+                Notification notificationAdmin = new Notification();
+                notificationAdmin.setTitle("Pago vencido");
+                notificationAdmin.setMessage("El usuario " + user.getFullName() + " tiene un pago vencido.");
+                notificationAdmin.setUser(admin);
+                notificationAdmin.setDate(LocalDateTime.now());
+                notificationAdmin.setInfoType("warning");
+                notificationAdmin.setNotificationCategory("payment");
+                notificationAdmin.setRead(false);
+                notificationAdmin.setArchived(false);
+                notifications.add(notificationAdmin);
+            }
+        }
+
+        notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    @Transactional
+    public void createBirthdayNotification(List<User> users, List<User> admins) {
+        List<Notification> notifications = new ArrayList<>();
+
+        for(User user : users) {
+            // Notificacion para el usuario que cumple años
+            Notification notification = new Notification();
+            notification.setTitle("¡Feliz cumpleaños!");
+            notification.setMessage("¡Feliz cumpleaños! Que tengas un día maravilloso.");
+            notification.setUser(user);
+            notification.setDate(LocalDateTime.now());
+            notification.setInfoType("success");
+            notification.setNotificationCategory("client");
+            notification.setRead(false);
+            notification.setArchived(false);
+            notifications.add(notification);
+        }
+
+        for(User admin : admins) {
+            // Notificacion para los admins sobre los cumpleaños
+            for(User user : users) {
+                Notification notificationAdmin = new Notification();
+                notificationAdmin.setTitle("Cumpleaños de " + user.getFirstName());
+                notificationAdmin.setMessage("Hoy es el cumpleaños de " + user.getFullName() + "! Deséale un feliz cumpleaños!");
+                notificationAdmin.setUser(admin);
+                notificationAdmin.setDate(LocalDateTime.now());
+                notificationAdmin.setInfoType("info");
+                notificationAdmin.setNotificationCategory("client");
+                notificationAdmin.setRead(false);
+                notificationAdmin.setArchived(false);
+                notifications.add(notificationAdmin);
+            }
+        }
+
+        notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    @Transactional
+    public void createAttendanceWarningNotification(List<User> users, List<User> admins) {
+        List<Notification> notifications = new ArrayList<>();
+
+        for(User user : users) {
+            // Notificacion para el usuario con inasistencia
+            Notification notification = new Notification();
+            notification.setTitle("Recordatorio de asistencia");
+            notification.setMessage("Hace varios días que no asistes al gimnasio. ¡Te extrañamos! Ven a entrenar.");
+            notification.setUser(user);
+            notification.setDate(LocalDateTime.now());
+            notification.setInfoType("info");
+            notification.setNotificationCategory("activity");
+            notification.setRead(false);
+            notification.setArchived(false);
+            notifications.add(notification);
+        }
+
+        for(User admin : admins) {
+            // Notificacion para los admins sobre inasistencias
+            for(User user : users) {
+                Notification notificationAdmin = new Notification();
+                notificationAdmin.setTitle("Inasistencia de " + user.getFirstName());
+                notificationAdmin.setMessage(user.getFullName() + " hace varios días que no asiste al gimnasio. Contactalo para saber si necesita ayuda.");
+                notificationAdmin.setUser(admin);
+                notificationAdmin.setDate(LocalDateTime.now());
+                notificationAdmin.setInfoType("warning");
+                notificationAdmin.setNotificationCategory("activity");
+                notificationAdmin.setRead(false);
+                notificationAdmin.setArchived(false);
+                notifications.add(notificationAdmin);
+            }
+        }
+
+        notificationRepository.saveAll(notifications);
+    }
+}
