@@ -1,3 +1,8 @@
+export enum UserStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE"
+}
+
 export enum UserRole {
   ADMIN = "ADMIN",
   TRAINER = "TRAINER",
@@ -55,7 +60,7 @@ export interface UserDetailInfo {
   birthDate: Date | string | null
   address: string
   role: UserRole
-  status: "ACTIVE" | "INACTIVE"
+  status: UserStatus
   joinDate: Date | string | null
   lastActivity: Date | string | null
   password: string

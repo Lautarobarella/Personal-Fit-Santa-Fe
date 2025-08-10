@@ -8,23 +8,24 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClients } from "@/hooks/use-client"
+import { ActivityStatus, AttendanceStatus, PaymentStatus, UserRole, UserStatus } from "@/lib/types"
 import {
-    Activity,
-    AlertTriangle,
-    CakeIcon,
-    Calendar,
-    Clock,
-    CreditCard,
-    Dice3,
-    DollarSign,
-    Edit,
-    IdCard,
-    Mail,
-    MapPin,
-    Phone,
-    TrendingUp,
-    User,
-    UserX
+  Activity,
+  AlertTriangle,
+  CakeIcon,
+  Calendar,
+  Clock,
+  CreditCard,
+  Dice3,
+  DollarSign,
+  Edit,
+  IdCard,
+  Mail,
+  MapPin,
+  Phone,
+  TrendingUp,
+  User,
+  UserX
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
@@ -206,9 +207,9 @@ export function ClientDetailsDialog({
   // Calculate statistics
   if (!selectedClient) return null
 
-  const presentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === "present" || a.clientStatus === "late")
-  const absentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === "absent")
-  const enrolledActivities = selectedClient.listActivity.filter((a) => a.clientStatus === "pending")
+  const presentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE)
+  const absentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.ABSENT)
+  const enrolledActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.PENDING)
 
   const attendanceRate =
     presentActivities.length > 0
@@ -217,14 +218,15 @@ export function ClientDetailsDialog({
       )
       : 0
 
-  const completedPayments = selectedClient.listPayments.filter((p) => p.status === "paid")
-  const pendingPayments = selectedClient.listPayments.filter((p) => p.status === "pending")
+  const completedPayments = selectedClient.listPayments.filter((p) => p.status === PaymentStatus.PAID)
+  const pendingPayments = selectedClient.listPayments.filter((p) => p.status === PaymentStatus.PENDING)
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl h-[85vh] overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden">
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -238,8 +240,8 @@ export function ClientDetailsDialog({
                 <DialogTitle className="text-xl flex">{selectedClient.firstName + " " + selectedClient.lastName}</DialogTitle>
                 <div className="flex items-center justify-between gap-2">
                   <DialogDescription>{selectedClient.email}</DialogDescription>
-                  <Badge variant={selectedClient.status === "active" ? "default" : "secondary"}>
-                    {selectedClient.status === "active" ? "Activo" : "Inactivo"}
+                  <Badge variant={selectedClient.status === UserStatus.ACTIVE ? "default" : "secondary"}>
+                    {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
                   </Badge>
                 </div>
 
@@ -265,7 +267,7 @@ export function ClientDetailsDialog({
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 overflow-hidden">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="activities">Actividades</TabsTrigger>
@@ -274,7 +276,7 @@ export function ClientDetailsDialog({
           </TabsList>
 
           {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-4 mt-4">
+          <TabsContent value="profile" className="h-full overflow-y-auto space-y-4 mt-4">
 
             {/* Personal Information */}
             <Card>
@@ -325,7 +327,11 @@ export function ClientDetailsDialog({
                       <span className="text-muted-foreground text-sm">Rol:</span>
                       <p className="text-sm mt-1 flex items-start gap-1">
                         <Dice3 className="h-4 w-4 text-muted-foreground" />
-                        <span>{selectedClient.role}</span>
+                        <span>
+                          {selectedClient.role === UserRole.CLIENT && "Cliente"}
+                          {selectedClient.role === UserRole.TRAINER && "Entrenador"}
+                          {selectedClient.role === UserRole.ADMIN && "Administrador"}
+                        </span>
                       </p>
                     </div>
                   </>
@@ -336,7 +342,7 @@ export function ClientDetailsDialog({
           </TabsContent>
 
           {/* Activities Tab */}
-          <TabsContent value="activities" className="space-y-4 mt-4">
+          <TabsContent value="activities" className="h-full overflow-y-auto space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Historial de Actividades</h3>
               <div className="flex gap-2">
@@ -388,7 +394,7 @@ export function ClientDetailsDialog({
                       </div>
                     </div>
                     {/* Mostrar información adicional según el estado */}
-                    {activity.activityStatus === "completed" && (
+                    {activity.activityStatus === ActivityStatus.COMPLETED && (
                       <div className="mt-2 pt-2 border-t border-muted">
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-muted-foreground">Asistencia:</span>
@@ -399,7 +405,7 @@ export function ClientDetailsDialog({
                       </div>
                     )}
                     
-                    {activity.activityStatus === "active" && activity.clientStatus === "pending" && (
+                    {activity.activityStatus === ActivityStatus.ACTIVE && activity.clientStatus === AttendanceStatus.PENDING && (
                       <div className="mt-2 pt-2 border-t border-muted">
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-muted-foreground">Estado:</span>
@@ -414,7 +420,7 @@ export function ClientDetailsDialog({
           </TabsContent>
 
           {/* Payments Tab */}
-          <TabsContent value="payments" className="space-y-4 mt-4">
+          <TabsContent value="payments" className="h-full overflow-y-auto space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Historial de Pagos</h3>
               {/* <div className="flex gap-2">
@@ -459,7 +465,7 @@ export function ClientDetailsDialog({
           </TabsContent>
 
           {/* Statistics Tab */}
-          <TabsContent value="stats" className="space-y-4 mt-4">
+          <TabsContent value="stats" className="h-full overflow-y-auto space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
               {/* Activity Stats */}
               <Card>
@@ -543,8 +549,8 @@ export function ClientDetailsDialog({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Estado:</span>
-                    <Badge variant={selectedClient.status === "active" ? "success" : "secondary"} className="ml-2">
-                      {selectedClient.status === "active" ? "Activo" : "Inactivo"}
+                    <Badge variant={selectedClient.status === UserStatus.ACTIVE ? "success" : "secondary"} className="ml-2">
+                      {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
                     </Badge>
                   </div>
                 </div>
@@ -565,6 +571,7 @@ export function ClientDetailsDialog({
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   )

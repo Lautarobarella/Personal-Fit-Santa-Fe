@@ -49,7 +49,8 @@ public class UserService {
         Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
         if (user.isPresent())
-            throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(), "Api/User/createNewUser");
+            throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(),
+                    "Api/User/createNewUser");
 
         User userToCreate = new User();
         userToCreate.setDni(Integer.parseInt(newUser.getDni()));
@@ -64,7 +65,10 @@ public class UserService {
         userToCreate.setAddress(newUser.getAddress());
         userToCreate.setBirthDate(newUser.getBirthDate());
         userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword())); // Encriptar contraseña
-        userToCreate.setStatus(UserStatus.INACTIVE);
+        if (userToCreate.getRole().equals(UserRole.CLIENT))
+            userToCreate.setStatus(UserStatus.INACTIVE);
+        else
+            userToCreate.setStatus(UserStatus.ACTIVE);
         userRepository.save(userToCreate);
 
         return true;
@@ -165,7 +169,6 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    
     public void updateUserStatus(User user, UserStatus status) {
         if (user == null)
             throw new EntityNotFoundException("Usuario no puede ser null", "Api/User/updateUserStatus");
@@ -174,34 +177,34 @@ public class UserService {
         userRepository.save(user);
     }
 
-    
     public List<User> getAllAdmins() {
         return userRepository.findAllByRole(UserRole.ADMIN);
     }
 
-    
     public List<User> getAll(List<Long> id) {
         return userRepository.findByIdIn(id);
     }
 
-    
     public void updateLastAttendanceByDni(Integer dni) {
         Optional<User> user = userRepository.findByDni(dni);
-        if (user.isEmpty()) throw new EntityNotFoundException("Usuario con DNI: " + dni + " no encontrado", "Api/User/updateLastAttendanceByDni");
+        if (user.isEmpty())
+            throw new EntityNotFoundException("Usuario con DNI: " + dni + " no encontrado",
+                    "Api/User/updateLastAttendanceByDni");
 
         user.get().setLastAttendance(LocalDateTime.now());
         userRepository.save(user.get());
     }
 
     // batch function to save multiple users
-    
+
     public Boolean saveAll(List<CreateUserDTO> newUsers) {
 
         for (CreateUserDTO newUser : newUsers) {
             Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
             if (user.isPresent())
-                throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(), "Api/User/saveAll");
+                throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(),
+                        "Api/User/saveAll");
 
             User userToCreate = new User();
             userToCreate.setDni(Integer.parseInt(newUser.getDni()));
@@ -228,12 +231,14 @@ public class UserService {
         List<User> users = userRepository.findAllByStatus(UserStatus.ACTIVE);
         List<User> toUpdate = new ArrayList<>();
         users.stream().forEach(u -> {
-            if(u.getRole().equals(UserRole.TRAINER) || u.getRole().equals(UserRole.ADMIN)) return;
+            if (u.getRole().equals(UserRole.TRAINER) || u.getRole().equals(UserRole.ADMIN))
+                return;
 
-            Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u, PaymentStatus.PAID);
+            Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u,
+                    PaymentStatus.PAID);
 
-            if( payment.isEmpty() ||
-                    payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())){
+            if (payment.isEmpty() ||
+                    payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())) {
                 u.setStatus(UserStatus.INACTIVE);
                 toUpdate.add(u);
                 log.info("User {} has been set to inactive due to expired payment.", u.getFullName());
@@ -252,7 +257,8 @@ public class UserService {
         List<User> users = userRepository.findAllByBirthDate(LocalDate.now());
         log.info("Found {} users with birthday today.", users.size());
 
-        //TODO logica para enviar notificaciones a los usuarios y al admin del cumpleañero
+        // TODO logica para enviar notificaciones a los usuarios y al admin del
+        // cumpleañero
         notificationService.createBirthdayNotification(users, getAllAdmins());
     }
 
@@ -260,8 +266,11 @@ public class UserService {
     public void userAttendanceCheck() {
         log.info("Daily user attendance checking started at {}", LocalDateTime.now());
         LocalDateTime dateLimit = LocalDateTime.now().minusDays(7); // 1 semana de inasistencias
-//        List<User> users = userRepository.findActiveUsersWithLastAttendanceBefore(UserStatus.active, dateLimit); // Este le envia todos los dias
-        List<User> users = userRepository.findActiveUsersWithLastAttendanceOn(UserStatus.ACTIVE, dateLimit.toLocalDate()); // Este le envia solo a los que cumplen 4 dias hoy (es decir, 1 vez)
+        // List<User> users =
+        // userRepository.findActiveUsersWithLastAttendanceBefore(UserStatus.active,
+        // dateLimit); // Este le envia todos los dias
+        List<User> users = userRepository.findActiveUsersWithLastAttendanceOn(UserStatus.ACTIVE,
+                dateLimit.toLocalDate()); // Este le envia solo a los que cumplen 4 dias hoy (es decir, 1 vez)
 
         notificationService.createAttendanceWarningNotification(users, getAllAdmins());
 
