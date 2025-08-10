@@ -7,6 +7,9 @@
 /Frontend/.next/
 /Frontend/out/
 
+# target
+/Backend/target/
+
 # production
 /Frontend/build
 /Frontend/package-lock.json
