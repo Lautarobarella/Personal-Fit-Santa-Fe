@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
 import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { useToast } from "@/hooks/use-toast"
-import { PaymentType, UserRole, PaymentStatus } from "@/lib/types"
+import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -192,16 +192,16 @@ export default function PaymentVerificationPage() {
         onBack={() => router.replace("/payments")}
       />
 
-      <div className="flex-1 overflow-hidden px-3 py-2">
+      <div className="flex-1 overflow-hidden px-4 py-3">
         <div className="flex items-center justify-between text-xs mb-1">
           <span className="font-medium">Progreso</span>
           <span className="text-muted-foreground">
             {reviewedCount} completados, {totalPendingPayments} totales
           </span>
         </div>
-        <div className="w-full bg-muted rounded-full h-1">
+        <div className="w-full bg-muted rounded-full h-1.5">
           <div
-            className="bg-primary h-1 rounded-full transition-all duration-300"
+            className="bg-primary h-1.5 rounded-full transition-all duration-300"
             style={{
               width: (!initialPendingCount.current || reviewedCount === 0)
                 ? "0%"
@@ -215,9 +215,9 @@ export default function PaymentVerificationPage() {
           {/* Renderiza solo si hay currentPayment */}
           {currentPayment && (
             <>
-              <Card>
-                <CardContent className="p-2 items-center justify-between">
-                  <div className="grid grid-cols-2 gap-2 ml-2 text-xs">
+               <Card>
+                <CardContent className="p-3 items-center justify-between">
+                  <div className="grid grid-cols-2 gap-3 ml-2 text-sm">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">{currentPayment.clientName}</span>
@@ -238,25 +238,25 @@ export default function PaymentVerificationPage() {
                     </div>
                   </div>
                   {currentPayment.receiptUrl && (
-                    <div className="mt-1 pt-1 border-t">
-                      <span className="text-xs text-muted-foreground">
+                   <div className="mt-2 pt-2 border-t">
+                      <span className="text-sm text-muted-foreground">
                         Comprobante subido: {formatDateTime(currentPayment.createdAt)}
                       </span>
                     </div>
                   )}
                 </CardContent>
               </Card>
-              <Card className="mt-2">
-                <CardContent className="p-2">
-                  <Label className="text-sm font-medium mb-1 block">Comprobante de Pago</Label>
-                  <div className="border rounded-lg overflow-hidden">
+               <Card className="mt-3">
+                 <CardContent className="p-3">
+                   <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
+                   <div className="border rounded-lg overflow-hidden">
                     <img
                       src={currentPayment.receiptUrl || "/placeholder.svg"}
                       alt="Comprobante de pago"
-                      className="w-full max-h-[260px] object-contain bg-gray-50 mx-auto"
+                       className="w-full max-h-[360px] object-contain bg-gray-50 mx-auto"
                     />
                   </div>
-                  <div className="mt-2 flex gap-2">
+                   <div className="mt-2 flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -285,8 +285,8 @@ export default function PaymentVerificationPage() {
           )}
 
           {/* Siempre visible */}
-          <Card className="mt-2">
-            <CardContent className="p-2">
+           <Card className="mt-3">
+             <CardContent className="p-3">
               <Label htmlFor="rejectionReason">Razón del rechazo</Label>
               <Textarea
                 id="rejectionReason"
@@ -301,12 +301,12 @@ export default function PaymentVerificationPage() {
           </Card>
 
           {/* Botones */}
-          <div className="mt-2 flex gap-3">
+           <div className="mt-3 mb-1 flex gap-3">
             <Button
               variant="secondary"
               onClick={() => handleStatusUpdate("rejected")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-2 text-sm font-semibold"
+               className="w-1/2 py-2.5 text-base font-semibold"
             >
               {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isVerifying && <X className="mr-2 h-4 w-4" />}
@@ -316,7 +316,7 @@ export default function PaymentVerificationPage() {
               variant="default"
               onClick={() => handleStatusUpdate("paid")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-2 text-sm font-semibold"
+               className="w-1/2 py-2.5 text-base font-semibold"
             >
               {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isVerifying && <Check className="mr-2 h-4 w-4" />}
