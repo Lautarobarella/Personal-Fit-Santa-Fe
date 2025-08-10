@@ -1,0 +1,99 @@
+version: '3.8'
+
+networks:
+  personalfit-network:
+    driver: bridge
+    name: personalfit-network
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: personalfit-db
+    restart: unless-stopped
+    networks:
+      - personalfit-network
+    environment:
+      POSTGRES_DB: personalfit
+      POSTGRES_USER: personalfit_user
+      POSTGRES_PASSWORD: secret123
+    volumes:
+      # Volumen persistente para la base de datos - los datos se conservan entre deployments
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  personalfit-backend:
+    build:
+      context: .
+      dockerfile: Backend/Dockerfile
+    container_name: personalfit-backend
+    restart: unless-stopped
+    networks:
+      - personalfit-network
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
+      SPRING_DATASOURCE_USERNAME: personalfit_user
+      SPRING_DATASOURCE_PASSWORD: secret123
+      # Configuración de MercadoPago para el backend
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
+      # Configuración de conexión de base de datos
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+      # Configuración de Spring Boot
+      SPRING_PROFILES_ACTIVE: production
+    ports:
+      - "8080:8080"
+    volumes:
+      # Volumen persistente para los archivos de comprobantes de pago
+      - comprobantes:/app/comprobantes
+
+  personalfit-frontend:
+    build:
+      context: .
+      dockerfile: Frontend/Dockerfile
+    container_name: personalfit-frontend
+    restart: unless-stopped
+    networks:
+      - personalfit-network
+    depends_on:
+      - personalfit-backend
+    ports:
+      - "3000:3000"
+    environment:
+      # URLs para comunicación interna entre servicios Docker
+      NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
+      NEXT_PUBLIC_BASE_URL: https://personalfitsantafe.com
+      NEXT_PUBLIC_FRONTEND_URL: https://personalfitsantafe.com
+      NEXT_PUBLIC_FILES_URL: http://personalfit-backend:8080
+      
+      # Configuración de MercadoPago
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
+      NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
+      NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+      
+      # Configuración de Next.js
+      NODE_ENV: production
+      NEXT_PUBLIC_IS_DOCKER: "true"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: personalfit-pgadmin
+    restart: unless-stopped
+    networks:
+      - personalfit-network
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@personalfit.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    depends_on:
+      - postgres
+
+volumes:
+  # Volúmenes persistentes que conservan los datos entre deployments
+  pgdata:
+  # Datos de PostgreSQL
+  comprobantes:
+    # Archivos de comprobantes de pago
