@@ -100,9 +100,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
 export const hasPermission = (userRole: UserRole, requiredRole: UserRole): boolean => {
   const roleHierarchy = {
-    admin: 3,
-    trainer: 2,
-    client: 1,
+    ADMIN: 3,
+    TRAINER: 2,
+    CLIENT: 1,
   }
 
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
