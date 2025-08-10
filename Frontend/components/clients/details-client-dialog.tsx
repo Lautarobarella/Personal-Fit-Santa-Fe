@@ -9,22 +9,22 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClients } from "@/hooks/use-client"
 import {
-  Activity,
-  AlertTriangle,
-  CakeIcon,
-  Calendar,
-  Clock,
-  CreditCard,
-  Dice3,
-  DollarSign,
-  Edit,
-  IdCard,
-  Mail,
-  MapPin,
-  Phone,
-  TrendingUp,
-  User,
-  UserX
+    Activity,
+    AlertTriangle,
+    CakeIcon,
+    Calendar,
+    Clock,
+    CreditCard,
+    Dice3,
+    DollarSign,
+    Edit,
+    IdCard,
+    Mail,
+    MapPin,
+    Phone,
+    TrendingUp,
+    User,
+    UserX
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
@@ -106,11 +106,11 @@ export function ClientDetailsDialog({
 
   const getActivityStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "COMPLETED":
         return "success"
-      case "active":
+      case "ACTIVE":
         return "default"
-      case "cancelled":
+      case "CANCELLED":
         return "destructive"
       default:
         return "secondary"
@@ -119,11 +119,11 @@ export function ClientDetailsDialog({
 
   const getActivityStatusText = (status: string) => {
     switch (status) {
-      case "completed":
+      case "COMPLETED":
         return "Completada"
-      case "active":
+      case "ACTIVE":
         return "Activa"
-      case "cancelled":
+      case "CANCELLED":
         return "Cancelada"
       default:
         return status
@@ -132,13 +132,13 @@ export function ClientDetailsDialog({
 
   const getAttendanceColor = (attendance: string | undefined) => {
     switch (attendance) {
-      case "present":
+      case "PRESENT":
         return "text-green-600"
-      case "absent":
+      case "ABSENT":
         return "text-red-600"
-      case "late":
+      case "LATE":
         return "text-yellow-600"
-      case "pending":
+      case "PENDING":
         return "text-blue-600"
       default:
         return "text-muted-foreground"
@@ -147,13 +147,13 @@ export function ClientDetailsDialog({
 
   const getAttendanceText = (attendance: string | undefined) => {
     switch (attendance) {
-      case "present":
+      case "PRESENT":
         return "Presente"
-      case "absent":
+      case "ABSENT":
         return "Ausente"
-      case "late":
+      case "LATE":
         return "Tarde"
-      case "pending":
+      case "PENDING":
         return "Pendiente"
       default:
         return "N/A"
@@ -162,13 +162,13 @@ export function ClientDetailsDialog({
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case "paid":
+      case "PAID":
         return "success"
-      case "pending":
+      case "PENDING":
         return "warning"
-      case "rejected":
+      case "REJECTED":
         return "destructive"
-      case "overdue":
+      case "DEBTOR":
         return "destructive"
       default:
         return "secondary"
@@ -177,13 +177,13 @@ export function ClientDetailsDialog({
 
   const getPaymentStatusText = (status: string) => {
     switch (status) {
-      case "paid":
+      case "PAID":
         return "Pagado"
-      case "pending":
+      case "PENDING":
         return "Pendiente"
-      case "rejected":
+      case "REJECTED":
         return "Rechazado"
-      case "overdue":
+      case "DEBTOR":
         return "Vencido"
       default:
         return status

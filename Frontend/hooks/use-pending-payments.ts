@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
-import { usePayment } from "@/hooks/use-payment"
-import { PaymentType } from "@/lib/types"
 import { buildReceiptUrl } from "@/api/payment/paymentsApi"
+import { usePayment } from "@/hooks/use-payment"
+import { PaymentStatus, PaymentType } from "@/lib/types"
+import { useEffect, useState } from "react"
 
 export type PendingPaymentType = PaymentType & { receiptUrl: string | null }
 
@@ -17,7 +17,7 @@ export function usePendingPayments(userId?: number, isAdmin?: boolean) {
     // loading termina solo cuando termina la carga inicial de payments (sea vacía o no)
     if (!isLoading && !initialized) {
       const pendings: PaymentType[] = payments
-        .filter((p) => p.status === "pending")
+        .filter((p) => p.status === PaymentStatus.PENDING)
         .map((p) => ({
           ...p,
           receiptUrl: buildReceiptUrl(p.receiptId),

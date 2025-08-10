@@ -1,7 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { NewPaymentInput } from "@/lib/types";
+import { NewPaymentInput, PaymentStatus } from "@/lib/types";
 
 export async function fetchPayments() {
   try {
@@ -13,7 +13,8 @@ export async function fetchPayments() {
 }
 
 export async function createPaymentWithStatus(paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean = false) {
-  const paymentStatus = isMercadoPagoPayment ? "paid" : "pending"
+  // Backend espera enums en MAYÚSCULAS
+  const paymentStatus = isMercadoPagoPayment ? PaymentStatus.PAID : PaymentStatus.PENDING
   const formData = new FormData()
 
   const payment = {

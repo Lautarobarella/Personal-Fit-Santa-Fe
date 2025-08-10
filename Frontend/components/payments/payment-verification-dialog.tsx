@@ -1,5 +1,6 @@
 "use client"
 
+import { AuthenticatedImage } from "@/components/ui/authenticated-image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,10 +14,9 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { AuthenticatedImage } from "@/components/ui/authenticated-image"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
-import { PaymentType } from "@/lib/types"
+import { PaymentStatus, PaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -101,11 +101,11 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "paid":
+      case PaymentStatus.PAID:
         return "success"
-      case "rejected":
+      case PaymentStatus.REJECTED:
         return "destructive"
-      case "pending":
+      case PaymentStatus.PENDING:
         return "warning"
       default:
         return "secondary"
@@ -114,11 +114,11 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "paid":
+      case PaymentStatus.PAID:
         return "Pagado"
-      case "rejected":
+      case PaymentStatus.REJECTED:
         return "Rechazado"
-      case "pending":
+      case PaymentStatus.PENDING:
         return "Pendiente"
       default:
         return status
@@ -152,7 +152,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatDateTime(selectedPayment.createdAt)}</span>
+                  <span>{formatDateTime(selectedPayment.createdAt as Date)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -167,7 +167,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
               {selectedPayment.receiptUrl && (
                 <div className="mt-3 pt-3 border-t">
                   <span className="text-sm text-muted-foreground">
-                    Comprobante subido: {formatDateTime(selectedPayment.createdAt)}
+                    Comprobante subido: {formatDateTime(selectedPayment.createdAt as Date)}
                   </span>
                 </div>
               )}
@@ -227,7 +227,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
           )}
 
           {/* Rejection Reason */}
-          {selectedPayment.status === "rejected" && selectedPayment.rejectionReason && (
+          {selectedPayment.status === PaymentStatus.REJECTED && selectedPayment.rejectionReason && (
             <Card className="border-destructive">
               <CardContent className="p-4">
                 <Label className="text-sm font-medium text-destructive mb-2 block">Razón del Rechazo</Label>
@@ -237,7 +237,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
           )}
 
           {/* Rejection Reason Input (for new rejections) */}
-          {selectedPayment.status === "pending" && (
+          {selectedPayment.status === PaymentStatus.PENDING && (
             <div className="space-y-2">
               <Label htmlFor="rejectionReason">
                 Razón del rechazo (opcional para aprobación, requerida para rechazo)
@@ -263,7 +263,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
             Cancelar
           </Button>
 
-          {selectedPayment.status === "pending" && (
+          {selectedPayment.status === PaymentStatus.PENDING && (
             <>
               <Button variant="secondary" onClick={() => handleStatusUpdate("rejected")} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

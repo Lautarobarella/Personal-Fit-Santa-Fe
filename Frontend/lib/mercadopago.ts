@@ -1,3 +1,4 @@
+import { MethodType, PaymentStatus } from "@/lib/types";
 import {
     MercadoPagoConfig,
     Payment,
@@ -196,7 +197,7 @@ async function createPaymentServerSide(paymentData: {
         amount: paymentData.amount,
         createdAt: new Date(paymentData.createdAt).toISOString().slice(0, 19),
         expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
-        paymentStatus: "paid",
+        paymentStatus: PaymentStatus.PAID,
         confNumber: paymentData.mpPaymentId,
         methodType: mapPaymentMethod(paymentData.paymentMethod),
     };
@@ -237,15 +238,15 @@ function mapMercadoPagoStatus(mpStatus: string): string {
 /**
  * Mapea el método de pago de MercadoPago al método del sistema
  */
-function mapPaymentMethod(mpMethod: string): string {
+function mapPaymentMethod(mpMethod: string): MethodType {
     switch (mpMethod) {
         case 'credit_card':
         case 'debit_card':
-            return 'card';
+            return MethodType.CARD;
         case 'bank_transfer':
-            return 'transfer';
+            return MethodType.TRANSFER;
         default:
-            return 'cash';
+            return MethodType.CASH;
     }
 }
 
