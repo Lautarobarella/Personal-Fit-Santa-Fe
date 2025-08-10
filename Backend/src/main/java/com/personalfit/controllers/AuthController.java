@@ -1,18 +1,20 @@
 package com.personalfit.controllers;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.personalfit.dto.Auth.AuthRequestDTO;
 import com.personalfit.dto.Auth.AuthResponseDTO;
-import com.personalfit.dto.User.UserTypeDTO;
-import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
 import com.personalfit.services.AuthService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
