@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/providers/auth-provider"
 import { usePayment } from "@/hooks/use-payment"
-import { UserRole, PaymentStatus } from "@/lib/types"
+import { PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -237,7 +237,7 @@ export default function PaymentsPage() {
 
             <div className="container-centered py-6 space-y-6">
                 {/* Search - Solo para admin */}
-                {UserRole.ADMIN && <div className="relative">
+                {user?.role === UserRole.ADMIN && <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Buscar por cliente o mes..."
@@ -249,7 +249,7 @@ export default function PaymentsPage() {
                 }
 
                 {/* Card informativa para clientes */}
-                {UserRole.CLIENT && (
+                {user?.role === UserRole.CLIENT && (
                     <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ export default function PaymentsPage() {
                                         <AlertCircle className="h-5 w-5 text-red-600" />
                                         <div className="flex-1">
                                             <h3 className="font-semibold text-red-800">Membresía Vencida</h3>
-                                            <p className="text-sm text-red-700">
+                                            <p className="text-sm text-yellow-700">
                                                 Tu membresía ha expirado. Realiza un nuevo pago para continuar.
                                             </p>
                                         </div>
@@ -290,7 +290,7 @@ export default function PaymentsPage() {
                 )}
 
                 {/* Stats - Solo para admin */}
-                {UserRole.ADMIN && (
+                {user?.role === UserRole.ADMIN && (
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
@@ -371,7 +371,7 @@ export default function PaymentsPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        {UserRole.ADMIN && (
+                                        {user?.role === UserRole.ADMIN && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"

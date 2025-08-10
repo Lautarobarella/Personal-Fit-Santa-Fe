@@ -4,6 +4,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MobileHeader } from '@/components/ui/mobile-header';
+import { UserRole } from '@/lib/types';
 import { ArrowRight, CreditCard, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -16,7 +17,7 @@ export default function PaymentMethodSelectPage() {
     }
 
     // Redirigir admins directamente a creación manual
-    if (user.role === 'admin') {
+    if (user.role === UserRole.ADMIN) {
         router.replace('/payments/new');
         return null;
     }
@@ -31,10 +32,10 @@ export default function PaymentMethodSelectPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <MobileHeader 
-                title="Método de Pago" 
-                showBack 
-                onBack={() => router.back()} 
+            <MobileHeader
+                title="Método de Pago"
+                showBack
+                onBack={() => router.back()}
             />
 
             <div className="container py-6">
@@ -56,11 +57,11 @@ export default function PaymentMethodSelectPage() {
                     {/* Opciones de pago */}
                     <div className="space-y-4">
                         <h2 className="text-xl font-bold text-center mb-6">
-                            {user.role === 'admin' ? 'Registrar pago' : 'Elige tu método de pago'}
+                            Elige tu método de pago
                         </h2>
 
                         {/* Pago con MercadoPago - Solo para clientes */}
-                        {user.role === 'client' && (
+                        {user.role === UserRole.CLIENT && (
                             <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
                                 <CardContent className="p-6">
                                     <div className="flex items-center justify-between">
@@ -75,7 +76,7 @@ export default function PaymentMethodSelectPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <Button 
+                                        <Button
                                             onClick={() => handleMethodSelect('mercadopago')}
                                             className="bg-blue-600 hover:bg-blue-700"
                                         >
@@ -96,22 +97,19 @@ export default function PaymentMethodSelectPage() {
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-lg">
-                                                {user.role === 'admin' ? 'Registrar Pago' : 'Pago Manual'}
+                                                Pago Manual
                                             </h3>
                                             <p className="text-sm text-gray-600">
-                                                {user.role === 'admin' 
-                                                    ? 'Crear pago para un cliente'
-                                                    : 'Subir comprobante de pago'
-                                                }
+                                                Subir comprobante de pago
                                             </p>
                                         </div>
                                     </div>
-                                    <Button 
+                                    <Button
                                         onClick={() => handleMethodSelect('manual')}
                                         variant="outline"
                                         className="border-gray-300 hover:bg-gray-50"
                                     >
-                                        {user.role === 'admin' ? 'Crear' : 'Elegir'} <ArrowRight className="w-4 h-4 ml-1" />
+                                        Elegir <ArrowRight className="w-4 h-4 ml-1" />
                                     </Button>
                                 </div>
                             </CardContent>
@@ -119,23 +117,23 @@ export default function PaymentMethodSelectPage() {
                     </div>
 
                     {/* Información adicional - Solo para clientes */}
-                    {user.role === 'client' && (
-                        <Card className="bg-yellow-50 border-yellow-200">
-                            <CardContent className="p-4">
-                                <h4 className="font-semibold text-yellow-800 mb-2">
-                                    💡 ¿Cuál elegir?
-                                </h4>
-                                <div className="space-y-2 text-sm text-yellow-700">
-                                    <p>
-                                        <strong>Pago Online:</strong> Inmediato y automático.
-                                    </p>
-                                    <p>
-                                        <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+
+                    <Card className="bg-yellow-50 border-yellow-200">
+                        <CardContent className="p-4">
+                            <h4 className="font-semibold text-yellow-800 mb-2">
+                                💡 ¿Cuál elegir?
+                            </h4>
+                            <div className="space-y-2 text-sm text-yellow-700">
+                                <p>
+                                    <strong>Pago Online:</strong> Inmediato y automático.
+                                </p>
+                                <p>
+                                    <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                 </div>
             </div>
         </div>
