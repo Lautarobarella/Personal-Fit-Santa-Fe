@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import com.personalfit.dto.Attendance.AttendanceDTO;
-
 @Data
 @Builder
 @NoArgsConstructor

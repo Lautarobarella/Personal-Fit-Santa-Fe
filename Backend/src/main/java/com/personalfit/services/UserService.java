@@ -1,16 +1,17 @@
 package com.personalfit.services;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.personalfit.dto.Payment.PaymentTypeDTO;
 import com.personalfit.dto.User.CreateUserDTO;
 import com.personalfit.dto.User.UserActivityDetailsDTO;
 import com.personalfit.dto.User.UserDetailInfoDTO;
@@ -18,22 +19,14 @@ import com.personalfit.dto.User.UserTypeDTO;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
+import com.personalfit.exceptions.EntityAlreadyExistsException;
+import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Payment;
 import com.personalfit.models.User;
 import com.personalfit.repository.PaymentRepository;
 import com.personalfit.repository.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -56,7 +49,7 @@ public class UserService {
         Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
         if (user.isPresent())
-            throw new UserDniAlreadyExistsException();
+            throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(), "Api/User/createNewUser");
 
         User userToCreate = new User();
         userToCreate.setDni(Integer.parseInt(newUser.getDni()));
@@ -81,7 +74,7 @@ public class UserService {
         Optional<User> user = userRepository.findById(id);
 
         if (user.isEmpty())
-            throw new NoUserWithIdException();
+            throw new EntityNotFoundException("Usuario con ID: " + id + " no encontrado", "Api/User/deleteUser");
 
         try {
             userRepository.delete(user.get());
@@ -96,7 +89,7 @@ public class UserService {
     public User getUserByDni(Integer dni) {
         Optional<User> user = userRepository.findByDni(dni);
         if (!user.isPresent())
-            throw new NoUserWithDniException();
+            throw new EntityNotFoundException("Usuario con DNI: " + dni + " no encontrado", "Api/User/getUserByDni");
         return user.get();
     }
 
@@ -137,7 +130,7 @@ public class UserService {
     public User getUserById(Long id) {
         Optional<User> user = userRepository.findById(id);
         if (user.isEmpty())
-            throw new NoUserWithIdException();
+            throw new EntityNotFoundException("Usuario con ID: " + id + " no encontrado", "Api/User/getUserById");
         return user.get();
     }
 
@@ -175,7 +168,7 @@ public class UserService {
     
     public void updateUserStatus(User user, UserStatus status) {
         if (user == null)
-            throw new NoUserWithIdException();
+            throw new EntityNotFoundException("Usuario no puede ser null", "Api/User/updateUserStatus");
 
         user.setStatus(status);
         userRepository.save(user);
@@ -194,7 +187,7 @@ public class UserService {
     
     public void updateLastAttendanceByDni(Integer dni) {
         Optional<User> user = userRepository.findByDni(dni);
-        if (user.isEmpty()) throw new NoUserWithDniException();
+        if (user.isEmpty()) throw new EntityNotFoundException("Usuario con DNI: " + dni + " no encontrado", "Api/User/updateLastAttendanceByDni");
 
         user.get().setLastAttendance(LocalDateTime.now());
         userRepository.save(user.get());
@@ -208,7 +201,7 @@ public class UserService {
             Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
 
             if (user.isPresent())
-                throw new UserDniAlreadyExistsException();
+                throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(), "Api/User/saveAll");
 
             User userToCreate = new User();
             userToCreate.setDni(Integer.parseInt(newUser.getDni()));
@@ -237,7 +230,7 @@ public class UserService {
         users.stream().forEach(u -> {
             if(u.getRole().equals(UserRole.TRAINER) || u.getRole().equals(UserRole.ADMIN)) return;
 
-            Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u, PaymentStatus.paid);
+            Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u, PaymentStatus.PAID);
 
             if( payment.isEmpty() ||
                     payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())){

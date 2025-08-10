@@ -6,18 +6,20 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.personalfit.dto.Payment.CreatePaymentDTO;
 import com.personalfit.dto.Payment.CreatePaymentWithFileDTO;
-import com.personalfit.dto.Payment.UpdatePaymentStatusDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
+import com.personalfit.dto.Payment.UpdatePaymentStatusDTO;
 import com.personalfit.enums.MethodType;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserStatus;
+import com.personalfit.exceptions.BusinessRuleException;
+import com.personalfit.exceptions.EntityAlreadyExistsException;
+import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
 import com.personalfit.models.User;
@@ -39,7 +41,7 @@ public class PaymentService {
     public void registerPayment(CreatePaymentDTO newPayment) {
 
         User user = userService.getUserById(newPayment.getClientId());
-        
+
         // Validar que el usuario pueda crear un nuevo pago
         validateUserCanCreatePayment(user);
 
@@ -78,7 +80,6 @@ public class PaymentService {
                 .build()).toList();
     }
 
-    
     public List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id) {
         User user = userService.getUserById(id);
 
@@ -100,17 +101,17 @@ public class PaymentService {
                 .toList();
     }
 
-    
     public void updatePaymentStatus(Long id, UpdatePaymentStatusDTO dto) {
         Optional<Payment> optional = paymentRepository.findById(id);
         if (optional.isEmpty()) {
-            throw new NoPaymentWithIdException();
+            throw new EntityNotFoundException("Pago con ID: " + id + " no encontrado",
+                    "Api/Payment/updatePaymentStatus");
         }
 
         Payment payment = optional.get();
 
         if (dto.getStatus() == null) {
-            throw new IllegalArgumentException("El estado no puede ser null");
+            throw new BusinessRuleException("El estado no puede ser null", "Api/Payment/updatePaymentStatus");
         }
 
         switch (dto.getStatus().toLowerCase()) {
@@ -125,26 +126,26 @@ public class PaymentService {
                 userService.updateUserStatus(optional.get().getUser(), UserStatus.INACTIVE);
                 break;
             default:
-                throw new IllegalArgumentException("Estado inválido: " + dto.getStatus());
+                throw new BusinessRuleException("Estado inválido: " + dto.getStatus(),
+                        "Api/Payment/updatePaymentStatus");
         }
 
         payment.setUpdatedAt(LocalDateTime.now());
         paymentRepository.save(payment);
     }
 
-    
     public Payment getPaymentWithFileById(Long id) {
         Optional<Payment> payment = paymentRepository.findById(id);
         if (payment.isEmpty())
-            throw new NoPaymentWithIdException();
+            throw new EntityNotFoundException("Pago con ID: " + id + " no encontrado",
+                    "Api/Payment/getPaymentWithFileById");
         return payment.get();
     }
 
-    
     public PaymentTypeDTO getPaymentById(Long id) {
         Optional<Payment> payment = paymentRepository.findById(id);
         if (payment.isEmpty())
-            throw new NoPaymentWithIdException();
+            throw new EntityNotFoundException("Pago con ID: " + id + " no encontrado", "Api/Payment/getPaymentById");
 
         return PaymentTypeDTO.builder()
                 .id(payment.get().getId())
@@ -164,28 +165,31 @@ public class PaymentService {
 
     /**
      * Valida si un usuario puede crear un nuevo pago
+     * 
      * @param user El usuario que intenta crear el pago
-     * @throws PaymentAlreadyExistsException Si el usuario ya tiene un pago activo o pendiente
+     * @throws PaymentAlreadyExistsException Si el usuario ya tiene un pago activo o
+     *                                       pendiente
      */
     private void validateUserCanCreatePayment(User user) {
         List<Payment> userPayments = user.getPayments();
-        
+
         // Verificar si tiene pagos activos (paid) o pendientes (pending)
         boolean hasActiveOrPendingPayment = userPayments.stream()
-                .anyMatch(payment -> payment.getStatus() == PaymentStatus.PAID || 
-                                   payment.getStatus() == PaymentStatus.PENDING);
-        
+                .anyMatch(payment -> payment.getStatus() == PaymentStatus.PAID ||
+                        payment.getStatus() == PaymentStatus.PENDING);
+
         if (hasActiveOrPendingPayment) {
-            throw new PaymentAlreadyExistsException();
+            throw new EntityAlreadyExistsException("El usuario ya tiene un pago activo o pendiente",
+                    "Api/Payment/validateUserCanCreatePayment");
         }
     }
 
     @Transactional
-    
+
     public Payment registerPaymentWithFile(CreatePaymentDTO newPayment, MultipartFile file) {
 
         User user = userService.getUserByDni(newPayment.getClientDni());
-        
+
         // Validar que el usuario pueda crear un nuevo pago
         validateUserCanCreatePayment(user);
 
@@ -218,12 +222,12 @@ public class PaymentService {
     }
 
     // batch function to save multiple users
-    
+
     public Boolean saveAll(List<CreatePaymentDTO> newPayments) {
 
         for (CreatePaymentDTO newPayment : newPayments) {
             User user = userService.getUserById(newPayment.getClientId());
-            
+
             // Validar que el usuario pueda crear un nuevo pago
             validateUserCanCreatePayment(user);
 
@@ -249,12 +253,12 @@ public class PaymentService {
     }
 
     // batch function to save multiple payments with files
-    
+
     public Boolean saveAllWithFiles(List<CreatePaymentWithFileDTO> newPayments) {
 
         for (CreatePaymentWithFileDTO newPayment : newPayments) {
             User user = userService.getUserByDni(newPayment.getClientDni());
-            
+
             // Validar que el usuario pueda crear un nuevo pago
             validateUserCanCreatePayment(user);
 
@@ -288,19 +292,19 @@ public class PaymentService {
     }
 
     // batch function to save multiple payments with files from array
-    
+
     public Boolean saveAllWithFilesFromArray(List<CreatePaymentDTO> newPayments, MultipartFile[] files) {
 
         for (int i = 0; i < newPayments.size(); i++) {
             CreatePaymentDTO newPayment = newPayments.get(i);
             User user = userService.getUserByDni(newPayment.getClientDni());
-            
+
             // Validar que el usuario pueda crear un nuevo pago
             validateUserCanCreatePayment(user);
 
             Optional<Long> idFile = Optional.empty();
             PaymentFile pFile = null;
-            
+
             // Verificar si hay archivo correspondiente
             if (files != null && i < files.length && !(files[i] == null || files[i].isEmpty())) {
                 idFile = Optional.of(paymentFileService.uploadFile(files[i]));
@@ -329,11 +333,11 @@ public class PaymentService {
 
     }
 
-    
     public Payment registerWebhookPayment(CreatePaymentDTO newPayment) {
         User user = userService.getUserByDni(newPayment.getClientDni());
 
-        // Check if a payment with this confNumber (MercadoPago ID) already exists to prevent duplicates
+        // Check if a payment with this confNumber (MercadoPago ID) already exists to
+        // prevent duplicates
         Optional<Payment> existingPayment = paymentRepository.findByConfNumber(newPayment.getConfNumber());
         if (existingPayment.isPresent()) {
             // If it exists and is already paid, just return it. If it's pending, update it.
@@ -351,9 +355,14 @@ public class PaymentService {
                 .user(user)
                 .confNumber(newPayment.getConfNumber())
                 .amount(newPayment.getAmount())
-                .methodType(newPayment.getMethodType() != null ? newPayment.getMethodType() : MethodType.CARD) // Default to card if not provided
+                .methodType(newPayment.getMethodType() != null ? newPayment.getMethodType() : MethodType.CARD) // Default
+                                                                                                               // to
+                                                                                                               // card
+                                                                                                               // if not
+                                                                                                               // provided
                 .createdAt(newPayment.getCreatedAt() != null ? newPayment.getCreatedAt() : LocalDateTime.now())
-                .expiresAt(newPayment.getExpiresAt() != null ? newPayment.getExpiresAt() : LocalDateTime.now().plusMonths(1))
+                .expiresAt(newPayment.getExpiresAt() != null ? newPayment.getExpiresAt()
+                        : LocalDateTime.now().plusMonths(1))
                 .status(PaymentStatus.PAID) // Always 'paid' for successful webhooks
                 .build();
 

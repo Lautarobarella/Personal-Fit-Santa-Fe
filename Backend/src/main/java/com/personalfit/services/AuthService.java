@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.personalfit.dto.Auth.AuthRequestDTO;
 import com.personalfit.dto.Auth.AuthResponseDTO;
 import com.personalfit.dto.User.UserTypeDTO;
+import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
 import com.personalfit.security.JwtService;
@@ -50,7 +51,7 @@ public class AuthService {
 
         } catch (Exception e) {
             log.error("Authentication failed for user: {}", request.getEmail(), e);
-            throw new RuntimeException("Invalid email or password");
+            throw new BusinessRuleException("Email o contraseña incorrectos", "Api/Auth/authenticate");
         }
     }
 
@@ -79,11 +80,11 @@ public class AuthService {
                         .user(userInfo)
                         .build();
             } else {
-                throw new RuntimeException("Invalid refresh token");
+                throw new BusinessRuleException("Token de refresco inválido", "Api/Auth/refreshToken");
             }
         } catch (Exception e) {
             log.error("Token refresh failed", e);
-            throw new RuntimeException("Token refresh failed");
+            throw new BusinessRuleException("Error al refrescar el token", "Api/Auth/refreshToken");
         }
     }
 }

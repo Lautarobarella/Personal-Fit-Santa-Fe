@@ -24,12 +24,11 @@ import com.personalfit.dto.Attendance.AttendanceDTO;
 import com.personalfit.dto.Attendance.EnrollmentRequestDTO;
 import com.personalfit.dto.Attendance.EnrollmentResponseDTO;
 import com.personalfit.enums.ActivityStatus;
+import com.personalfit.exceptions.BusinessRuleException;
+import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Activity;
 import com.personalfit.models.User;
 import com.personalfit.repository.ActivityRepository;
-import com.personalfit.services.ActivityService;
-import com.personalfit.services.AttendanceService;
-import com.personalfit.services.UserService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -76,7 +75,7 @@ public class ActivityService {
             try {
                 activityRepository.save(newActivity);
             } catch (Exception e) {
-                throw new RuntimeException("Error al guardar la actividad: " + e.getMessage(), e);
+                throw new BusinessRuleException("Error al guardar la actividad: " + e.getMessage(), "Api/Activity/createActivity");
             }
         }
     }
@@ -113,7 +112,7 @@ public class ActivityService {
                 try {
                     activityRepository.save(newActivity);
                 } catch (Exception e) {
-                    throw new RuntimeException("Error al guardar la actividad para el día " + (i + 1) + ": " + e.getMessage(), e);
+                    throw new BusinessRuleException("Error al guardar la actividad para el día " + (i + 1) + ": " + e.getMessage(), "Api/Activity/createActivity");
                 }
             }
         }
@@ -138,7 +137,7 @@ public class ActivityService {
 
     public void updateActivity(Long id, ActivityFormTypeDTO activity) {
         Activity existingActivity = activityRepository.findById(id)
-                .orElseThrow(() -> new NoActivityWithIdException("Activity not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada", "Api/Activity/updateActivity"));
 
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
@@ -170,18 +169,18 @@ public class ActivityService {
         try {
             activityRepository.save(existingActivity);
         } catch (Exception e) {
-            throw new RuntimeException("Error al actualizar la actividad: " + e.getMessage(), e);
+            throw new BusinessRuleException("Error al actualizar la actividad: " + e.getMessage(), "Api/Activity/updateActivity");
         }
     }
 
     public void deleteActivity(Long id) {
         Activity activity = activityRepository.findById(id)
-                .orElseThrow(() -> new NoActivityWithIdException("Activity not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada", "Api/Activity/deleteActivity"));
 
         try {
             activityRepository.delete(activity);
         } catch (Exception e) {
-            throw new RuntimeException("Error al eliminar la actividad: " + e.getMessage(), e);
+            throw new BusinessRuleException("Error al eliminar la actividad: " + e.getMessage(), "Api/Activity/deleteActivity");
         }
     }
 
@@ -195,7 +194,7 @@ public class ActivityService {
     public ActivityDetailInfoDTO getActivityDetailInfo(Long id) {
         Optional<Activity> activity = activityRepository.findById(id);
         if (activity.isEmpty()) {
-            throw new RuntimeException("Activity not found with id: " + id);
+            throw new EntityNotFoundException("Actividad con ID: " + id + " no encontrada", "Api/Activity/getActivityDetailInfo");
         }
 
         Activity act = activity.get();
@@ -314,7 +313,7 @@ public class ActivityService {
         log.info("Checking completed activities...");
         LocalDateTime now = LocalDateTime.now();
 
-        List<Activity> activities = activityRepository.findByDateBeforeAndStatus(now, ActivityStatus.active);
+        List<Activity> activities = activityRepository.findByDateBeforeAndStatus(now, ActivityStatus.ACTIVE);
         List<Activity> toUpdate = new ArrayList<>();
         List<Activity> toCreate = new ArrayList<>();
 
