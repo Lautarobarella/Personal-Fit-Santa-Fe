@@ -24,6 +24,8 @@ import com.personalfit.models.User;
 import com.personalfit.services.UserService;
 
 import jakarta.validation.Valid;
+import com.personalfit.enums.UserRole;
+import com.personalfit.enums.UserStatus;
 
 
 @RestController
@@ -39,6 +41,21 @@ public class UserController {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Usuario creado exitosamente");
         response.put("success", true);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/public/first-admin")
+    public ResponseEntity<Map<String, Object>> createFirstAdmin(@Valid @RequestBody CreateUserDTO user) {
+        
+        // Forzar el rol de admin y estado activo
+        user.setRole(UserRole.ADMIN);
+        user.setStatus(UserStatus.ACTIVE);
+        
+        userService.createNewUser(user);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Primer administrador creado exitosamente");
+        response.put("success", true);
+        response.put("role", "ADMIN");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

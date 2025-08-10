@@ -48,6 +48,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/refresh").permitAll()
                 .requestMatchers("/api/auth/test-users").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/users/public/first-admin").permitAll()
                 .requestMatchers("/api/webhook/mercadopago").permitAll() // Permitir webhooks de MercadoPago sin autenticación
                 .requestMatchers("/api/payments/webhook/**").permitAll() // Permitir creación de pagos desde webhooks
                 .requestMatchers("/api/files/**").permitAll() // Permitir acceso a archivos de pagos
