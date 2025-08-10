@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
+import { UserRole } from "@/lib/types"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -41,9 +42,9 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
                 {/* <p className="text-muted-foreground">{user.email}</p> */}
                 <p className="text-sm text-blue-600 capitalize">
-                  {user.role ==="admin" && "Administrador"}
-                  {user.role ==="trainer" && "Entrenador"}
-                  {user.role ==="client" && "Cliente"}
+                          {user.role === UserRole.ADMIN && "Administrador"}
+        {user.role === UserRole.TRAINER && "Entrenador"}
+        {user.role === UserRole.CLIENT && "Cliente"}
 
                 </p>
               </div>
@@ -158,7 +159,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Admin Settings */}
-        {user.role === "admin" && (
+                    {user.role === UserRole.ADMIN && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

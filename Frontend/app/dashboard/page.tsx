@@ -8,6 +8,7 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { usePayment } from "@/hooks/use-payment"
+import { UserRole, PaymentStatus, ActivityStatus } from "@/lib/types"
 import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -25,7 +26,7 @@ function DashboardContent() {
   const [mounted, setMounted] = useState(false)
 
   // Usar hooks de forma segura
-  const paymentHook = usePayment(user?.id, user?.role === "admin")
+  const paymentHook = usePayment(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
   const { activities, loadActivities } = useActivities()
 
@@ -55,15 +56,15 @@ function DashboardContent() {
       const monthlyRevenue = payments
         .filter(p => {
           const paymentDate = p.createdAt ? new Date(p.createdAt) : null
-          return p.status === "paid" &&
-            paymentDate &&
-            paymentDate.getMonth() === currentMonth &&
-            paymentDate.getFullYear() === currentYear
+                  return p.status === PaymentStatus.PAID &&
+          paymentDate &&
+          paymentDate.getMonth() === currentMonth &&
+          paymentDate.getFullYear() === currentYear
         })
         .reduce((sum, p) => sum + p.amount, 0)
 
       // 2. Clientes activos
-      const activeClients = clients.filter(c => c.status === "active").length
+      const activeClients = clients.filter(c => c.status === "ACTIVE").length
       // 3. Actividades de hoy (que aún no han terminado)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -73,7 +74,7 @@ function DashboardContent() {
 
       const todayActivities = activities.filter(a => {
         // const activityDate = new Date(a.date)
-        return a.status === "active"
+        return a.status === ActivityStatus.ACTIVE
       }).length
 
       // 4. Tasa de asistencia (simulada por ahora)
@@ -123,14 +124,14 @@ function DashboardContent() {
   }
 
   const getDashboardStats = () => {
-    if (user.role === "admin") {
+    if (user.role === UserRole.ADMIN) {
       return [
         { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600" },
         { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600" },
         { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600" },
         { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600" },
       ]
-    } else if (user.role === "trainer") {
+    } else if (user.role === UserRole.TRAINER) {
       return [
         { title: "Mis Actividades", value: "8", icon: Activity, color: "text-blue-600" },
         { title: "Mis Clientes", value: "32", icon: Users, color: "text-green-600" },
@@ -148,14 +149,14 @@ function DashboardContent() {
   }
 
   const getQuickActions = () => {
-    if (user.role === "admin") {
+    if (user.role === UserRole.ADMIN) {
       return [
         { title: "Crear Actividad", href: "/activities/new", icon: Activity },
         { title: "Gestionar Clientes", href: "/clients", icon: Users },
         { title: "Ver Pagos", href: "/payments", icon: CreditCard },
         { title: "Ver Actividades", href: "/activities", icon: Calendar },
       ]
-    } else if (user.role === "trainer") {
+    } else if (user.role === UserRole.TRAINER) {
       return [
         { title: "Mis Actividades", href: "/activities", icon: Activity },
         { title: "Mis Clientes", href: "/clients", icon: Users },
@@ -183,9 +184,9 @@ function DashboardContent() {
           <CardHeader>
             <CardTitle>Bienvenido de vuelta</CardTitle>
             <CardDescription className="text-blue-100">
-              {user.role === "admin" && "Panel de administración completo"}
-              {user.role === "trainer" && "Gestiona tus clases y clientes"}
-              {user.role === "client" && "Mantente activo con tus entrenamientos"}
+              {user.role === UserRole.ADMIN && "Panel de administración completo"}
+              {user.role === UserRole.TRAINER && "Gestiona tus clases y clientes"}
+              {user.role === UserRole.CLIENT && "Mantente activo con tus entrenamientos"}
             </CardDescription>
           </CardHeader>
         </Card>

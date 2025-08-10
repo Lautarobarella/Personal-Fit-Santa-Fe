@@ -1,11 +1,48 @@
-export type UserRole = "admin" | "trainer" | "client"
-export type ActivityStatus = "active" | "cancelled" | "completed"
-export type ClientStatus = "present" | "absent" | "pending" | "late"
-export type MethodType = "cash" | "card" | "transfer"
-export type PaymentStatus = "pending" | "paid" | "rejected" | "debtor"
-export type NotificationType = "success" | "info" | "warning" | "error"
-export type NotificationCategoryType = "payment" | "client" | "enrollment" | "activity"
-export type GenderCategoty = "male" | "female" | "unspecified"
+export enum UserRole {
+  ADMIN = "ADMIN",
+  TRAINER = "TRAINER",
+  CLIENT = "CLIENT"
+}
+
+export enum ActivityStatus {
+  ACTIVE = "ACTIVE",
+  CANCELLED = "CANCELLED",
+  COMPLETED = "COMPLETED"
+}
+
+export enum AttendanceStatus {
+  PRESENT = "PRESENT",
+  ABSENT = "ABSENT",
+  PENDING = "PENDING",
+  LATE = "LATE"
+}
+
+export enum MethodType {
+  CASH = "CASH",
+  CARD = "CARD",
+  TRANSFER = "TRANSFER"
+}
+
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  REJECTED = "REJECTED",
+  DEBTOR = "DEBTOR"
+}
+
+export enum NotificationType {
+  SUCCESS = "SUCCESS",
+  INFO = "INFO",
+  WARNING = "WARNING",
+  ERROR = "ERROR"
+}
+
+export enum NotificationCategoryType {
+  PAYMENT = "PAYMENT",
+  CLIENT = "CLIENT",
+  ENROLLMENT = "ENROLLMENT",
+  ACTIVITY = "ACTIVITY"
+}
 
 export interface UserDetailInfo {
   id: number
@@ -18,7 +55,7 @@ export interface UserDetailInfo {
   birthDate: Date | string | null
   address: string
   role: UserRole
-  status: "active" | "inactive"
+  status: "ACTIVE" | "INACTIVE"
   joinDate: Date | string | null
   lastActivity: Date | string | null
   password: string
@@ -33,7 +70,7 @@ interface UserActivityDetails {
   trainerName: string
   date: Date | string | null
   activityStatus: ActivityStatus
-  clientStatus: ClientStatus // esto es la asistencia del cliente
+  clientStatus: AttendanceStatus // esto es la asistencia del cliente
 }
 
 export interface UserType {
@@ -47,7 +84,7 @@ export interface UserType {
   birthDate: Date | string | null
   address: string
   role: UserRole
-  status: "active" | "inactive"
+  status: "ACTIVE" | "INACTIVE"
   joinDate: Date | string | null
   activitiesCount: number
   lastActivity: Date | string | null
@@ -97,7 +134,7 @@ interface ActivityUserDetails {
   firstName: string
   lastName: string
   createdAt: Date
-  status: ClientStatus
+  status: AttendanceStatus
 }
 
 export interface ActivityType {
@@ -135,7 +172,7 @@ export interface Attendance {
   activityId: number
   userId: number
   createdAt: Date
-  status: ClientStatus
+  status: AttendanceStatus
 }
 
 export interface PaymentType {
@@ -169,14 +206,14 @@ export interface NewPaymentInput {
   amount: number
   createdAt: string
   expiresAt: string
-  paymentStatus: "pending" | "paid"
+  paymentStatus: "PENDING" | "PAID"
   file?: File
 }
 
 export interface EnrollmentRequest {
   activityId: number
   userId: number
-  status: ClientStatus
+  status: AttendanceStatus
   createdAt: Date
 }
 

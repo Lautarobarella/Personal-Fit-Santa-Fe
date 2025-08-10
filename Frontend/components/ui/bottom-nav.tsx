@@ -2,6 +2,7 @@
 
 import { Home, Calendar, Users, CreditCard, Settings } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
+import { UserRole } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -19,13 +20,13 @@ export function BottomNav() {
       { icon: CreditCard, label: "Pagos", href: "/payments" },
     ]
 
-    if (user.role === "admin") {
+            if (user.role === UserRole.ADMIN) {
       baseItems.push(
         { icon: Users, label: "Clientes", href: "/clients" },
         
       )
     }
-    else if (user.role === "trainer") {
+            else if (user.role === UserRole.TRAINER) {
       baseItems.push(
         { icon: Users, label: "Clientes", href: "/clients" },
       )

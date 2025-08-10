@@ -24,6 +24,7 @@ import {
   MailWarningIcon,
 } from "lucide-react"
 import { useActivities } from "@/hooks/use-activity"
+import { ActivityStatus, AttendanceStatus } from "@/lib/types"
 
 interface DetailsActivityDialogProps {
   open: boolean
@@ -77,11 +78,11 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active":
+      case ActivityStatus.ACTIVE:
         return "success"
-      case "cancelled":
+      case ActivityStatus.CANCELLED:
         return "destructive"
-      case "completed":
+      case ActivityStatus.COMPLETED:
         return "secondary"
       default:
         return "secondary"
@@ -90,19 +91,19 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "active":
+      case ActivityStatus.ACTIVE:
         return "Activa"
-      case "cancelled":
+      case ActivityStatus.CANCELLED:
         return "Cancelada"
-      case "completed":
+      case ActivityStatus.COMPLETED:
         return "Completada"
       default:
         return status
     }
   }
 
-  const presentParticipants = selectedActivity.participants.filter((p) => p.status === "present")
-  const absentParticipants = selectedActivity.participants.filter((p) => p.status === "absent")
+  const presentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.PRESENT)
+  const absentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.ABSENT)
   const occupancyRate = Math.round((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100)
 
   return (
@@ -306,26 +307,26 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                      <>
-                        {p.status === "present" && (
-                          <Badge variant={'success'}>
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Presente
-                          </Badge>
-                        )}
-                        {p.status === "absent" && (
-                          <Badge variant={'destructive'}>
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Ausente
-                          </Badge>
-                        )}
-                        {p.status === "pending" && (
-                          <Badge variant={'warning'}>
-                            <MailWarningIcon className="h-3 w-3 mr-1" />
-                            Pendiente
-                          </Badge>
-                        )}
-                      </>
+                        <>
+                          {p.status === AttendanceStatus.PRESENT && (
+                            <Badge variant={'success'}>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Presente
+                            </Badge>
+                          )}
+                          {p.status === AttendanceStatus.ABSENT && (
+                            <Badge variant={'destructive'}>
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Ausente
+                            </Badge>
+                          )}
+                          {p.status === AttendanceStatus.PENDING && (
+                            <Badge variant={'warning'}>
+                              <MailWarningIcon className="h-3 w-3 mr-1" />
+                              Pendiente
+                            </Badge>
+                          )}
+                        </>
                       </div>
                     </div>
                   </CardContent>

@@ -9,6 +9,7 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useToast } from "@/hooks/use-toast"
+import { NotificationType, NotificationCategoryType } from "@/lib/types"
 import {
     AlertTriangle,
     Archive,
@@ -88,13 +89,13 @@ export default function NotificationsPage() {
 
     const getNotificationIcon = (type: string) => {
         switch (type) {
-            case "success":
+            case NotificationType.SUCCESS:
                 return <CheckCircle className="h-5 w-5 text-success" />
-            case "error":
+            case NotificationType.ERROR:
                 return <XCircle className="h-5 w-5 text-destructive" />
-            case "warning":
+            case NotificationType.WARNING:
                 return <AlertTriangle className="h-5 w-5 text-warning" />
-            case "info":
+            case NotificationType.INFO:
             default:
                 return <Info className="h-5 w-5 text-primary" />
         }
@@ -102,12 +103,12 @@ export default function NotificationsPage() {
 
     const getEntityIcon = (entityType: string) => {
         switch (entityType) {
-            case "payment":
+            case NotificationCategoryType.PAYMENT:
                 return <CreditCard className="h-4 w-4" />
-            case "activity":
+            case NotificationCategoryType.ACTIVITY:
                 return <Calendar className="h-4 w-4" />
-            case "client":
-            case "enrollment":
+            case NotificationCategoryType.CLIENT:
+            case NotificationCategoryType.ENROLLMENT:
                 return <Users className="h-4 w-4" />
             default:
                 return <Bell className="h-4 w-4" />
@@ -141,7 +142,7 @@ export default function NotificationsPage() {
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 {getEntityIcon(notification.notificationCategory || "")}
                                 <span className="capitalize">
-                                    {({ payment: "Pago", enrollment: "Inscripción", activity: "Actividad", client: "Cliente" } as Record<string, string>)[notification.notificationCategory || ""] || ""}
+                                    {({ [NotificationCategoryType.PAYMENT]: "Pago", [NotificationCategoryType.ENROLLMENT]: "Inscripción", [NotificationCategoryType.ACTIVITY]: "Actividad", [NotificationCategoryType.CLIENT]: "Cliente" } as Record<string, string>)[notification.notificationCategory || ""] || ""}
                                 </span>
                             </div>
                             {showActions && (

@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/providers/auth-provider"
 import { usePayment } from "@/hooks/use-payment"
+import { UserRole, PaymentStatus } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -38,12 +39,12 @@ export default function PaymentsPage() {
         payments,
         updatePaymentStatus,
         isLoading,
-    } = usePayment(user?.id, user?.role === "admin")
+    } = usePayment(user?.id, user?.role === UserRole.ADMIN)
 
     // Forzar actualización de datos cuando se monta el componente
     useEffect(() => {
-        if (user?.id || user?.role === "admin") {
-            const queryKey = user?.role === "admin" ? ["payments", "admin"] : ["payments", user.id]
+        if (user?.id || user?.role === UserRole.ADMIN) {
+            const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
             queryClient.invalidateQueries({ queryKey })
 
             // Verificar si hay un flag de actualización desde un pago nuevo
@@ -83,8 +84,8 @@ export default function PaymentsPage() {
                 referrer.includes('/payments/result/pending') ||
                 referrer.includes('/payments/result/failure')
             )) {
-                if (user?.id || user?.role === "admin") {
-                    const queryKey = user?.role === "admin" ? ["payments", "admin"] : ["payments", user.id]
+                if (user?.id || user?.role === UserRole.ADMIN) {
+                    const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
                     queryClient.invalidateQueries({ queryKey });
                 }
             }
@@ -121,12 +122,12 @@ export default function PaymentsPage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "paid":
+            case PaymentStatus.PAID:
                 return "success"
-            case "pending":
+            case PaymentStatus.PENDING:
                 return "warning"
-            case "rejected":
-            case "debtor":
+            case PaymentStatus.REJECTED:
+            case PaymentStatus.DEBTOR:
                 return "destructive"
             default:
                 return "secondary"
@@ -135,13 +136,13 @@ export default function PaymentsPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case "paid":
+            case PaymentStatus.PAID:
                 return "Pagado"
-            case "pending":
+            case PaymentStatus.PENDING:
                 return "Pendiente"
-            case "rejected":
+            case PaymentStatus.REJECTED:
                 return "Rechazado"
-            case "debtor":
+            case PaymentStatus.DEBTOR:
                 return "Vencido"
             default:
                 return status
@@ -161,20 +162,20 @@ export default function PaymentsPage() {
             p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase()),
     )
-    const paidPayments = filteredPayments.filter((p) => p.status === "paid")
-    const pendingPayments = filteredPayments.filter((p) => p.status === "pending")
+    const paidPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PAID)
+    const pendingPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PENDING)
     const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0)
 
     // Obtener información del plan activo y pendiente
     const activePayment = paidPayments.find(p => {
         const now = new Date()
         const expiresAt = p.expiresAt ? new Date(p.expiresAt) : null
-        return p.status === "paid" && expiresAt && expiresAt > now
+        return p.status === PaymentStatus.PAID && expiresAt && expiresAt > now
     })
-    const pendingPayment = pendingPayments.find(p => p.status === "pending")
+    const pendingPayment = pendingPayments.find(p => p.status === PaymentStatus.PENDING)
 
     // Lógica para determinar si el cliente puede crear un nuevo pago
-    const canCreateNewPayment = user.role === "client" &&
+    const canCreateNewPayment = user.role === UserRole.CLIENT &&
         !activePayment &&
         !pendingPayment &&
         monthlyFee !== null
@@ -189,7 +190,7 @@ export default function PaymentsPage() {
                 title="Pagos"
                 actions={
                     <div className="flex gap-x-2">
-                        {user.role === "admin" ? (
+                        {user.role === UserRole.ADMIN ? (
                             <>
                                 <Link href={pendingPayments.length <= 0 ? '#' : '/payments/verify'}
                                     className={pendingPayments.length <= 0 ? 'pointer-events-none' : ''}
@@ -211,7 +212,7 @@ export default function PaymentsPage() {
                                     </Button>
                                 </Link>
                             </>
-                        ) : user.role === "client" ? (
+                        ) : user.role === UserRole.CLIENT ? (
                             canCreateNewPayment ? (
                                 <Link href="/payments/method-select">
                                     <Button size="sm">
@@ -236,7 +237,7 @@ export default function PaymentsPage() {
 
             <div className="container-centered py-6 space-y-6">
                 {/* Search - Solo para admin */}
-                {user.role === "admin" && <div className="relative">
+                {UserRole.ADMIN && <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Buscar por cliente o mes..."
@@ -248,7 +249,7 @@ export default function PaymentsPage() {
                 }
 
                 {/* Card informativa para clientes */}
-                {user.role === "client" && (
+                {UserRole.CLIENT && (
                     <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
@@ -289,7 +290,7 @@ export default function PaymentsPage() {
                 )}
 
                 {/* Stats - Solo para admin */}
-                {user.role === "admin" && (
+                {UserRole.ADMIN && (
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
@@ -370,7 +371,7 @@ export default function PaymentsPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        {user?.role === "admin" && (
+                                        {UserRole.ADMIN && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"

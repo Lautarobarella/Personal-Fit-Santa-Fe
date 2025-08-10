@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { usePayment } from "@/hooks/use-payment"
 import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { useToast } from "@/hooks/use-toast"
-import { PaymentType } from "@/lib/types"
+import { PaymentType, UserRole, PaymentStatus } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -54,7 +54,7 @@ export default function PaymentVerificationPage() {
 
   // Redirige si no es admin
   useEffect(() => {
-    if (user && user.role !== "admin") {
+            if (user && user.role !== UserRole.ADMIN) {
       router.replace("/payments")
     }
   }, [user, router])
@@ -92,7 +92,7 @@ export default function PaymentVerificationPage() {
 
 
   // Estado de carga
-  if (loading || !user || user.role !== "admin") {
+          if (loading || !user || user.role !== UserRole.ADMIN) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin mb-2" />
@@ -113,28 +113,28 @@ export default function PaymentVerificationPage() {
 
 
   // Helper visual
-  const formatDateTime = (date: Date | string) => {
+  const formatDateTime = (date: Date | string | null) => {
     return new Intl.DateTimeFormat("es-ES", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(new Date(date))
+    }).format(new Date(date ?? "N/A"))
   }
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "paid": return "success"
-      case "rejected": return "destructive"
-      case "pending": return "warning"
+      case PaymentStatus.PAID: return "success"
+      case PaymentStatus.REJECTED: return "destructive"
+      case PaymentStatus.PENDING: return "warning"
       default: return "secondary"
     }
   }
   const getStatusText = (status: string) => {
     switch (status) {
-      case "paid": return "Pagado"
-      case "rejected": return "Rechazado"
-      case "pending": return "Pendiente"
+      case PaymentStatus.PAID: return "Pagado"
+      case PaymentStatus.REJECTED: return "Rechazado"
+      case PaymentStatus.PENDING: return "Pendiente"
       default: return status
     }
   }

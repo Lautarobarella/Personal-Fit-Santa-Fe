@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
+import { UserRole } from "@/lib/types"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,7 +28,7 @@ export default function EditClientPage() {
 
   const [errors, setErrors] = useState<Partial<UserFormType>>({})
 
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== UserRole.ADMIN) {
     return <div>No tienes permisos para editar clientes</div>
   }
 
@@ -43,7 +44,7 @@ export default function EditClientPage() {
     if (!form.birthDate) newErrors.birthDate = "La fecha de nacimiento es requerida"
     if (!form.address.trim()) newErrors.address = "La dirección es requerida"
     if (!form.password.trim()) newErrors.password = "La contraseña es requerida"
-    
+
     // Validate age (must be at least 16)
     if (form.birthDate) {
       const birthDate = new Date(form.birthDate)
@@ -198,18 +199,18 @@ export default function EditClientPage() {
                   {errors.address && <p className="text-sm text-error">{errors.address}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="trainer">Rol</Label>
-                    <Select value={form.role} onValueChange={(value) => handleInputChange("role", value)}>
-                      <SelectTrigger className={errors.role ? "border-error" : ""}>
-                        <SelectValue placeholder="Seleccionar rol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="client">Cliente</SelectItem>
-                        <SelectItem value="trainer">Entrenador</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {errors.role && <p className="text-sm text-error">{errors.role}</p>}
+                  <Label htmlFor="trainer">Rol</Label>
+                  <Select value={form.role} onValueChange={(value) => handleInputChange("role", value)}>
+                    <SelectTrigger className={errors.role ? "border-error" : ""}>
+                      <SelectValue placeholder="Seleccionar rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UserRole.CLIENT}>Cliente</SelectItem>
+                      <SelectItem value={UserRole.TRAINER}>Entrenador</SelectItem>
+                      <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.role && <p className="text-sm text-error">{errors.role}</p>}
                 </div>
               </div>
 

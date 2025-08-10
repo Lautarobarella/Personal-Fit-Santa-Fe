@@ -19,6 +19,7 @@ import { AttendanceActivityDialog } from "@/components/activities/attendance-act
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
 import { useActivities } from "@/hooks/use-activity"
+import { UserRole } from "@/lib/types"
 import { ActivityType } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -101,7 +102,7 @@ export default function ActivitiesPage() {
     )
   }
 
-  const canManageActivities = user.role === "admin" || user.role === "trainer"
+  const canManageActivities = user.role === UserRole.ADMIN || user.role === UserRole.TRAINER
 
   // Get week dates (Monday to Sunday)
   const getWeekDates = (startDate: Date) => {
@@ -470,7 +471,7 @@ export default function ActivitiesPage() {
                             </div>
 
                             <div className="flex gap-2">
-                              {user.role === "client" && (
+                              {user.role === UserRole.CLIENT && (
                               <Button
                                 size="sm"
                                 onClick={() => handleEnrollActivity(activity)}
@@ -538,7 +539,7 @@ export default function ActivitiesPage() {
 
         {/* Weekly Summary */}
 
-        { user.role === "admin" && <Card>
+                    { user.role === UserRole.ADMIN && <Card>
           <CardContent className="p-4">
             <h3 className="font-semibold mb-3">Resumen de la Semana</h3>
             <div className="grid grid-cols-2 gap-4 text-center">

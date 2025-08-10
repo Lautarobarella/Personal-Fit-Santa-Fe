@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import Link from "next/link"
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { useClients } from "@/hooks/use-client"
+import { UserRole } from "@/lib/types"
 
 export default function ClientsPage() {
 
@@ -26,7 +27,7 @@ export default function ClientsPage() {
   } = useClients()
   const [searchTerm, setSearchTerm] = useState("")
 
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active")
+  const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "INACTIVE" | "all">("ACTIVE")
 
   const [clientDetailsDialog, setClientDetailsDialog] = useState<{
     open: boolean
@@ -37,7 +38,7 @@ export default function ClientsPage() {
     loadClients()
   }, [loadClients])
 
-  if (!user || user.role === "client") {
+          if (!user || user.role === UserRole.CLIENT) {
     return <div>No tienes permisos para ver esta página</div>
   }
 
@@ -63,13 +64,13 @@ export default function ClientsPage() {
     )
 
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string | null) => {
 
     return new Intl.DateTimeFormat("es-ES", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(new Date(date))
+    }).format(new Date(date ?? "N/A"))
   }
 
   const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
@@ -79,7 +80,7 @@ export default function ClientsPage() {
       <MobileHeader
         title="Clientes"
         actions={
-          user.role === "admin" ? (
+          user.role === UserRole.ADMIN ? (
             <Link href="/clients/new">
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-1" />
@@ -104,26 +105,26 @@ export default function ClientsPage() {
 
         <div className="grid grid-cols-3 gap-4">
           <button
-            className={`rounded-lg transition border-2 ${statusFilter === "active" ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
-            onClick={() => setStatusFilter("active")}
+            className={`rounded-lg transition border-2 ${statusFilter === "ACTIVE" ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
+            onClick={() => setStatusFilter("ACTIVE")}
           >
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {clients.filter((c) => c.status === "active").length}
+                  {clients.filter((c) => c.status === "ACTIVE").length}
                 </div>
                 <div className="text-sm text-muted-foreground">Activos</div>
               </CardContent>
             </Card>
           </button>
           <button
-            className={`rounded-lg transition border-2 ${statusFilter === "inactive" ? "border-orange-600 bg-orange-50" : "border-transparent"} focus:outline-none`}
-            onClick={() => setStatusFilter("inactive")}
+            className={`rounded-lg transition border-2 ${statusFilter === "INACTIVE" ? "border-orange-600 bg-orange-50" : "border-transparent"} focus:outline-none`}
+            onClick={() => setStatusFilter("INACTIVE")}
           >
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {clients.filter((c) => c.status === "inactive").length}
+                  {clients.filter((c) => c.status === "INACTIVE").length}
                 </div>
                 <div className="text-sm text-muted-foreground">Inactivos</div>
               </CardContent>
@@ -157,8 +158,8 @@ export default function ClientsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium truncate">{client.firstName + " " + client.lastName}</h3>
-                      <Badge variant={client.status === "active" ? "default" : "secondary"}>
-                        {client.status === "active" ? "Activo" : "Inactivo"}
+                      <Badge variant={client.status === "ACTIVE" ? "default" : "secondary"}>
+                        {client.status === "ACTIVE" ? "Activo" : "Inactivo"}
                       </Badge>
                     </div>
 
@@ -191,7 +192,7 @@ export default function ClientsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleClientDetails(client.id)}>Ver Detalles</DropdownMenuItem>
-                      {user.role === "admin" && (
+                      {user.role === UserRole.ADMIN && (
                         <>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
@@ -211,7 +212,7 @@ export default function ClientsPage() {
               <div className="text-muted-foreground mb-4">
                 {searchTerm ? "No se encontraron clientes" : "No hay clientes registrados"}
               </div>
-              {user.role === "admin" && !searchTerm && (
+              {user.role === UserRole.ADMIN && !searchTerm && (
                 <Link href="/clients/new">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />

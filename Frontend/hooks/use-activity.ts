@@ -9,7 +9,7 @@ import {
     newActivity,
     unenrollActivity
 } from "@/api/activities/activitiesApi"
-import type { ActivityDetailInfo, ActivityFormType, ActivityType, EnrollmentRequest, EnrollmentResponse, UserType } from "@/lib/types"
+import { AttendanceStatus, type ActivityDetailInfo, type ActivityFormType, type ActivityType, type EnrollmentRequest, type EnrollmentResponse, type UserType } from "@/lib/types"
 import { useCallback, useState } from "react"
 
 export function useActivities() {
@@ -148,7 +148,7 @@ export function useActivities() {
       const enrollmentRequest: EnrollmentRequest = {
         activityId,
         userId,
-        status: "pending",
+        status: AttendanceStatus.PENDING,
         createdAt: new Date()
       }
 
@@ -193,7 +193,7 @@ export function useActivities() {
       const enrollmentRequest: EnrollmentRequest = {
         activityId,
         userId,
-        status: "absent",
+        status: AttendanceStatus.ABSENT,
         createdAt: new Date()
       }
 
@@ -230,7 +230,7 @@ export function useActivities() {
   }, [])
 
   // Función para marcar asistencia de un participante
-  const markParticipantPresent = useCallback(async (activityId: number, participantId: number, status: "present" | "absent" | "late") => {
+  const markParticipantPresent = useCallback(async (activityId: number, participantId: number, status: AttendanceStatus) => {
     setLoading(true)
     setError(null)
     

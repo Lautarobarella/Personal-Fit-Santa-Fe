@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
-import { ActivityFormType } from "@/lib/types"
+import { ActivityFormType, UserRole } from "@/lib/types"
 import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -41,7 +41,7 @@ export default function NewActivityPage() {
     loadTrainers()
   }, [])
 
-  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
+      if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.TRAINER)) {
     return <div>No tienes permisos para crear actividades</div>
   }
 
@@ -155,7 +155,7 @@ export default function NewActivityPage() {
                   {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
-                {user.role === "admin" && (
+                {user.role === UserRole.ADMIN && (
                   <div className="space-y-2">
                     <Label htmlFor="trainerName">Entrenador asignado</Label>
 

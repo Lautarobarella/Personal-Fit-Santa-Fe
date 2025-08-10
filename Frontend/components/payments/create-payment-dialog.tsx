@@ -19,6 +19,7 @@ import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
+import { UserRole, PaymentStatus } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Textarea } from "../ui/textarea"
 
@@ -54,7 +55,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     
     // Hook para obtener pagos del cliente
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePayment(
-        user?.role === "client" ? user.id : undefined,
+        user?.role === UserRole.CLIENT ? user.id : undefined,
         false
     )
     
@@ -76,7 +77,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
         if (open && user && monthlyFee !== null) {
-            setSelectedClient((user.role==="client")? user.dni?.toString() : "")
+            setSelectedClient((user.role===UserRole.CLIENT)? user.dni?.toString() : "")
             setAmount(monthlyFee.toString())
         }
     }, [open, user, monthlyFee])
@@ -94,7 +95,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         
         // Verificar si hay algún pago con estado "paid" o "pending"
         const hasActiveOrPendingPayment = clientPayments.some(payment => 
-            payment.status === "paid" || payment.status === "pending"
+            payment.status === PaymentStatus.PAID || payment.status === PaymentStatus.PENDING
         )
         
         return hasActiveOrPendingPayment
@@ -164,7 +165,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             return
         }
 
-        if (user?.role === "client" && !selectedFile) {
+        if (user?.role === UserRole.CLIENT && !selectedFile) {
             toast({
                 title: "Error",
                 description: "Debes subir un comprobante para enviar el pago",
@@ -197,7 +198,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         }
 
         // Validar si el cliente ya tiene un pago activo o pendiente
-        if (user?.role === "client") {
+        if (user?.role === UserRole.CLIENT) {
             if (isLoadingPayments) {
                 toast({
                     title: "Cargando",
@@ -255,7 +256,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const handleClose = () => {
         onOpenChange(false)
         // Redirigir según el rol del usuario
-        if (user?.role === "client") {
+        if (user?.role === UserRole.CLIENT) {
             router.push("/payments/method-select")
         } else {
             router.push("/payments")
@@ -273,7 +274,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setNotes("")
 
         // Mensaje según el rol del usuario
-        const isAutomaticPayment = user?.role === "admin"
+        const isAutomaticPayment = user?.role === UserRole.ADMIN
         const message = isAutomaticPayment 
             ? "El pago se ha registrado y el cliente ha sido activado automáticamente"
             : "El pago se ha registrado correctamente"

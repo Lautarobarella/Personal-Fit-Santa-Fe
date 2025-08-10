@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useAuth } from "@/components/providers/auth-provider"
+import { UserRole } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -29,7 +30,7 @@ export default function NewClientPage() {
 
   const [errors, setErrors] = useState<Partial<UserFormType>>({})
 
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== UserRole.ADMIN) {
     return <div>No tienes permisos para crear clientes</div>
   }
 
@@ -205,9 +206,9 @@ export default function NewClientPage() {
                         <SelectValue placeholder="Seleccionar rol" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="client">Cliente</SelectItem>
-                        <SelectItem value="trainer">Entrenador</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value={UserRole.CLIENT}>Cliente</SelectItem>
+                        <SelectItem value={UserRole.TRAINER}>Entrenador</SelectItem>
+                        <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.role && <p className="text-sm text-error">{errors.role}</p>}

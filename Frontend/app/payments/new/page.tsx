@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { UserRole } from "@/lib/types"
 
 export default function NewPaymentPage() {
   const { toast } = useToast()
@@ -22,7 +23,7 @@ export default function NewPaymentPage() {
   }) => {
     try {
       // Determinar si es un pago automático (admin) o manual
-      const isAutomaticPayment = user?.role === "admin"
+      const isAutomaticPayment = user?.role === UserRole.ADMIN
       
       await createPaymentWithStatus({
         paymentData: payment,
@@ -41,7 +42,7 @@ export default function NewPaymentPage() {
   const handleDialogChange = (open: boolean) => {
     if (!open) {
       // Redirigir según el rol del usuario
-      if (user?.role === "client") {
+              if (user?.role === UserRole.CLIENT) {
         router.push("/payments/method-select")
       } else {
         router.push("/payments")

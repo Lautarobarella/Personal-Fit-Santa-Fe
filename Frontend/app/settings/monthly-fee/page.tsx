@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
+import { UserRole } from "@/lib/types"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,7 +23,7 @@ export default function MonthlyFeePage() {
 
   // Redirect if not admin
   useEffect(() => {
-    if (user && user.role !== "admin") {
+            if (user && user.role !== UserRole.ADMIN) {
       router.push("/settings")
     }
   }, [user, router])
@@ -47,7 +48,7 @@ export default function MonthlyFeePage() {
       }
     }
 
-    if (user?.role === "admin") {
+            if (user?.role === UserRole.ADMIN) {
       fetchMonthlyFee()
     }
   }, [user, toast])
@@ -85,7 +86,7 @@ export default function MonthlyFeePage() {
     }
   }
 
-  if (!user || user.role !== "admin") {
+          if (!user || user.role !== UserRole.ADMIN) {
     return null
   }
 

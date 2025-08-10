@@ -16,6 +16,7 @@ import { Card, CardContent } from "../ui/card"
 import { CheckCircle, AlertCircle, Loader2, Users, MailWarningIcon } from "lucide-react"
 import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
+import { AttendanceStatus } from "@/lib/types"
 
 interface AttendanceActivityDialogProps {
   open: boolean
@@ -56,7 +57,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantPresent(selectedActivity.id, participantId, "present")
+      const result = await markParticipantPresent(selectedActivity.id, participantId, AttendanceStatus.PRESENT)
       
       if (result.success) {
         toast({
@@ -86,7 +87,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantPresent(selectedActivity.id, participantId, "absent")
+      const result = await markParticipantPresent(selectedActivity.id, participantId, AttendanceStatus.ABSENT)
       
       if (result.success) {
         toast({
@@ -116,7 +117,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantPresent(selectedActivity.id, participantId, "late")
+      const result = await markParticipantPresent(selectedActivity.id, participantId, AttendanceStatus.LATE)
       
       if (result.success) {
         toast({
@@ -162,16 +163,16 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
           <h3 className="text-lg font-semibold">Lista de Participantes</h3>
           <div className="flex gap-2 text-sm">
             <Badge variant="success">
-              {selectedActivity.participants.filter(p => p.status === "present").length} Presentes
+              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.PRESENT).length} Presentes
             </Badge>
             <Badge variant="destructive">
-              {selectedActivity.participants.filter(p => p.status === "absent").length} Ausentes
+              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.ABSENT).length} Ausentes
             </Badge>
             <Badge variant="secondary">
-              {selectedActivity.participants.filter(p => p.status === "late").length} Tardanzas
+              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.LATE).length} Tardanzas
             </Badge>
             <Badge variant="warning">
-              {selectedActivity.participants.filter(p => p.status === "pending").length} Pendientes
+              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.PENDING).length} Pendientes
             </Badge>
           </div>
         </div>
@@ -199,25 +200,25 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
 
                   <div className="flex items-center gap-2">
                     <>
-                      {p.status === "present" && (
+                      {p.status === AttendanceStatus.PRESENT && (
                         <Badge variant={'success'}>
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Presente
                         </Badge>
                       )}
-                      {p.status === "absent" && (
+                      {p.status === AttendanceStatus.ABSENT && (
                         <Badge variant={'destructive'}>
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Ausente
                         </Badge>
                       )}
-                      {p.status === "pending" && (
+                      {p.status === AttendanceStatus.PENDING && (
                         <Badge variant={'warning'}>
                           <MailWarningIcon className="h-3 w-3 mr-1" />
                           Pendiente
                         </Badge>
                       )}
-                      {p.status === "late" && (
+                      {p.status === AttendanceStatus.LATE && (
                         <Badge variant={'secondary'}>
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Tardanza
@@ -226,7 +227,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                     </>
 
                     {/* Botones para marcar asistencia */}
-                    {p.status === "present" && (
+                    {p.status === AttendanceStatus.PRESENT && (
                       <div className="flex gap-1">
                         <Button
                           size="sm"
@@ -248,7 +249,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                         </Button>
                       </div>
                     )}
-                    {(p.status === "pending" || p.status === "absent") && (
+                    {(p.status === AttendanceStatus.PENDING || p.status === AttendanceStatus.ABSENT) && (
                       <div className="flex gap-1">
                         <Button
                           size="sm"
@@ -270,7 +271,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                         </Button>
                       </div>
                     )}
-                    {p.status === "late" && (
+                    {p.status === AttendanceStatus.LATE && (
                       <div className="flex gap-1">
                         <Button
                           size="sm"

@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, Clock, Users, Loader2 } from "lucide-react"
-import { ActivityFormType } from "@/lib/types"
+import { ActivityFormType, UserRole } from "@/lib/types"
 import { useActivities } from "@/hooks/use-activity"
 
 export default function EditActivityPage({ params }: { params: { id: number } }) {
@@ -57,7 +57,7 @@ export default function EditActivityPage({ params }: { params: { id: number } })
 
   const [errors, setErrors] = useState<Partial<ActivityFormType>>({})
 
-  if (!user || (user.role !== "admin" && user.role !== "trainer")) {
+  if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.TRAINER)) {
     return <div>No tienes permisos para editar actividades</div>
   }
 
@@ -190,7 +190,7 @@ export default function EditActivityPage({ params }: { params: { id: number } })
                   {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
-                {user.role === "admin" && (
+                {user.role === UserRole.ADMIN && (
                   <div className="space-y-2">
                     <Label htmlFor="trainerName">Entrenador asignado</Label>
                     <Select value={form.trainerId} onValueChange={(value) => handleInputChange("trainerId", value)}>
