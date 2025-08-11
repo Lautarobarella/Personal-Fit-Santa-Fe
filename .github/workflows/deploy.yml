@@ -114,10 +114,10 @@ jobs:
             git reset --hard origin/main
 
             echo "==> Construyendo imágenes (solo backend + frontend)"
-            docker compose build personalfit-backend personalfit-frontend
+            docker-compose build personalfit-backend personalfit-frontend
 
             echo "==> Actualizando servicios (no tocar postgres ni pgadmin)"
-            docker compose up -d --no-deps personalfit-backend personalfit-frontend
+            docker-compose up -d --no-deps personalfit-backend personalfit-frontend
 
             # Función para esperar estado healthy
             wait_for_healthy() {
@@ -147,14 +147,14 @@ jobs:
             echo "==> Esperando health de personalfit-backend..."
             if ! wait_for_healthy personalfit-backend 180; then
               echo "ERROR: backend no alcanzó estado healthy -> abortando deploy"
-              docker compose logs --no-color --timestamps personalfit-backend | tail -n 300
+              docker-compose logs --no-color --timestamps personalfit-backend | tail -n 300
               exit 10
             fi
 
             echo "==> Esperando health de personalfit-frontend..."
             if ! wait_for_healthy personalfit-frontend 180; then
               echo "ERROR: frontend no alcanzó estado healthy -> abortando deploy"
-              docker compose logs --no-color --timestamps personalfit-frontend | tail -n 300
+              docker-compose logs --no-color --timestamps personalfit-frontend | tail -n 300
               exit 11
             fi
 
