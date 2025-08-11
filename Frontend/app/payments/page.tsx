@@ -187,7 +187,7 @@ export default function PaymentsPage() {
     return (
         <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
             <MobileHeader
-                title="PAYMENTS"
+                title="Pagos"
                 actions={
                     <div className="flex gap-x-2">
                         {user.role === UserRole.ADMIN ? (
