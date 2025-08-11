@@ -78,6 +78,7 @@ jobs:
             git pull origin main
 
             echo "==> Construyendo y levantando servicios"
+            docker-compose down -v
             docker-compose up -d --build
 
             wait_for_healthy() {
