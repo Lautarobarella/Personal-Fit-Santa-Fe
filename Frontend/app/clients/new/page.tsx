@@ -208,7 +208,6 @@ export default function NewClientPage() {
                       <SelectContent>
                         <SelectItem value={UserRole.CLIENT}>Cliente</SelectItem>
                         <SelectItem value={UserRole.TRAINER}>Entrenador</SelectItem>
-                        <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.role && <p className="text-sm text-error">{errors.role}</p>}
