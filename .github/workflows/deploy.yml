@@ -184,22 +184,34 @@ jobs:
                 TABLES="app_user activity attendance payment payment_file notification app_settings"
                 
                 for table in $TABLES; do
-                  # Buscar líneas COPY para esta tabla en el backup
-                  COPY_LINES=$(grep -c "^COPY public\\.$table " "$BACKUP_FILE" 2>/dev/null || echo "0")
-                  
-                  if [ "$COPY_LINES" -gt 0 ]; then
-                    # Si encontramos COPY, contar las líneas de datos hasta el próximo \\. 
-                    # Usar awk para contar líneas entre COPY y \\.
-                    COUNT=$(awk "/^COPY public\\.$table /,/^\\\\\\.$/" "$BACKUP_FILE" 2>/dev/null | grep -v "^COPY" | grep -v "^\\\\\\.$" | wc -l | tr -d ' ' || echo "0")
-                    if [ "$COUNT" -gt 0 ]; then
-                      echo "  ✅ $table: $COUNT registros en backup"
-                      TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                  # Buscar líneas COPY para esta tabla en el backup (más flexible)
+                  if grep -q "^COPY public\\.$table" "$BACKUP_FILE" 2>/dev/null; then
+                    echo "  🔍 Analizando tabla $table..."
+                    
+                    # Extraer el bloque completo de datos para esta tabla
+                    # Desde COPY hasta el próximo \.
+                    START_LINE=$(grep -n "^COPY public\\.$table" "$BACKUP_FILE" | cut -d: -f1)
+                    if [ -n "$START_LINE" ]; then
+                      # Buscar el \\. después de la línea COPY
+                      END_LINE=$(tail -n +$((START_LINE + 1)) "$BACKUP_FILE" | grep -n "^\\\\\\.$" | head -n1 | cut -d: -f1)
+                      if [ -n "$END_LINE" ]; then
+                        # Calcular líneas de datos (END_LINE - 1 porque excluimos el \\.)
+                        COUNT=$((END_LINE - 1))
+                        if [ "$COUNT" -gt 0 ]; then
+                          echo "  ✅ $table: $COUNT registros en backup"
+                          TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                        else
+                          echo "  📋 $table: estructura presente, sin datos"
+                        fi
+                      else
+                        echo "  ⚠️  $table: estructura encontrada, pero formato inusual"
+                      fi
                     else
-                      echo "  📋 $table: estructura presente, sin datos"
+                      echo "  📋 $table: no se pudo analizar"
                     fi
                   else
                     # Buscar INSERT INTO como alternativa
-                    INSERT_COUNT=$(grep -c "^INSERT INTO public\\.$table\\|^INSERT INTO $table" "$BACKUP_FILE" 2>/dev/null || echo "0")
+                    INSERT_COUNT=$(grep -c "^INSERT INTO.*\\.$table\\|^INSERT INTO $table" "$BACKUP_FILE" 2>/dev/null || echo "0")
                     if [ "$INSERT_COUNT" -gt 0 ]; then
                       echo "  ✅ $table: $INSERT_COUNT registros en backup (INSERT)"
                       TOTAL_RECORDS=$((TOTAL_RECORDS + INSERT_COUNT))
