@@ -81,6 +81,30 @@ jobs:
             docker-compose down -v
             docker-compose up -d --build
 
+            # Esperar a Postgres (usa envs del contenedor)
+            wait_for_postgres() {
+              local timeout="${1:-120}"
+              local interval=2
+              local waited=0
+              while [ "$waited" -lt "$timeout" ]; do
+                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
+                  echo "$(date +'%F %T') - Postgres ready"
+                  return 0
+                fi
+                echo "$(date +'%F %T') - Esperando Postgres... (${waited}s/${timeout}s)"
+                sleep "$interval"
+                waited=$((waited + interval))
+              done
+              return 1
+            }
+
+            echo "==> Esperando Postgres..."
+            if ! wait_for_postgres 120; then
+              echo "ERROR: Postgres no estuvo listo a tiempo"
+              docker-compose logs --no-color --timestamps postgres | tail -n 200 || true
+              exit 5
+            fi
+
             wait_for_healthy() {
               local container="$1"
               local timeout_seconds="${2:-180}"
