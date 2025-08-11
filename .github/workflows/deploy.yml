@@ -144,6 +144,7 @@ jobs:
             echo "==> Actualizando repo (origin/main)"
             git fetch --all --prune
             git reset --hard origin/main
+            git pull origin main
 
             echo "==> Construyendo imágenes (solo backend + frontend)"
             docker-compose down -v
