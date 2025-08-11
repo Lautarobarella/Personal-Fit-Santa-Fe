@@ -81,7 +81,7 @@ jobs:
 
       - name: Sanity check de secrets
         run: |
-          for v in SSH_HOST SSH_USERNAME SSH_PASSWORD JWT_SECRET MP_ACCESS_TOKEN NEXT_PUBLIC_MP_PUBLIC_KEY NEXT_PUBLIC_MP_ENVIRONMENT; do
+          for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD JWT_SECRET MP_ACCESS_TOKEN NEXT_PUBLIC_MP_PUBLIC_KEY; do
             if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
               echo "Falta variable $v (revisa environment/Production o nombres)"; exit 1
             fi
