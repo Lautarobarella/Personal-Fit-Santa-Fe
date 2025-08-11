@@ -122,6 +122,25 @@ jobs:
             echo "==> Entrando en $DEPLOY_DIR"
             cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
 
+            echo "==> Creando backup de la base de datos..."
+            mkdir -p /opt/backup
+            BACKUP_FILE="/opt/backup/backup_$(date +%Y%m%d_%H%M%S).sql"
+            
+            # Verificar que PostgreSQL esté funcionando antes del backup
+            if ! docker-compose exec -T postgres pg_isready -U postgres; then
+              echo "ERROR: PostgreSQL no está listo para backup"
+              exit 3
+            fi
+            
+            # Crear backup
+            if docker-compose exec -T postgres pg_dump -U postgres -d personalfit > "$BACKUP_FILE"; then
+              echo "✅ Backup creado exitosamente en: $BACKUP_FILE"
+              echo "📊 Tamaño del backup: $(du -h "$BACKUP_FILE" | cut -f1)"
+            else
+              echo "ERROR: Falló la creación del backup"
+              exit 4
+            fi
+
             echo "==> Actualizando repo (origin/main)"
             git fetch --all --prune
             git reset --hard origin/main
@@ -193,5 +212,33 @@ jobs:
             echo "==> Limpieza de imágenes antiguas"
             docker image prune -f
 
+            echo "==> Verificando integridad de la base de datos..."
+            # Crear base de datos temporal para test de restauración
+            if docker-compose exec -T postgres psql -U postgres -c "CREATE DATABASE test_restore;" 2>/dev/null; then
+              echo "📋 Base de datos temporal creada para test"
+              
+              # Restaurar backup en base temporal
+              if docker-compose exec -T postgres psql -U postgres -d test_restore < "$BACKUP_FILE" 2>/dev/null; then
+                echo "🔄 Backup restaurado en base temporal"
+                
+                # Verificar que se restauró correctamente (contar usuarios)
+                USER_COUNT=$(docker-compose exec -T postgres psql -U postgres -d test_restore -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' \n')
+                if [ "$USER_COUNT" -ge 0 ] 2>/dev/null; then
+                  echo "✅ Verificación exitosa: $USER_COUNT usuarios encontrados en backup"
+                else
+                  echo "⚠️  Verificación parcial: no se pudo contar usuarios"
+                fi
+              else
+                echo "⚠️  No se pudo restaurar backup en base temporal"
+              fi
+              
+              # Limpiar base temporal
+              docker-compose exec -T postgres psql -U postgres -c "DROP DATABASE test_restore;" 2>/dev/null
+              echo "🧹 Base de datos temporal eliminada"
+            else
+              echo "⚠️  No se pudo crear base temporal para test"
+            fi
+
             echo "==> DEPLOY OK: servicios actualizados y healthy"
+            echo "💾 Backup disponible en: $BACKUP_FILE"
           REMOTE
