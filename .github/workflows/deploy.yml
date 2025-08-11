@@ -176,27 +176,50 @@ jobs:
                 DATA_LINES=$(grep -c "INSERT INTO\|COPY.*FROM stdin" "$BACKUP_FILE" 2>/dev/null || echo 0)
                 echo "✅ Backup contiene $DATA_LINES líneas de datos"
                 
-                # Verificar conectividad y contar registros en todas las tablas principales
-                echo "Verificando contenido de tablas principales..."
+                # Analizar contenido del backup por tabla
+                echo "Analizando contenido del backup por tabla..."
                 TOTAL_RECORDS=0
                 
                 # Lista de tablas a verificar (nombres reales según los modelos)
                 TABLES="app_user activity attendance payment payment_file notification app_settings"
                 
                 for table in $TABLES; do
-                  COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM $table;\"" 2>/dev/null | tr -d ' \n' || echo "0")
-                  if [ "$COUNT" != "0" ] && [ "$COUNT" != "" ]; then
-                    echo "  ✅ $table: $COUNT registros"
-                    TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                  # Buscar líneas COPY para esta tabla en el backup
+                  COPY_LINES=$(grep -c "^COPY public\\.$table " "$BACKUP_FILE" 2>/dev/null || echo "0")
+                  
+                  if [ "$COPY_LINES" -gt 0 ]; then
+                    # Si encontramos COPY, contar las líneas de datos hasta el próximo \\. 
+                    # Usar awk para contar líneas entre COPY y \\.
+                    COUNT=$(awk "/^COPY public\\.$table /,/^\\\\\\.$/" "$BACKUP_FILE" 2>/dev/null | grep -v "^COPY" | grep -v "^\\\\\\.$" | wc -l | tr -d ' ' || echo "0")
+                    if [ "$COUNT" -gt 0 ]; then
+                      echo "  ✅ $table: $COUNT registros en backup"
+                      TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                    else
+                      echo "  📋 $table: estructura presente, sin datos"
+                    fi
                   else
-                    echo "  📋 $table: vacía o no accesible"
+                    # Buscar INSERT INTO como alternativa
+                    INSERT_COUNT=$(grep -c "^INSERT INTO public\\.$table\\|^INSERT INTO $table" "$BACKUP_FILE" 2>/dev/null || echo "0")
+                    if [ "$INSERT_COUNT" -gt 0 ]; then
+                      echo "  ✅ $table: $INSERT_COUNT registros en backup (INSERT)"
+                      TOTAL_RECORDS=$((TOTAL_RECORDS + INSERT_COUNT))
+                    else
+                      echo "  📋 $table: no encontrada en backup"
+                    fi
                   fi
                 done
                 
                 if [ "$TOTAL_RECORDS" -gt 0 ]; then
-                  echo "✅ Base de datos contiene $TOTAL_RECORDS registros totales - backup debería ser restaurable"
+                  echo "✅ Backup contiene $TOTAL_RECORDS registros totales distribuidos en las tablas"
                 else
-                  echo "⚠️  Base de datos parece estar vacía o no accesible"
+                  echo "⚠️  No se pudieron detectar registros específicos en el backup"
+                fi
+                
+                # Verificar que la base actual esté accesible para futuras operaciones
+                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"SELECT 1;\"" 2>/dev/null | grep -q "1"; then
+                  echo "✅ Base de datos actual accesible para futuras operaciones"
+                else
+                  echo "⚠️  Problema de conectividad con la base actual"
                 fi
               else
                 echo "⚠️  Backup no contiene estructura SQL reconocible"
