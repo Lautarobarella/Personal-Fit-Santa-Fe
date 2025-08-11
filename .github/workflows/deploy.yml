@@ -190,18 +190,24 @@ jobs:
                     
                     # Extraer el bloque completo de datos para esta tabla
                     # Desde COPY hasta el próximo \.
-                    START_LINE=$(grep -n "^COPY public\\.$table" "$BACKUP_FILE" | cut -d: -f1)
-                    if [ -n "$START_LINE" ]; then
+                    START_LINE=$(grep -n "^COPY public\\.$table" "$BACKUP_FILE" | head -n1 | cut -d: -f1)
+                    if [ -n "$START_LINE" ] && [ "$START_LINE" != "" ]; then
                       # Buscar el \\. después de la línea COPY
-                      END_LINE=$(tail -n +$((START_LINE + 1)) "$BACKUP_FILE" | grep -n "^\\\\\\.$" | head -n1 | cut -d: -f1)
-                      if [ -n "$END_LINE" ]; then
-                        # Calcular líneas de datos (END_LINE - 1 porque excluimos el \\.)
-                        COUNT=$((END_LINE - 1))
-                        if [ "$COUNT" -gt 0 ]; then
-                          echo "  ✅ $table: $COUNT registros en backup"
-                          TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                      RAW_END_LINE=$(tail -n +$((START_LINE + 1)) "$BACKUP_FILE" | grep -n "^\\\\\\.$" | head -n1 | cut -d: -f1)
+                      if [ -n "$RAW_END_LINE" ] && [ "$RAW_END_LINE" != "" ]; then
+                        # Limpiar cualquier carácter extraño y asegurar que es un número
+                        END_LINE=$(echo "$RAW_END_LINE" | tr -cd '0-9')
+                        if [ -n "$END_LINE" ] && [ "$END_LINE" -gt 0 ]; then
+                          # Calcular líneas de datos (END_LINE - 1 porque excluimos el \\.)
+                          COUNT=$((END_LINE - 1))
+                          if [ "$COUNT" -gt 0 ]; then
+                            echo "  ✅ $table: $COUNT registros en backup"
+                            TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                          else
+                            echo "  📋 $table: estructura presente, sin datos"
+                          fi
                         else
-                          echo "  📋 $table: estructura presente, sin datos"
+                          echo "  ⚠️  $table: no se pudo calcular registros"
                         fi
                       else
                         echo "  ⚠️  $table: estructura encontrada, pero formato inusual"
