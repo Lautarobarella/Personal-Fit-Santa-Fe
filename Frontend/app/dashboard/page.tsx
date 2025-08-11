@@ -128,10 +128,10 @@ function DashboardContent() {
   const getDashboardStats = () => {
     if (user.role === UserRole.ADMIN) {
       return [
-        { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600", subtitle: "programadas hoy" },
-        { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600", subtitle: "miembros activos" },
-        { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600", subtitle: "recaudado" },
-        { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600", subtitle: "promedio general" },
+        { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600", subtitle: "" },
+        { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600", subtitle: "" },
+        { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600", subtitle: "Generado" },
+        { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600", subtitle: "" },
       ]
     } else if (user.role === UserRole.TRAINER) {
       return [
@@ -172,30 +172,28 @@ function DashboardContent() {
           value: clientStats.weeklyActivityCount.toString(), 
           icon: Activity, 
           color: "text-blue-600",
-          subtitle: "clases esta semana"
+          subtitle: "Entrenamientos de la semana"
         },
         { 
           title: "Próxima Clase", 
           value: nextClassValue, 
           icon: Clock, 
-          color: "text-green-600",
+          color: "text-orange-600",
           subtitle: clientStats.nextClass?.name || "No programada"
         },
         { 
-          title: "Clases Completadas", 
+          title: "Entrenamientos completados", 
           value: clientStats.completedClassesCount.toString(), 
           icon: TrendingUp, 
           color: "text-purple-600",
-          subtitle: "total histórico"
+          subtitle: "Total histórico"
         },
         { 
           title: "Membresía", 
           value: membershipConfig.value, 
           icon: membershipConfig.icon, 
           color: membershipConfig.color,
-          bgColor: membershipConfig.bgColor,
-          borderColor: membershipConfig.borderColor,
-          subtitle: "estado actual"
+          subtitle: "Estado actual"
         },
       ]
     }
@@ -249,7 +247,7 @@ function DashboardContent() {
           {stats.map((stat, index) => (
             <Card 
               key={index} 
-              className={`${stat.bgColor ? stat.bgColor : ''} ${stat.borderColor ? stat.borderColor : ''}`}
+              className={`${stat.color ? stat.color : ''}`}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
