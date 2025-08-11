@@ -142,12 +142,33 @@ function DashboardContent() {
       ]
     } else {
       // Formatear la próxima clase
-      const nextClassValue = clientStats.nextClass 
-        ? new Intl.DateTimeFormat("es-ES", {
+      const formatNextClass = () => {
+        if (!clientStats.nextClass) return "Sin clases";
+        
+        const classDate = new Date(clientStats.nextClass.date);
+        const today = new Date();
+        
+        // Comparar solo las fechas (sin horas)
+        const isToday = classDate.toDateString() === today.toDateString();
+        
+        if (isToday) {
+          // Solo mostrar la hora si es hoy
+          return new Intl.DateTimeFormat("es-ES", {
             hour: "2-digit",
             minute: "2-digit",
-          }).format(new Date(clientStats.nextClass.date))
-        : "Sin clases";
+          }).format(classDate);
+        } else {
+          // Mostrar fecha y hora si es otro día
+          return new Intl.DateTimeFormat("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(classDate);
+        }
+      };
+      
+      const nextClassValue = formatNextClass();
 
       // Configurar la membresía activa
       const membershipConfig = clientStats.membershipStatus === UserStatus.ACTIVE 
@@ -250,15 +271,17 @@ function DashboardContent() {
               className={`${stat.color ? stat.color : ''}`}
             >
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    {stat.subtitle && (
-                      <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
-                    )}
+                <div className="flex items-center justify-between h-20">
+                  <div className="flex-1 flex flex-col justify-center h-full">
+                    <p className="text-sm text-muted-foreground leading-tight">{stat.title}</p>
+                    <p className="text-2xl font-bold leading-tight my-1">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      {stat.subtitle || '\u00A0'}
+                    </p>
                   </div>
-                  <stat.icon className={`h-8 w-8 ${stat.color} flex-shrink-0`} />
+                  <div className="flex items-center justify-center h-full">
+                    <stat.icon className={`h-8 w-8 ${stat.color} flex-shrink-0`} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
