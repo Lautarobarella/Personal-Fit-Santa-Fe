@@ -1,5 +1,6 @@
 package com.personalfit.controllers;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.personalfit.dto.User.ClientStatsDTO;
 import com.personalfit.dto.User.CreateUserDTO;
 import com.personalfit.dto.User.UserTypeDTO;
 import com.personalfit.enums.UserRole;
@@ -125,6 +127,86 @@ public class UserController {
         response.put("createdCount", createdCount);
         response.put("role", "CLIENT");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // ===== ENDPOINTS PARA ESTADÍSTICAS DEL CLIENTE =====
+
+    /**
+     * Endpoint unificado para obtener todas las estadísticas de un cliente
+     * @param clientId ID del cliente
+     * @return ClientStatsDTO con todas las estadísticas
+     */
+    @GetMapping("/stats/{clientId}")
+    public ResponseEntity<ClientStatsDTO> getClientStats(@PathVariable Long clientId) {
+        ClientStatsDTO stats = userService.getClientStats(clientId);
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Obtiene la cantidad de actividades de la semana actual para un cliente
+     * @param clientId ID del cliente
+     * @return Cantidad de actividades de la semana
+     */
+    @GetMapping("/{clientId}/weekly-activities")
+    public ResponseEntity<Integer> getWeeklyActivities(@PathVariable Long clientId) {
+        User client = userService.getUserById(clientId);
+        Integer count = userService.getWeeklyActivityCount(client);
+        return ResponseEntity.ok(count);
+    }
+
+    /**
+     * Obtiene la cantidad de actividades de una semana específica para un cliente
+     * @param clientId ID del cliente
+     * @param date Fecha de la semana (formato YYYY-MM-DD)
+     * @return Cantidad de actividades de esa semana
+     */
+    @GetMapping("/{clientId}/weekly-activities/{date}")
+    public ResponseEntity<Integer> getWeeklyActivities(@PathVariable Long clientId, @PathVariable String date) {
+        User client = userService.getUserById(clientId);
+        LocalDate weekDate = LocalDate.parse(date);
+        Integer count = userService.getWeeklyActivityCount(client, weekDate);
+        return ResponseEntity.ok(count);
+    }
+
+    /**
+     * Obtiene la próxima clase más cercana para un cliente
+     * @param clientId ID del cliente
+     * @return NextClassDTO con información de la próxima clase
+     */
+    @GetMapping("/{clientId}/next-class")
+    public ResponseEntity<ClientStatsDTO.NextClassDTO> getNextClass(@PathVariable Long clientId) {
+        User client = userService.getUserById(clientId);
+        ClientStatsDTO.NextClassDTO nextClass = userService.getNextClass(client);
+        return ResponseEntity.ok(nextClass);
+    }
+
+    /**
+     * Obtiene el total de clases completadas para un cliente
+     * @param clientId ID del cliente
+     * @return Cantidad total de clases completadas
+     */
+    @GetMapping("/{clientId}/completed-classes")
+    public ResponseEntity<Integer> getCompletedClasses(@PathVariable Long clientId) {
+        User client = userService.getUserById(clientId);
+        Integer count = userService.getCompletedClassesCount(client);
+        return ResponseEntity.ok(count);
+    }
+
+    /**
+     * Obtiene el estado de membresía de un cliente
+     * @param clientId ID del cliente
+     * @return Map con el estado de membresía
+     */
+    @GetMapping("/{clientId}/membership-status")
+    public ResponseEntity<Map<String, Object>> getMembershipStatus(@PathVariable Long clientId) {
+        User client = userService.getUserById(clientId);
+        UserStatus status = userService.getMembershipStatus(client);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", status);
+        response.put("clientId", clientId);
+        
+        return ResponseEntity.ok(response);
     }
 
 }

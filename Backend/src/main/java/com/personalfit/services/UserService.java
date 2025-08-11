@@ -1,7 +1,10 @@
 package com.personalfit.services;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -12,17 +15,23 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.personalfit.dto.User.ClientStatsDTO;
 import com.personalfit.dto.User.CreateUserDTO;
 import com.personalfit.dto.User.UserActivityDetailsDTO;
 import com.personalfit.dto.User.UserDetailInfoDTO;
 import com.personalfit.dto.User.UserTypeDTO;
+import com.personalfit.enums.AttendanceStatus;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.EntityAlreadyExistsException;
 import com.personalfit.exceptions.EntityNotFoundException;
+import com.personalfit.models.Activity;
+import com.personalfit.models.Attendance;
 import com.personalfit.models.Payment;
 import com.personalfit.models.User;
+import com.personalfit.repository.ActivityRepository;
+import com.personalfit.repository.AttendanceRepository;
 import com.personalfit.repository.PaymentRepository;
 import com.personalfit.repository.UserRepository;
 
@@ -37,6 +46,12 @@ public class UserService {
 
     @Autowired
     private PaymentRepository paymentRepository;
+
+    @Autowired
+    private AttendanceRepository attendanceRepository;
+
+    @Autowired
+    private ActivityRepository activityRepository;
 
     @Autowired
     private NotificationService notificationService;
@@ -281,5 +296,121 @@ public class UserService {
 
         notificationService.createAttendanceWarningNotification(users, getAllAdmins());
 
+    }
+
+    /**
+     * Obtiene las estadísticas completas de un cliente para el dashboard
+     * @param clientId ID del cliente
+     * @return ClientStatsDTO con todas las estadísticas
+     */
+    public ClientStatsDTO getClientStats(Long clientId) {
+        User client = getUserById(clientId);
+        if (!client.getRole().equals(UserRole.CLIENT)) {
+            throw new IllegalArgumentException("El usuario no es un cliente");
+        }
+
+        return ClientStatsDTO.builder()
+                .weeklyActivityCount(getWeeklyActivityCount(client))
+                .nextClass(getNextClass(client))
+                .completedClassesCount(getCompletedClassesCount(client))
+                .membershipStatus(client.getStatus())
+                .build();
+    }
+
+    /**
+     * Obtiene la cantidad de actividades en las que el cliente se inscribió y estuvo presente esta semana
+     * @param client Usuario cliente
+     * @return Cantidad de actividades de la semana
+     */
+    public Integer getWeeklyActivityCount(User client) {
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sunday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfWeek = sunday.atTime(23, 59, 59);
+
+        List<Attendance> weeklyAttendances = attendanceRepository.findByUser(client).stream()
+                .filter(attendance -> {
+                    LocalDateTime activityDate = attendance.getActivity().getDate();
+                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek) 
+                           && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
+                })
+                .collect(Collectors.toList());
+
+        return weeklyAttendances.size();
+    }
+
+    /**
+     * Obtiene la cantidad de actividades en las que el cliente se inscribió y estuvo presente esta semana para una fecha específica
+     * @param client Usuario cliente
+     * @param weekStartDate Fecha de inicio de la semana (lunes)
+     * @return Cantidad de actividades de esa semana
+     */
+    public Integer getWeeklyActivityCount(User client, LocalDate weekStartDate) {
+        LocalDate monday = weekStartDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sunday = monday.plusDays(6);
+        
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfWeek = sunday.atTime(23, 59, 59);
+
+        List<Attendance> weeklyAttendances = attendanceRepository.findByUser(client).stream()
+                .filter(attendance -> {
+                    LocalDateTime activityDate = attendance.getActivity().getDate();
+                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek) 
+                           && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
+                })
+                .collect(Collectors.toList());
+
+        return weeklyAttendances.size();
+    }
+
+    /**
+     * Obtiene la próxima clase más cercana en la que el cliente está inscrito
+     * @param client Usuario cliente
+     * @return NextClassDTO con información de la próxima clase o null si no hay ninguna
+     */
+    public ClientStatsDTO.NextClassDTO getNextClass(User client) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        Optional<Attendance> nextAttendance = attendanceRepository.findByUser(client).stream()
+                .filter(attendance -> attendance.getActivity().getDate().isAfter(now))
+                .filter(attendance -> attendance.getAttendance().equals(AttendanceStatus.PENDING) 
+                                   || attendance.getAttendance().equals(AttendanceStatus.PRESENT))
+                .min((a1, a2) -> a1.getActivity().getDate().compareTo(a2.getActivity().getDate()));
+
+        if (nextAttendance.isPresent()) {
+            Activity activity = nextAttendance.get().getActivity();
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+            
+            return ClientStatsDTO.NextClassDTO.builder()
+                    .id(activity.getId())
+                    .name(activity.getName())
+                    .date(activity.getDate())
+                    .time(activity.getDate().format(timeFormatter))
+                    .build();
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtiene el total de clases completadas (inscrito y presente) del cliente
+     * @param client Usuario cliente
+     * @return Cantidad total de clases completadas
+     */
+    public Integer getCompletedClassesCount(User client) {
+        return (int) attendanceRepository.findByUser(client).stream()
+                .filter(attendance -> attendance.getAttendance().equals(AttendanceStatus.PRESENT))
+                .count();
+    }
+
+    /**
+     * Obtiene el estado de membresía del cliente
+     * @param client Usuario cliente
+     * @return UserStatus del cliente
+     */
+    public UserStatus getMembershipStatus(User client) {
+        return client.getStatus();
     }
 }

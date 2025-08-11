@@ -159,7 +159,8 @@ export default function ClientsPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium truncate">{client.firstName + " " + client.lastName}</h3>
                       <Badge variant={client.status === "ACTIVE" ? "default" : "secondary"}>
-                        {client.status === "ACTIVE" ? "Activo" : "Inactivo"}
+                        {client.status === "ACTIVE" && client.role === UserRole.CLIENT ? "Activo" : "Inactivo"}
+                        {client.status === "ACTIVE" && client.role === UserRole.TRAINER ? "Entrenador" : "Inactivo"}
                       </Badge>
                     </div>
 

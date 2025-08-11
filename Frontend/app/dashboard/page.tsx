@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
+import { useClientStats } from "@/hooks/use-client-stats"
 import { usePayment } from "@/hooks/use-payment"
-import { UserRole, PaymentStatus, ActivityStatus } from "@/lib/types"
-import { Activity, Calendar, Clock, CreditCard, TrendingUp, Users } from "lucide-react"
+import { ActivityStatus, PaymentStatus, UserRole, UserStatus } from "@/lib/types"
+import { Activity, Calendar, CheckCircle, Clock, CreditCard, TrendingUp, Users, XCircle } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -29,6 +30,7 @@ function DashboardContent() {
   const paymentHook = usePayment(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
   const { activities, loadActivities } = useActivities()
+  const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
 
   // Extraer datos de forma segura
   const payments = paymentHook?.payments || []
@@ -104,7 +106,7 @@ function DashboardContent() {
     return null
   }
 
-  if (!user || isLoading) {
+  if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading)) {
     return (
       <div className="min-h-screen bg-background pb-20">
         <MobileHeader title="Cargando..." />
@@ -126,24 +128,75 @@ function DashboardContent() {
   const getDashboardStats = () => {
     if (user.role === UserRole.ADMIN) {
       return [
-        { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600" },
-        { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600" },
-        { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600" },
-        { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600" },
+        { title: "Actividades del día", value: dashboardStats.todayActivities.toString(), icon: Activity, color: "text-blue-600", subtitle: "programadas hoy" },
+        { title: "Clientes Activos", value: dashboardStats.activeClients.toString(), icon: Users, color: "text-green-600", subtitle: "miembros activos" },
+        { title: "Ingresos del Mes", value: `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}`, icon: CreditCard, color: "text-purple-600", subtitle: "recaudado" },
+        { title: "Asistencia Promedio", value: `${dashboardStats.attendanceRate}%`, icon: TrendingUp, color: "text-orange-600", subtitle: "promedio general" },
       ]
     } else if (user.role === UserRole.TRAINER) {
       return [
-        { title: "Mis Actividades", value: "8", icon: Activity, color: "text-blue-600" },
-        { title: "Mis Clientes", value: "32", icon: Users, color: "text-green-600" },
-        { title: "Próxima Clase", value: "2:00 PM", icon: Clock, color: "text-purple-600" },
-        { title: "Asistencia Hoy", value: "92%", icon: TrendingUp, color: "text-orange-600" },
+        { title: "Mis Actividades", value: "8", icon: Activity, color: "text-blue-600", subtitle: "clases asignadas" },
+        { title: "Mis Clientes", value: "32", icon: Users, color: "text-green-600", subtitle: "alumnos activos" },
+        { title: "Próxima Clase", value: "2:00 PM", icon: Clock, color: "text-purple-600", subtitle: "siguiente turno" },
+        { title: "Asistencia Hoy", value: "92%", icon: TrendingUp, color: "text-orange-600", subtitle: "asistencia del día" },
       ]
     } else {
+      // Formatear la próxima clase
+      const nextClassValue = clientStats.nextClass 
+        ? new Intl.DateTimeFormat("es-ES", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(new Date(clientStats.nextClass.date))
+        : "Sin clases";
+
+      // Configurar la membresía activa
+      const membershipConfig = clientStats.membershipStatus === UserStatus.ACTIVE 
+        ? { 
+            value: "Activa", 
+            icon: CheckCircle, 
+            color: "text-green-600",
+            bgColor: "bg-green-50",
+            borderColor: "border-green-200"
+          }
+        : { 
+            value: "Inactiva", 
+            icon: XCircle, 
+            color: "text-red-600",
+            bgColor: "bg-red-50",
+            borderColor: "border-red-200"
+          };
+
       return [
-        { title: "Actividades Inscritas", value: "5", icon: Activity, color: "text-blue-600" },
-        { title: "Próxima Clase", value: "10:00 AM", icon: Clock, color: "text-green-600" },
-        { title: "Clases Completadas", value: "23", icon: TrendingUp, color: "text-purple-600" },
-        { title: "Pagos Pendientes", value: "1", icon: CreditCard, color: "text-orange-600" },
+        { 
+          title: "Actividad Semanal", 
+          value: clientStats.weeklyActivityCount.toString(), 
+          icon: Activity, 
+          color: "text-blue-600",
+          subtitle: "clases esta semana"
+        },
+        { 
+          title: "Próxima Clase", 
+          value: nextClassValue, 
+          icon: Clock, 
+          color: "text-green-600",
+          subtitle: clientStats.nextClass?.name || "No programada"
+        },
+        { 
+          title: "Clases Completadas", 
+          value: clientStats.completedClassesCount.toString(), 
+          icon: TrendingUp, 
+          color: "text-purple-600",
+          subtitle: "total histórico"
+        },
+        { 
+          title: "Membresía", 
+          value: membershipConfig.value, 
+          icon: membershipConfig.icon, 
+          color: membershipConfig.color,
+          bgColor: membershipConfig.bgColor,
+          borderColor: membershipConfig.borderColor,
+          subtitle: "estado actual"
+        },
       ]
     }
   }
@@ -194,14 +247,20 @@ function DashboardContent() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
           {stats.map((stat, index) => (
-            <Card key={index}>
+            <Card 
+              key={index} 
+              className={`${stat.bgColor ? stat.bgColor : ''} ${stat.borderColor ? stat.borderColor : ''}`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-muted-foreground">{stat.title}</p>
                     <p className="text-2xl font-bold">{stat.value}</p>
+                    {stat.subtitle && (
+                      <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
+                    )}
                   </div>
-                  <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                  <stat.icon className={`h-8 w-8 ${stat.color} flex-shrink-0`} />
                 </div>
               </CardContent>
             </Card>
