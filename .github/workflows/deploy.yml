@@ -162,13 +162,24 @@ jobs:
             docker image prune -f
 
             echo "==> Verificando integridad del backup (restauración temporal)"
+            # Otorgar permisos de creación de DB al usuario de la app (solo si no los tiene)
+            docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U postgres -c \"ALTER USER \\\"\$POSTGRES_USER\\\" CREATEDB;\"" 2>/dev/null || true
+            
+            # Eliminar base temporal si existe de deployments anteriores
+            docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -c \"DROP DATABASE IF EXISTS test_restore;\"" 2>/dev/null || true
+            
+            # Crear base temporal
             if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -c \"CREATE DATABASE test_restore;\"" 2>/dev/null; then
+              # Restaurar backup en la base temporal
               if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d test_restore" < "$BACKUP_FILE" 2>/dev/null; then
+                # Verificar integridad contando usuarios
                 USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d test_restore -t -c \"SELECT COUNT(*) FROM users;\"" 2>/dev/null | tr -d " \n" || echo 0)
                 echo "✅ Restauración temporal OK (users: $USER_COUNT)"
               else
                 echo "⚠️  No se pudo restaurar backup en base temporal"
               fi
+              
+              # Limpiar base temporal
               docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -c \"DROP DATABASE test_restore;\"" 2>/dev/null || true
             else
               echo "⚠️  No se pudo crear base temporal para test"
