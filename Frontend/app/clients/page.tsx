@@ -76,7 +76,7 @@ export default function ClientsPage() {
   const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
 
   return (
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-background pb-20">
       <MobileHeader
         title="Clientes"
         actions={
