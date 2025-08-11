@@ -1,34 +1,33 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
+import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
+import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
+import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
+import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { BottomNav } from "@/components/ui/bottom-nav"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, ChevronLeft, ChevronRight, Calendar, Clock, Users, MapPin, MoreVertical, Search, Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { BottomNav } from "@/components/ui/bottom-nav"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
-import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
-import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
-import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
-import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
-import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
 import { useActivities } from "@/hooks/use-activity"
-import { UserRole } from "@/lib/types"
-import { ActivityType } from "@/lib/types"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { ActivityType, UserRole } from "@/lib/types"
+import { Calendar, ChevronLeft, ChevronRight, Clock, Loader2, MapPin, MoreVertical, Plus, Search, Users } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
 
 export default function ActivitiesPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const { 
+  const {
     activities,
     loading,
     error,
@@ -38,14 +37,16 @@ export default function ActivitiesPage() {
     deleteActivityById,
     isUserEnrolled,
     getUserEnrollmentStatus,
-   } = useActivities()
+  } = useActivities()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
   const router = useRouter()
   const [currentWeek, setCurrentWeek] = useState(() => {
     const today = new Date()
-    today.setDate(today.getDate() - today.getDay() + 1) // Primer día de la semana (lunes)
+    // Calcular lunes de la semana actual (domingo no salta a la semana siguiente)
+    const diffToMonday = (today.getDay() + 6) % 7 // 0(domingo)->6, 1(lunes)->0, ...
+    today.setDate(today.getDate() - diffToMonday)
     today.setHours(0, 0, 0, 0)
     return today
   })
@@ -108,7 +109,8 @@ export default function ActivitiesPage() {
   const getWeekDates = (startDate: Date) => {
     const dates = []
     const monday = new Date(startDate)
-    monday.setDate(startDate.getDate() - startDate.getDay() + 1) // Get Monday
+    const diffToMonday = (monday.getDay() + 6) % 7
+    monday.setDate(monday.getDate() - diffToMonday) // Lunes de la semana actual
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday)
@@ -142,7 +144,7 @@ export default function ActivitiesPage() {
         return activityDate.toDateString() === date.toDateString()
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      
+
     return {
       date,
       activities: dayActivities,
@@ -151,7 +153,7 @@ export default function ActivitiesPage() {
 
   // Get unique categories and trainers for filters
   const trainers = [...new Set(activities.map((a) => a.trainerName))]
-  
+
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
       hour: "2-digit",
@@ -181,7 +183,8 @@ export default function ActivitiesPage() {
   const goToToday = () => {
     const today = new Date()
     const monday = new Date(today)
-    monday.setDate(today.getDate() - today.getDay() + 1)
+    const diffToMonday = (monday.getDay() + 6) % 7
+    monday.setDate(monday.getDate() - diffToMonday)
     monday.setHours(0, 0, 0, 0)
     setCurrentWeek(monday)
   }
@@ -216,7 +219,7 @@ export default function ActivitiesPage() {
   const handleConfirmDelete = async (activityId: number) => {
     try {
       const result = await deleteActivityById(activityId)
-      
+
       if (result.success) {
         toast({
           title: "Éxito",
@@ -363,7 +366,7 @@ export default function ActivitiesPage() {
         {/* Weekly Calendar */}
         <div className="space-y-4">
           {activitiesByDay.map((day, dayIndex) => (
-            
+
             <Card key={dayIndex} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -419,11 +422,11 @@ export default function ActivitiesPage() {
                                   <span>{activity.location}</span>
                                 </div>
                               </div>
-                              
+
                               {/* Mostrar horario semanal si es una actividad recurrente */}
                               {activity.isRecurring && activity.weeklySchedule && (
                                 <div className="mt-2">
-                                  <WeeklyScheduleDisplay 
+                                  <WeeklyScheduleDisplay
                                     weeklySchedule={activity.weeklySchedule}
                                     className="text-xs"
                                   />
@@ -472,19 +475,19 @@ export default function ActivitiesPage() {
 
                             <div className="flex gap-2">
                               {user.role === UserRole.CLIENT && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleEnrollActivity(activity)}
-                                disabled={activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id)}
-                                className="text-xs"
-                                variant={isUserEnrolled(activity, user.id) ? "destructive" : "default"}
-                              >
-                                {isUserEnrolled(activity, user.id)
-                                  ? "Desinscribir"
-                                  : activity.currentParticipants >= activity.maxParticipants
-                                    ? "Completo"
-                                    : "Inscribirse"}
-                              </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleEnrollActivity(activity)}
+                                  disabled={activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id)}
+                                  className="text-xs"
+                                  variant={isUserEnrolled(activity, user.id) ? "destructive" : "default"}
+                                >
+                                  {isUserEnrolled(activity, user.id)
+                                    ? "Desinscribir"
+                                    : activity.currentParticipants >= activity.maxParticipants
+                                      ? "Completo"
+                                      : "Inscribirse"}
+                                </Button>
                               )}
                               {canManageActivities && (
                                 <Button
@@ -509,13 +512,12 @@ export default function ActivitiesPage() {
                             </div>
                             <div className="w-full bg-muted rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${
-                                  activity.currentParticipants >= activity.maxParticipants
+                                className={`h-2 rounded-full transition-all ${activity.currentParticipants >= activity.maxParticipants
                                     ? "bg-destructive"
                                     : activity.currentParticipants / activity.maxParticipants > 0.8
                                       ? "bg-warning"
                                       : "bg-primary"
-                                }`}
+                                  }`}
                                 style={{
                                   width: `${(activity.currentParticipants / activity.maxParticipants) * 100}%`,
                                 }}
@@ -539,7 +541,7 @@ export default function ActivitiesPage() {
 
         {/* Weekly Summary */}
 
-                    { user.role === UserRole.ADMIN && <Card>
+        {user.role === UserRole.ADMIN && <Card>
           <CardContent className="p-4">
             <h3 className="font-semibold mb-3">Resumen de la Semana</h3>
             <div className="grid grid-cols-2 gap-4 text-center">
