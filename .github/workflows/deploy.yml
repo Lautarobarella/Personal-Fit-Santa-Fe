@@ -126,33 +126,40 @@ jobs:
               local waited=0
 
               while [ "$waited" -lt "$timeout_seconds" ]; do
-                status=$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "no-container")
-                echo "$(date +'%F %T') - Health of $container: $status"
-                if [ "$status" = "healthy" ]; then
-                  return 0
+                # Intentar hacer una petición HTTP directa en lugar de depender del health check de Docker
+                if [ "$container" = "personalfit-backend" ]; then
+                  # Para el backend, verificar que responda en el puerto 8080
+                  if curl -f -s http://72.60.1.76:8080/api/users/getAll >/dev/null 2>&1; then
+                    echo "$(date +'%F %T') - Backend responding on port 8080"
+                    return 0
+                  fi
+                elif [ "$container" = "personalfit-frontend" ]; then
+                  # Para el frontend, verificar que responda en el puerto 3000
+                  if curl -f -s http://72.60.1.76:3000 >/dev/null 2>&1; then
+                    echo "$(date +'%F %T') - Frontend responding on port 3000"
+                    return 0
+                  fi
                 fi
-                if [ "$status" = "unhealthy" ]; then
-                  echo "ALERTA: $container reporta 'unhealthy'"
-                  return 2
-                fi
+                
+                echo "$(date +'%F %T') - Waiting for $container to be ready... (${waited}s/${timeout_seconds}s)"
                 sleep $interval
                 waited=$((waited + interval))
               done
 
-              echo "TIMEOUT: $container did not become healthy after ${timeout_seconds}s"
+              echo "TIMEOUT: $container did not become ready after ${timeout_seconds}s"
               return 1
             }
 
-            echo "==> Esperando health de personalfit-backend..."
+            echo "==> Esperando que personalfit-backend esté listo..."
             if ! wait_for_healthy personalfit-backend 180; then
-              echo "ERROR: backend no alcanzó estado healthy -> abortando deploy"
+              echo "ERROR: backend no responde en puerto 8080 -> abortando deploy"
               docker-compose logs --no-color --timestamps personalfit-backend | tail -n 300
               exit 10
             fi
 
-            echo "==> Esperando health de personalfit-frontend..."
+            echo "==> Esperando que personalfit-frontend esté listo..."
             if ! wait_for_healthy personalfit-frontend 180; then
-              echo "ERROR: frontend no alcanzó estado healthy -> abortando deploy"
+              echo "ERROR: frontend no responde en puerto 3000 -> abortando deploy"
               docker-compose logs --no-color --timestamps personalfit-frontend | tail -n 300
               exit 11
             fi
