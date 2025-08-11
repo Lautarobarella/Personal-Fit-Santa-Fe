@@ -78,7 +78,7 @@ jobs:
             git pull origin main
 
             echo "==> Construyendo y levantando servicios"
-            docker-compose down -v
+            docker-compose down
             docker-compose up -d --build
 
             # Esperar a Postgres (usa envs del contenedor)
@@ -103,6 +103,32 @@ jobs:
               echo "ERROR: Postgres no estuvo listo a tiempo"
               docker-compose logs --no-color --timestamps postgres | tail -n 200 || true
               exit 5
+            fi
+
+            echo "==> Verificando si necesita restaurar backup..."
+            # Verificar si la base de datos tiene datos (específicamente la tabla app_user)
+            USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+            
+            if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
+              echo "==> Base de datos vacía, buscando backup más reciente para restaurar..."
+              LATEST_BACKUP=$(find /opt/backup -name "backup_*.sql" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2- || echo "")
+              
+              if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
+                echo "==> Restaurando backup: $LATEST_BACKUP"
+                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" < "$LATEST_BACKUP"; then
+                  echo "✅ Backup restaurado exitosamente"
+                  
+                  # Verificar que la restauración fue exitosa
+                  RESTORED_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+                  echo "✅ Usuarios restaurados: $RESTORED_USER_COUNT"
+                else
+                  echo "⚠️  Error al restaurar backup, pero continuando deployment"
+                fi
+              else
+                echo "ℹ️  No se encontró backup para restaurar, base de datos iniciará vacía"
+              fi
+            else
+              echo "ℹ️  Base de datos ya contiene $USER_COUNT usuarios, no se necesita restaurar"
             fi
 
             wait_for_healthy() {
@@ -167,6 +193,11 @@ jobs:
             if [ -f "$BACKUP_FILE" ] && [ -s "$BACKUP_FILE" ]; then
               BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
               echo "✅ Archivo de backup válido: $BACKUP_SIZE"
+              
+              # Verificar que la base de datos actual coincide con el backup recién creado
+              echo "==> Verificando consistencia entre backup y base de datos actual..."
+              CURRENT_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+              echo "ℹ️  Usuarios actuales en BD: $CURRENT_USER_COUNT"
               
               # Verificar que el backup contiene SQL válido buscando patrones típicos
               if grep -q "CREATE TABLE\|INSERT INTO\|COPY.*FROM stdin" "$BACKUP_FILE" 2>/dev/null; then

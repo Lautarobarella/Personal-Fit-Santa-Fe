@@ -17,15 +17,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 import com.personalfit.dto.User.CreateUserDTO;
 import com.personalfit.dto.User.UserTypeDTO;
+import com.personalfit.enums.UserRole;
+import com.personalfit.enums.UserStatus;
 import com.personalfit.models.User;
 import com.personalfit.services.UserService;
 
 import jakarta.validation.Valid;
-import com.personalfit.enums.UserRole;
-import com.personalfit.enums.UserStatus;
 
 
 @RestController
@@ -111,10 +110,21 @@ public class UserController {
     }
 
     @Transactional
-    @PostMapping("/batch")
-    public ResponseEntity<Void> saveUsers(@Valid @RequestBody List<CreateUserDTO> newUsers) {
-        userService.saveAll(newUsers);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    @PostMapping("/batch/clients")
+    public ResponseEntity<Map<String, Object>> createBatchClients(@Valid @RequestBody List<CreateUserDTO> newUsers) {
+        // Forzar el rol de CLIENT y estado INACTIVE para todos los usuarios
+        newUsers.forEach(user -> {
+            user.setRole(UserRole.CLIENT);
+            user.setStatus(UserStatus.INACTIVE);
+        });
+        
+        Integer createdCount = userService.createBatchClients(newUsers);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Clientes creados exitosamente");
+        response.put("success", true);
+        response.put("createdCount", createdCount);
+        response.put("role", "CLIENT");
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 }

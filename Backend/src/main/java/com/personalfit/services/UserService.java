@@ -195,34 +195,41 @@ public class UserService {
         userRepository.save(user.get());
     }
 
-    // batch function to save multiple users
-
-    public Boolean saveAll(List<CreateUserDTO> newUsers) {
-
+    // batch function to create multiple clients (similar to createNewUser logic)
+    public Integer createBatchClients(List<CreateUserDTO> newUsers) {
+        List<User> usersToSave = new ArrayList<>();
+        
         for (CreateUserDTO newUser : newUsers) {
-            Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
-
-            if (user.isPresent())
+            // Verificar si ya existe un usuario con este DNI
+            Optional<User> existingUser = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
+            
+            if (existingUser.isPresent()) {
                 throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(),
-                        "Api/User/saveAll");
+                        "Api/User/createBatchClients");
+            }
 
+            // Crear nuevo usuario siguiendo la misma lógica que createNewUser
             User userToCreate = new User();
             userToCreate.setDni(Integer.parseInt(newUser.getDni()));
             userToCreate.setFirstName(newUser.getFirstName());
             userToCreate.setLastName(newUser.getLastName());
             userToCreate.setEmail(newUser.getEmail());
             userToCreate.setPhone(newUser.getPhone());
-            userToCreate.setRole(newUser.getRole());
+            userToCreate.setRole(newUser.getRole()); // Ya viene forzado como CLIENT desde el controller
             userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
                     newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas
             userToCreate.setJoinDate(LocalDate.now());
             userToCreate.setAddress(newUser.getAddress());
             userToCreate.setBirthDate(newUser.getBirthDate());
-            userToCreate.setPassword(newUser.getPassword());
-            userToCreate.setStatus(newUser.getStatus());
-            userRepository.save(userToCreate); // TODO refactorizar para que guarde los nuevos usuarios en lotes
+            userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword())); // Encriptar contraseña
+            userToCreate.setStatus(newUser.getStatus()); // Ya viene forzado como INACTIVE desde el controller
+            
+            usersToSave.add(userToCreate);
         }
-        return true;
+        
+        // Guardar todos los usuarios en lote para mejor rendimiento
+        List<User> savedUsers = userRepository.saveAll(usersToSave);
+        return savedUsers.size();
     }
 
     @Scheduled(cron = "0 0 3 * * ?")
