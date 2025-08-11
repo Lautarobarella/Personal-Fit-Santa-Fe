@@ -65,6 +65,7 @@ jobs:
 
   deploy:
     # needs: [backend-tests, frontend-tests, db-smoke-test, security-scan] # descomentar cuando actives tests
+    environment: Production
     runs-on: ubuntu-latest
     env:
       SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -77,6 +78,14 @@ jobs:
     steps:
       - name: Checkout repo (opcional para tests)
         uses: actions/checkout@v4
+
+      - name: Sanity check de secrets
+        run: |
+          for v in SSH_HOST SSH_USERNAME SSH_PASSWORD JWT_SECRET MP_ACCESS_TOKEN NEXT_PUBLIC_MP_PUBLIC_KEY NEXT_PUBLIC_MP_ENVIRONMENT; do
+            if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
+              echo "Falta variable $v (revisa environment/Production o nombres)"; exit 1
+            fi
+          done
 
       - name: Install sshpass (para autenticación por usuario+password)
         run: sudo apt-get update && sudo apt-get install -y sshpass
