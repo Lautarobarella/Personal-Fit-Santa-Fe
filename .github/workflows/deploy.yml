@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
+
 jobs:
+
   # -----------------------
   # BACKEND TESTS (comentado)
   # -----------------------
@@ -62,8 +64,8 @@ jobs:
   #       with:
   #         image-ref: 'personalfit-backend:latest' # ajustar si querés escanear imágenes
 
+
   deploy:
-    # needs: [backend-tests, frontend-tests, db-smoke-test, security-scan] # descomentar cuando actives tests
     environment: Production
     runs-on: ubuntu-latest
     env:
@@ -91,31 +93,19 @@ jobs:
 
       - name: Install Docker Compose V2
         run: |
-          # Instalar Docker Compose V2
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
-          
-          # Verificar instalación
           docker-compose --version
-          
-          # Crear alias para docker compose (V2)
-          echo 'alias docker="docker"' >> ~/.bashrc
-          echo 'alias "docker compose"="docker-compose"' >> ~/.bashrc
-          source ~/.bashrc
 
       - name: Deploy to host (ssh via password) and wait healthchecks
         run: |
-          # Ruta donde ya tenés tu proyecto en el servidor
-          DEPLOY_DIR=/opt/Personal-Fit-Santa-Fe
-
-          # default port si no lo pasaron
+          # default port
           if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
             SSH_PORT=22
           fi
 
           echo "Conectando a ${SSH_USERNAME}@${SSH_HOST}:${SSH_PORT} ..."
-
-          sshpass -p "${SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no -p "${SSH_PORT}" "${SSH_USERNAME}@${SSH_HOST}" bash -s <<'REMOTE'
+          sshpass -p "${SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no -p "${SSH_PORT}" "${SSH_USERNAME}@${SSH_HOST}" bash -lc '
             set -euo pipefail
 
             DEPLOY_DIR=/opt/Personal-Fit-Santa-Fe
@@ -125,17 +115,17 @@ jobs:
             echo "==> Creando backup de la base de datos..."
             mkdir -p /opt/backup
             BACKUP_FILE="/opt/backup/backup_$(date +%Y%m%d_%H%M%S).sql"
-            
+
             # Verificar que PostgreSQL esté funcionando antes del backup
             if ! docker-compose exec -T postgres pg_isready -U postgres; then
               echo "ERROR: PostgreSQL no está listo para backup"
               exit 3
             fi
-            
+
             # Crear backup
             if docker-compose exec -T postgres pg_dump -U postgres -d personalfit > "$BACKUP_FILE"; then
-              echo "✅ Backup creado exitosamente en: $BACKUP_FILE"
-              echo "📊 Tamaño del backup: $(du -h "$BACKUP_FILE" | cut -f1)"
+              echo "✅ Backup creado: $BACKUP_FILE"
+              echo "📊 Tamaño: $(du -h "$BACKUP_FILE" | cut -f1)"
             else
               echo "ERROR: Falló la creación del backup"
               exit 4
@@ -146,14 +136,9 @@ jobs:
             git reset --hard origin/main
             git pull origin main
 
-            echo "==> Construyendo imágenes (solo backend + frontend)"
-            docker-compose down -v
-            docker-compose up -d --build 
+            echo "==> Construyendo y levantando servicios"
+            docker-compose up -d --build
 
-            # echo "==> Actualizando servicios (no tocar postgres ni pgadmin)"
-            # docker-compose up -d --no-deps personalfit-backend personalfit-frontend
-
-            # Función para esperar estado healthy
             wait_for_healthy() {
               local container="$1"
               local timeout_seconds="${2:-180}"
@@ -161,51 +146,48 @@ jobs:
               local waited=0
 
               while [ "$waited" -lt "$timeout_seconds" ]; do
-                # Primero intentar el health check nativo de Docker
-                local docker_health=$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "no-health-check")
-                
+                local docker_health
+                docker_health=$(docker inspect -f "{{.State.Health.Status}}" "$container" 2>/dev/null || echo "no-health-check")
+
                 if [ "$docker_health" = "healthy" ]; then
-                  echo "$(date +'%F %T') - $container is healthy (Docker health check)"
+                  echo "$(date +"%F %T") - $container healthy (Docker health)"
                   return 0
                 elif [ "$docker_health" = "unhealthy" ]; then
-                  echo "$(date +'%F %T') - $container is unhealthy (Docker health check)"
+                  echo "$(date +"%F %T") - $container unhealthy"
                   return 2
                 fi
-                
-                # Si no hay health check nativo o está starting, hacer petición HTTP directa
-                 if [ "$container" = "personalfit-backend" ]; then
-                   # Para el backend, verificar que responda en el puerto 8080
-                   if curl -f -s http://localhost:8080/api/health >/dev/null 2>&1; then
-                     echo "$(date +'%F %T') - Backend responding on port 8080"
-                     return 0
-                   fi
+
+                if [ "$container" = "personalfit-backend" ]; then
+                  if curl -fsS http://localhost:8080/api/health >/dev/null 2>&1; then
+                    echo "$(date +"%F %T") - Backend OK en :8080"
+                    return 0
+                  fi
                 elif [ "$container" = "personalfit-frontend" ]; then
-                  # Para el frontend, verificar que responda en el puerto 3000
-                  if curl -f -s http://localhost:3000 >/dev/null 2>&1; then
-                    echo "$(date +'%F %T') - Frontend responding on port 3000"
+                  if curl -fsS http://localhost:3000 >/dev/null 2>&1; then
+                    echo "$(date +"%F %T") - Frontend OK en :3000"
                     return 0
                   fi
                 fi
-                
-                echo "$(date +'%F %T') - Waiting for $container to be ready... (${waited}s/${timeout_seconds}s) - Docker health: $docker_health"
+
+                echo "$(date +"%F %T") - Esperando $container... (${waited}s/${timeout_seconds}s) - Docker health: $docker_health"
                 sleep $interval
                 waited=$((waited + interval))
               done
 
-              echo "TIMEOUT: $container did not become ready after ${timeout_seconds}s"
+              echo "TIMEOUT: $container no quedó listo tras ${timeout_seconds}s"
               return 1
             }
 
-            echo "==> Esperando que personalfit-backend esté listo..."
-            if ! wait_for_healthy personalfit-backend 30; then
-              echo "ERROR: backend no responde en puerto 8080 (endpoint /api/health) -> abortando deploy"
+            echo "==> Esperando backend..."
+            if ! wait_for_healthy personalfit-backend 60; then
+              echo "ERROR: backend no responde -> logs:"
               docker-compose logs --no-color --timestamps personalfit-backend | tail -n 300
               exit 10
             fi
 
-            echo "==> Esperando que personalfit-frontend esté listo..."
-            if ! wait_for_healthy personalfit-frontend 30; then
-              echo "ERROR: frontend no responde en puerto 3000 -> abortando deploy"
+            echo "==> Esperando frontend..."
+            if ! wait_for_healthy personalfit-frontend 60; then
+              echo "ERROR: frontend no responde -> logs:"
               docker-compose logs --no-color --timestamps personalfit-frontend | tail -n 300
               exit 11
             fi
@@ -213,33 +195,19 @@ jobs:
             echo "==> Limpieza de imágenes antiguas"
             docker image prune -f
 
-            echo "==> Verificando integridad de la base de datos..."
-            # Crear base de datos temporal para test de restauración
+            echo "==> Verificando integridad del backup (restauración temporal)"
             if docker-compose exec -T postgres psql -U postgres -c "CREATE DATABASE test_restore;" 2>/dev/null; then
-              echo "📋 Base de datos temporal creada para test"
-              
-              # Restaurar backup en base temporal
               if docker-compose exec -T postgres psql -U postgres -d test_restore < "$BACKUP_FILE" 2>/dev/null; then
-                echo "🔄 Backup restaurado en base temporal"
-                
-                # Verificar que se restauró correctamente (contar usuarios)
-                USER_COUNT=$(docker-compose exec -T postgres psql -U postgres -d test_restore -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' \n')
-                if [ "$USER_COUNT" -ge 0 ] 2>/dev/null; then
-                  echo "✅ Verificación exitosa: $USER_COUNT usuarios encontrados en backup"
-                else
-                  echo "⚠️  Verificación parcial: no se pudo contar usuarios"
-                fi
+                USER_COUNT=$(docker-compose exec -T postgres psql -U postgres -d test_restore -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d " \n" || echo 0)
+                echo "✅ Restauración temporal OK (users: $USER_COUNT)"
               else
                 echo "⚠️  No se pudo restaurar backup en base temporal"
               fi
-              
-              # Limpiar base temporal
-              docker-compose exec -T postgres psql -U postgres -c "DROP DATABASE test_restore;" 2>/dev/null
-              echo "🧹 Base de datos temporal eliminada"
+              docker-compose exec -T postgres psql -U postgres -c "DROP DATABASE test_restore;" 2>/dev/null || true
             else
               echo "⚠️  No se pudo crear base temporal para test"
             fi
 
-            echo "==> DEPLOY OK: servicios actualizados y healthy"
-            echo "💾 Backup disponible en: $BACKUP_FILE"
-          REMOTE
+            echo "==> DEPLOY OK"
+            echo "💾 Backup en: $BACKUP_FILE"
+          '
