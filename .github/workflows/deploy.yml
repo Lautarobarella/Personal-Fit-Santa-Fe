@@ -176,11 +176,27 @@ jobs:
                 DATA_LINES=$(grep -c "INSERT INTO\|COPY.*FROM stdin" "$BACKUP_FILE" 2>/dev/null || echo 0)
                 echo "✅ Backup contiene $DATA_LINES líneas de datos"
                 
-                # Verificar conectividad a la base actual para asegurar que el backup es restaurable
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"SELECT COUNT(*) FROM users;\"" 2>/dev/null | grep -q "[0-9]"; then
-                  echo "✅ Base de datos actual accesible - backup debería ser restaurable"
+                # Verificar conectividad y contar registros en todas las tablas principales
+                echo "Verificando contenido de tablas principales..."
+                TOTAL_RECORDS=0
+                
+                # Lista de tablas a verificar (nombres reales según los modelos)
+                TABLES="app_user activity attendance payment payment_file notification app_settings"
+                
+                for table in $TABLES; do
+                  COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM $table;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+                  if [ "$COUNT" != "0" ] && [ "$COUNT" != "" ]; then
+                    echo "  ✅ $table: $COUNT registros"
+                    TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
+                  else
+                    echo "  📋 $table: vacía o no accesible"
+                  fi
+                done
+                
+                if [ "$TOTAL_RECORDS" -gt 0 ]; then
+                  echo "✅ Base de datos contiene $TOTAL_RECORDS registros totales - backup debería ser restaurable"
                 else
-                  echo "⚠️  No se pudo verificar acceso a la base actual"
+                  echo "⚠️  Base de datos parece estar vacía o no accesible"
                 fi
               else
                 echo "⚠️  Backup no contiene estructura SQL reconocible"
