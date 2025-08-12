@@ -32,7 +32,7 @@ export function AuthenticatedImage({
         setError(false);
 
         // Usar el endpoint proxy del frontend (ahora sin autenticación requerida)
-        const url = `/api/files/${fileId}`;
+        const url = `/payments/files/${fileId}`;
 
         const response = await fetch(url);
 

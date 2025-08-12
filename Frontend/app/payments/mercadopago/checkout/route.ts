@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
 
         const mpToken = process.env.MP_ACCESS_TOKEN;
         console.log('MP Token configurado:', mpToken ? 'SI' : 'NO');
-        console.log('MP Token value:', mpToken);
         
         if (!mpToken) {
             console.log('Error: Token de MercadoPago no configurado');
@@ -66,7 +65,7 @@ export async function POST(request: NextRequest) {
                 failure: `${baseUrl}/payments/result/failure`,
                 pending: `${baseUrl}/payments/result/pending`,
             },
-            notification_url: `${baseUrl}/api/webhook/mercadopago`,
+            notification_url: `${baseUrl}/payments/mercadopago/webhook`,
             external_reference: transactionId,
             payment_methods: {
                 excluded_payment_methods: [

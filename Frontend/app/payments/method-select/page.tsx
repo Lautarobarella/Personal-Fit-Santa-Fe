@@ -18,15 +18,15 @@ export default function PaymentMethodSelectPage() {
 
     // Redirigir admins directamente a creación manual
     if (user.role === UserRole.ADMIN) {
-        router.replace('/payments/new');
+        router.replace('/payments/method-select/new');
         return null;
     }
 
     const handleMethodSelect = (method: 'manual' | 'mercadopago') => {
         if (method === 'manual') {
-            router.push('/payments/new');
+            router.push('/payments/method-select/new');
         } else {
-            router.push('/payments/new-mp');
+            router.push('/payments/method-select/new-mp');
         }
     };
 

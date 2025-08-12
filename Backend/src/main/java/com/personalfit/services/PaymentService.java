@@ -1,8 +1,14 @@
 package com.personalfit.services;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -10,365 +16,309 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.personalfit.dto.Payment.CreatePaymentDTO;
-import com.personalfit.dto.Payment.CreatePaymentWithFileDTO;
+import com.personalfit.dto.Payment.PaymentRequestDTO;
+import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
-import com.personalfit.dto.Payment.UpdatePaymentStatusDTO;
-import com.personalfit.enums.MethodType;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.BusinessRuleException;
-import com.personalfit.exceptions.EntityAlreadyExistsException;
 import com.personalfit.exceptions.EntityNotFoundException;
+import com.personalfit.exceptions.FileException;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
 import com.personalfit.models.User;
+import com.personalfit.repository.PaymentFileRepository;
 import com.personalfit.repository.PaymentRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Servicio unificado para manejo de pagos y archivos
+ * Combina la funcionalidad de PaymentService y PaymentFileService
+ */
+@Slf4j
 @Service
 public class PaymentService {
+
+    private static final Integer MAX_FILE_SIZE_MB = 5;
+    private static final String UPLOAD_FOLDER = "/app/comprobantes/";
 
     @Autowired
     private PaymentRepository paymentRepository;
 
     @Autowired
+    private PaymentFileRepository paymentFileRepository;
+
+    @Autowired
     @Lazy
     private UserService userService;
 
-    @Autowired
-    private PaymentFileService paymentFileService;
-
-    public void registerPayment(CreatePaymentDTO newPayment) {
-
-        User user = userService.getUserById(newPayment.getClientId());
-
-        // Validar que el usuario pueda crear un nuevo pago
-        validateUserCanCreatePayment(user);
-
-        Payment payment = Payment.builder()
-                .user(user)
-                .confNumber(newPayment.getConfNumber())
-                .amount(newPayment.getAmount())
-                // .paymentFile(pFile.get())
-                .methodType(newPayment.getMethodType())
-                .createdAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusMonths(1))
-                .status(PaymentStatus.DEBTOR)
-                .build();
-
-        try {
-            paymentRepository.save(payment);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public List<PaymentTypeDTO> getAllPaymentsTypeDto() {
-        List<Payment> payments = paymentRepository.findAll();
-        return payments.stream().map(payment -> PaymentTypeDTO.builder()
-                .id(payment.getId())
-                .clientId(payment.getUser().getId())
-                .clientName(payment.getUser().getFirstName() + " " + payment.getUser().getLastName())
-                .createdAt(payment.getCreatedAt())
-                .amount(payment.getAmount())
-                .status(payment.getStatus())
-                .verifiedAt(payment.getVerifiedAt())
-                .verifiedBy(payment.getVerifiedBy() != null ? payment.getUser().getFullName() : null)
-                .rejectionReason(payment.getRejectionReason())
-                .updatedAt(payment.getUpdatedAt())
-                .expiresAt(payment.getExpiresAt())
-                .build()).toList();
-    }
-
-    public List<PaymentTypeDTO> getUserPaymentsTypeDto(Long id) {
-        User user = userService.getUserById(id);
-
-        return user.getPayments().stream()
-                .map(payment -> PaymentTypeDTO.builder()
-                        .id(payment.getId())
-                        .clientId(payment.getUser().getId())
-                        .clientName(payment.getUser().getFullName())
-                        .createdAt(payment.getCreatedAt())
-                        .receiptId(payment.getPaymentFile() != null ? payment.getPaymentFile().getId() : null)
-                        .amount(payment.getAmount())
-                        .status(payment.getStatus())
-                        .verifiedAt(payment.getVerifiedAt())
-                        .verifiedBy(payment.getVerifiedBy() != null ? payment.getUser().getFullName() : null)
-                        .rejectionReason(payment.getRejectionReason())
-                        .updatedAt(payment.getUpdatedAt())
-                        .expiresAt(payment.getExpiresAt())
-                        .build())
-                .toList();
-    }
-
-    public void updatePaymentStatus(Long id, UpdatePaymentStatusDTO dto) {
-        Optional<Payment> optional = paymentRepository.findById(id);
-        if (optional.isEmpty()) {
-            throw new EntityNotFoundException("Pago con ID: " + id + " no encontrado",
-                    "Api/Payment/updatePaymentStatus");
-        }
-
-        Payment payment = optional.get();
-
-        if (dto.getStatus() == null) {
-            throw new BusinessRuleException("El estado no puede ser null", "Api/Payment/updatePaymentStatus");
-        }
-
-        switch (dto.getStatus().toLowerCase()) {
-            case "paid":
-                payment.setStatus(PaymentStatus.PAID);
-                userService.updateUserStatus(optional.get().getUser(), UserStatus.ACTIVE); // Si el usuario pagó, se
-                                                                                           // pone en activo
-                break;
-            case "rejected":
-                payment.setStatus(PaymentStatus.REJECTED);
-                payment.setRejectionReason(dto.getRejectionReason()); // puede ser null o ""
-                userService.updateUserStatus(optional.get().getUser(), UserStatus.INACTIVE);
-                break;
-            default:
-                throw new BusinessRuleException("Estado inválido: " + dto.getStatus(),
-                        "Api/Payment/updatePaymentStatus");
-        }
-
-        payment.setUpdatedAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-    }
-
-    public Payment getPaymentWithFileById(Long id) {
-        Optional<Payment> payment = paymentRepository.findById(id);
-        if (payment.isEmpty())
-            throw new EntityNotFoundException("Pago con ID: " + id + " no encontrado",
-                    "Api/Payment/getPaymentWithFileById");
-        return payment.get();
-    }
-
-    public PaymentTypeDTO getPaymentById(Long id) {
-        Optional<Payment> payment = paymentRepository.findById(id);
-        if (payment.isEmpty())
-            throw new EntityNotFoundException("Pago con ID: " + id + " no encontrado", "Api/Payment/getPaymentById");
-
-        return PaymentTypeDTO.builder()
-                .id(payment.get().getId())
-                .clientId(payment.get().getUser().getId())
-                .clientName(payment.get().getUser().getFullName())
-                .createdAt(payment.get().getCreatedAt())
-                .amount(payment.get().getAmount())
-                .status(payment.get().getStatus())
-                .verifiedAt(payment.get().getVerifiedAt())
-                .verifiedBy(payment.get().getVerifiedBy() != null ? payment.get().getUser().getFullName() : null)
-                .rejectionReason(payment.get().getRejectionReason())
-                .updatedAt(payment.get().getUpdatedAt())
-                .expiresAt(payment.get().getExpiresAt())
-                .receiptId(payment.get().getPaymentFile() != null ? payment.get().getPaymentFile().getId() : null)
-                .build();
-    }
-
     /**
-     * Valida si un usuario puede crear un nuevo pago
-     * 
-     * @param user El usuario que intenta crear el pago
-     * @throws PaymentAlreadyExistsException Si el usuario ya tiene un pago activo o
-     *                                       pendiente
+     * Crea un nuevo pago con archivo opcional
+     * Unifica la lógica de creación manual y automática
      */
-    private void validateUserCanCreatePayment(User user) {
-        List<Payment> userPayments = user.getPayments();
-
-        // Verificar si tiene pagos activos (paid) o pendientes (pending)
-        boolean hasActiveOrPendingPayment = userPayments.stream()
-                .anyMatch(payment -> payment.getStatus() == PaymentStatus.PAID ||
-                        payment.getStatus() == PaymentStatus.PENDING);
-
-        if (hasActiveOrPendingPayment) {
-            throw new EntityAlreadyExistsException("El usuario ya tiene un pago activo o pendiente",
-                    "Api/Payment/validateUserCanCreatePayment");
-        }
-    }
-
     @Transactional
+    public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file) {
+        // Validar usuario
+        User user = getUserForPayment(paymentRequest);
+        
+        // Validar reglas de negocio
+        validatePaymentCreation(user);
 
-    public Payment registerPaymentWithFile(CreatePaymentDTO newPayment, MultipartFile file) {
-
-        User user = userService.getUserByDni(newPayment.getClientDni());
-
-        // Validar que el usuario pueda crear un nuevo pago
-        validateUserCanCreatePayment(user);
-
-        Optional<Long> idFile = Optional.empty();
-        PaymentFile pFile = null;
-        if (!(file == null || file.isEmpty())) {
-            idFile = Optional.of(paymentFileService.uploadFile(file));
-            pFile = paymentFileService.getPaymentFile(idFile.get());
+        // Crear el pago
+        Payment payment = buildPayment(paymentRequest, user);
+        
+        // Procesar archivo si existe
+        if (file != null && !file.isEmpty()) {
+            PaymentFile paymentFile = processPaymentFile(file);
+            payment.setPaymentFile(paymentFile);
         }
 
-        Payment payment = Payment.builder()
-                .user(user)
-                .confNumber(newPayment.getConfNumber())
-                .amount(newPayment.getAmount())
-                .paymentFile(pFile)
-                .methodType(newPayment.getMethodType())
-                .createdAt(newPayment.getCreatedAt())
-                .expiresAt(newPayment.getExpiresAt())
-                .status(newPayment.getPaymentStatus())
-                .build();
-
-        try {
-            Payment savedPayment = paymentRepository.save(payment);
-            return savedPayment;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-
-    }
-
-    // batch function to save multiple users
-
-    public Boolean saveAll(List<CreatePaymentDTO> newPayments) {
-
-        for (CreatePaymentDTO newPayment : newPayments) {
-            User user = userService.getUserById(newPayment.getClientId());
-
-            // Validar que el usuario pueda crear un nuevo pago
-            validateUserCanCreatePayment(user);
-
-            Payment payment = Payment.builder()
-                    .user(user)
-                    .confNumber(newPayment.getConfNumber())
-                    .amount(newPayment.getAmount())
-                    .methodType(newPayment.getMethodType())
-                    .createdAt(newPayment.getCreatedAt())
-                    .expiresAt(newPayment.getExpiresAt())
-                    .status(PaymentStatus.PENDING)
-                    .build();
-
-            try {
-                paymentRepository.save(payment);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-        return true;
-
-    }
-
-    // batch function to save multiple payments with files
-
-    public Boolean saveAllWithFiles(List<CreatePaymentWithFileDTO> newPayments) {
-
-        for (CreatePaymentWithFileDTO newPayment : newPayments) {
-            User user = userService.getUserByDni(newPayment.getClientDni());
-
-            // Validar que el usuario pueda crear un nuevo pago
-            validateUserCanCreatePayment(user);
-
-            Optional<Long> idFile = Optional.empty();
-            PaymentFile pFile = null;
-            if (!(newPayment.getFile() == null || newPayment.getFile().isEmpty())) {
-                idFile = Optional.of(paymentFileService.uploadFile(newPayment.getFile()));
-                pFile = paymentFileService.getPaymentFile(idFile.get());
-            }
-
-            Payment payment = Payment.builder()
-                    .user(user)
-                    .confNumber(newPayment.getConfNumber())
-                    .amount(newPayment.getAmount())
-                    .paymentFile(pFile)
-                    .methodType(newPayment.getMethodType())
-                    .createdAt(newPayment.getCreatedAt())
-                    .expiresAt(newPayment.getExpiresAt())
-                    .status(newPayment.getPaymentStatus())
-                    .build();
-
-            try {
-                paymentRepository.save(payment);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-        return true;
-
-    }
-
-    // batch function to save multiple payments with files from array
-
-    public Boolean saveAllWithFilesFromArray(List<CreatePaymentDTO> newPayments, MultipartFile[] files) {
-
-        for (int i = 0; i < newPayments.size(); i++) {
-            CreatePaymentDTO newPayment = newPayments.get(i);
-            User user = userService.getUserByDni(newPayment.getClientDni());
-
-            // Validar que el usuario pueda crear un nuevo pago
-            validateUserCanCreatePayment(user);
-
-            Optional<Long> idFile = Optional.empty();
-            PaymentFile pFile = null;
-
-            // Verificar si hay archivo correspondiente
-            if (files != null && i < files.length && !(files[i] == null || files[i].isEmpty())) {
-                idFile = Optional.of(paymentFileService.uploadFile(files[i]));
-                pFile = paymentFileService.getPaymentFile(idFile.get());
-            }
-
-            Payment payment = Payment.builder()
-                    .user(user)
-                    .confNumber(newPayment.getConfNumber())
-                    .amount(newPayment.getAmount())
-                    .paymentFile(pFile)
-                    .methodType(newPayment.getMethodType())
-                    .createdAt(newPayment.getCreatedAt())
-                    .expiresAt(newPayment.getExpiresAt())
-                    .status(newPayment.getPaymentStatus())
-                    .build();
-
-            try {
-                paymentRepository.save(payment);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-        return true;
-
-    }
-
-    public Payment registerWebhookPayment(CreatePaymentDTO newPayment) {
-        User user = userService.getUserByDni(newPayment.getClientDni());
-
-        // Check if a payment with this confNumber (MercadoPago ID) already exists to
-        // prevent duplicates
-        Optional<Payment> existingPayment = paymentRepository.findByConfNumber(newPayment.getConfNumber());
-        if (existingPayment.isPresent()) {
-            // If it exists and is already paid, just return it. If it's pending, update it.
-            Payment payment = existingPayment.get();
-            if (payment.getStatus() != PaymentStatus.PAID) {
-                payment.setStatus(PaymentStatus.PAID);
-                payment.setUpdatedAt(LocalDateTime.now());
-                userService.updateUserStatus(user, UserStatus.ACTIVE);
-                return paymentRepository.save(payment);
-            }
-            return payment; // Already paid, no action needed
-        }
-
-        Payment payment = Payment.builder()
-                .user(user)
-                .confNumber(newPayment.getConfNumber())
-                .amount(newPayment.getAmount())
-                .methodType(newPayment.getMethodType() != null ? newPayment.getMethodType() : MethodType.CARD) // Default
-                                                                                                               // to
-                                                                                                               // card
-                                                                                                               // if not
-                                                                                                               // provided
-                .createdAt(newPayment.getCreatedAt() != null ? newPayment.getCreatedAt() : LocalDateTime.now())
-                .expiresAt(newPayment.getExpiresAt() != null ? newPayment.getExpiresAt()
-                        : LocalDateTime.now().plusMonths(1))
-                .status(PaymentStatus.PAID) // Always 'paid' for successful webhooks
-                .build();
-
+        // Guardar y actualizar estado del usuario si es necesario
         Payment savedPayment = paymentRepository.save(payment);
-        userService.updateUserStatus(user, UserStatus.ACTIVE); // Activate user upon successful payment
+        updateUserStatusIfPaid(user, savedPayment);
+        
+        log.info("Pago creado exitosamente: ID={}, Cliente={}, Monto={}", 
+                savedPayment.getId(), user.getFullName(), savedPayment.getAmount());
+        
         return savedPayment;
     }
 
+    /**
+     * Crea un pago desde webhook (MercadoPago)
+     */
+    @Transactional
+    public Payment createWebhookPayment(PaymentRequestDTO paymentRequest) {
+        return createPayment(paymentRequest, null);
+    }
+
+    /**
+     * Obtiene todos los pagos (para admin)
+     */
+    public List<PaymentTypeDTO> getAllPayments() {
+        return paymentRepository.findAll().stream()
+                .map(this::convertToPaymentTypeDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene pagos de un usuario específico
+     */
+    public List<PaymentTypeDTO> getUserPayments(Long userId) {
+        User user = userService.getUserById(userId);
+        return user.getPayments().stream()
+                .map(this::convertToPaymentTypeDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene detalles de un pago específico
+     */
+    public PaymentTypeDTO getPaymentDetails(Long paymentId) {
+        Payment payment = getPaymentById(paymentId);
+        return convertToPaymentTypeDTO(payment);
+    }
+
+    /**
+     * Obtiene un pago con su archivo asociado
+     */
+    public Payment getPaymentWithFile(Long paymentId) {
+        return getPaymentById(paymentId);
+    }
+
+    /**
+     * Actualiza el estado de un pago
+     */
+    @Transactional
+    public void updatePaymentStatus(Long paymentId, PaymentStatusUpdateDTO statusUpdate) {
+        Payment payment = getPaymentById(paymentId);
+        PaymentStatus newStatus = PaymentStatus.valueOf(statusUpdate.getStatus().toUpperCase());
+
+        payment.setStatus(newStatus);
+        payment.setUpdatedAt(LocalDateTime.now());
+
+        if (newStatus == PaymentStatus.REJECTED && statusUpdate.getRejectionReason() != null) {
+            payment.setRejectionReason(statusUpdate.getRejectionReason());
+        }
+
+        if (newStatus == PaymentStatus.PAID) {
+            payment.setVerifiedAt(LocalDateTime.now());
+            // Activar usuario si el pago es aprobado
+            updateUserStatusIfPaid(payment.getUser(), payment);
+        }
+
+        paymentRepository.save(payment);
+        log.info("Estado de pago actualizado: ID={}, Nuevo Estado={}", paymentId, newStatus);
+    }
+
+    /**
+     * Obtiene el contenido de un archivo de pago
+     */
+    public byte[] getFileContent(Long fileId) {
+        PaymentFile paymentFile = getPaymentFileById(fileId);
+        
+        try {
+            Path filePath = Paths.get(paymentFile.getFilePath());
+            if (!Files.exists(filePath)) {
+                throw new FileException("Archivo no encontrado en el sistema de archivos", 
+                                      "/api/files/" + fileId);
+            }
+            return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            log.error("Error al leer archivo: {}", e.getMessage());
+            throw new FileException("Error al leer el archivo", "/api/files/" + fileId);
+        }
+    }
+
+    /**
+     * Obtiene información de un archivo de pago
+     */
+    public PaymentFile getPaymentFileInfo(Long fileId) {
+        return getPaymentFileById(fileId);
+    }
+
+    // ===== MÉTODOS PRIVADOS =====
+
+    private User getUserForPayment(PaymentRequestDTO paymentRequest) {
+        if (paymentRequest.getClientId() != null) {
+            return userService.getUserById(paymentRequest.getClientId());
+        } else if (paymentRequest.getClientDni() != null) {
+            return userService.getUserByDni(paymentRequest.getClientDni());
+        } else {
+            throw new BusinessRuleException("Se debe proporcionar clientId o clientDni", 
+                                          "/api/payments/new");
+        }
+    }
+
+    private void validatePaymentCreation(User user) {
+        // Solo validar para clientes (no para pagos desde webhook)
+        if (user.getRole().name().equals("CLIENT")) {
+            Optional<Payment> lastPayment = paymentRepository.findTopByUserOrderByCreatedAtDesc(user);
+            
+            if (lastPayment.isPresent()) {
+                Payment payment = lastPayment.get();
+                if (payment.getStatus() == PaymentStatus.PENDING) {
+                    throw new BusinessRuleException(
+                        "El usuario ya tiene un pago pendiente de verificación", 
+                        "/api/payments/new"
+                    );
+                }
+                
+                if (payment.getStatus() == PaymentStatus.PAID) {
+                    LocalDateTime expirationDate = payment.getExpiresAt();
+                    if (expirationDate != null && expirationDate.isAfter(LocalDateTime.now())) {
+                        throw new BusinessRuleException(
+                            "El usuario ya tiene un pago activo válido", 
+                            "/api/payments/new"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    private Payment buildPayment(PaymentRequestDTO request, User user) {
+        return Payment.builder()
+                .user(user)
+                .amount(request.getAmount())
+                .methodType(request.getMethodType())
+                .status(request.getPaymentStatus())
+                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
+                .expiresAt(request.getExpiresAt())
+                .confNumber(request.getConfNumber())
+                .build();
+    }
+
+    private PaymentFile processPaymentFile(MultipartFile file) {
+        validateFile(file);
+        
+        try {
+            // Crear directorio si no existe
+            Path uploadDir = Paths.get(UPLOAD_FOLDER);
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            // Generar nombre único para el archivo
+            String originalFilename = file.getOriginalFilename();
+            String fileExtension = originalFilename != null && originalFilename.contains(".") 
+                ? originalFilename.substring(originalFilename.lastIndexOf(".")) 
+                : "";
+            String uniqueFilename = "payment_" + System.currentTimeMillis() + fileExtension;
+            
+            // Guardar archivo
+            Path filePath = uploadDir.resolve(uniqueFilename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Crear registro en base de datos
+            PaymentFile paymentFile = PaymentFile.builder()
+                    .fileName(originalFilename)
+                    .filePath(filePath.toString())
+                    .contentType(file.getContentType())
+                    .build();
+
+            return paymentFileRepository.save(paymentFile);
+
+        } catch (IOException e) {
+            log.error("Error al guardar archivo: {}", e.getMessage());
+            throw new FileException("Error al guardar el archivo", "/api/payments/new");
+        }
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new FileException("El archivo está vacío", "/api/payments/new");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE_MB * 1024 * 1024) {
+            throw new FileException("El archivo excede el tamaño máximo de " + MAX_FILE_SIZE_MB + "MB", 
+                                  "/api/payments/new");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
+            throw new FileException("Tipo de archivo no permitido. Solo se permiten imágenes y PDFs", 
+                                  "/api/payments/new");
+        }
+    }
+
+    private void updateUserStatusIfPaid(User user, Payment payment) {
+        if (payment.getStatus() == PaymentStatus.PAID && user.getStatus() == UserStatus.INACTIVE) {
+            user.setStatus(UserStatus.ACTIVE);
+            // El UserService se encargará de guardar el usuario
+        }
+    }
+
+    private Payment getPaymentById(Long paymentId) {
+        return paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "Pago no encontrado con ID: " + paymentId, 
+                    "/api/payments/info/" + paymentId));
+    }
+
+    private PaymentFile getPaymentFileById(Long fileId) {
+        return paymentFileRepository.findById(fileId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "Archivo no encontrado con ID: " + fileId, 
+                    "/api/files/" + fileId));
+    }
+
+    private PaymentTypeDTO convertToPaymentTypeDTO(Payment payment) {
+        return PaymentTypeDTO.builder()
+                .id(payment.getId())
+                .clientId(payment.getUser().getId())
+                .clientName(payment.getUser().getFullName())
+                .amount(payment.getAmount())
+                .status(payment.getStatus())
+                .method(payment.getMethodType())
+                .createdAt(payment.getCreatedAt())
+                .expiresAt(payment.getExpiresAt())
+                .verifiedAt(payment.getVerifiedAt())
+                .verifiedBy(payment.getVerifiedBy() != null ? payment.getVerifiedBy().getFullName() : null)
+                .rejectionReason(payment.getRejectionReason())
+                .updatedAt(payment.getUpdatedAt())
+                .receiptId(payment.getPaymentFile() != null ? payment.getPaymentFile().getId() : null)
+                .receiptUrl(payment.getPaymentFile() != null ? "/api/files/" + payment.getPaymentFile().getId() : null)
+                .build();
+    }
 }

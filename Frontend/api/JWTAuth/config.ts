@@ -16,7 +16,7 @@ export const API_CONFIG = {
 export function buildFileUrl(fileId: number | null | undefined): string | null {
   if (!fileId) return null;
   // Usar el endpoint proxy del frontend que maneja la autenticación
-  return `${API_CONFIG.FILES_URL}/api/files/${fileId}`;
+  return `${API_CONFIG.FILES_URL}/payments/files/${fileId}`;
 }
 
 // Función helper para construir URLs de la API

@@ -7,7 +7,7 @@ import { handleApiError } from "@/lib/error-handler";
  */
 export async function fetchMonthlyFee(): Promise<number> {
   try {
-    const fee = await jwtPermissionsApi.get('/api/settings/monthly-fee');
+    const fee = await jwtPermissionsApi.get('/settings/api/monthly-fee');
     return fee;
   } catch (error) {
     handleApiError(error, 'Error al obtener la cuota mensual');
@@ -22,7 +22,7 @@ export async function fetchMonthlyFee(): Promise<number> {
  */
 export async function updateMonthlyFee(amount: number): Promise<number> {
   try {
-    return await jwtPermissionsApi.post('/api/settings/monthly-fee', { amount });
+    return await jwtPermissionsApi.post('/settings/api/monthly-fee', { amount });
   } catch (error) {
     handleApiError(error, 'Error al actualizar la cuota mensual');
     throw error;

@@ -50,7 +50,7 @@ function FailurePageContent() {
 
                     <div className="space-y-2">
                         <Button
-                            onClick={() => router.push('/payments/new-mp')}
+                            onClick={() => router.push('/payments/method-select/new-mp')}
                             className="w-full"
                         >
                             Intentar nuevamente

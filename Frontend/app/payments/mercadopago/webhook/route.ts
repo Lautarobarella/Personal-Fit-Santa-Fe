@@ -43,10 +43,8 @@ export async function GET() {
         message: 'Webhook de MercadoPago funcionando correctamente',
         timestamp: new Date().toISOString(),
         endpoints: {
-            webhook: '/api/webhook/mercadopago',
-            test: '/api/webhook/test',
-            health: '/api/health',
-            config: '/api/test-mercadopago-config'
+            webhook: '/payments/mercadopago/webhook',
+            checkout: '/payments/mercadopago/checkout'
         }
     });
 }

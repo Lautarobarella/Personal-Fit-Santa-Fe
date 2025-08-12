@@ -1,17 +1,14 @@
 package com.personalfit.controllers;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,57 +19,64 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.personalfit.dto.Payment.CreatePaymentDTO;
-import com.personalfit.dto.Payment.UpdatePaymentStatusDTO;
+import com.personalfit.dto.Payment.PaymentRequestDTO;
+import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
-import com.personalfit.services.PaymentFileService;
 import com.personalfit.services.PaymentService;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Controlador unificado para pagos y archivos
+ * Combina PaymentController y PaymentFileController
+ */
+@Slf4j
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api")
 public class PaymentController {
 
     @Autowired
     private PaymentService paymentService;
 
-    @Autowired
-    private PaymentFileService fileService;
+    // ===== ENDPOINTS DE PAGOS =====
 
-    // DEPRECATED
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> newPayment(@RequestBody CreatePaymentDTO payment) {
-        paymentService.registerPayment(payment);
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Pago registrado exitosamente (método deprecated)");
-        response.put("success", true);
-        response.put("warning", "Este endpoint está deprecated, use /new en su lugar");
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> newPaymentWithFile(
-            @RequestPart("payment") CreatePaymentDTO payment,
+    /**
+     * Crear nuevo pago con archivo opcional
+     * Endpoint principal usado por el frontend
+     */
+    @PostMapping(value = "/payments/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> createPayment(
+            @RequestPart("payment") PaymentRequestDTO paymentRequest,
             @RequestPart(value = "file", required = false) MultipartFile file) {
+        
+        log.info("Creando nuevo pago: Cliente={}, Monto={}", 
+                paymentRequest.getClientDni(), paymentRequest.getAmount());
 
-        Payment createdPayment = paymentService.registerPaymentWithFile(payment, file);
+        Payment createdPayment = paymentService.createPayment(paymentRequest, file);
         
         Map<String, Object> response = new HashMap<>();
         response.put("id", createdPayment.getId());
         response.put("message", "Pago creado exitosamente");
+        response.put("success", true);
         
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/webhook/mercadopago")
-    public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(@RequestBody CreatePaymentDTO payment) {
+    /**
+     * Crear pago desde webhook de MercadoPago
+     */
+    @PostMapping("/payments/webhook/mercadopago")
+    public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(
+            @RequestBody PaymentRequestDTO paymentRequest) {
+        
+        log.info("Procesando pago desde webhook: DNI={}, Monto={}", 
+                paymentRequest.getClientDni(), paymentRequest.getAmount());
+        
         try {
-            paymentService.registerWebhookPayment(payment); // Use the new method
+            paymentService.createWebhookPayment(paymentRequest);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -80,7 +84,10 @@ public class PaymentController {
             response.put("timestamp", LocalDateTime.now());
             
             return ResponseEntity.ok(response);
+            
         } catch (Exception e) {
+            log.error("Error procesando webhook: {}", e.getMessage());
+            
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", "Error al registrar pago: " + e.getMessage());
@@ -90,98 +97,92 @@ public class PaymentController {
         }
     }
 
-    @GetMapping("/getAll")
+    /**
+     * Obtener todos los pagos (para admin)
+     */
+    @GetMapping("/payments/getAll")
     public ResponseEntity<List<PaymentTypeDTO>> getAllPayments() {
-        return ResponseEntity.ok(paymentService.getAllPaymentsTypeDto());
+        List<PaymentTypeDTO> payments = paymentService.getAllPayments();
+        return ResponseEntity.ok(payments);
     }
 
-    @GetMapping("/info/{id}")
-    public ResponseEntity<PaymentTypeDTO> getPaymentInfo(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.getPaymentById(id));
+    /**
+     * Obtener pagos de un usuario específico
+     */
+    @GetMapping("/payments/{userId}")
+    public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long userId) {
+        List<PaymentTypeDTO> payments = paymentService.getUserPayments(userId);
+        return ResponseEntity.ok(payments);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.getUserPaymentsTypeDto(id));
+    /**
+     * Obtener detalles de un pago específico
+     */
+    @GetMapping("/payments/info/{paymentId}")
+    public ResponseEntity<PaymentTypeDTO> getPaymentDetails(@PathVariable Long paymentId) {
+        PaymentTypeDTO payment = paymentService.getPaymentDetails(paymentId);
+        return ResponseEntity.ok(payment);
     }
 
-    @PutMapping("/pending/{id}")
-    public ResponseEntity<Map<String, Object>> putPayment(
-            @PathVariable Long id,
-            @RequestBody UpdatePaymentStatusDTO dto) {
-        paymentService.updatePaymentStatus(id, dto);
+    /**
+     * Actualizar estado de un pago (aprobar/rechazar)
+     */
+    @PutMapping("/payments/pending/{paymentId}")
+    public ResponseEntity<Map<String, Object>> updatePaymentStatus(
+            @PathVariable Long paymentId,
+            @Valid @RequestBody PaymentStatusUpdateDTO statusUpdate) {
+        
+        log.info("Actualizando estado de pago: ID={}, Nuevo Estado={}", 
+                paymentId, statusUpdate.getStatus());
+        
+        paymentService.updatePaymentStatus(paymentId, statusUpdate);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Estado actualizado correctamente");
-        response.put("paymentId", id);
-        response.put("newStatus", dto.getStatus());
+        response.put("paymentId", paymentId);
+        response.put("newStatus", statusUpdate.getStatus());
         
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/getFile/{id}")
-    public ResponseEntity<byte[]> getFile(@PathVariable Long id) {
-        Payment payment = paymentService.getPaymentWithFileById(id);
+    // ===== ENDPOINTS DE ARCHIVOS =====
+
+    /**
+     * Descargar archivo de comprobante
+     */
+    @GetMapping("/files/{fileId}")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
+        log.info("Descargando archivo: ID={}", fileId);
+        
+        byte[] fileContent = paymentService.getFileContent(fileId);
+        PaymentFile fileInfo = paymentService.getPaymentFileInfo(fileId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + fileInfo.getFileName())
+                .contentType(MediaType.parseMediaType(fileInfo.getContentType()))
+                .body(fileContent);
+    }
+
+    /**
+     * Obtener archivo de un pago específico (para verificación)
+     */
+    @GetMapping("/payments/getFile/{paymentId}")
+    public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId) {
+        log.info("Obteniendo archivo de pago: ID={}", paymentId);
+        
+        Payment payment = paymentService.getPaymentWithFile(paymentId);
+        
+        if (payment.getPaymentFile() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
         PaymentFile file = payment.getPaymentFile();
-        byte[] fileBytes = fileService.getFile(file.getId());
+        byte[] fileContent = paymentService.getFileContent(file.getId());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getFileName())
                 .contentType(MediaType.parseMediaType(file.getContentType()))
-                .body(fileBytes);
+                .body(fileContent);
     }
-
-    // batch function to save multiple payments
-    @Transactional
-    @PostMapping("/batch")
-    public ResponseEntity<Void> savePayments(@Valid @RequestBody List<CreatePaymentDTO> newPayments) {
-        paymentService.saveAll(newPayments);
-        return new ResponseEntity<>(HttpStatus.CREATED);
-    }
-
-    // batch function to save multiple payments with files
-    @Transactional
-    @PostMapping(value = "/batch-with-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> savePaymentsWithFiles(
-            @RequestPart("payments") String paymentsJson,
-            @RequestPart(value = "file1", required = false) MultipartFile file1,
-            @RequestPart(value = "file2", required = false) MultipartFile file2,
-            @RequestPart(value = "file3", required = false) MultipartFile file3,
-            @RequestPart(value = "file4", required = false) MultipartFile file4,
-            @RequestPart(value = "file5", required = false) MultipartFile file5) {
-        
-        try {
-            System.out.println("Received payments JSON: " + paymentsJson);
-            System.out.println("File1: " + (file1 != null ? file1.getOriginalFilename() : "null"));
-            System.out.println("File2: " + (file2 != null ? file2.getOriginalFilename() : "null"));
-            
-            // Convertir JSON string a lista de DTOs
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule());
-            List<CreatePaymentDTO> payments = mapper.readValue(paymentsJson, 
-                mapper.getTypeFactory().constructCollectionType(List.class, CreatePaymentDTO.class));
-            
-            System.out.println("Parsed payments count: " + payments.size());
-            
-            // Crear array de archivos
-            List<MultipartFile> filesList = new ArrayList<>();
-            if (file1 != null) filesList.add(file1);
-            if (file2 != null) filesList.add(file2);
-            if (file3 != null) filesList.add(file3);
-            if (file4 != null) filesList.add(file4);
-            if (file5 != null) filesList.add(file5);
-            
-            MultipartFile[] files = filesList.toArray(new MultipartFile[0]);
-            System.out.println("Files count: " + files.length);
-            
-            paymentService.saveAllWithFilesFromArray(payments, files);
-            return new ResponseEntity<>("Pagos creados exitosamente", HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.err.println("Error processing batch payment: " + e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>("Error: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
-
 }

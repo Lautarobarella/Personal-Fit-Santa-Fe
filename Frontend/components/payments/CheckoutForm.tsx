@@ -49,7 +49,7 @@ export default function CheckoutForm({
         setError('');
 
         try {
-            const { createCheckoutPreference } = await import('@/api/checkout/checkoutApi');
+            const { createCheckoutPreference } = await import('@/api/payments/paymentsApi');
             const data = await createCheckoutPreference(productId, productName, productPrice, user.email, user.dni.toString());
 
             if (data.sandboxInitPoint) {

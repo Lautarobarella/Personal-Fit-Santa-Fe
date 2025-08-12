@@ -33,9 +33,8 @@ export default function DiagnosticsPage() {
     const [isTestingMP, setIsTestingMP] = useState(false);
 
     const endpointsToTest = [
-        { name: "Backend API", url: "/api/health" },
-        { name: "MercadoPago Config", url: "/api/test-mercadopago-config" },
-        { name: "Webhook Test", url: "/api/webhook/test" },
+        { name: "MercadoPago Checkout", url: "/payments/mercadopago/checkout" },
+        { name: "MercadoPago Webhook", url: "/payments/mercadopago/webhook" },
     ];
 
     const checkEndpoint = async (endpoint: { name: string; url: string }, method: 'GET' | 'POST' = 'GET'): Promise<EndpointStatus> => {
@@ -101,7 +100,7 @@ export default function DiagnosticsPage() {
         setMpTestResult(null);
 
         try {
-            const response = await fetch('/api/test-mercadopago-config', {
+            const response = await fetch('/payments/mercadopago/webhook', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
