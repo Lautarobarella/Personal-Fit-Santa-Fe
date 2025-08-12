@@ -466,7 +466,7 @@ export function ClientDetailsDialog({
 
           {/* Statistics Tab */}
           <TabsContent value="stats" className="h-full overflow-y-auto space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               {/* Activity Stats */}
               <Card>
                 <CardHeader>
@@ -475,23 +475,23 @@ export function ClientDetailsDialog({
                     Estadísticas de Actividad
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-primary">{selectedClient.listActivity.length}</div>
-                      <div className="text-sm text-muted-foreground">Total</div>
+                      <div className="text-xs text-muted-foreground">Total</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-success">{presentActivities.length}</div>
-                      <div className="text-sm text-muted-foreground">Presente</div>
+                      <div className="text-xs text-muted-foreground">Presente</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-warning">{enrolledActivities.length}</div>
-                      <div className="text-sm text-muted-foreground">Inscritas</div>
+                      <div className="text-xs text-muted-foreground">Inscritas</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-warning">{attendanceRate}%</div>
-                      <div className="text-sm text-muted-foreground">Asistencia</div>
+                      <div className="text-xs text-muted-foreground">Asistencia</div>
                     </div>
                   </div>
                 </CardContent>
@@ -505,70 +505,70 @@ export function ClientDetailsDialog({
                     Estadísticas Financieras
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 text-center">
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-success">${totalPaid}</div>
-                      <div className="text-sm text-muted-foreground">Total Pagado</div>
+                      <div className="text-xs text-muted-foreground">Total Pagado</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-success">{selectedClient.listPayments.length}</div>
-                      <div className="text-sm text-muted-foreground">Transacciones</div>
+                      <div className="text-xs text-muted-foreground">Transacciones</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            {/* Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Resumen del Cliente
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Cliente desde:</span>
-                    <p className="font-medium">{formatDate(selectedClient.joinDate)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Última actividad:</span>
-                    <p className="font-medium">{selectedClient.lastActivity ? formatDate(selectedClient.lastActivity) : "No posee"}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Promedio mensual:</span>
-                    <p className="font-medium">
-                      {Math.round(
-                        presentActivities.length / selectedClient.listActivity.length,
-                      )}{" "}
-                      actividades
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Estado:</span>
-                    <Badge variant={selectedClient.status === UserStatus.ACTIVE ? "success" : "secondary"} className="ml-2">
-                      {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Payment Alerts */}
-                {totalPending > 0 && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
-                      <div>
-                        <span className="text-sm font-medium text-red-800">Pagos pendientes:</span>
-                        <p className="text-sm text-red-700">${totalPending} en pagos por cobrar</p>
-                      </div>
+              {/* Client Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Resumen del Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Cliente desde:</span>
+                      <p className="font-medium text-sm">{formatDate(selectedClient.joinDate)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Última actividad:</span>
+                      <p className="font-medium text-sm">{selectedClient.lastActivity ? formatDate(selectedClient.lastActivity) : "No posee"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Promedio mensual:</span>
+                      <p className="font-medium text-sm">
+                        {Math.round(
+                          presentActivities.length / selectedClient.listActivity.length,
+                        )}{" "}
+                        actividades
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Estado:</span>
+                      <Badge variant={selectedClient.status === UserStatus.ACTIVE ? "success" : "secondary"} className="ml-2">
+                        {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
+                      </Badge>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  {/* Payment Alerts */}
+                  {totalPending > 0 && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+                        <div>
+                          <span className="text-sm font-medium text-red-800">Pagos pendientes:</span>
+                          <p className="text-sm text-red-700">${totalPending} en pagos por cobrar</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
         </div>

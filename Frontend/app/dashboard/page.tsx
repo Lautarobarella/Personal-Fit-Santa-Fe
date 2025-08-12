@@ -58,10 +58,10 @@ function DashboardContent() {
       const monthlyRevenue = payments
         .filter(p => {
           const paymentDate = p.createdAt ? new Date(p.createdAt) : null
-                  return p.status === PaymentStatus.PAID &&
-          paymentDate &&
-          paymentDate.getMonth() === currentMonth &&
-          paymentDate.getFullYear() === currentYear
+          return p.status === PaymentStatus.PAID &&
+            paymentDate &&
+            paymentDate.getMonth() === currentMonth &&
+            paymentDate.getFullYear() === currentYear
         })
         .reduce((sum, p) => sum + p.amount, 0)
 
@@ -144,13 +144,13 @@ function DashboardContent() {
       // Formatear la próxima clase
       const formatNextClass = () => {
         if (!clientStats.nextClass) return "Sin clases";
-        
+
         const classDate = new Date(clientStats.nextClass.date);
         const today = new Date();
-        
+
         // Comparar solo las fechas (sin horas)
         const isToday = classDate.toDateString() === today.toDateString();
-        
+
         if (isToday) {
           // Solo mostrar la hora si es hoy
           return new Intl.DateTimeFormat("es-ES", {
@@ -167,52 +167,52 @@ function DashboardContent() {
           }).format(classDate);
         }
       };
-      
+
       const nextClassValue = formatNextClass();
 
       // Configurar la membresía activa
-      const membershipConfig = clientStats.membershipStatus === UserStatus.ACTIVE 
-        ? { 
-            value: "Activa", 
-            icon: CheckCircle, 
-            color: "text-green-600",
-            bgColor: "bg-green-50",
-            borderColor: "border-green-200"
-          }
-        : { 
-            value: "Inactiva", 
-            icon: XCircle, 
-            color: "text-red-600",
-            bgColor: "bg-red-50",
-            borderColor: "border-red-200"
-          };
+      const membershipConfig = clientStats.membershipStatus === UserStatus.ACTIVE
+        ? {
+          value: "Activa",
+          icon: CheckCircle,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+          borderColor: "border-green-200"
+        }
+        : {
+          value: "Inactiva",
+          icon: XCircle,
+          color: "text-red-600",
+          bgColor: "bg-red-50",
+          borderColor: "border-red-200"
+        };
 
       return [
-        { 
-          title: "Actividad Semanal", 
-          value: clientStats.weeklyActivityCount.toString(), 
-          icon: Activity, 
+        {
+          title: "Actividad Semanal",
+          value: clientStats.weeklyActivityCount.toString(),
+          icon: Activity,
           color: "text-blue-600",
           subtitle: "Entrenamientos de la semana"
         },
-        { 
-          title: "Próxima Clase", 
-          value: nextClassValue, 
-          icon: Clock, 
+        {
+          title: "Próxima Clase",
+          value: nextClassValue,
+          icon: Clock,
           color: "text-orange-600",
           subtitle: clientStats.nextClass?.name || "No programada"
         },
-        { 
-          title: "Entrenamientos completados", 
-          value: clientStats.completedClassesCount.toString(), 
-          icon: TrendingUp, 
+        {
+          title: "Entrenamientos completados",
+          value: clientStats.completedClassesCount.toString(),
+          icon: TrendingUp,
           color: "text-purple-600",
           subtitle: "Total histórico"
         },
-        { 
-          title: "Membresía", 
-          value: membershipConfig.value, 
-          icon: membershipConfig.icon, 
+        {
+          title: "Membresía",
+          value: membershipConfig.value,
+          icon: membershipConfig.icon,
           color: membershipConfig.color,
           subtitle: "Estado actual"
         },
@@ -228,17 +228,11 @@ function DashboardContent() {
         { title: "Ver Pagos", href: "/payments", icon: CreditCard },
         { title: "Ver Actividades", href: "/activities", icon: Calendar },
       ]
-    } else if (user.role === UserRole.TRAINER) {
+    } else { // Caso para entrenadores
       return [
         { title: "Mis Actividades", href: "/activities", icon: Activity },
         { title: "Mis Clientes", href: "/clients", icon: Users },
         { title: "Ver Actividades", href: "/activities", icon: Calendar },
-      ]
-    } else {
-      return [
-        { title: "Ver Actividades", href: "/activities", icon: Activity },
-        { title: "Mis Inscripciones", href: "/activities", icon: Calendar },
-        { title: "Realizar Pago", href: "/payments/method-select", icon: CreditCard },
       ]
     }
   }
@@ -264,24 +258,16 @@ function DashboardContent() {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-3">
           {stats.map((stat, index) => (
-            <Card 
-              key={index} 
-              className={`${stat.color ? stat.color : ''}`}
-            >
+            <Card key={index}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between h-20">
-                  <div className="flex-1 flex flex-col justify-center h-full">
+                  <div className="flex flex-col justify-center">
                     <p className="text-sm text-muted-foreground leading-tight">{stat.title}</p>
-                    <p className="text-2xl font-bold leading-tight my-1">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground leading-tight">
-                      {stat.subtitle || '\u00A0'}
-                    </p>
+                    <p className={`text-2xl font-bold leading-tight ${stat.color}`}>{stat.value}</p>
                   </div>
-                  <div className="flex items-center justify-center h-full">
-                    <stat.icon className={`h-8 w-8 ${stat.color} flex-shrink-0`} />
-                  </div>
+                  <stat.icon className={`h-8 w-8 ${stat.color} flex-shrink-0`} />
                 </div>
               </CardContent>
             </Card>
@@ -289,7 +275,7 @@ function DashboardContent() {
         </div>
 
         {/* Quick Actions */}
-        <Card>
+        {user.role === UserRole.ADMIN && <Card>
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
           </CardHeader>
@@ -303,7 +289,7 @@ function DashboardContent() {
               </Link>
             ))}
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Recent Activity */}
         <Card>

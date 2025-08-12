@@ -58,7 +58,7 @@ export async function fetchPaymentDetails(paymentId: number): Promise<PaymentTyp
  * @param isAutomaticPayment - Si es pago automático (MercadoPago) o manual
  */
 export async function createPayment(
-  paymentData: Omit<NewPaymentInput, 'paymentStatus'>, 
+  paymentData: Omit<NewPaymentInput, 'paymentStatus'>,
   isAutomaticPayment: boolean = false
 ) {
   const paymentStatus = isAutomaticPayment ? PaymentStatus.PAID : PaymentStatus.PENDING;
@@ -96,14 +96,14 @@ export async function createPayment(
  * Actualiza el estado de un pago (aprobar/rechazar)
  */
 export async function updatePaymentStatus(
-  paymentId: number, 
-  status: "paid" | "rejected", 
+  paymentId: number,
+  status: "paid" | "rejected",
   rejectionReason?: string
 ) {
   try {
-    return await jwtPermissionsApi.put(`/api/payments/pending/${paymentId}`, { 
-      status, 
-      rejectionReason 
+    return await jwtPermissionsApi.put(`/api/payments/pending/${paymentId}`, {
+      status,
+      rejectionReason
     });
   } catch (error) {
     if (isValidationError(error)) {
@@ -127,8 +127,8 @@ export async function updatePaymentStatus(
  * @returns Promise<any> Respuesta de MercadoPago
  */
 export async function createCheckoutPreference(
-  productId: string, 
-  productName: string, 
+  productId: string,
+  productName: string,
   productPrice: number,
   userEmail: string,
   userDni: string

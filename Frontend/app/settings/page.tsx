@@ -42,9 +42,9 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
                 {/* <p className="text-muted-foreground">{user.email}</p> */}
                 <p className="text-sm text-blue-600 capitalize">
-                          {user.role === UserRole.ADMIN && "Administrador"}
-        {user.role === UserRole.TRAINER && "Entrenador"}
-        {user.role === UserRole.CLIENT && "Cliente"}
+                  {user.role === UserRole.ADMIN && "Administrador"}
+                  {user.role === UserRole.TRAINER && "Entrenador"}
+                  {user.role === UserRole.CLIENT && "Cliente"}
 
                 </p>
               </div>
@@ -86,7 +86,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </div>
-              <Switch 
+              <Switch
                 checked={mounted ? isDark : false}
                 onCheckedChange={toggleTheme}
                 disabled={!mounted}
@@ -108,8 +108,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Account Settings */}
-        <Card>
+        {/* Account Settings, lo dejo comentado porque no es relevante ni tiene aún ningún uso, de encontrar en que se puede usar, se descomenta */}
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -132,7 +132,7 @@ export default function SettingsPage() {
               Idioma y Región
             </Button>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Support */}
         <Card>
@@ -159,7 +159,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Admin Settings */}
-                    {user.role === UserRole.ADMIN && (
+        {user.role === UserRole.ADMIN && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -168,8 +168,8 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start bg-transparent"
                 onClick={() => router.push('/settings/monthly-fee')}
               >

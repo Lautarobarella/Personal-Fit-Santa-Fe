@@ -185,12 +185,17 @@ export default function ClientsPage() {
                         <span>Última actividad: {client.lastActivity ? formatDate(client?.lastActivity) : "no ha realizado ninguna actividad"}</span>
                       </div>
                     </div>
-
+                  </div>
+                  {/*
+                    Yo quitaría esto porque ocupa demasiado espacio los clientes, y no me parece relevante
+                      si quiere acceder a los detalles del cliente, cuando se unió y cuantas actividades realizó
+                      que entre a los detalles del cliente. Además, por como está estilado, "actividades" parece
+                      clickeable, y no lo es.
                     <div className="flex items-center gap-4 mt-2 text-xs">
                       <span className="text-blue-600 font-medium">{client.activitiesCount} actividades</span>
                       <span className="text-muted-foreground">Desde {formatDate(client.joinDate)}</span>
                     </div>
-                  </div>
+                  </div> */}
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
