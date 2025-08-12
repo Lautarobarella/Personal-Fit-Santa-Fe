@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +26,9 @@ import com.personalfit.models.PaymentFile;
 import com.personalfit.models.User;
 import com.personalfit.repository.PaymentRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class PaymentService {
 
@@ -44,7 +48,6 @@ public class PaymentService {
 
         // Validar que el usuario pueda crear un nuevo pago
         validateUserCanCreatePayment(user);
-
         Payment payment = Payment.builder()
                 .user(user)
                 .confNumber(newPayment.getConfNumber())
@@ -53,9 +56,8 @@ public class PaymentService {
                 .methodType(newPayment.getMethodType())
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMonths(1))
-                .status(PaymentStatus.DEBTOR)
+                .status(PaymentStatus.PENDING)
                 .build();
-
         try {
             paymentRepository.save(payment);
         } catch (Exception e) {
@@ -185,11 +187,9 @@ public class PaymentService {
     }
 
     @Transactional
-
     public Payment registerPaymentWithFile(CreatePaymentDTO newPayment, MultipartFile file) {
 
         User user = userService.getUserByDni(newPayment.getClientDni());
-
         // Validar que el usuario pueda crear un nuevo pago
         validateUserCanCreatePayment(user);
 
@@ -249,7 +249,6 @@ public class PaymentService {
             }
         }
         return true;
-
     }
 
     // batch function to save multiple payments with files
@@ -261,7 +260,6 @@ public class PaymentService {
 
             // Validar que el usuario pueda crear un nuevo pago
             validateUserCanCreatePayment(user);
-
             Optional<Long> idFile = Optional.empty();
             PaymentFile pFile = null;
             if (!(newPayment.getFile() == null || newPayment.getFile().isEmpty())) {
@@ -288,7 +286,6 @@ public class PaymentService {
             }
         }
         return true;
-
     }
 
     // batch function to save multiple payments with files from array
@@ -369,6 +366,47 @@ public class PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
         userService.updateUserStatus(user, UserStatus.ACTIVE); // Activate user upon successful payment
         return savedPayment;
+    }
+
+    /**
+     * Schedule que se ejecuta el primer día de cada mes a las 00:00
+     * Marca como EXPIRED todos los pagos que estén en estado PAID
+     */
+    // @Scheduled(cron = "0 0 1 * *")
+    @Scheduled(cron = "0 */1 * * * *")
+    @Transactional
+    public void checkPaidPayments() {
+        log.info("Starting monthly payment expiration process...");
+        
+        try {
+            // Buscar todos los pagos que estén en estado PAID
+            List<Payment> paidPayments = paymentRepository.findByStatus(PaymentStatus.PAID);
+            
+            if (paidPayments.isEmpty()) {
+                log.info("No paid payments found to expire");
+                return;
+            }
+            
+            log.info("Found {} paid payments to expire", paidPayments.size());
+            
+            // Marcar todos los pagos como EXPIRED
+            for (Payment payment : paidPayments) {
+                payment.setStatus(PaymentStatus.EXPIRED);
+                payment.setUpdatedAt(LocalDateTime.now());
+                log.info("Payment ID {} marked as expired for user {}", 
+                    payment.getId(), payment.getUser().getFullName());
+            }
+            
+            // Guardar todos los cambios en una sola transacción
+            paymentRepository.saveAll(paidPayments);
+            
+            log.info("Successfully expired {} payments", paidPayments.size());
+            
+        } catch (Exception e) {
+            log.error("Error during payment expiration process: {}", e.getMessage(), e);
+        }
+        
+        log.info("Monthly payment expiration process completed");
     }
 
 }

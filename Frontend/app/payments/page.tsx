@@ -127,7 +127,7 @@ export default function PaymentsPage() {
             case PaymentStatus.PENDING:
                 return "warning"
             case PaymentStatus.REJECTED:
-            case PaymentStatus.DEBTOR:
+            case PaymentStatus.EXPIRED:
                 return "destructive"
             default:
                 return "secondary"
@@ -142,7 +142,7 @@ export default function PaymentsPage() {
                 return "Pendiente"
             case PaymentStatus.REJECTED:
                 return "Rechazado"
-            case PaymentStatus.DEBTOR:
+            case PaymentStatus.EXPIRED:
                 return "Vencido"
             default:
                 return status

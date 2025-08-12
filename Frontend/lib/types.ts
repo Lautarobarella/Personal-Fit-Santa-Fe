@@ -32,7 +32,7 @@ export enum PaymentStatus {
   PENDING = "PENDING",
   PAID = "PAID",
   REJECTED = "REJECTED",
-  DEBTOR = "DEBTOR"
+  EXPIRED = "EXPIRED"
 }
 
 export enum NotificationType {

@@ -2,6 +2,7 @@ package com.personalfit.repository;
 
 import com.personalfit.models.Attendance;
 import com.personalfit.models.User;
+import com.personalfit.enums.AttendanceStatus;
 import com.personalfit.models.Activity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -26,4 +27,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     
     // Delete attendance by user and activity
     void deleteByUserAndActivity(User user, Activity activity);
+    
+    // Find attendances by activity and attendance status
+    List<Attendance> findByActivityAndAttendance(Activity activity, AttendanceStatus attendance);
 }
