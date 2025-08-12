@@ -37,6 +37,8 @@ jobs:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
       NEXT_PUBLIC_MP_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_MP_PUBLIC_KEY }}
+      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+      
     steps:
       - name: Checkout repo (opcional para tests)
         uses: actions/checkout@v4
@@ -98,7 +100,14 @@ jobs:
             git pull origin main
 
             echo "==> Construyendo y levantando servicios"
-            docker-compose down
+            docker-compose down -v
+            
+            # Exportar secretos como variables de entorno para docker-compose
+            export JWT_SECRET="'"${JWT_SECRET}"'"
+            export MP_ACCESS_TOKEN="'"${MP_ACCESS_TOKEN}"'"
+            export NEXT_PUBLIC_MP_PUBLIC_KEY="'"${NEXT_PUBLIC_MP_PUBLIC_KEY}"'"
+            export WEBHOOK_SECRET="'"${WEBHOOK_SECRET}"'"
+            
             docker-compose up -d --build
 
             # Esperar a Postgres (usa envs del contenedor)
