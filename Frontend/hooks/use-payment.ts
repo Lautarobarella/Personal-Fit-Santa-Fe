@@ -50,7 +50,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   )
 
   const createPaymentMutation = useMutation({
-    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) => 
+    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) =>
       createPayment(data.paymentData, data.isMercadoPagoPayment),
     onSuccess: () => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
@@ -83,16 +83,16 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     payments,
     isLoading,
     error,
-    
+
     // Funcionalidad de pagos pendientes integrada
     pendingPayments,
     totalPendingPayments: pendingPayments.length,
-    
+
     // Operaciones
-    createPaymentWithStatus: createPaymentMutation.mutateAsync,
+    createPayment: createPaymentMutation.mutateAsync,
     updatePaymentStatus: updatePaymentMutation.mutateAsync,
     fetchSinglePayment,
-    
+
     // Aliases para compatibilidad
     loading: isLoading,
   }
@@ -104,7 +104,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
  */
 export function usePendingPayments(userId?: number, isAdmin?: boolean) {
   const { pendingPayments, totalPendingPayments, isLoading } = usePayment(userId, isAdmin)
-  
+
   return {
     pendingPayments,
     loading: isLoading,

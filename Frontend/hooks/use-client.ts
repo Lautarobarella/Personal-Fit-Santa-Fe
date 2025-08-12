@@ -1,6 +1,6 @@
 import { createUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
-import { fetchPaymentsById } from "@/api/payments/paymentsApi"
-import type { UserDetailInfo, UserFormType, UserType } from "@/lib/types"
+import { fetchUserPayments } from "@/api/payments/paymentsApi"
+import { UserRole, type UserDetailInfo, type UserFormType, type UserType } from "@/lib/types"
 import { useCallback, useState } from "react"
 
 export function useClients() {
@@ -13,7 +13,7 @@ export function useClients() {
     email: "",
     phone: "",
     address: "",
-    role: "client",
+    role: UserRole.CLIENT,
     joinDate: "",
     birthDate: "",
     password: "",
@@ -41,7 +41,7 @@ export function useClients() {
     setError(null)
     try {
       const detail = await fetchUserDetail(id)
-      const payments = await fetchPaymentsById(id)
+      const payments = await fetchUserPayments(id)
       detail.listPayments = payments // Asignar pagos al detalle del cliente
       setSelectedClient(detail)
     } catch (err) {

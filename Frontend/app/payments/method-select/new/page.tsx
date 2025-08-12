@@ -5,12 +5,12 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 import { UserRole } from "@/lib/types"
+import { useRouter } from "next/navigation"
 
 export default function NewPaymentPage() {
   const { toast } = useToast()
-  const { createPaymentWithStatus } = usePayment()
+  const { createPayment } = usePayment()
   const { user } = useAuth()
   const router = useRouter()
 
@@ -25,7 +25,7 @@ export default function NewPaymentPage() {
       // Determinar si es un pago automático (admin) o manual
       const isAutomaticPayment = user?.role === UserRole.ADMIN
       
-      await createPaymentWithStatus({
+      await createPayment({
         paymentData: payment,
         isMercadoPagoPayment: isAutomaticPayment // Si es admin, se marca como pago automático
       })

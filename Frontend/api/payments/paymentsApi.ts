@@ -156,11 +156,4 @@ export function buildReceiptUrl(receiptId: number | null | undefined): string | 
   return buildFileUrl(receiptId);
 }
 
-// ===== FUNCIONES LEGACY (para compatibilidad) =====
-// Estas funciones mantienen la compatibilidad con el código existente
 
-export const fetchPayments = fetchAllPayments;
-export const fetchPaymentsById = fetchUserPayments;
-export const fetchPaymentDetail = fetchPaymentDetails;
-export const createPaymentWithStatus = createPayment;
-export const updatePayment = updatePaymentStatus;

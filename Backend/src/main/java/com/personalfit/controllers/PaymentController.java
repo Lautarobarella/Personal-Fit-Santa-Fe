@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/payments")
 public class PaymentController {
 
     @Autowired
@@ -47,7 +47,7 @@ public class PaymentController {
      * Crear nuevo pago con archivo opcional
      * Endpoint principal usado por el frontend
      */
-    @PostMapping(value = "/payments/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createPayment(
             @RequestPart("payment") PaymentRequestDTO paymentRequest,
             @RequestPart(value = "file", required = false) MultipartFile file) {
@@ -68,7 +68,7 @@ public class PaymentController {
     /**
      * Crear pago desde webhook de MercadoPago
      */
-    @PostMapping("/payments/webhook/mercadopago")
+    @PostMapping("/webhook/mercadopago")
     public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(
             @RequestBody PaymentRequestDTO paymentRequest) {
         
@@ -100,7 +100,7 @@ public class PaymentController {
     /**
      * Obtener todos los pagos (para admin)
      */
-    @GetMapping("/payments/getAll")
+    @GetMapping("/getAll")
     public ResponseEntity<List<PaymentTypeDTO>> getAllPayments() {
         List<PaymentTypeDTO> payments = paymentService.getAllPayments();
         return ResponseEntity.ok(payments);
@@ -109,7 +109,7 @@ public class PaymentController {
     /**
      * Obtener pagos de un usuario específico
      */
-    @GetMapping("/payments/{userId}")
+    @GetMapping("/{userId}")
     public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long userId) {
         List<PaymentTypeDTO> payments = paymentService.getUserPayments(userId);
         return ResponseEntity.ok(payments);
@@ -118,7 +118,7 @@ public class PaymentController {
     /**
      * Obtener detalles de un pago específico
      */
-    @GetMapping("/payments/info/{paymentId}")
+    @GetMapping("/info/{paymentId}")
     public ResponseEntity<PaymentTypeDTO> getPaymentDetails(@PathVariable Long paymentId) {
         PaymentTypeDTO payment = paymentService.getPaymentDetails(paymentId);
         return ResponseEntity.ok(payment);
@@ -127,7 +127,7 @@ public class PaymentController {
     /**
      * Actualizar estado de un pago (aprobar/rechazar)
      */
-    @PutMapping("/payments/pending/{paymentId}")
+    @PutMapping("/pending/{paymentId}")
     public ResponseEntity<Map<String, Object>> updatePaymentStatus(
             @PathVariable Long paymentId,
             @Valid @RequestBody PaymentStatusUpdateDTO statusUpdate) {
@@ -167,7 +167,7 @@ public class PaymentController {
     /**
      * Obtener archivo de un pago específico (para verificación)
      */
-    @GetMapping("/payments/getFile/{paymentId}")
+    @GetMapping("/getFile/{paymentId}")
     public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId) {
         log.info("Obteniendo archivo de pago: ID={}", paymentId);
         

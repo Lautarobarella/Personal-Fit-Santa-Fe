@@ -465,32 +465,32 @@ export function ClientDetailsDialog({
           </TabsContent>
 
           {/* Statistics Tab */}
-          <TabsContent value="stats" className="h-full overflow-y-auto space-y-4 mt-4">
-            <div className="space-y-4">
+          <TabsContent value="stats" className="h-full overflow-y-auto space-y-2 mt-4">
+            <div className="space-y-2">
               {/* Activity Stats */}
-              <Card className="min-h-[160px]">
-                <CardHeader className="py-3">
+              <Card className="min-h-[120px]">
+                <CardHeader className="py-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Activity className="h-5 w-5" />
                     Estadísticas de Actividad
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-3 space-y-2">
+                <CardContent className="p-2 space-y-1">
                   <div className="grid grid-cols-2 gap-3 text-center">
                     <div>
-                      <div className="text-xl font-bold text-primary">{selectedClient.listActivity.length}</div>
+                      <div className="text-lg font-bold text-primary">{selectedClient.listActivity.length}</div>
                       <div className="text-xs text-muted-foreground">Total</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold text-success">{presentActivities.length}</div>
+                      <div className="text-lg font-bold text-success">{presentActivities.length}</div>
                       <div className="text-xs text-muted-foreground">Presente</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold text-warning">{enrolledActivities.length}</div>
+                      <div className="text-lg font-bold text-warning">{enrolledActivities.length}</div>
                       <div className="text-xs text-muted-foreground">Inscritas</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold text-warning">{attendanceRate}%</div>
+                      <div className="text-lg font-bold text-warning">{attendanceRate}%</div>
                       <div className="text-xs text-muted-foreground">Asistencia</div>
                     </div>
                   </div>
@@ -498,21 +498,21 @@ export function ClientDetailsDialog({
               </Card>
 
               {/* Financial Stats */}
-              <Card className="min-h-[160px]">
-                <CardHeader className="py-3">
+              <Card className="min-h-[120px]">
+                <CardHeader className="py-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
                     Estadísticas Financieras
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-3 space-y-2">
+                <CardContent className="p-2 space-y-1">
                   <div className="grid grid-cols-2 gap-3 text-center">
                     <div>
-                      <div className="text-xl font-bold text-success">${totalPaid}</div>
+                      <div className="text-lg font-bold text-success">${totalPaid}</div>
                       <div className="text-xs text-muted-foreground">Total Pagado</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold text-success">{selectedClient.listPayments.length}</div>
+                      <div className="text-lg font-bold text-success">{selectedClient.listPayments.length}</div>
                       <div className="text-xs text-muted-foreground">Transacciones</div>
                     </div>
                   </div>
@@ -520,14 +520,14 @@ export function ClientDetailsDialog({
               </Card>
 
               {/* Client Summary */}
-              <Card className="min-h-[160px]">
-                <CardHeader className="py-3">
+              <Card className="min-h-[120px]">
+                <CardHeader className="py-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
                     Resumen del Cliente
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-3 space-y-2">
+                <CardContent className="p-2 space-y-1">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-muted-foreground text-xs">Cliente desde:</span>
