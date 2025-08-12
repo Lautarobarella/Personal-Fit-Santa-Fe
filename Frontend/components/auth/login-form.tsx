@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Image from "next/image"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -47,7 +48,15 @@ export function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-            <img src="/logo.png"/>
+          <div className="flex justify-center mb-4">
+            <Image 
+              src="/logo.png" 
+              alt="Personal Fit Santa Fe Logo" 
+              width={150} 
+              height={60}
+              priority
+            />
+          </div>
           <CardDescription>Ingresa a tu cuenta para continuar</CardDescription>
         </CardHeader>
         <CardContent>
