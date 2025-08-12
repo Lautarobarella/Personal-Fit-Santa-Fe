@@ -14,4 +14,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByDateBetween(LocalDateTime dateAfter, LocalDateTime dateBefore);
 
     List<Activity> findByDateBeforeAndStatus(LocalDateTime date, ActivityStatus activityStatus);
+    
+    List<Activity> findByStatus(ActivityStatus status);
 }

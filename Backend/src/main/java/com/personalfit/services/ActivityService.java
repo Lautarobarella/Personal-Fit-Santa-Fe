@@ -45,7 +45,7 @@ public class ActivityService {
     @Autowired
     private AttendanceService attendanceService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void createActivity(ActivityFormTypeDTO activity) {
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
@@ -307,47 +307,79 @@ public class ActivityService {
                 .build();
     }
 
-    @Scheduled(cron = "0 */30 * * * *")
+    // @Scheduled(cron = "0 */30 * * * *")
+    @Scheduled(cron = "0 */1 * * * *")
     @Transactional
     public void checkCompletedActivies() {
         log.info("Checking completed activities...");
         LocalDateTime now = LocalDateTime.now();
 
-        List<Activity> activities = activityRepository.findByDateBeforeAndStatus(now, ActivityStatus.ACTIVE);
+        // Buscar actividades activas que ya han terminado (fecha + duración < hora actual)
+        List<Activity> activeActivities = activityRepository.findByStatus(ActivityStatus.ACTIVE);
         List<Activity> toUpdate = new ArrayList<>();
         List<Activity> toCreate = new ArrayList<>();
 
-        for (Activity activity : activities) {
-            if (activity.getDate().isAfter(now)) continue;
-            activity.setStatus(ActivityStatus.COMPLETED);
-            log.info("Activity with ID {} marked as completed", activity.getId());
-            toUpdate.add(activity);
-
-            if(!activity.getRepeatEveryWeek()) continue;
-            else {
-                log.info("Activity with ID {} generates a new activity for the next week", activity.getId());
-                LocalDateTime nextDate = activity.getDate().plusWeeks(1);
-                Activity newActivity = Activity.builder()
-                        .name(activity.getName())
-                        .description(activity.getDescription())
-                        .slots(activity.getSlots())
-                        .date(nextDate)
-                        .repeatEveryWeek(true)
-                        .duration(activity.getDuration())
-                        .status(ActivityStatus.ACTIVE)
-                        .trainer(activity.getTrainer())
-                        .createdAt(LocalDateTime.now())
-                        .build();
-                toCreate.add(newActivity);
+        for (Activity activity : activeActivities) {
+            // Calcular cuándo termina la actividad (fecha de inicio + duración en minutos)
+            LocalDateTime activityEndTime = activity.getDate().plusMinutes(activity.getDuration());
+            
+            // Si la actividad ya terminó, marcarla como completada
+            if (activityEndTime.isBefore(now)) {
+                activity.setStatus(ActivityStatus.COMPLETED);
+                toUpdate.add(activity);
+                log.info("Activity with ID {} marked as completed (ended at: {})", 
+                    activity.getId(), activityEndTime);
+                
+                // Marcar como ausentes a todos los participantes que estén en estado PENDING
+                try {
+                    attendanceService.markPendingAttendancesAsAbsent(activity.getId());
+                    log.info("Marked pending attendances as absent for completed activity ID: {}", activity.getId());
+                } catch (Exception e) {
+                    log.error("Error marking pending attendances as absent for activity ID {}: {}", 
+                        activity.getId(), e.getMessage());
+                }
+                
+                // Si la actividad tiene activado el repetir semanalmente, crear una nueva para la próxima semana
+                if (activity.getRepeatEveryWeek()) {
+                    log.info("Creating recurring activity for next week for activity ID: {}", activity.getId());
+                    
+                    // Calcular la fecha para la próxima semana (mismo día de la semana, misma hora)
+                    LocalDateTime nextWeekDate = activity.getDate().plusWeeks(1);
+                    
+                    Activity newActivity = Activity.builder()
+                            .name(activity.getName())
+                            .description(activity.getDescription())
+                            .location(activity.getLocation())
+                            .slots(activity.getSlots())
+                            .date(nextWeekDate)
+                            .repeatEveryWeek(true)
+                            .duration(activity.getDuration())
+                            .status(ActivityStatus.ACTIVE)
+                            .trainer(activity.getTrainer())
+                            .createdAt(LocalDateTime.now())
+                            .isRecurring(activity.getIsRecurring())
+                            .build();
+                    
+                    toCreate.add(newActivity);
+                    log.info("New recurring activity created for next week: {} at {}", 
+                        newActivity.getName(), nextWeekDate);
+                }
             }
         }
 
-        // TODO: Logica transaccional para crear y actualizar actividades
-        if (!toUpdate.isEmpty()) activityRepository.saveAll(toUpdate);
-        if (!toCreate.isEmpty()) activityRepository.saveAll(toCreate);
+        // Guardar todas las actividades actualizadas y nuevas en una sola transacción
+        if (!toUpdate.isEmpty()) {
+            activityRepository.saveAll(toUpdate);
+            log.info("Updated {} completed activities", toUpdate.size());
+        }
+        
+        if (!toCreate.isEmpty()) {
+            activityRepository.saveAll(toCreate);
+            log.info("Created {} new recurring activities", toCreate.size());
+        }
 
-        log.info("Activities completed and generated succesfully. End of checkCompletedActivities process.");
-
+        log.info("Activities check completed successfully. Updated: {}, Created: {}", 
+            toUpdate.size(), toCreate.size());
     }
 
 }

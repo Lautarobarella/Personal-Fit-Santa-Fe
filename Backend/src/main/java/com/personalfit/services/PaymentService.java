@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -321,4 +322,46 @@ public class PaymentService {
                 .receiptUrl(payment.getPaymentFile() != null ? "/api/files/" + payment.getPaymentFile().getId() : null)
                 .build();
     }
+
+    /**
+     * Schedule que se ejecuta el primer día de cada mes a las 00:00
+     * Marca como EXPIRED todos los pagos que estén en estado PAID
+     */
+    // @Scheduled(cron = "0 0 1 * *")
+    @Scheduled(cron = "0 */1 * * * *")
+    @Transactional
+    public void checkPaidPayments() {
+        log.info("Starting monthly payment expiration process...");
+        
+        try {
+            // Buscar todos los pagos que estén en estado PAID
+            List<Payment> paidPayments = paymentRepository.findByStatus(PaymentStatus.PAID);
+            
+            if (paidPayments.isEmpty()) {
+                log.info("No paid payments found to expire");
+                return;
+            }
+            
+            log.info("Found {} paid payments to expire", paidPayments.size());
+            
+            // Marcar todos los pagos como EXPIRED
+            for (Payment payment : paidPayments) {
+                payment.setStatus(PaymentStatus.EXPIRED);
+                payment.setUpdatedAt(LocalDateTime.now());
+                log.info("Payment ID {} marked as expired for user {}", 
+                    payment.getId(), payment.getUser().getFullName());
+            }
+            
+            // Guardar todos los cambios en una sola transacción
+            paymentRepository.saveAll(paidPayments);
+            
+            log.info("Successfully expired {} payments", paidPayments.size());
+            
+        } catch (Exception e) {
+            log.error("Error during payment expiration process: {}", e.getMessage(), e);
+        }
+        
+        log.info("Monthly payment expiration process completed");
+    }
+
 }

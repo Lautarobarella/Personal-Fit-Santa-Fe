@@ -112,6 +112,25 @@ public class AttendanceService {
         attendanceRepository.save(attendance);
     }
 
+    /**
+     * Marca como ausentes a todos los participantes que estén en estado PENDING de una actividad
+     * @param activityId ID de la actividad
+     */
+    public void markPendingAttendancesAsAbsent(Long activityId) {
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/markPendingAttendancesAsAbsent"));
+
+        List<Attendance> pendingAttendances = attendanceRepository.findByActivityAndAttendance(activity, AttendanceStatus.PENDING);
+        
+        for (Attendance attendance : pendingAttendances) {
+            attendance.setAttendance(AttendanceStatus.ABSENT);
+        }
+        
+        if (!pendingAttendances.isEmpty()) {
+            attendanceRepository.saveAll(pendingAttendances);
+        }
+    }
+
     private AttendanceDTO convertToDTO(Attendance attendance) {
         return AttendanceDTO.builder()
                 .id(attendance.getId())
