@@ -468,29 +468,29 @@ export function ClientDetailsDialog({
           <TabsContent value="stats" className="h-full overflow-y-auto space-y-4 mt-4">
             <div className="space-y-4">
               {/* Activity Stats */}
-              <Card>
-                <CardHeader>
+              <Card className="min-h-[160px]">
+                <CardHeader className="py-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Activity className="h-5 w-5" />
                     Estadísticas de Actividad
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                <CardContent className="p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-3 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-primary">{selectedClient.listActivity.length}</div>
+                      <div className="text-xl font-bold text-primary">{selectedClient.listActivity.length}</div>
                       <div className="text-xs text-muted-foreground">Total</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-success">{presentActivities.length}</div>
+                      <div className="text-xl font-bold text-success">{presentActivities.length}</div>
                       <div className="text-xs text-muted-foreground">Presente</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-warning">{enrolledActivities.length}</div>
+                      <div className="text-xl font-bold text-warning">{enrolledActivities.length}</div>
                       <div className="text-xs text-muted-foreground">Inscritas</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-warning">{attendanceRate}%</div>
+                      <div className="text-xl font-bold text-warning">{attendanceRate}%</div>
                       <div className="text-xs text-muted-foreground">Asistencia</div>
                     </div>
                   </div>
@@ -498,21 +498,21 @@ export function ClientDetailsDialog({
               </Card>
 
               {/* Financial Stats */}
-              <Card>
-                <CardHeader>
+              <Card className="min-h-[160px]">
+                <CardHeader className="py-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
                     Estadísticas Financieras
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                <CardContent className="p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-3 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-success">${totalPaid}</div>
+                      <div className="text-xl font-bold text-success">${totalPaid}</div>
                       <div className="text-xs text-muted-foreground">Total Pagado</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-success">{selectedClient.listPayments.length}</div>
+                      <div className="text-xl font-bold text-success">{selectedClient.listPayments.length}</div>
                       <div className="text-xs text-muted-foreground">Transacciones</div>
                     </div>
                   </div>
@@ -520,15 +520,15 @@ export function ClientDetailsDialog({
               </Card>
 
               {/* Client Summary */}
-              <Card>
-                <CardHeader>
+              <Card className="min-h-[160px]">
+                <CardHeader className="py-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
                     Resumen del Cliente
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <CardContent className="p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-muted-foreground text-xs">Cliente desde:</span>
                       <p className="font-medium text-sm">{formatDate(selectedClient.joinDate)}</p>

@@ -114,18 +114,12 @@ public class UserController {
     @Transactional
     @PostMapping("/batch/clients")
     public ResponseEntity<Map<String, Object>> createBatchClients(@Valid @RequestBody List<CreateUserDTO> newUsers) {
-        // Forzar el rol de CLIENT y estado INACTIVE para todos los usuarios
-        newUsers.forEach(user -> {
-            user.setRole(UserRole.CLIENT);
-            user.setStatus(UserStatus.INACTIVE);
-        });
-        
+        // Mantener el role y status que llegan en cada CreateUserDTO
         Integer createdCount = userService.createBatchClients(newUsers);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Clientes creados exitosamente");
+        response.put("message", "Usuarios creados exitosamente");
         response.put("success", true);
         response.put("createdCount", createdCount);
-        response.put("role", "CLIENT");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

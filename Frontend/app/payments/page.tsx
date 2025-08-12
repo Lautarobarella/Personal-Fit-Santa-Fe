@@ -202,7 +202,7 @@ export default function PaymentsPage() {
                                         disabled={pendingPayments.length <= 0}
                                     >
                                         <FileCheck className="h-4 w-4" />
-                                        Verificar ({pendingPayments.length})
+                                        [{pendingPayments.length}]
                                     </Button>
                                 </Link>
                                 <Link href="/payments/method-select">
@@ -221,7 +221,7 @@ export default function PaymentsPage() {
                                     </Button>
                                 </Link>
                             ) : (
-                                <Button 
+                                <Button
                                     size="sm"
                                     disabled={true}
                                     className="opacity-50 cursor-not-allowed"
