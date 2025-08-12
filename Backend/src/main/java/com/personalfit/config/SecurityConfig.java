@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/payments/webhook/mercadopago").permitAll() // Permitir webhooks de MercadoPago sin autenticación
                 .requestMatchers("/payments/mercadopago/**").permitAll() // Permitir endpoints de MercadoPago sin autenticación
                 .requestMatchers("/payments/files/**").permitAll() // Permitir acceso a archivos de pagos
+                .requestMatchers("/api/files/**").permitAll() // Permitir acceso directo a archivos del backend
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
