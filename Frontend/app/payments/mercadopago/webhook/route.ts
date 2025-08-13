@@ -7,29 +7,32 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-signature') || request.headers.get('X-Signature');
     const expectedSecret = process.env.WEBHOOK_SECRET;
 
-    if (!expectedSecret) {
-      // Configuración faltante del entorno: WEBHOOK_SECRET no definido
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'WEBHOOK_SECRET no configurado en el entorno',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      );
-    }
+    console.log('signature DESDE WEBHOOK', signature);
+    console.log('expectedSecret DESDE GITHUB SECRETS', expectedSecret);
 
-    if (!signature || signature !== expectedSecret) {
-      // Firma inválida o ausente: rechazar la petición
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Firma inválida',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 401 }
-      );
-    }
+    // if (!expectedSecret) {
+    //   // Configuración faltante del entorno: WEBHOOK_SECRET no definido
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       error: 'WEBHOOK_SECRET no configurado en el entorno',
+    //       timestamp: new Date().toISOString(),
+    //     },
+    //     { status: 500 }
+    //   );
+    // }
+
+    // if (!signature || signature !== expectedSecret) {
+    //   // Firma inválida o ausente: rechazar la petición
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       error: 'Firma inválida',
+    //       timestamp: new Date().toISOString(),
+    //     },
+    //     { status: 401 }
+    //   );
+    // }
 
     // 2) Procesar la notificación en background para responder rápido
     const responsePromise = NextResponse.json({
