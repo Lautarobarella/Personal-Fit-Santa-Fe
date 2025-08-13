@@ -35,7 +35,7 @@ export default function PaymentMethodSelectPage() {
             <MobileHeader
                 title="Método de Pago"
                 showBack
-                onBack={() => router.back()}
+                onBack={() => router.push('/payments')}
             />
 
             <div className="container py-6">
