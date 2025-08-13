@@ -21,11 +21,23 @@ function SuccessPageContent() {
     const merchantOrderId = searchParams.get('merchant_order_id');
 
     useEffect(() => {
-        // Simular una verificación del pago
-        setTimeout(() => {
-            setLoading(false);
-        }, 2000);
-    }, []);
+        const verifyAndFinalize = async () => {
+            try {
+                // Intentar forzar el procesamiento del pago por si el webhook no llegó
+                if (paymentId || externalReference) {
+                    await fetch('/payments/mercadopago/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentId, externalReference }),
+                    }).catch(() => undefined);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        verifyAndFinalize();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [paymentId, externalReference]);
 
     const handleGoToPayments = async () => {
         // Marcar flag para forzar actualización en la página de pagos

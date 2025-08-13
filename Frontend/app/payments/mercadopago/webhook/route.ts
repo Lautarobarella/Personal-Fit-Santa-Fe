@@ -10,29 +10,29 @@ export async function POST(request: NextRequest) {
     console.log('signature DESDE WEBHOOK', signature);
     console.log('expectedSecret DESDE GITHUB SECRETS', expectedSecret);
 
-    // if (!expectedSecret) {
-    //   // Configuración faltante del entorno: WEBHOOK_SECRET no definido
-    //   return NextResponse.json(
-    //     {
-    //       success: false,
-    //       error: 'WEBHOOK_SECRET no configurado en el entorno',
-    //       timestamp: new Date().toISOString(),
-    //     },
-    //     { status: 500 }
-    //   );
-    // }
+    if (!expectedSecret) {
+      // Configuración faltante del entorno: WEBHOOK_SECRET no definido
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'WEBHOOK_SECRET no configurado en el entorno',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 500 }
+      );
+    }
 
-    // if (!signature || signature !== expectedSecret) {
-    //   // Firma inválida o ausente: rechazar la petición
-    //   return NextResponse.json(
-    //     {
-    //       success: false,
-    //       error: 'Firma inválida',
-    //       timestamp: new Date().toISOString(),
-    //     },
-    //     { status: 401 }
-    //   );
-    // }
+    if (!signature || signature !== expectedSecret) {
+      // Firma inválida o ausente: rechazar la petición
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Firma inválida',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 }
+      );
+    }
 
     // 2) Procesar la notificación en background para responder rápido
     const responsePromise = NextResponse.json({
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    processWebhookAsync(request).catch(() => {
-      // Error handling without logging
+    processWebhookAsync(request).catch((err) => {
+      console.error('Error procesando webhook async:', err instanceof Error ? err.message : err);
     });
 
     return responsePromise;

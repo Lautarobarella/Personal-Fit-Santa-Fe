@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/api/JWTAuth/config";
 import { MethodType, PaymentStatus } from "@/lib/types";
 import {
     MercadoPagoConfig,
@@ -20,12 +21,8 @@ const client = new MercadoPagoConfig({
 // Instancia de Preference para crear preferencias de pago
 const pref = new Preference(client);
 
-const getApiBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  return 'https://personalfitsantafe.com';
-};
+// Nota: La URL base para llamadas al backend debe ser NEXT_PUBLIC_API_URL,
+// que ya está resuelta por buildApiUrl (internamente usa API_CONFIG.BASE_URL)
 
 
 
@@ -189,8 +186,7 @@ async function createPaymentServerSide(paymentData: {
     mpPaymentId: string;
     paymentMethod: string;
 }) {
-    const baseUrl = getApiBaseUrl();
-    const url = `${baseUrl}/api/payments/webhook/mercadopago`;
+    const url = buildApiUrl('/api/payments/webhook/mercadopago');
     
     const payment = {
         clientDni: paymentData.clientDni,
