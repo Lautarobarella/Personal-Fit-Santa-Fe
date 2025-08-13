@@ -10,6 +10,8 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
+  // Configuración para archivos estáticos en Docker
+  trailingSlash: false,
   // Configuración para evitar warnings
   webpack: (config, { isServer }) => {
     // Suprimir warnings de webpack
