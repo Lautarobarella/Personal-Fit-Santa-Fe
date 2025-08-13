@@ -1,24 +1,20 @@
 import {
-  buildReceiptUrl,
   createPayment,
   fetchAllPayments,
   fetchPaymentDetails,
   fetchUserPayments,
-  updatePaymentStatus,
+  updatePaymentStatus
 } from "@/api/payments/paymentsApi"
-import { NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types"
+import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useCallback, useMemo } from "react"
-
-export type PendingPaymentType = PaymentType & { receiptUrl: string | null }
+import { useCallback } from "react"
 
 /**
  * Hook unificado para manejo de pagos
- * Incluye funcionalidad de pagos pendientes integrada
  */
 export function usePayment(userId?: number, isAdmin?: boolean) {
   const queryClient = useQueryClient()
@@ -31,16 +27,6 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 1,
   })
-
-  // Calcular pagos pendientes de forma optimizada
-  const pendingPayments = useMemo(() => {
-    return payments
-      .filter((p) => p.status === PaymentStatus.PENDING)
-      .map((p) => ({
-        ...p,
-        receiptUrl: buildReceiptUrl(p.receiptId),
-      }))
-  }, [payments])
 
   const fetchSinglePayment = useCallback(
     async (paymentId: number): Promise<PaymentType & { receiptUrl: string | null }> => {
@@ -84,10 +70,6 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     isLoading,
     error,
 
-    // Funcionalidad de pagos pendientes integrada
-    pendingPayments,
-    totalPendingPayments: pendingPayments.length,
-
     // Operaciones
     createPayment: createPaymentMutation.mutateAsync,
     updatePaymentStatus: updatePaymentMutation.mutateAsync,
@@ -95,19 +77,5 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
 
     // Aliases para compatibilidad
     loading: isLoading,
-  }
-}
-
-/**
- * Hook especializado para pagos pendientes
- * Mantiene compatibilidad con código existente
- */
-export function usePendingPayments(userId?: number, isAdmin?: boolean) {
-  const { pendingPayments, totalPendingPayments, isLoading } = usePayment(userId, isAdmin)
-
-  return {
-    pendingPayments,
-    loading: isLoading,
-    totalPendingPayments,
   }
 }

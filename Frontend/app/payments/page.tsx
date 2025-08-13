@@ -196,7 +196,6 @@ export default function PaymentsPage() {
                                     className={pendingPayments.length <= 0 ? 'pointer-events-none' : ''}
                                     aria-disabled={pendingPayments.length <= 0}>
                                     <Button
-                                        size="sm"
                                         variant="outline"
                                         className={`bg-transparent ${pendingPayments.length <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         disabled={pendingPayments.length <= 0}

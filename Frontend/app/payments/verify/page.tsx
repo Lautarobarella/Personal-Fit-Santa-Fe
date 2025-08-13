@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
-import { usePayment, usePendingPayments } from "@/hooks/use-payment"
+import { usePayment } from "@/hooks/use-payment"
+import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
@@ -24,7 +25,7 @@ export default function PaymentVerificationPage() {
   const [show, setShow] = useState(true)
   const [reviewedCount, setReviewedCount] = useState(0)
 
-  // NUEVO: Hook externo con la lista inicial de pendientes
+  // Hook separado para pagos pendientes
   const { pendingPayments, loading, totalPendingPayments } = usePendingPayments(user?.id, true)
   const { updatePaymentStatus, fetchSinglePayment } = usePayment(user?.id, true)
 
@@ -33,23 +34,32 @@ export default function PaymentVerificationPage() {
   useEffect(() => {
     // Solo setea cuando: no está cargando y nunca se seteo
     if (!loading && initialPendingCount.current === null) {
-      initialPendingCount.current = pendingPayments.length
+      initialPendingCount.current = totalPendingPayments
     }
-  }, [loading, pendingPayments])
+  }, [loading, totalPendingPayments])
 
   const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
+
+  // Cargar el pago actual cuando cambie el índice o la lista de pendientes
   useEffect(() => {
-    const fetchPayment = async () => {
-      const payment =
-        pendingPayments[currentIndex]
-          ? await fetchSinglePayment(pendingPayments[currentIndex].id)
-          : null;
-      setCurrentPayment(payment);
-    };
-    fetchPayment();
-  }, [currentIndex, pendingPayments, fetchSinglePayment]);
-
-
+    if (pendingPayments.length > 0 && currentIndex < pendingPayments.length) {
+      const fetchPayment = async () => {
+        try {
+          const payment = await fetchSinglePayment(pendingPayments[currentIndex].id)
+          setCurrentPayment(payment)
+        } catch (error) {
+          console.error("Error al cargar el pago:", error)
+          // Si falla la carga, intentar con el siguiente
+          if (currentIndex + 1 < pendingPayments.length) {
+            setCurrentIndex(prev => prev + 1)
+          }
+        }
+      }
+      fetchPayment()
+    } else if (pendingPayments.length === 0) {
+      setCurrentPayment(null)
+    }
+  }, [currentIndex, pendingPayments, fetchSinglePayment])
 
   // Redirige si no es admin
   useEffect(() => {
@@ -89,7 +99,6 @@ export default function PaymentVerificationPage() {
     )
   }
 
-
   // Estado de carga
   if (loading || !user || user.role !== UserRole.ADMIN) {
     return (
@@ -99,17 +108,6 @@ export default function PaymentVerificationPage() {
       </div>
     )
   }
-
-  // // NUEVO: Mientras no se haya seteado el valor total, mostrar loader
-  // if (loading && initialPendingCount.current === null) {
-  //   return (
-  //     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-  //       <Loader2 className="h-8 w-8 animate-spin mb-2" />
-  //       <p className="text-muted-foreground">Cargando pagos pendientes...</p>
-  //     </div>
-  //   )
-  // }
-
 
   // Helper visual
   const formatDateTime = (date: Date | string | null) => {
@@ -121,6 +119,7 @@ export default function PaymentVerificationPage() {
       minute: "2-digit",
     }).format(new Date(date ?? "N/A"))
   }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case PaymentStatus.PAID: return "success"
@@ -129,6 +128,7 @@ export default function PaymentVerificationPage() {
       default: return "secondary"
     }
   }
+
   const getStatusText = (status: string) => {
     switch (status) {
       case PaymentStatus.PAID: return "Pagado"
@@ -166,10 +166,15 @@ export default function PaymentVerificationPage() {
 
       setRejectionReason("")
       setShow(false)
+
+      // Esperar a que se complete la transición visual antes de cambiar el índice
       setTimeout(() => {
         setShow(true)
-        setCurrentIndex((prev) => prev + 1)
-        setReviewedCount((prev) => prev + 1)
+        // Avanzar al siguiente pago solo si hay más
+        if (currentIndex + 1 < pendingPayments.length) {
+          setCurrentIndex(prev => prev + 1)
+        }
+        setReviewedCount(prev => prev + 1)
       }, 350)
     } catch (error) {
       toast({
@@ -214,8 +219,8 @@ export default function PaymentVerificationPage() {
           {/* Renderiza solo si hay currentPayment */}
           {currentPayment && (
             <>
-               {/* Payment details card - más compacto */}
-               <Card className="mb-2">
+              {/* Payment details card - más compacto */}
+              <Card className="mb-2">
                 <CardContent className="p-2">
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1">
@@ -238,7 +243,7 @@ export default function PaymentVerificationPage() {
                     </div>
                   </div>
                   {currentPayment.receiptUrl && (
-                   <div className="mt-1 pt-1 border-t">
+                    <div className="mt-1 pt-1 border-t">
                       <span className="text-xs text-muted-foreground">
                         Comprobante: {formatDateTime(currentPayment.createdAt)}
                       </span>
@@ -247,23 +252,24 @@ export default function PaymentVerificationPage() {
                 </CardContent>
               </Card>
 
-               {/* Receipt section - priorizar tamaño */}
-               <Card className="mb-2">
-                 <CardContent className="p-2">
-                   <Label className="text-sm font-medium mb-1 block">Comprobante de Pago</Label>
-                   <div className="border rounded-lg overflow-hidden">
+              {/* Receipt section - priorizar tamaño */}
+              <Card className="mb-2">
+                <CardContent className="p-2">
+                  <Label className="text-sm font-medium mb-1 block">Comprobante de Pago</Label>
+                  <div className="border rounded-lg overflow-hidden">
                     <img
                       src={currentPayment.receiptUrl || "/placeholder.svg"}
                       alt="Comprobante de pago"
-                       className="w-full max-h-[280px] object-contain bg-gray-50 mx-auto"
+                      className="w-full max-h-[280px] object-contain bg-gray-50 mx-auto"
                     />
                   </div>
-                   <div className="mt-1 flex gap-1">
+                  <div className="mt-1 flex gap-1">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open(currentPayment.receiptUrl!, "_blank")}
                       className="bg-transparent text-xs px-2 py-1 h-7"
+                      disabled={!currentPayment.receiptUrl}
                     >
                       Ver completo
                     </Button>
@@ -277,6 +283,7 @@ export default function PaymentVerificationPage() {
                         link.click()
                       }}
                       className="bg-transparent text-xs px-2 py-1 h-7"
+                      disabled={!currentPayment.receiptUrl}
                     >
                       Descargar
                     </Button>
@@ -287,8 +294,8 @@ export default function PaymentVerificationPage() {
           )}
 
           {/* Rejection reason - más compacto */}
-           <Card className="mb-2">
-             <CardContent className="p-2">
+          <Card className="mb-2">
+            <CardContent className="p-2">
               <Label htmlFor="rejectionReason" className="text-sm">Razón del rechazo</Label>
               <Textarea
                 id="rejectionReason"
@@ -303,12 +310,12 @@ export default function PaymentVerificationPage() {
           </Card>
 
           {/* Action buttons - más compactos */}
-           <div className="flex gap-2">
+          <div className="flex gap-2">
             <Button
               variant="secondary"
               onClick={() => handleStatusUpdate("rejected")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-               className="w-1/2 py-2 text-sm font-semibold h-9"
+              className="w-1/2 py-2 text-sm font-semibold h-9"
             >
               {isVerifying && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
               {!isVerifying && <X className="mr-1 h-3 w-3" />}
@@ -318,7 +325,7 @@ export default function PaymentVerificationPage() {
               variant="default"
               onClick={() => handleStatusUpdate("paid")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-               className="w-1/2 py-2 text-sm font-semibold h-9"
+              className="w-1/2 py-2 text-sm font-semibold h-9"
             >
               {isVerifying && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
               {!isVerifying && <Check className="mr-1 h-3 w-3" />}
