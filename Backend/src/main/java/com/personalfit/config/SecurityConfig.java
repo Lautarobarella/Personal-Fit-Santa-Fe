@@ -51,9 +51,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/users/public/first-admin").permitAll()
                 .requestMatchers("/api/payments/webhook/mercadopago").permitAll() // Permitir webhooks de MercadoPago sin autenticación
-                .requestMatchers("/payments/mercadopago/**").permitAll() // Permitir endpoints de MercadoPago sin autenticación
-                .requestMatchers("/payments/files/**").permitAll() // Permitir acceso a archivos de pagos
-                .requestMatchers("/api/files/**").permitAll() // Permitir acceso directo a archivos del backend
+                .requestMatchers("/payments/mercadopago/**").permitAll() // Endpoints de MercadoPago (frontend)
+                .requestMatchers("/payments/files/**").permitAll() // Proxy de archivos en el frontend
+                .requestMatchers("/api/payments/files/**").permitAll() // Descarga de archivos en el backend
+                .requestMatchers("/api/files/**").permitAll() // Compatibilidad previa
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()

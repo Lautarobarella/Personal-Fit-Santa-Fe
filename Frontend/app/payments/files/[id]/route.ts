@@ -10,7 +10,7 @@ export async function GET(
     // Hacer la petición al backend (ahora sin autenticación requerida)
     // Usar la URL del backend directamente, no la del frontend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://personalfitsantafe.com';
-    const response = await fetch(`${backendUrl}/api/files/${fileId}`);
+    const response = await fetch(`${backendUrl}/api/payments/files/${fileId}`);
 
     if (!response.ok) {
       console.error(`Backend responded with status: ${response.status}`);
