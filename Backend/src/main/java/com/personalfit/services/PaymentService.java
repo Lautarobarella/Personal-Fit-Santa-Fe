@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,9 @@ import lombok.extern.slf4j.Slf4j;
 public class PaymentService {
 
     private static final Integer MAX_FILE_SIZE_MB = 5;
-    private static final String UPLOAD_FOLDER = "/app/comprobantes/";
+    
+    @Value("${spring.datasource.files.path}")
+    private String UPLOAD_FOLDER;
 
     @Autowired
     private PaymentRepository paymentRepository;

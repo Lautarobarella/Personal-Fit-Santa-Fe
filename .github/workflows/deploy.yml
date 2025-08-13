@@ -75,10 +75,9 @@ jobs:
             echo "==> Entrando en $DEPLOY_DIR"
             cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
 
-            echo "==> Creando backup de la base de datos y archivos..."
-            mkdir -p /opt/backup
-            BACKUP_FILE="/opt/backup/backup_$(date +%Y%m%d_%H%M%S).sql"
-            BACKUP_FILES_DIR="/opt/backup/files_$(date +%Y%m%d_%H%M%S)"
+            echo "==> Creando backup de la base de datos..."
+            mkdir -p /opt/backups
+            BACKUP_FILE="/opt/backups/backup_$(date +%Y%m%d_%H%M%S).sql"
 
             # Verificar readiness usando envs del contenedor (POSTGRES_USER/DB/PASSWORD)
             if ! docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\""; then
@@ -88,20 +87,11 @@ jobs:
 
             # Crear backup con credenciales del contenedor
             if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_dump -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" > "$BACKUP_FILE"; then
-              echo "✅ Backup de BD creado: $BACKUP_FILE"
-              echo "📊 Tamaño BD: $(du -h "$BACKUP_FILE" | cut -f1)"
+              echo "✅ Backup creado: $BACKUP_FILE"
+              echo "📊 Tamaño: $(du -h "$BACKUP_FILE" | cut -f1)"
             else
-              echo "ERROR: Falló la creación del backup de BD"
+              echo "ERROR: Falló la creación del backup"
               exit 4
-            fi
-
-            # Crear backup de archivos físicos
-            echo "==> Creando backup de archivos..."
-            if docker-compose exec -T personalfit-backend bash -lc "mkdir -p $BACKUP_FILES_DIR && cp -r /app/comprobantes/* $BACKUP_FILES_DIR/ 2>/dev/null || true"; then
-              echo "✅ Backup de archivos creado: $BACKUP_FILES_DIR"
-              echo "📊 Archivos respaldados: $(docker-compose exec -T personalfit-backend bash -lc "ls -1 $BACKUP_FILES_DIR/ | wc -l")"
-            else
-              echo "⚠️  Advertencia: No se pudieron respaldar archivos, continuando..."
             fi
 
             echo "==> Actualizando repo (origin/main)"
@@ -127,10 +117,10 @@ jobs:
               local waited=0
               while [ "$waited" -lt "$timeout" ]; do
                 if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
-                  echo "$(date +"%F %T") - Postgres ready"
+                  echo "$(date +'%F %T') - Postgres ready"
                   return 0
                 fi
-                echo "$(date +"%F %T") - Esperando Postgres... (${waited}s/${timeout}s)"
+                echo "$(date +'%F %T') - Esperando Postgres... (${waited}s/${timeout}s)"
                 sleep "$interval"
                 waited=$((waited + interval))
               done
@@ -150,32 +140,16 @@ jobs:
             
             if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
               echo "==> Base de datos vacía, buscando backup más reciente para restaurar..."
-              LATEST_BACKUP=$(ls -1t /opt/backup/backup_*.sql 2>/dev/null | head -n1 || echo "")
+              LATEST_BACKUP=$(find /opt/backups -name "backup_*.sql" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2- || echo "")
               
               if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
                 echo "==> Restaurando backup: $LATEST_BACKUP"
                 if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" < "$LATEST_BACKUP"; then
-                  echo "✅ Backup de BD restaurado exitosamente"
+                  echo "✅ Backup restaurado exitosamente"
                   
                   # Verificar que la restauración fue exitosa
                   RESTORED_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
                   echo "✅ Usuarios restaurados: $RESTORED_USER_COUNT"
-                  
-                  # Restaurar archivos físicos
-                  BACKUP_TIMESTAMP=$(basename "$LATEST_BACKUP" | sed 's/backup_//' | sed 's/\.sql//')
-                  LATEST_FILES_DIR="/opt/backup/files_$BACKUP_TIMESTAMP"
-                  
-                  if [ -d "$LATEST_FILES_DIR" ]; then
-                    echo "==> Restaurando archivos desde: $LATEST_FILES_DIR"
-                    if docker-compose exec -T personalfit-backend bash -lc "mkdir -p /app/comprobantes && cp -r $LATEST_FILES_DIR/* /app/comprobantes/ 2>/dev/null || true"; then
-                      echo "✅ Archivos restaurados exitosamente"
-                      echo "📊 Archivos restaurados: $(docker-compose exec -T personalfit-backend bash -lc "ls -1 /app/comprobantes/ | wc -l")"
-                    else
-                      echo "⚠️  Advertencia: No se pudieron restaurar archivos, pero continuando deployment"
-                    fi
-                  else
-                    echo "ℹ️  No se encontró directorio de archivos para restaurar"
-                  fi
                 else
                   echo "⚠️  Error al restaurar backup, pero continuando deployment"
                 fi

@@ -33,6 +33,7 @@ services:
     depends_on:
       - postgres
     environment:
+      SPRING_DATASOURCE_FILES_PATH: /opt/backups/comprobantes
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
       SPRING_DATASOURCE_USERNAME: personalfit_user
       SPRING_DATASOURCE_PASSWORD: secret123
@@ -48,8 +49,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Volumen persistente para los archivos de comprobantes de pago
-      - comprobantes:/app/comprobantes
+      # Mapeo directo al directorio local de la máquina host
+      - /opt/backups/comprobantes:/opt/backups/comprobantes
 
   personalfit-frontend:
     build:
@@ -96,6 +97,4 @@ services:
 volumes:
   # Volúmenes persistentes que conservan los datos entre deployments
   pgdata:
-  # Datos de PostgreSQL
-  comprobantes:
-    # Archivos de comprobantes de pago
+    # Datos de PostgreSQL
