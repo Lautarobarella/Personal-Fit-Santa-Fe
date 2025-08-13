@@ -7,8 +7,11 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,6 +66,29 @@ public class PaymentController {
         response.put("success", true);
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Crear múltiples pagos en lote
+     * Endpoint para crear pagos masivamente (solo para administradores)
+     */
+    @PostMapping("/batch")
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> createBatchPayments(
+            @Valid @RequestBody List<PaymentRequestDTO> paymentRequests) {
+        
+        log.info("Creando pagos en lote: {} pagos solicitados", paymentRequests.size());
+        
+        Integer createdCount = paymentService.createBatchPayments(paymentRequests);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Pagos creados en lote exitosamente");
+        response.put("createdCount", createdCount);
+        response.put("requestedCount", paymentRequests.size());
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,6 +23,7 @@ import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
 import com.personalfit.enums.PaymentStatus;
+import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
@@ -94,6 +96,60 @@ public class PaymentService {
     @Transactional
     public Payment createWebhookPayment(PaymentRequestDTO paymentRequest) {
         return createPayment(paymentRequest, null);
+    }
+
+    /**
+     * Crea múltiples pagos en lote
+     * @param paymentRequests Lista de pagos a crear
+     * @return Cantidad de pagos creados exitosamente
+     */
+    @Transactional
+    public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests) {
+        List<Payment> paymentsToSave = new ArrayList<>();
+        
+        for (PaymentRequestDTO paymentRequest : paymentRequests) {
+            try {
+                // Validar usuario
+                User user = getUserForPayment(paymentRequest);
+                
+                // Validar que el usuario sea CLIENT
+                if (!user.getRole().equals(UserRole.CLIENT)) {
+                    log.warn("Saltando pago para usuario no cliente: DNI={}, Role={}", 
+                            user.getDni(), user.getRole());
+                    continue;
+                }
+                
+                // Crear el pago con estado PENDING (sin validaciones de duplicados)
+                PaymentRequestDTO batchRequest = PaymentRequestDTO.builder()
+                        .clientId(paymentRequest.getClientId())
+                        .clientDni(paymentRequest.getClientDni())
+                        .amount(paymentRequest.getAmount())
+                        .methodType(paymentRequest.getMethodType())
+                        .paymentStatus(PaymentStatus.PENDING) // Forzar estado PENDING
+                        .createdAt(paymentRequest.getCreatedAt() != null ? 
+                                paymentRequest.getCreatedAt() : LocalDateTime.now())
+                        .expiresAt(paymentRequest.getExpiresAt())
+                        .confNumber(paymentRequest.getConfNumber())
+                        .build();
+                
+                Payment payment = buildPayment(batchRequest, user);
+                paymentsToSave.add(payment);
+                
+            } catch (Exception e) {
+                log.error("Error procesando pago en lote para cliente: {}, Error: {}", 
+                        paymentRequest.getClientDni() != null ? 
+                        paymentRequest.getClientDni() : paymentRequest.getClientId(), 
+                        e.getMessage());
+            }
+        }
+        
+        // Guardar todos los pagos en lote para mejor rendimiento
+        List<Payment> savedPayments = paymentRepository.saveAll(paymentsToSave);
+        
+        log.info("Pagos creados en lote exitosamente: {} de {} solicitados", 
+                savedPayments.size(), paymentRequests.size());
+        
+        return savedPayments.size();
     }
 
     /**
@@ -195,6 +251,15 @@ public class PaymentService {
     }
 
     private void validatePaymentCreation(User user) {
+        validatePaymentCreation(user, false);
+    }
+
+    private void validatePaymentCreation(User user, boolean skipBusinessRules) {
+        // Si se especifica saltar reglas de negocio, no validar duplicados
+        if (skipBusinessRules) {
+            return;
+        }
+        
         // Solo validar para clientes (no para pagos desde webhook)
         if (user.getRole().name().equals("CLIENT")) {
             Optional<Payment> lastPayment = paymentRepository.findTopByUserOrderByCreatedAtDesc(user);
