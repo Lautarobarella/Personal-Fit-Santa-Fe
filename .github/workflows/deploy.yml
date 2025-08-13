@@ -80,13 +80,13 @@ jobs:
             BACKUP_FILE="/opt/backup/backup_$(date +%Y%m%d_%H%M%S).sql"
 
             # Verificar readiness usando envs del contenedor (POSTGRES_USER/DB/PASSWORD)
-            if ! docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\""; then
+            if ! docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\""; then
               echo "ERROR: PostgreSQL no está listo para backup"
               exit 3
             fi
 
             # Crear backup con credenciales del contenedor
-            if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_dump -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" > "$BACKUP_FILE"; then
+            if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_dump -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\"" > "$BACKUP_FILE"; then
               echo "✅ Backup creado: $BACKUP_FILE"
               echo "📊 Tamaño: $(du -h "$BACKUP_FILE" | cut -f1)"
             else
@@ -116,7 +116,7 @@ jobs:
               local interval=2
               local waited=0
               while [ "$waited" -lt "$timeout" ]; do
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
+                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
                   echo "$(date +'%F %T') - Postgres ready"
                   return 0
                 fi
@@ -136,7 +136,7 @@ jobs:
 
             echo "==> Verificando si necesita restaurar backup..."
             # Verificar si la base de datos tiene datos (específicamente la tabla app_user)
-            USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+            USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
             
             if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
               echo "==> Base de datos vacía, buscando backup más reciente para restaurar..."
@@ -144,11 +144,11 @@ jobs:
               
               if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
                 echo "==> Restaurando backup: $LATEST_BACKUP"
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" < "$LATEST_BACKUP"; then
+                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\"" < "$LATEST_BACKUP"; then
                   echo "✅ Backup restaurado exitosamente"
                   
                   # Verificar que la restauración fue exitosa
-                  RESTORED_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+                  RESTORED_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
                   echo "✅ Usuarios restaurados: $RESTORED_USER_COUNT"
                 else
                   echo "⚠️  Error al restaurar backup, pero continuando deployment"
@@ -225,7 +225,7 @@ jobs:
               
               # Verificar que la base de datos actual coincide con el backup recién creado
               echo "==> Verificando consistencia entre backup y base de datos actual..."
-              CURRENT_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
+              CURRENT_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
               echo "ℹ️  Usuarios actuales en BD: $CURRENT_USER_COUNT"
               
               # Verificar que el backup contiene SQL válido buscando patrones típicos
@@ -294,7 +294,7 @@ jobs:
                 fi
                 
                 # Verificar que la base actual esté accesible para futuras operaciones
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"SELECT 1;\"" 2>/dev/null | grep -q "1"; then
+                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER:-personalfit_user\" -d \"\$POSTGRES_DB\" -c \"SELECT 1;\"" 2>/dev/null | grep -q "1"; then
                   echo "✅ Base de datos actual accesible para futuras operaciones"
                 else
                   echo "⚠️  Problema de conectividad con la base actual"
