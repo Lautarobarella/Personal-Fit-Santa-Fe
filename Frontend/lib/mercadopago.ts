@@ -247,8 +247,7 @@ function mapPaymentMethod(mpMethod: string): MethodType {
 }
 
 /**
- * Prueba la configuración de Mercado Pago y verifica que todos los métodos estén habilitados
- * Esta función es útil para diagnosticar problemas de configuración
+ * Prueba mínima de configuración de Mercado Pago
  */
 export async function testMercadoPagoConfiguration() {
     const accessToken = process.env.MP_ACCESS_TOKEN;
@@ -263,7 +262,7 @@ export async function testMercadoPagoConfiguration() {
     
     return {
         success: true,
-        message: "Configuración de MercadoPago verificada correctamente",
+        message: "Configuración de MercadoPago verificada",
         config: {
             accessToken: accessToken.substring(0, 10) + "...",
             environment: accessToken.startsWith('TEST-') ? 'SANDBOX' : 'PRODUCCIÓN',

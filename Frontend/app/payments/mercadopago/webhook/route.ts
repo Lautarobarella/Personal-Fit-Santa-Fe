@@ -7,9 +7,6 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-signature') || request.headers.get('X-Signature');
     const expectedSecret = process.env.WEBHOOK_SECRET;
 
-    console.log('signature DESDE WEBHOOK', signature);
-    console.log('expectedSecret DESDE GITHUB SECRETS', expectedSecret);
-
     if (!expectedSecret) {
       // Configuración faltante del entorno: WEBHOOK_SECRET no definido
       return NextResponse.json(
@@ -41,9 +38,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    processWebhookAsync(request).catch((err) => {
-      console.error('Error procesando webhook async:', err instanceof Error ? err.message : err);
-    });
+    processWebhookAsync(request).catch(() => {});
 
     return responsePromise;
   } catch (error) {
