@@ -14,7 +14,7 @@ services:
       - personalfit-network
     environment:
       POSTGRES_DB: personalfit
-      POSTGRES_USER: personalfit_user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret123
     volumes:
       # Volumen persistente para la base de datos - los datos se conservan entre deployments
@@ -34,7 +34,7 @@ services:
       - postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
-      SPRING_DATASOURCE_USERNAME: personalfit_user
+      SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: secret123
       # Configuración de conexión de base de datos
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
