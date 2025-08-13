@@ -324,44 +324,47 @@ public class PaymentService {
     }
 
     /**
-     * Schedule que se ejecuta el primer día de cada mes a las 00:00
-     * Marca como EXPIRED todos los pagos que estén en estado PAID
+     * Tarea diaria a la 01:00 AM
+     * Expira pagos PAID cuya fecha de vencimiento sea hoy y desactiva al usuario.
      */
-    // @Scheduled(cron = "0 0 1 * *")
-    @Scheduled(cron = "0 */1 * * * *")
+    @Scheduled(cron = "0 0 1 * * ?")
     @Transactional
     public void checkPaidPayments() {
-        log.info("Starting monthly payment expiration process...");
-        
+        log.info("Starting daily payment expiration process at 01:00 AM...");
+
         try {
-            // Buscar todos los pagos que estén en estado PAID
             List<Payment> paidPayments = paymentRepository.findByStatus(PaymentStatus.PAID);
-            
+
             if (paidPayments.isEmpty()) {
-                log.info("No paid payments found to expire");
+                log.info("No PAID payments found");
                 return;
             }
-            
-            log.info("Found {} paid payments to expire", paidPayments.size());
-            
-            // Marcar todos los pagos como EXPIRED
+
+            final var today = java.time.LocalDate.now();
+            int expiredCount = 0;
+
             for (Payment payment : paidPayments) {
-                payment.setStatus(PaymentStatus.EXPIRED);
-                payment.setUpdatedAt(LocalDateTime.now());
-                log.info("Payment ID {} marked as expired for user {}", 
-                    payment.getId(), payment.getUser().getFullName());
+                if (payment.getExpiresAt() == null) {
+                    continue;
+                }
+
+                if (payment.getExpiresAt().toLocalDate().isEqual(today)) {
+                    payment.setStatus(PaymentStatus.EXPIRED);
+                    payment.setUpdatedAt(LocalDateTime.now());
+                    userService.updateUserStatus(payment.getUser(), UserStatus.INACTIVE);
+                    expiredCount++;
+                }
             }
-            
-            // Guardar todos los cambios en una sola transacción
-            paymentRepository.saveAll(paidPayments);
-            
-            log.info("Successfully expired {} payments", paidPayments.size());
-            
+
+            if (expiredCount > 0) {
+                paymentRepository.saveAll(paidPayments);
+            }
+
+            log.info("Daily expiration completed. Payments expired today: {}", expiredCount);
+
         } catch (Exception e) {
-            log.error("Error during payment expiration process: {}", e.getMessage(), e);
+            log.error("Error during daily payment expiration process: {}", e.getMessage(), e);
         }
-        
-        log.info("Monthly payment expiration process completed");
     }
 
 }
