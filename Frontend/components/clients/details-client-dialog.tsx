@@ -169,7 +169,7 @@ export function ClientDetailsDialog({
         return "warning"
       case "REJECTED":
         return "destructive"
-      case "DEBTOR":
+      case "EXPIRED":
         return "destructive"
       default:
         return "secondary"
@@ -184,7 +184,7 @@ export function ClientDetailsDialog({
         return "Pendiente"
       case "REJECTED":
         return "Rechazado"
-      case "DEBTOR":
+      case "EXPIRED":
         return "Vencido"
       default:
         return status
