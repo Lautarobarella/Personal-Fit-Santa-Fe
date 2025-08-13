@@ -117,10 +117,10 @@ jobs:
               local waited=0
               while [ "$waited" -lt "$timeout" ]; do
                 if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
-                  echo "$(date +'%F %T') - Postgres ready"
+                  echo "$(date +"%F %T") - Postgres ready"
                   return 0
                 fi
-                echo "$(date +'%F %T') - Esperando Postgres... (${waited}s/${timeout}s)"
+                echo "$(date +"%F %T") - Esperando Postgres... (${waited}s/${timeout}s)"
                 sleep "$interval"
                 waited=$((waited + interval))
               done
@@ -140,7 +140,7 @@ jobs:
             
             if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
               echo "==> Base de datos vacía, buscando backup más reciente para restaurar..."
-              LATEST_BACKUP=$(find /opt/backup -name "backup_*.sql" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2- || echo "")
+              LATEST_BACKUP=$(ls -1t /opt/backup/backup_*.sql 2>/dev/null | head -n1 || echo "")
               
               if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
                 echo "==> Restaurando backup: $LATEST_BACKUP"
