@@ -15,8 +15,8 @@ export const API_CONFIG = {
 // Función helper para construir URLs de archivos
 export function buildFileUrl(fileId: number | null | undefined): string | null {
   if (!fileId) return null;
-  // Usar el endpoint proxy del frontend que maneja la autenticación
-  return `${API_CONFIG.FILES_URL}/payments/files/${fileId}`;
+  // Usar el endpoint del backend directamente
+  return `${API_CONFIG.BASE_URL}/api/payments/files/${fileId}`;
 }
 
 // Función helper para construir URLs de la API
