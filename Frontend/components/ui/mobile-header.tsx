@@ -5,6 +5,7 @@ import type React from "react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useNotifications } from "@/hooks/use-notifications"
 import { ArrowLeft, Bell, Menu } from "lucide-react"
 import Link from "next/link"
 
@@ -26,10 +27,8 @@ export function MobileHeader({
   actions,
 }: MobileHeaderProps) {
   const { user } = useAuth()
-
-  // Mock unread notifications count - in real app this would come from context/API
-  const unreadCount = 10
-
+  const { unreadCount } = useNotifications()
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200">
       <div className="container-centered flex h-14 items-center justify-between">

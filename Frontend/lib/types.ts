@@ -206,8 +206,7 @@ export interface Notification {
   title: string
   message: string
   infoType: NotificationType
-  read: boolean
-  archived: boolean
+  status: NotificationStatus
   createdAt: Date
   notificationCategory: NotificationCategoryType
 }

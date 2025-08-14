@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useToast } from "@/hooks/use-toast"
-import { NotificationCategoryType, NotificationType } from "@/lib/types"
+import { NotificationCategoryType, NotificationStatus, NotificationType } from "@/lib/types"
 import {
     AlertTriangle,
     Archive,
@@ -45,7 +45,7 @@ export default function NotificationsPage() {
     } = useNotifications()
 
     const [searchTerm, setSearchTerm] = useState("")
-    const [statusFilter, setStatusFilter] = useState<"UNREAD" | "READ" | "ARCHIVED" | "all">("UNREAD")
+    const [statusFilter, setStatusFilter] = useState<NotificationStatus | "all">(NotificationStatus.UNREAD)
 
     useEffect(() => {
         loadNotifications()
@@ -72,14 +72,14 @@ export default function NotificationsPage() {
         
         // Filtrar por estado
         switch (statusFilter) {
-            case "UNREAD":
-                filtered = notifications.filter((n) => !n.read && !n.archived)
+            case NotificationStatus.UNREAD:
+                filtered = notifications.filter((n) => n.status === NotificationStatus.UNREAD)
                 break
-            case "READ":
-                filtered = notifications.filter((n) => n.read && !n.archived)
+            case NotificationStatus.READ:
+                filtered = notifications.filter((n) => n.status === NotificationStatus.READ)
                 break
-            case "ARCHIVED":
-                filtered = notifications.filter((n) => n.archived)
+            case NotificationStatus.ARCHIVED:
+                filtered = notifications.filter((n) => n.status === NotificationStatus.ARCHIVED)
                 break
             case "all":
                 filtered = notifications
@@ -98,9 +98,9 @@ export default function NotificationsPage() {
     }
 
     const filteredNotifications = getFilteredNotifications()
-    const unreadNotifications = notifications.filter((n) => !n.read && !n.archived)
-    const readNotifications = notifications.filter((n) => n.read && !n.archived)
-    const archivedNotifications = notifications.filter((n) => n.archived)
+    const unreadNotifications = notifications.filter((n) => n.status === NotificationStatus.UNREAD)
+    const readNotifications = notifications.filter((n) => n.status === NotificationStatus.READ)
+    const archivedNotifications = notifications.filter((n) => n.status === NotificationStatus.ARCHIVED)
 
     const formatDate = (date: Date) => {
         const now = new Date()
@@ -163,11 +163,11 @@ export default function NotificationsPage() {
                     <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.infoType)}</div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className={`font-medium text-sm ${!notification.read ? "font-semibold" : ""}`}>
+                            <h3 className={`font-medium text-sm ${notification.status === NotificationStatus.UNREAD ? "font-semibold" : ""}`}>
                                 {notification.title}
                             </h3>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                                {!notification.read && <div className="w-2 h-2 bg-primary rounded-full"></div>}
+                                {notification.status === NotificationStatus.UNREAD && <div className="w-2 h-2 bg-primary rounded-full"></div>}
                                 <span className="text-xs text-muted-foreground">{formatDate(notification.createdAt)}</span>
                             </div>
                         </div>
@@ -186,11 +186,11 @@ export default function NotificationsPage() {
                             </div>
                             {showActions && (
                                 <div className="flex items-center gap-1">
-                                    {!notification.read ? (
+                                    {notification.status === NotificationStatus.UNREAD ? (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => markAsRead(notification.id)}
+                                            onClick={async () => await markAsRead(notification.id)}
                                             className="h-7 px-2"
                                         >
                                             <Check className="h-3 w-3" />
@@ -199,17 +199,17 @@ export default function NotificationsPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => markAsUnread(notification.id)}
+                                            onClick={async () => await markAsUnread(notification.id)}
                                             className="h-7 px-2"
                                         >
                                             <BellOff className="h-3 w-3" />
                                         </Button>
                                     )}
-                                    {!notification.archived ? (
+                                    {notification.status !== NotificationStatus.ARCHIVED ? (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => archiveNotification(notification.id)}
+                                            onClick={async () => await archiveNotification(notification.id)}
                                             className="h-7 px-2"
                                         >
                                             <Archive className="h-3 w-3" />
@@ -218,7 +218,7 @@ export default function NotificationsPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => unarchiveNotification(notification.id)}
+                                            onClick={async () => await unarchiveNotification(notification.id)}
                                             className="h-7 px-2"
                                         >
                                             <Archive className="h-3 w-3" />
@@ -227,7 +227,7 @@ export default function NotificationsPage() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => deleteNotification(notification.id)}
+                                        onClick={async () => await deleteNotification(notification.id)}
                                         className="h-7 px-2 text-destructive hover:text-destructive"
                                     >
                                         <Trash2 className="h-3 w-3" />
@@ -264,8 +264,8 @@ export default function NotificationsPage() {
                 {/* Cards de Filtros - Similar a la página de clientes */}
                 <div className="grid grid-cols-3 gap-4">
                     <button
-                        className={`rounded-lg transition border-2 ${statusFilter === "UNREAD" ? "border-red-600 bg-red-50" : "border-transparent"} focus:outline-none`}
-                        onClick={() => setStatusFilter("UNREAD")}
+                        className={`rounded-lg transition border-2 ${statusFilter === NotificationStatus.UNREAD ? "border-red-600 bg-red-50" : "border-transparent"} focus:outline-none`}
+                        onClick={() => setStatusFilter(NotificationStatus.UNREAD)}
                     >
                         <Card>
                             <CardContent className="p-4 text-center">
@@ -277,8 +277,8 @@ export default function NotificationsPage() {
                         </Card>
                     </button>
                     <button
-                        className={`rounded-lg transition border-2 ${statusFilter === "READ" ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
-                        onClick={() => setStatusFilter("READ")}
+                        className={`rounded-lg transition border-2 ${statusFilter === NotificationStatus.READ ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
+                        onClick={() => setStatusFilter(NotificationStatus.READ)}
                     >
                         <Card>
                             <CardContent className="p-4 text-center">
@@ -290,8 +290,8 @@ export default function NotificationsPage() {
                         </Card>
                     </button>
                     <button
-                        className={`rounded-lg transition border-2 ${statusFilter === "ARCHIVED" ? "border-gray-600 bg-gray-50" : "border-transparent"} focus:outline-none`}
-                        onClick={() => setStatusFilter("ARCHIVED")}
+                        className={`rounded-lg transition border-2 ${statusFilter === NotificationStatus.ARCHIVED ? "border-gray-600 bg-gray-50" : "border-transparent"} focus:outline-none`}
+                        onClick={() => setStatusFilter(NotificationStatus.ARCHIVED)}
                     >
                         <Card>
                             <CardContent className="p-4 text-center">
@@ -313,7 +313,7 @@ export default function NotificationsPage() {
                     ) : (
                         <Card>
                             <CardContent className="py-12 text-center">
-                                {statusFilter === "UNREAD" && (
+                                {statusFilter === NotificationStatus.UNREAD && (
                                     <>
                                         <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
                                         <h3 className="text-lg font-medium mb-2">¡Todo al día!</h3>
@@ -325,7 +325,7 @@ export default function NotificationsPage() {
                                         </p>
                                     </>
                                 )}
-                                {statusFilter === "READ" && (
+                                {statusFilter === NotificationStatus.READ && (
                                     <>
                                         <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <h3 className="text-lg font-medium mb-2">No hay notificaciones leídas</h3>
@@ -337,7 +337,7 @@ export default function NotificationsPage() {
                                         </p>
                                     </>
                                 )}
-                                {statusFilter === "ARCHIVED" && (
+                                {statusFilter === NotificationStatus.ARCHIVED && (
                                     <>
                                         <Archive className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <h3 className="text-lg font-medium mb-2">No hay notificaciones archivadas</h3>
@@ -376,14 +376,14 @@ export default function NotificationsPage() {
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
-                                        onClick={() => {
-                                            markAllAsRead()
+                                        onClick={async () => {
+                                            await markAllAsRead()
                                             toast({
                                                 title: "Éxito",
                                                 description: "Todas las notificaciones fueron marcadas como leídas",
                                             })
                                         }} 
-                                        className="bg-transparent"
+                                        className="bg-transparent min-w-[180px]"
                                     >
                                         <CheckCheck className="h-4 w-4 mr-2" />
                                         Marcar todas como leídas
@@ -392,19 +392,23 @@ export default function NotificationsPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                        const unreadIds = unreadNotifications.map((n) => n.id)
-                                        unreadIds.forEach((id) => archiveNotification(id))
+                                    onClick={async () => {
+                                        const allActiveNotifications = notifications.filter(n => n.status !== NotificationStatus.ARCHIVED)
+                                        
+                                        for (const notification of allActiveNotifications) {
+                                            await archiveNotification(notification.id)
+                                        }
+                                        
                                         toast({
                                             title: "Éxito",
-                                            description: `${unreadIds.length} notificaciones archivadas`,
+                                            description: `${allActiveNotifications.length} notificaciones archivadas`,
                                         })
                                     }}
-                                    disabled={unreadNotifications.length === 0}
-                                    className="bg-transparent"
+                                    disabled={notifications.filter(n => n.status !== NotificationStatus.ARCHIVED).length === 0}
+                                    className="bg-transparent min-w-[180px]"
                                 >
                                     <Archive className="h-4 w-4 mr-2" />
-                                    Archivar no leídas ({unreadNotifications.length})
+                                    Archivar todas
                                 </Button>
                             </div>
                         </CardContent>

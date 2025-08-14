@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/components/providers/auth-provider"
+import { NotificationsProvider } from "@/components/providers/notifications-provider"
 import { ReactQueryProvider } from "@/components/providers/react-query-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
@@ -45,12 +46,14 @@ export default function RootLayout({
         <ThemeProvider>
           <ReactQueryProvider>
             <AuthProvider>
-              <div className="min-h-screen flex justify-center">
-                <div className="w-full max-w-4xl">
-                  {children}
+              <NotificationsProvider>
+                <div className="min-h-screen flex justify-center">
+                  <div className="w-full max-w-4xl">
+                    {children}
+                  </div>
                 </div>
-              </div>
-              <Toaster />
+                <Toaster />
+              </NotificationsProvider>
             </AuthProvider>
           </ReactQueryProvider>
         </ThemeProvider>

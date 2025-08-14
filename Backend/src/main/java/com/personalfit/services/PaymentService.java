@@ -45,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PaymentService {
 
     private static final Integer MAX_FILE_SIZE_MB = 5;
-    
+
     @Value("${spring.datasource.files.path}")
     private String UPLOAD_FOLDER;
 
@@ -67,13 +67,13 @@ public class PaymentService {
     public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file) {
         // Validar usuario
         User user = getUserForPayment(paymentRequest);
-        
+
         // Validar reglas de negocio
         validatePaymentCreation(user);
 
         // Crear el pago
         Payment payment = buildPayment(paymentRequest, user);
-        
+
         // Procesar archivo si existe
         if (file != null && !file.isEmpty()) {
             PaymentFile paymentFile = processPaymentFile(file);
@@ -83,10 +83,10 @@ public class PaymentService {
         // Guardar y actualizar estado del usuario si es necesario
         Payment savedPayment = paymentRepository.save(payment);
         updateUserStatusIfPaid(user, savedPayment);
-        
-        log.info("Pago creado exitosamente: ID={}, Cliente={}, Monto={}", 
+
+        log.info("Pago creado exitosamente: ID={}, Cliente={}, Monto={}",
                 savedPayment.getId(), user.getFullName(), savedPayment.getAmount());
-        
+
         return savedPayment;
     }
 
@@ -100,25 +100,26 @@ public class PaymentService {
 
     /**
      * Crea múltiples pagos en lote
+     * 
      * @param paymentRequests Lista de pagos a crear
      * @return Cantidad de pagos creados exitosamente
      */
     @Transactional
     public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests) {
         List<Payment> paymentsToSave = new ArrayList<>();
-        
+
         for (PaymentRequestDTO paymentRequest : paymentRequests) {
             try {
                 // Validar usuario
                 User user = getUserForPayment(paymentRequest);
-                
+
                 // Validar que el usuario sea CLIENT
                 if (!user.getRole().equals(UserRole.CLIENT)) {
-                    log.warn("Saltando pago para usuario no cliente: DNI={}, Role={}", 
+                    log.warn("Saltando pago para usuario no cliente: DNI={}, Role={}",
                             user.getDni(), user.getRole());
                     continue;
                 }
-                
+
                 // Crear el pago con estado PENDING (sin validaciones de duplicados)
                 PaymentRequestDTO batchRequest = PaymentRequestDTO.builder()
                         .clientId(paymentRequest.getClientId())
@@ -126,29 +127,29 @@ public class PaymentService {
                         .amount(paymentRequest.getAmount())
                         .methodType(paymentRequest.getMethodType())
                         .paymentStatus(PaymentStatus.PENDING) // Forzar estado PENDING
-                        .createdAt(paymentRequest.getCreatedAt() != null ? 
-                                paymentRequest.getCreatedAt() : LocalDateTime.now())
+                        .createdAt(paymentRequest.getCreatedAt() != null ? paymentRequest.getCreatedAt()
+                                : LocalDateTime.now())
                         .expiresAt(paymentRequest.getExpiresAt())
                         .confNumber(paymentRequest.getConfNumber())
                         .build();
-                
+
                 Payment payment = buildPayment(batchRequest, user);
                 paymentsToSave.add(payment);
-                
+
             } catch (Exception e) {
-                log.error("Error procesando pago en lote para cliente: {}, Error: {}", 
-                        paymentRequest.getClientDni() != null ? 
-                        paymentRequest.getClientDni() : paymentRequest.getClientId(), 
+                log.error("Error procesando pago en lote para cliente: {}, Error: {}",
+                        paymentRequest.getClientDni() != null ? paymentRequest.getClientDni()
+                                : paymentRequest.getClientId(),
                         e.getMessage());
             }
         }
-        
+
         // Guardar todos los pagos en lote para mejor rendimiento
         List<Payment> savedPayments = paymentRepository.saveAll(paymentsToSave);
-        
-        log.info("Pagos creados en lote exitosamente: {} de {} solicitados", 
+
+        log.info("Pagos creados en lote exitosamente: {} de {} solicitados",
                 savedPayments.size(), paymentRequests.size());
-        
+
         return savedPayments.size();
     }
 
@@ -216,12 +217,12 @@ public class PaymentService {
      */
     public byte[] getFileContent(Long fileId) {
         PaymentFile paymentFile = getPaymentFileById(fileId);
-        
+
         try {
             Path filePath = Paths.get(paymentFile.getFilePath());
             if (!Files.exists(filePath)) {
-                throw new FileException("Archivo no encontrado en el sistema de archivos", 
-                                      "/api/files/" + fileId);
+                throw new FileException("Archivo no encontrado en el sistema de archivos",
+                        "/api/files/" + fileId);
             }
             return Files.readAllBytes(filePath);
         } catch (IOException e) {
@@ -245,8 +246,8 @@ public class PaymentService {
         } else if (paymentRequest.getClientDni() != null) {
             return userService.getUserByDni(paymentRequest.getClientDni());
         } else {
-            throw new BusinessRuleException("Se debe proporcionar clientId o clientDni", 
-                                          "/api/payments/new");
+            throw new BusinessRuleException("Se debe proporcionar clientId o clientDni",
+                    "/api/payments/new");
         }
     }
 
@@ -259,27 +260,25 @@ public class PaymentService {
         if (skipBusinessRules) {
             return;
         }
-        
+
         // Solo validar para clientes (no para pagos desde webhook)
         if (user.getRole().name().equals("CLIENT")) {
             Optional<Payment> lastPayment = paymentRepository.findTopByUserOrderByCreatedAtDesc(user);
-            
+
             if (lastPayment.isPresent()) {
                 Payment payment = lastPayment.get();
                 if (payment.getStatus() == PaymentStatus.PENDING) {
                     throw new BusinessRuleException(
-                        "El usuario ya tiene un pago pendiente de verificación", 
-                        "/api/payments/new"
-                    );
+                            "El usuario ya tiene un pago pendiente de verificación",
+                            "/api/payments/new");
                 }
-                
+
                 if (payment.getStatus() == PaymentStatus.PAID) {
                     LocalDateTime expirationDate = payment.getExpiresAt();
                     if (expirationDate != null && expirationDate.isAfter(LocalDateTime.now())) {
                         throw new BusinessRuleException(
-                            "El usuario ya tiene un pago activo válido", 
-                            "/api/payments/new"
-                        );
+                                "El usuario ya tiene un pago activo válido",
+                                "/api/payments/new");
                     }
                 }
             }
@@ -300,7 +299,7 @@ public class PaymentService {
 
     private PaymentFile processPaymentFile(MultipartFile file) {
         validateFile(file);
-        
+
         try {
             // Crear directorio si no existe
             Path uploadDir = Paths.get(UPLOAD_FOLDER);
@@ -310,11 +309,11 @@ public class PaymentService {
 
             // Generar nombre único para el archivo
             String originalFilename = file.getOriginalFilename();
-            String fileExtension = originalFilename != null && originalFilename.contains(".") 
-                ? originalFilename.substring(originalFilename.lastIndexOf(".")) 
-                : "";
+            String fileExtension = originalFilename != null && originalFilename.contains(".")
+                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                    : "";
             String uniqueFilename = "payment_" + System.currentTimeMillis() + fileExtension;
-            
+
             // Guardar archivo
             Path filePath = uploadDir.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
@@ -340,14 +339,14 @@ public class PaymentService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE_MB * 1024 * 1024) {
-            throw new FileException("El archivo excede el tamaño máximo de " + MAX_FILE_SIZE_MB + "MB", 
-                                  "/api/payments/new");
+            throw new FileException("El archivo excede el tamaño máximo de " + MAX_FILE_SIZE_MB + "MB",
+                    "/api/payments/new");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-            throw new FileException("Tipo de archivo no permitido. Solo se permiten imágenes y PDFs", 
-                                  "/api/payments/new");
+            throw new FileException("Tipo de archivo no permitido. Solo se permiten imágenes y PDFs",
+                    "/api/payments/new");
         }
     }
 
@@ -361,15 +360,15 @@ public class PaymentService {
     private Payment getPaymentById(Long paymentId) {
         return paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new EntityNotFoundException(
-                    "Pago no encontrado con ID: " + paymentId, 
-                    "/api/payments/info/" + paymentId));
+                        "Pago no encontrado con ID: " + paymentId,
+                        "/api/payments/info/" + paymentId));
     }
 
     private PaymentFile getPaymentFileById(Long fileId) {
         return paymentFileRepository.findById(fileId)
                 .orElseThrow(() -> new EntityNotFoundException(
-                    "Archivo no encontrado con ID: " + fileId, 
-                    "/api/files/" + fileId));
+                        "Archivo no encontrado con ID: " + fileId,
+                        "/api/files/" + fileId));
     }
 
     private PaymentTypeDTO convertToPaymentTypeDTO(Payment payment) {
