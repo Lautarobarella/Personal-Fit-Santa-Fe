@@ -389,12 +389,12 @@ function DashboardContent() {
           {stats.map((stat, index) => (
             <Card key={index} className="relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card">
               <CardContent className="p-5">
-                                 {/* Icono flotante integrado */}
-                 <div className="absolute -top-2 -right-2 w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                   <stat.icon className="h-7 w-7 text-muted-foreground" />
-                 </div>
+                {/* Icono plano en la esquina */}
+                <div className="absolute top-4 right-4">
+                  <stat.icon className="h-6 w-6 text-foreground" />
+                </div>
                 
-                <div className="pr-6">
+                <div className="pr-16">
                   <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{stat.title}</p>
                   <p className="text-3xl font-bold text-foreground mb-2 tracking-tight">{stat.value}</p>
                   
