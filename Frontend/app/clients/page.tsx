@@ -105,10 +105,10 @@ export default function ClientsPage() {
 
         <div className="grid grid-cols-3 gap-4">
           <button
-            className={`rounded-lg transition border-2 ${statusFilter === "ACTIVE" ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
+            className={`rounded-2xl transition-all duration-200 ${statusFilter === "ACTIVE" ? "ring-2 ring-green-500/50 bg-green-500/10" : "hover:bg-muted/50"} focus:outline-none`}
             onClick={() => setStatusFilter("ACTIVE")}
           >
-            <Card>
+            <Card className="border-0 bg-transparent shadow-none">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {clients.filter((c) => c.status === "ACTIVE").length}
@@ -118,10 +118,10 @@ export default function ClientsPage() {
             </Card>
           </button>
           <button
-            className={`rounded-lg transition border-2 ${statusFilter === "INACTIVE" ? "border-orange-600 bg-orange-50" : "border-transparent"} focus:outline-none`}
+            className={`rounded-2xl transition-all duration-200 ${statusFilter === "INACTIVE" ? "ring-2 ring-orange-500/50 bg-orange-500/10" : "hover:bg-muted/50"} focus:outline-none`}
             onClick={() => setStatusFilter("INACTIVE")}
           >
-            <Card>
+            <Card className="border-0 bg-transparent shadow-none">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-orange-600">
                   {clients.filter((c) => c.status === "INACTIVE").length}
@@ -131,10 +131,10 @@ export default function ClientsPage() {
             </Card>
           </button>
           <button
-            className={`rounded-lg transition border-2 ${statusFilter === "all" ? "border-blue-600 bg-blue-50" : "border-transparent"} focus:outline-none`}
+            className={`rounded-2xl transition-all duration-200 ${statusFilter === "all" ? "ring-2 ring-blue-500/50 bg-blue-500/10" : "hover:bg-muted/50"} focus:outline-none`}
             onClick={() => setStatusFilter("all")}
           >
-            <Card>
+            <Card className="border-0 bg-transparent shadow-none">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">{clients.length}</div>
                 <div className="text-sm text-muted-foreground">Total</div>

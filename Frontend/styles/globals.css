@@ -4,58 +4,82 @@
 
 @layer base {
   :root {
-    --background: 0 0% 96%; /* Light gray background #f5f5f5 */
-    --foreground: 0 0% 15%; /* Dark text for contrast */
-    --card: 0 0% 100%; /* White cards for contrast */
-    --card-foreground: 0 0% 15%; /* Dark text on cards */
-    --popover: 0 0% 100%; /* White popover */
-    --popover-foreground: 0 0% 15%; /* Dark text */
-    --primary: 21 100% 50%; /* #ff6000 - Bright orange */
-    --primary-foreground: 0 0% 100%; /* White text on orange */
-    --secondary: 0 0% 90%; /* Light gray for secondary elements */
-    --secondary-foreground: 0 0% 15%; /* Dark text */
-    --muted: 0 0% 93%; /* Brighter gray for muted elements */
-    --muted-foreground: 0 0% 40%; /* Medium gray text */
-    --accent: 0 0% 93%; /* Brighter gray for accents */
-    --accent-foreground: 0 0% 15%; /* Dark text */
-    --destructive: 0 70% 80%; /* Red pastel #f5a3a3 */
-    --destructive-foreground: 0 70% 25%; /* Dark red text */
-    --error: 0 80% 50%; 
-    --error-foreground: 0 70% 25%; /* Dark red text  MODIFICAR */
-    --success: 120 60% 80%; /* Green pastel #a3d9a3 */
-    --success-foreground: 120 60% 25%; /* Dark green text */
-    --warning: 45 90% 80%; /* Yellow pastel #f5e6a3 */
-    --warning-foreground: 45 90% 25%; /* Dark yellow text */
-    --border: 0 0% 85%; /* Light gray borders */
-    --input: 0 0% 85%; /* Light gray inputs */
-    --ring: 21 100% 50%; /* Orange focus ring */
-    --radius: 0.5rem;
+    /* Nueva paleta profesional basada en la imagen */
+    --background: 0 0% 98%; /* Fondo muy claro #fafafa */
+    --foreground: 0 0% 8%; /* Texto muy oscuro #141414 */
+    --card: 0 0% 100%; /* Cards blancos puros */
+    --card-foreground: 0 0% 8%; /* Texto oscuro en cards */
+    --popover: 0 0% 100%; /* Popovers blancos */
+    --popover-foreground: 0 0% 8%; /* Texto oscuro */
+    
+    /* Colores principales de la paleta */
+    --primary: 21 100% 50%; /* Naranja vibrante #FF7A30 */
+    --primary-foreground: 0 0% 100%; /* Texto blanco en naranja */
+    --secondary: 220 25% 45%; /* Azul grisáceo #465C88 */
+    --secondary-foreground: 0 0% 100%; /* Texto blanco en azul */
+    --tertiary: 0 0% 7%; /* Negro profundo #000000 */
+    --tertiary-foreground: 0 0% 100%; /* Texto blanco en negro */
+    --neutral: 0 0% 93%; /* Gris muy claro #E9E3DF */
+    --neutral-foreground: 0 0% 20%; /* Texto oscuro en neutral */
+    
+    /* Elementos de interfaz */
+    --muted: 0 0% 96%; /* Gris para elementos mutados */
+    --muted-foreground: 0 0% 45%; /* Texto medio */
+    --accent: 21 85% 95%; /* Naranja muy claro para acentos */
+    --accent-foreground: 21 100% 35%; /* Naranja oscuro para texto */
+    
+    /* Estados */
+    --destructive: 0 84% 60%; /* Rojo para destructivo */
+    --destructive-foreground: 0 0% 98%; /* Texto claro */
+    --success: 142 76% 36%; /* Verde para éxito */
+    --success-foreground: 0 0% 98%; /* Texto claro */
+    --warning: 38 92% 50%; /* Amarillo para advertencias */
+    --warning-foreground: 0 0% 98%; /* Texto claro */
+    
+    /* Bordes y controles */
+    --border: 0 0% 90%; /* Bordes suaves */
+    --input: 0 0% 96%; /* Inputs claros */
+    --ring: 21 100% 50%; /* Ring naranja */
+    --radius: 0.75rem; /* Radio más redondeado */
   }
 
   .dark {
-    --background: 0 0% 20%; /* Dark gray background #333333 */
-    --foreground: 0 0% 95%; /* Light text */
-    --card: 0 0% 25%; /* Darker gray cards #404040 */
-    --card-foreground: 0 0% 95%; /* Light text on cards */
-    --popover: 0 0% 25%; /* Dark popover */
-    --popover-foreground: 0 0% 95%; /* Light text */
-    --primary: 21 100% 55%; /* Slightly brighter orange for dark mode */
-    --primary-foreground: 0 0% 100%; /* White text */
-    --secondary: 0 0% 30%; /* Dark gray secondary */
-    --secondary-foreground: 0 0% 95%; /* Light text */
-    --muted: 0 0% 35%; /* Brighter dark gray */
-    --muted-foreground: 0 0% 70%; /* Light gray text */
-    --accent: 0 0% 35%; /* Brighter dark gray */
-    --accent-foreground: 0 0% 95%; /* Light text */
-    --destructive: 0 60% 70%; /* Red pastel for dark mode */
-    --destructive-foreground: 0 0% 95%; /* Light text */
-    --success: 120 50% 70%; /* Green pastel for dark mode */
-    --success-foreground: 0 0% 95%; /* Light text */
-    --warning: 45 80% 70%; /* Yellow pastel for dark mode */
-    --warning-foreground: 0 0% 95%; /* Light text */
-    --border: 0 0% 40%; /* Dark gray borders */
-    --input: 0 0% 40%; /* Dark gray inputs */
-    --ring: 21 100% 55%; /* Orange focus ring */
+    /* Modo oscuro profesional */
+    --background: 0 0% 7%; /* Fondo muy oscuro #121212 */
+    --foreground: 0 0% 95%; /* Texto muy claro */
+    --card: 0 0% 10%; /* Cards oscuros */
+    --card-foreground: 0 0% 95%; /* Texto claro en cards */
+    --popover: 0 0% 10%; /* Popovers oscuros */
+    --popover-foreground: 0 0% 95%; /* Texto claro */
+    
+    /* Colores principales adaptados */
+    --primary: 21 100% 55%; /* Naranja más brillante */
+    --primary-foreground: 0 0% 100%; /* Texto blanco */
+    --secondary: 220 25% 55%; /* Azul más brillante */
+    --secondary-foreground: 0 0% 100%; /* Texto blanco */
+    --tertiary: 0 0% 95%; /* Blanco para contraste */
+    --tertiary-foreground: 0 0% 7%; /* Texto oscuro */
+    --neutral: 0 0% 15%; /* Gris oscuro */
+    --neutral-foreground: 0 0% 85%; /* Texto claro */
+    
+    /* Elementos de interfaz */
+    --muted: 0 0% 15%; /* Gris oscuro para mutados */
+    --muted-foreground: 0 0% 65%; /* Texto medio claro */
+    --accent: 0 0% 15%; /* Gris oscuro para acentos */
+    --accent-foreground: 0 0% 95%; /* Texto claro */
+    
+    /* Estados */
+    --destructive: 0 84% 65%; /* Rojo más claro */
+    --destructive-foreground: 0 0% 98%; /* Texto claro */
+    --success: 142 76% 45%; /* Verde más claro */
+    --success-foreground: 0 0% 98%; /* Texto claro */
+    --warning: 38 92% 60%; /* Amarillo más claro */
+    --warning-foreground: 0 0% 98%; /* Texto claro */
+    
+    /* Bordes y controles */
+    --border: 0 0% 20%; /* Bordes oscuros */
+    --input: 0 0% 15%; /* Inputs oscuros */
+    --ring: 21 100% 55%; /* Ring naranja */
   }
 }
 
@@ -118,8 +142,9 @@
   }
 }
 
-/* Custom utility classes for status colors */
+/* Custom utility classes for professional color palette */
 @layer utilities {
+  /* Estados */
   .text-success {
     color: hsl(var(--success-foreground));
   }
@@ -141,13 +166,63 @@
   }
 
   .text-error {
-    color: hsl(var(--error));
+    color: hsl(var(--destructive));
   }
   .bg-error {
     background-color: hsl(var(--destructive));
   }
   .border-error {
-    border-color: hsl(var(--error));
+    border-color: hsl(var(--destructive));
+  }
+
+  /* Colores de la paleta profesional */
+  .bg-secondary {
+    background-color: hsl(var(--secondary));
+  }
+  .text-secondary {
+    color: hsl(var(--secondary));
+  }
+  .text-secondary-foreground {
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .bg-tertiary {
+    background-color: hsl(var(--tertiary));
+  }
+  .text-tertiary {
+    color: hsl(var(--tertiary));
+  }
+  .text-tertiary-foreground {
+    color: hsl(var(--tertiary-foreground));
+  }
+
+  .bg-neutral {
+    background-color: hsl(var(--neutral));
+  }
+  .text-neutral {
+    color: hsl(var(--neutral));
+  }
+  .text-neutral-foreground {
+    color: hsl(var(--neutral-foreground));
+  }
+
+  /* Gradientes profesionales */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+  }
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--tertiary)), hsl(var(--secondary)), hsl(var(--primary)));
+  }
+  .gradient-card {
+    background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--neutral)));
+  }
+
+  /* Sombras profesionales */
+  .shadow-professional {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  .shadow-professional-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -172,9 +247,9 @@
   }
 }
 
-/* Mobile optimizations */
+/* Mobile optimizations and professional scroll */
 @media (max-width: 768px) {
-  .container {
+  .container-centered {
     @apply px-4 max-w-full;
     width: 100% !important;
     overflow-x: hidden;
@@ -191,4 +266,58 @@
     width: 100vw !important;
     overflow-x: hidden !important;
   }
+}
+
+/* Scrollbar personalizado profesional */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Animaciones profesionales adicionales */
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.2s ease-out;
 }

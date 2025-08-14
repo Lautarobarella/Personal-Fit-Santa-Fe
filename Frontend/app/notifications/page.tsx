@@ -264,10 +264,10 @@ export default function NotificationsPage() {
                 {/* Cards de Filtros - Similar a la página de clientes */}
                 <div className="grid grid-cols-3 gap-4">
                     <button
-                        className={`rounded-lg transition border-2 ${statusFilter === NotificationStatus.UNREAD ? "border-red-600 bg-red-50" : "border-transparent"} focus:outline-none`}
+                        className={`rounded-2xl transition-all duration-200 ${statusFilter === NotificationStatus.UNREAD ? "ring-2 ring-red-500/50 bg-red-500/10" : "hover:bg-muted/50"} focus:outline-none`}
                         onClick={() => setStatusFilter(NotificationStatus.UNREAD)}
                     >
-                        <Card>
+                        <Card className="border-0 bg-transparent shadow-none">
                             <CardContent className="p-4 text-center">
                                 <div className="text-2xl font-bold text-red-600">
                                     {unreadNotifications.length}
@@ -277,10 +277,10 @@ export default function NotificationsPage() {
                         </Card>
                     </button>
                     <button
-                        className={`rounded-lg transition border-2 ${statusFilter === NotificationStatus.READ ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
+                        className={`rounded-2xl transition-all duration-200 ${statusFilter === NotificationStatus.READ ? "ring-2 ring-green-500/50 bg-green-500/10" : "hover:bg-muted/50"} focus:outline-none`}
                         onClick={() => setStatusFilter(NotificationStatus.READ)}
                     >
-                        <Card>
+                        <Card className="border-0 bg-transparent shadow-none">
                             <CardContent className="p-4 text-center">
                                 <div className="text-2xl font-bold text-green-600">
                                     {readNotifications.length}
@@ -290,10 +290,10 @@ export default function NotificationsPage() {
                         </Card>
                     </button>
                     <button
-                        className={`rounded-lg transition border-2 ${statusFilter === NotificationStatus.ARCHIVED ? "border-gray-600 bg-gray-50" : "border-transparent"} focus:outline-none`}
+                        className={`rounded-2xl transition-all duration-200 ${statusFilter === NotificationStatus.ARCHIVED ? "ring-2 ring-blue-500/50 bg-blue-500/10" : "hover:bg-muted/50"} focus:outline-none`}
                         onClick={() => setStatusFilter(NotificationStatus.ARCHIVED)}
                     >
-                        <Card>
+                        <Card className="border-0 bg-transparent shadow-none">
                             <CardContent className="p-4 text-center">
                                 <div className="text-2xl font-bold text-gray-600">
                                     {archivedNotifications.length}

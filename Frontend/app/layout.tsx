@@ -23,11 +23,13 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#FF6000",
+  themeColor: "#FF7A30", // Color primario de la nueva paleta
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover", // Para PWA con notch
 }
 
 export default function RootLayout({
@@ -47,8 +49,8 @@ export default function RootLayout({
           <ReactQueryProvider>
             <AuthProvider>
               <NotificationsProvider>
-                <div className="min-h-screen flex justify-center">
-                  <div className="w-full max-w-4xl">
+                <div className="min-h-screen flex justify-center bg-background">
+                  <div className="w-full max-w-md mx-auto relative">
                     {children}
                   </div>
                 </div>
