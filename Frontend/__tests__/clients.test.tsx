@@ -28,6 +28,26 @@ jest.mock('@/components/providers/auth-provider', () => {
   }
 })
 
+// Mock notifications provider
+jest.mock('@/components/providers/notifications-provider', () => {
+  const actual = jest.requireActual('@/components/providers/notifications-provider')
+  return {
+    ...actual,
+    useNotifications: () => ({
+      notifications: [],
+      loading: false,
+      error: null,
+      unreadCount: 0,
+      loadNotifications: jest.fn(),
+      markAsRead: jest.fn(),
+      markAsUnread: jest.fn(),
+      archiveNotification: jest.fn(),
+      deleteNotification: jest.fn(),
+      markAllAsRead: jest.fn(),
+    }),
+  }
+})
+
 describe('ClientsPage', () => {
   it('muestra métricas y permite filtrar para ver inactivos', async () => {
     const user = userEvent.setup()
