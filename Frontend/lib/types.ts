@@ -49,6 +49,12 @@ export enum NotificationCategoryType {
   ACTIVITY = "ACTIVITY"
 }
 
+export enum NotificationStatus {
+  READ = "READ",
+  UNREAD = "UNREAD",
+  ARCHIVED = "ARCHIVED"
+}
+
 export interface UserDetailInfo {
   id: number
   dni: number

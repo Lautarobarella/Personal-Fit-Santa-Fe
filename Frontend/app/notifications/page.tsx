@@ -1,15 +1,14 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
-import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useNotifications } from "@/hooks/use-notifications"
 import { useToast } from "@/hooks/use-toast"
-import { NotificationType, NotificationCategoryType } from "@/lib/types"
+import { NotificationCategoryType, NotificationType } from "@/lib/types"
 import {
     AlertTriangle,
     Archive,
@@ -22,12 +21,12 @@ import {
     CreditCard,
     Info,
     Loader2,
+    Search,
     Trash2,
     Users,
     XCircle,
 } from "lucide-react"
-import { useEffect } from "react"
-
+import { useEffect, useState } from "react"
 
 export default function NotificationsPage() {
     const { user } = useAuth()
@@ -44,25 +43,61 @@ export default function NotificationsPage() {
         deleteNotification,
         markAllAsRead,
     } = useNotifications()
-    
+
+    const [searchTerm, setSearchTerm] = useState("")
+    const [statusFilter, setStatusFilter] = useState<"UNREAD" | "READ" | "ARCHIVED" | "all">("UNREAD")
+
     useEffect(() => {
         loadNotifications()
     }, [loadNotifications])
 
-    if (!user || !notifications) {
+    if (!user) {
         return null
     }
 
     if (loading) {
         return (
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
         )
-      }
+    }
 
     if (error) return <div>{error}</div>
+    if (!notifications) return null
 
+    // Filtrar notificaciones por estado y término de búsqueda
+    const getFilteredNotifications = () => {
+        let filtered = notifications
+        
+        // Filtrar por estado
+        switch (statusFilter) {
+            case "UNREAD":
+                filtered = notifications.filter((n) => !n.read && !n.archived)
+                break
+            case "READ":
+                filtered = notifications.filter((n) => n.read && !n.archived)
+                break
+            case "ARCHIVED":
+                filtered = notifications.filter((n) => n.archived)
+                break
+            case "all":
+                filtered = notifications
+                break
+        }
+        
+        // Filtrar por búsqueda
+        if (searchTerm) {
+            filtered = filtered.filter((n) =>
+                n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                n.message.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+        }
+        
+        return filtered
+    }
+
+    const filteredNotifications = getFilteredNotifications()
     const unreadNotifications = notifications.filter((n) => !n.read && !n.archived)
     const readNotifications = notifications.filter((n) => n.read && !n.archived)
     const archivedNotifications = notifications.filter((n) => n.archived)
@@ -115,7 +150,6 @@ export default function NotificationsPage() {
         }
     }
 
-
     const NotificationCard = ({
         notification,
         showActions = true,
@@ -142,7 +176,12 @@ export default function NotificationsPage() {
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 {getEntityIcon(notification.notificationCategory || "")}
                                 <span className="capitalize">
-                                    {({ [NotificationCategoryType.PAYMENT]: "Pago", [NotificationCategoryType.ENROLLMENT]: "Inscripción", [NotificationCategoryType.ACTIVITY]: "Actividad", [NotificationCategoryType.CLIENT]: "Cliente" } as Record<string, string>)[notification.notificationCategory || ""] || ""}
+                                    {({ 
+                                        [NotificationCategoryType.PAYMENT]: "Pago", 
+                                        [NotificationCategoryType.ENROLLMENT]: "Inscripción", 
+                                        [NotificationCategoryType.ACTIVITY]: "Actividad", 
+                                        [NotificationCategoryType.CLIENT]: "Cliente" 
+                                    } as Record<string, string>)[notification.notificationCategory || ""] || ""}
                                 </span>
                             </div>
                             {showActions && (
@@ -209,104 +248,143 @@ export default function NotificationsPage() {
                 showBack
                 onBack={() => window.history.back()}
             />
-            <div className="container-centered py-6 space-y-6">
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4">
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-primary">{unreadNotifications.length}</div>
-                            <div className="text-sm text-muted-foreground">No leídas</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-success">{readNotifications.length}</div>
-                            <div className="text-sm text-muted-foreground">Leídas</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-muted-foreground">{archivedNotifications.length}</div>
-                            <div className="text-sm text-muted-foreground">Archivadas</div>
-                        </CardContent>
-                    </Card>
+
+            <div className="container-centered py-6 space-y-4">
+                {/* Buscador */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar notificaciones..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
                 </div>
 
-                {/* Notifications Tabs */}
-                <Tabs defaultValue="unread" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="unread" className="relative">
-                            No leídas
-                            {unreadNotifications.length > 0 && (
-                                <Badge variant="destructive" className="ml-2 h-5 w-5 p-1 text-xs">
+                {/* Cards de Filtros - Similar a la página de clientes */}
+                <div className="grid grid-cols-3 gap-4">
+                    <button
+                        className={`rounded-lg transition border-2 ${statusFilter === "UNREAD" ? "border-red-600 bg-red-50" : "border-transparent"} focus:outline-none`}
+                        onClick={() => setStatusFilter("UNREAD")}
+                    >
+                        <Card>
+                            <CardContent className="p-4 text-center">
+                                <div className="text-2xl font-bold text-red-600">
                                     {unreadNotifications.length}
-                                </Badge>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="read">Leídas</TabsTrigger>
-                        <TabsTrigger value="archived">Archivadas</TabsTrigger>
-                    </TabsList>
+                                </div>
+                                <div className="text-sm text-muted-foreground">No leídas</div>
+                            </CardContent>
+                        </Card>
+                    </button>
+                    <button
+                        className={`rounded-lg transition border-2 ${statusFilter === "READ" ? "border-green-600 bg-green-50" : "border-transparent"} focus:outline-none`}
+                        onClick={() => setStatusFilter("READ")}
+                    >
+                        <Card>
+                            <CardContent className="p-4 text-center">
+                                <div className="text-2xl font-bold text-green-600">
+                                    {readNotifications.length}
+                                </div>
+                                <div className="text-sm text-muted-foreground">Leídas</div>
+                            </CardContent>
+                        </Card>
+                    </button>
+                    <button
+                        className={`rounded-lg transition border-2 ${statusFilter === "ARCHIVED" ? "border-gray-600 bg-gray-50" : "border-transparent"} focus:outline-none`}
+                        onClick={() => setStatusFilter("ARCHIVED")}
+                    >
+                        <Card>
+                            <CardContent className="p-4 text-center">
+                                <div className="text-2xl font-bold text-gray-600">
+                                    {archivedNotifications.length}
+                                </div>
+                                <div className="text-sm text-muted-foreground">Archivadas</div>
+                            </CardContent>
+                        </Card>
+                    </button>
+                </div>
 
-                    {/* Unread Notifications */}
-                    <TabsContent value="unread" className="space-y-3 mt-4">
-                        {unreadNotifications.length > 0 ? (
-                            unreadNotifications.map((notification) => (
-                                <NotificationCard key={notification.id} notification={notification} />
-                            ))
-                        ) : (
-                            <Card>
-                                <CardContent className="py-12 text-center">
-                                    <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">¡Todo al día!</h3>
-                                    <p className="text-muted-foreground">No tienes notificaciones sin leer</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
+                {/* Lista de Notificaciones */}
+                <div className="space-y-3">
+                    {filteredNotifications.length > 0 ? (
+                        filteredNotifications.map((notification) => (
+                            <NotificationCard key={notification.id} notification={notification} />
+                        ))
+                    ) : (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                {statusFilter === "UNREAD" && (
+                                    <>
+                                        <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">¡Todo al día!</h3>
+                                        <p className="text-muted-foreground">
+                                            {searchTerm 
+                                                ? "No se encontraron notificaciones no leídas" 
+                                                : "No tienes notificaciones sin leer"
+                                            }
+                                        </p>
+                                    </>
+                                )}
+                                {statusFilter === "READ" && (
+                                    <>
+                                        <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No hay notificaciones leídas</h3>
+                                        <p className="text-muted-foreground">
+                                            {searchTerm 
+                                                ? "No se encontraron notificaciones leídas" 
+                                                : "Las notificaciones que marques como leídas aparecerán aquí"
+                                            }
+                                        </p>
+                                    </>
+                                )}
+                                {statusFilter === "ARCHIVED" && (
+                                    <>
+                                        <Archive className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No hay notificaciones archivadas</h3>
+                                        <p className="text-muted-foreground">
+                                            {searchTerm 
+                                                ? "No se encontraron notificaciones archivadas" 
+                                                : "Las notificaciones archivadas aparecerán aquí"
+                                            }
+                                        </p>
+                                    </>
+                                )}
+                                {statusFilter === "all" && (
+                                    <>
+                                        <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No hay notificaciones</h3>
+                                        <p className="text-muted-foreground">
+                                            {searchTerm 
+                                                ? "No se encontraron notificaciones" 
+                                                : "No tienes notificaciones disponibles"
+                                            }
+                                        </p>
+                                    </>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
 
-                    {/* Read Notifications */}
-                    <TabsContent value="read" className="space-y-3 mt-4">
-                        {readNotifications.length > 0 ? (
-                            readNotifications.map((notification) => (
-                                <NotificationCard key={notification.id} notification={notification} />
-                            ))
-                        ) : (
-                            <Card>
-                                <CardContent className="py-12 text-center">
-                                    <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">No hay notificaciones leídas</h3>
-                                    <p className="text-muted-foreground">Las notificaciones que marques como leídas aparecerán aquí</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-
-                    {/* Archived Notifications */}
-                    <TabsContent value="archived" className="space-y-3 mt-4">
-                        {archivedNotifications.length > 0 ? (
-                            archivedNotifications.map((notification) => (
-                                <NotificationCard key={notification.id} notification={notification} />
-                            ))
-                        ) : (
-                            <Card>
-                                <CardContent className="py-12 text-center">
-                                    <Archive className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">No hay notificaciones archivadas</h3>
-                                    <p className="text-muted-foreground">Las notificaciones archivadas aparecerán aquí</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-                </Tabs>
-
-                {/* Quick Actions */}
+                {/* Acciones Rápidas */}
                 {notifications.length > 0 && (
                     <Card>
                         <CardContent className="p-4">
                             <h3 className="font-medium mb-3">Acciones Rápidas</h3>
                             <div className="flex flex-wrap gap-2">
                                 {unreadNotifications.length > 0 && (
-                                    <Button variant="outline" size="sm" onClick={() => markAllAsRead()} className="bg-transparent">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => {
+                                            markAllAsRead()
+                                            toast({
+                                                title: "Éxito",
+                                                description: "Todas las notificaciones fueron marcadas como leídas",
+                                            })
+                                        }} 
+                                        className="bg-transparent"
+                                    >
                                         <CheckCheck className="h-4 w-4 mr-2" />
                                         Marcar todas como leídas
                                     </Button>
@@ -317,12 +395,16 @@ export default function NotificationsPage() {
                                     onClick={() => {
                                         const unreadIds = unreadNotifications.map((n) => n.id)
                                         unreadIds.forEach((id) => archiveNotification(id))
+                                        toast({
+                                            title: "Éxito",
+                                            description: `${unreadIds.length} notificaciones archivadas`,
+                                        })
                                     }}
                                     disabled={unreadNotifications.length === 0}
                                     className="bg-transparent"
                                 >
                                     <Archive className="h-4 w-4 mr-2" />
-                                    Archivar no leídas
+                                    Archivar no leídas ({unreadNotifications.length})
                                 </Button>
                             </div>
                         </CardContent>

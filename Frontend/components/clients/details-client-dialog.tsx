@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClients } from "@/hooks/use-client"
-import { ActivityStatus, AttendanceStatus, PaymentStatus, UserRole, UserStatus } from "@/lib/types"
+import { ActivityStatus, AttendanceStatus, PaymentStatus, UserRole, UserStatus, MethodType } from "@/lib/types"
 import {
   Activity,
   AlertTriangle,
@@ -193,11 +193,11 @@ export function ClientDetailsDialog({
 
   const getMethodText = (method: string) => {
     switch (method) {
-      case "cash":
+      case "CASH":
         return "Efectivo"
-      case "card":
+      case "CARD":
         return "Tarjeta"
-      case "transfer":
+      case "TRANSFER":
         return "Transferencia"
       default:
         return method

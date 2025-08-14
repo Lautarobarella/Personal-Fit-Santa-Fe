@@ -1,17 +1,18 @@
 package com.personalfit.services;
 
-import com.personalfit.dto.Notification.NotificationDTO;
-import com.personalfit.models.Notification;
-import com.personalfit.models.User;
-import com.personalfit.repository.NotificationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.personalfit.dto.Notification.NotificationDTO;
+import com.personalfit.models.Notification;
+import com.personalfit.models.User;
+import com.personalfit.repository.NotificationRepository;
 
 @Service
 public class NotificationService {
@@ -20,15 +21,27 @@ public class NotificationService {
     private NotificationRepository notificationRepository;
 
     public List<NotificationDTO> getAllByUserId(Long id) {
-        List<Notification> notifications = notificationRepository.findByUserId(id);
+        try {
+            List<Notification> notifications = notificationRepository.findByUserId(id);
+            
+            // Si no hay notificaciones, devolver lista vacía
+            if (notifications == null || notifications.isEmpty()) {
+                return new ArrayList<>();
+            }
 
-        return notifications.stream().map(n -> {
-            return NotificationDTO.builder()
-                    .id(n.getId())
-                    .title(n.getTitle())
-                    .message(n.getMessage())
-                    .build();
-        }).collect(Collectors.toList());
+            return notifications.stream().map(n -> {
+                return NotificationDTO.builder()
+                        .id(n.getId())
+                        .title(n.getTitle())
+                        .message(n.getMessage())
+                        .date(n.getDate()) // Usar date en lugar de createdAt
+                        .build();
+            }).collect(Collectors.toList());
+        } catch (Exception e) {
+            // Log error pero devolver lista vacía en lugar de lanzar excepción
+            System.err.println("Error fetching notifications for user " + id + ": " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     @Transactional

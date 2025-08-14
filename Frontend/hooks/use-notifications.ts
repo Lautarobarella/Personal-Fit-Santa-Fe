@@ -1,7 +1,7 @@
 
-import { useCallback, useState } from "react"
-import { Notification } from "@/lib/types"
 import { fetchNotifications } from "@/api/notifications/notificationsApi"
+import { Notification } from "@/lib/types"
+import { useCallback, useState } from "react"
 
 export function useNotifications() {
     const [notifications, setNotifications] = useState<Notification[]>([])
@@ -13,9 +13,16 @@ export function useNotifications() {
         setError(null)
         try {
             const data = await fetchNotifications()
-            setNotifications(data)
+            setNotifications(data || []) // Asegurar que siempre sea un array
         } catch (err) {
-            setError("Error al cargar las notificaciones")
+            console.error("Error loading notifications:", err)
+            // Solo establecer error si es un error real, no si solo no hay notificaciones
+            if (err instanceof Error && !err.message.includes('404')) {
+                setError("Error al cargar las notificaciones")
+            } else {
+                // Si es 404 o no hay notificaciones, simplemente establecer array vacío
+                setNotifications([])
+            }
         } finally {
             setLoading(false)
         }
