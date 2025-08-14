@@ -22,7 +22,7 @@ export async function fetchUserDetail(id: number) {
 
 export async function createUser(user: UserFormType) {
   try {
-          return await jwtPermissionsApi.post('/api/users/new', user);
+    return await jwtPermissionsApi.post('/api/users/new', user);
   } catch (error) {
     if (isValidationError(error)) {
       handleValidationError(error);
@@ -33,10 +33,10 @@ export async function createUser(user: UserFormType) {
   }
 }
 
-export async function updateUserPassword(data: { 
-  userId: number; 
-  currentPassword: string; 
-  newPassword: string; 
+export async function updateUserPassword(data: {
+  userId: number;
+  currentPassword: string;
+  newPassword: string;
 }) {
   try {
     return await jwtPermissionsApi.put('/api/users/update-password', data);

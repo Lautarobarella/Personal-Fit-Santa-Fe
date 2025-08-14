@@ -1,5 +1,5 @@
-import { ApiError } from '../api/JWTAuth/api'
 import { toast } from '@/hooks/use-toast'
+import { ApiError } from '../api/JWTAuth/api'
 
 /**
  * Handles API errors and displays appropriate toast notifications
@@ -15,9 +15,14 @@ export const handleApiError = (error: unknown, defaultMessage = 'Ocurrió un err
   if (error instanceof ApiError) {
     title = error.error || 'Error'
     message = error.message || defaultMessage
-    
+
     // Handle specific error types
     switch (error.status) {
+      case 400:
+        // Para errores 400, usar el mensaje específico del backend
+        title = 'Error'
+        message = error.message || 'Datos inválidos'
+        break
       case 401:
         title = 'Error de autenticación'
         message = 'Sesión expirada. Por favor, inicia sesión nuevamente.'
