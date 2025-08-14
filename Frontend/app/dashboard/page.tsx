@@ -12,6 +12,7 @@ import { useClientStats } from "@/hooks/use-client-stats"
 import { usePayment } from "@/hooks/use-payment"
 import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { ActivityStatus, PaymentStatus, UserRole } from "@/lib/types"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   Activity,
   AlertTriangle,
@@ -34,6 +35,7 @@ import { useEffect, useState } from "react"
 // Componente que se renderiza solo en el cliente
 function DashboardContent() {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [dashboardStats, setDashboardStats] = useState({
     monthlyRevenue: 0,
     activeClients: 0,
@@ -58,12 +60,17 @@ function DashboardContent() {
   // Extraer datos de forma segura
   const payments = paymentHook?.payments || []
 
-  // Marcar como montado para evitar SSR
+  // Marcar como montado para evitar SSR e invalidar queries para datos frescos
   useEffect(() => {
     setMounted(true)
     loadClients()
     loadActivities()
-  }, [loadClients, loadActivities])
+    
+    // Invalidar queries de pagos para asegurar datos frescos al entrar al dashboard
+    if (user?.role === UserRole.ADMIN) {
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
+    }
+  }, [loadClients, loadActivities, user?.role, queryClient])
 
   // Calcular estadísticas reales
   useEffect(() => {

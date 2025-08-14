@@ -2,20 +2,20 @@
 
 import React from "react"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
-import { MobileHeader } from "@/components/ui/mobile-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Users, Loader2 } from "lucide-react"
-import { ActivityFormType, UserRole } from "@/lib/types"
+import { Textarea } from "@/components/ui/textarea"
 import { useActivities } from "@/hooks/use-activity"
+import { useToast } from "@/hooks/use-toast"
+import { ActivityFormType, UserRole } from "@/lib/types"
+import { Calendar, Clock, Loader2, Users } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
 
