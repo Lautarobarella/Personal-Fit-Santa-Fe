@@ -191,31 +191,17 @@ export default function PaymentsPage() {
                 actions={
                     <div className="flex gap-x-2">
                         {user.role === UserRole.ADMIN ? (
-                            <>
-                                <Link href={pendingPayments.length <= 0 ? '#' : '/payments/verify'}
-                                    className={pendingPayments.length <= 0 ? 'pointer-events-none' : ''}
-                                    aria-disabled={pendingPayments.length <= 0}>
-                                    <Button
-                                        variant="outline"
-                                        className={`bg-transparent ${pendingPayments.length <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        disabled={pendingPayments.length <= 0}
-                                    >
-                                        <FileCheck className="h-4 w-4" />
-                                        [{pendingPayments.length}]
-                                    </Button>
-                                </Link>
-                                <Link href="/payments/method-select">
-                                    <Button size="sm">
-                                        <Plus className="h-4 w-4" />
-                                        Nuevo
-                                    </Button>
-                                </Link>
-                            </>
+                            <Link href="/payments/method-select">
+                                <Button size="sm">
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Nuevo
+                                </Button>
+                            </Link>
                         ) : user.role === UserRole.CLIENT ? (
                             canCreateNewPayment ? (
                                 <Link href="/payments/method-select">
                                     <Button size="sm">
-                                        <Plus className="h-4 w-4" />
+                                        <Plus className="h-4 w-4 mr-1" />
                                         Nuevo
                                     </Button>
                                 </Link>
@@ -400,6 +386,19 @@ export default function PaymentsPage() {
             )}
 
             <BottomNav />
+
+            {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
+            {user.role === UserRole.ADMIN && pendingPayments.length > 0 && (
+                <Link href="/payments/verify" className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+                    <Button 
+                        className="shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
+                        size="default"
+                    >
+                        <FileCheck className="h-5 w-5" />
+                        Verificar ({pendingPayments.length})
+                    </Button>
+                </Link>
+            )}
         </div>
     )
 }

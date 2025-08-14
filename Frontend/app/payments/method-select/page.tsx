@@ -38,8 +38,8 @@ export default function PaymentMethodSelectPage() {
                 onBack={() => router.push('/payments')}
             />
 
-            <div className="container py-6 px-4">
-                <div className="max-w-2xl mx-auto space-y-6 px-4">
+            <div className="container py-6 px-1">
+                <div className="max-w-2xl mx-auto space-y-6 px-1">
                     {/* Información del usuario */}
                     <Card className="bg-blue-50 border-blue-200">
                         <CardHeader className="pb-3">
@@ -65,7 +65,7 @@ export default function PaymentMethodSelectPage() {
                             <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
                                 <CardContent className="p-6">
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-4">
+                                        <div className="flex items-center space-x-2">
                                             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                                                 <CreditCard className="w-6 h-6 text-blue-600" />
                                             </div>
@@ -91,7 +91,7 @@ export default function PaymentMethodSelectPage() {
                         <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-gray-300">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
+                                    <div className="flex items-center space-x-2">
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                                             <FileText className="w-6 h-6 text-gray-600" />
                                         </div>
