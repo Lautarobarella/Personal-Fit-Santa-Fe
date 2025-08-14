@@ -23,6 +23,7 @@ import {
     Clock,
     DollarSign,
     Eye,
+    EyeOff,
     FileCheck,
     Plus,
     Search,
@@ -33,6 +34,7 @@ export default function PaymentsPage() {
     const { user } = useAuth()
     const [searchTerm, setSearchTerm] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
+    const [showRevenue, setShowRevenue] = useState(true)
     const queryClient = useQueryClient()
 
     const {
@@ -281,9 +283,24 @@ export default function PaymentsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground  font-bold">Ingresos del Mes</p>
-                                    <p className="text-2xl font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
+                                    <p className="text-2xl font-bold text-foreground">
+                                        {showRevenue ? formatCurrency(totalRevenue) : "••••••"}
+                                    </p>
                                 </div>
-                                <DollarSign className="h-8 w-8 text-green-600" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowRevenue(!showRevenue)}
+                                        className="p-1 hover:bg-muted rounded-full transition-colors"
+                                        aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
+                                    >
+                                        {showRevenue ? (
+                                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                        ) : (
+                                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                        )}
+                                    </button>
+                                    <DollarSign className="h-8 w-8 text-green-600" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

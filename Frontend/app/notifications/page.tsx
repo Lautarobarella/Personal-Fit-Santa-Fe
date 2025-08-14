@@ -295,7 +295,7 @@ export default function NotificationsPage() {
                     >
                         <Card className="border-0 bg-transparent shadow-none">
                             <CardContent className="p-4 text-center">
-                                <div className="text-2xl font-bold text-gray-600">
+                                <div className="text-2xl font-bold text-blue-600">
                                     {archivedNotifications.length}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Archivadas</div>
