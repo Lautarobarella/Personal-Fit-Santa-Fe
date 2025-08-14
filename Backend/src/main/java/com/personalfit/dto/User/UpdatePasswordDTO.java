@@ -1,13 +1,14 @@
 package com.personalfit.dto.User;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class UpdatePasswordDTO {
     
-    @NotBlank(message = "User ID is required")
+    @NotNull(message = "User ID is required")
     private Long userId;
     
     @NotBlank(message = "Current password is required")
