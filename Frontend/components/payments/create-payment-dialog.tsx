@@ -15,11 +15,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
+import { PaymentStatus, UserRole } from "@/lib/types"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
-import { UserRole, PaymentStatus } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Textarea } from "../ui/textarea"
 
@@ -52,13 +52,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const [amount, setAmount] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
-    
+
     // Hook para obtener pagos del cliente
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePayment(
         user?.role === UserRole.CLIENT ? user.id : undefined,
         false
     )
-    
+
     // Fetch monthly fee when component mounts
     useEffect(() => {
         const fetchMonthlyFee = async () => {
@@ -73,15 +73,15 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
         fetchMonthlyFee()
     }, [])
-    
+
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
         if (open && user && monthlyFee !== null) {
-            setSelectedClient((user.role===UserRole.CLIENT)? user.dni?.toString() : "")
+            setSelectedClient((user.role === UserRole.CLIENT) ? user.dni?.toString() : "")
             setAmount(monthlyFee.toString())
         }
     }, [open, user, monthlyFee])
-    
+
     const [isUploading, setIsUploading] = useState(false)
     const { toast } = useToast()
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -92,12 +92,12 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Función para verificar si el cliente ya tiene un pago activo o pendiente
     const checkExistingPayment = (): boolean => {
         if (!clientPayments || clientPayments.length === 0) return false
-        
+
         // Verificar si hay algún pago con estado "paid" o "pending"
-        const hasActiveOrPendingPayment = clientPayments.some(payment => 
+        const hasActiveOrPendingPayment = clientPayments.some(payment =>
             payment.status === PaymentStatus.PAID || payment.status === PaymentStatus.PENDING
         )
-        
+
         return hasActiveOrPendingPayment
     }
 
@@ -206,7 +206,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 })
                 return
             }
-            
+
             if (checkExistingPayment()) {
                 toast({
                     title: "Error",
@@ -234,13 +234,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         } catch (error: any) {
             // Manejar errores específicos del backend
             let errorMessage = "No se pudo crear el pago"
-            
+
             if (error?.response?.data?.message) {
                 errorMessage = error.response.data.message
             } else if (error?.message) {
                 errorMessage = error.message
             }
-            
+
             toast({
                 title: "Error",
                 description: errorMessage,
@@ -275,7 +275,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
         // Mensaje según el rol del usuario
         const isAutomaticPayment = user?.role === UserRole.ADMIN
-        const message = isAutomaticPayment 
+        const message = isAutomaticPayment
             ? "El pago se ha registrado y el cliente ha sido activado automáticamente"
             : "El pago se ha registrado correctamente"
 
@@ -329,7 +329,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             type="text"
                             value={amount}
                             readOnly
-                            aria-readonly="true"
+                            // className="text-foreground"
                             onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
                     </div>
@@ -370,83 +370,85 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         />
                     </div>
 
-                    <DialogFooter className="flex gap-3">
-                        {
-                            < div className="flex gap-2 justify-end mt-4">
+                    {/* Subir comprobante */}
+                    <Card className="w-full">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><FileImage className="h-5 w-5" /> Subir Comprobante</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {!selectedFile ? (
+                                <div className="border-2 border-dashed p-6 text-center rounded-lg">
+                                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                    <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
+                                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="relative border rounded-lg overflow-hidden">
+                                        <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                        <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
+                                </div>
+                            )}
+
+                            {/* Botones de subida - aparecen siempre */}
+                            <div className="flex justify-center gap-2">
                                 <Button
                                     variant="outline"
                                     type="button"
-                                    onClick={handleClose}
+                                    onClick={() => fileInputRef.current?.click()}
                                     disabled={isCreating}
-                                    className="flex-1"
                                 >
-                                    Cancelar
+                                    <Upload className="h-4 w-2" /> Archivo
                                 </Button>
-
-
                                 <Button
-                                    type="submit" // <- Ahora sí, este es el botón que envía
+                                    variant="outline"
+                                    type="button"
+                                    onClick={handleCameraCapture}
                                     disabled={isCreating}
-                                    className="flex-1"
                                 >
-                                    {isCreating ? (
-                                        <Loader2 className="animate-spin mr-1 h-4 w-2" />
-                                    ) : (
-                                        <Check className="mr-1 h-4 w-2" />
-                                    )}
-                                    {isCreating ? "Creando..." : "Aceptar"}
+                                    <Camera className="h-4 w-2" /> Cámara
                                 </Button>
                             </div>
-                        }
-                        {/* Subir comprobante */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileImage className="h-5 w-5" /> Subir Comprobante</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {!selectedFile ? (
-                                    <div className="border-2 border-dashed p-2 text-center rounded-lg">
-                                        <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                        <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
-                                        <div className="flex justify-center gap-3">
-                                            <Button
-                                                variant="outline"
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                            >
-                                                <Upload className="mr-2 h-4 w-4" /> Archivo
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                type="button"
-                                                onClick={handleCameraCapture}
-                                            >
-                                                <Camera className="mr-2 h-4 w-4" /> Cámara
-                                            </Button>
-                                        </div>
-                                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <div className="relative border rounded-lg overflow-hidden">
-                                            <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
-                                            <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
-                                    </div>
-                                )}
 
-                                <div className="space-y-2">
-                                    <Label>Notas (opcional)</Label>
-                                    <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                    </DialogFooter>
+                            <div className="space-y-2">
+                                <Label>Notas (opcional)</Label>
+                                <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </form>
+
+                <DialogFooter className="flex gap-3">
+                    <div className="flex gap-2 justify-end mt-4 w-full">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={handleClose}
+                            disabled={isCreating}
+                            className="flex-1"
+                        >
+                            Cancelar
+                        </Button>
+
+                        <Button
+                            type="submit"
+                            disabled={isCreating}
+                            className="flex-1"
+                            onClick={handleSubmit}
+                        >
+                            {isCreating ? (
+                                <Loader2 className="animate-spin mr-1 h-4 w-4" />
+                            ) : (
+                                <Check className="mr-1 h-4 w-4" />
+                            )}
+                            {isCreating ? "Creando..." : "Aceptar"}
+                        </Button>
+                    </div>
+                </DialogFooter>
             </DialogContent>
         </Dialog >
     )

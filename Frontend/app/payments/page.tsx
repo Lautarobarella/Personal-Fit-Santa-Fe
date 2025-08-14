@@ -294,10 +294,10 @@ export default function PaymentsPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground font-bold">Ingresos del Mes</p>
-                                    <p className="text-2xl font-bold text-success">{formatCurrency(totalRevenue)}</p>
+                                    <p className="text-sm text-muted-foreground  font-bold">Ingresos del Mes</p>
+                                    <p className="text-2xl font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
                                 </div>
-                                <DollarSign className="h-8 w-8 text-success" />
+                                <DollarSign className="h-8 w-8 text-green-600" />
                             </div>
                         </CardContent>
                     </Card>

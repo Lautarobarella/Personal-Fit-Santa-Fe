@@ -38,8 +38,8 @@ export default function PaymentMethodSelectPage() {
                 onBack={() => router.push('/payments')}
             />
 
-            <div className="container py-6">
-                <div className="max-w-2xl mx-auto space-y-6">
+            <div className="container py-6 px-4">
+                <div className="max-w-2xl mx-auto space-y-6 px-4">
                     {/* Información del usuario */}
                     <Card className="bg-blue-50 border-blue-200">
                         <CardHeader className="pb-3">
@@ -71,7 +71,7 @@ export default function PaymentMethodSelectPage() {
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold text-lg">Pagar Online</h3>
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-sm text-gray-200">
                                                     Pago inmediato con MercadoPago
                                                 </p>
                                             </div>

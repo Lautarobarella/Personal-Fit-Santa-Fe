@@ -61,8 +61,8 @@ export function MobileHeader({
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-primary text-white flex items-center justify-center text-sm font-bold shadow-professional">
-              {user?.firstName[0]}
+            <div className="w-9 h-9 rounded-full bg-gradient-primary text-foreground flex items-center justify-center text-sm font-bold shadow-professional">
+              {user?.avatar?.[0]}{user?.avatar?.[1]} {/* DEFINIR EL RENDERIZADO CONDICIONAL DE LA FOTO */}
             </div>
           </div>
         </div>
