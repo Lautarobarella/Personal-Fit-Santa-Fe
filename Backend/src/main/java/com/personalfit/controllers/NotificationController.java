@@ -34,26 +34,23 @@ public class NotificationController {
      * Obtiene las notificaciones de un usuario específico
      */
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
     public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id, Authentication authentication) {
         try {
-            // Si no es ADMIN, verificar que el usuario pueda acceder solo a sus propias notificaciones
-            if (authentication != null && 
-                authentication.getAuthorities().stream()
-                    .noneMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"))) {
-                
-                // Para CLIENTs, obtener el ID del usuario autenticado y verificar coincidencia
+            // Verificar si es ADMIN
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+            
+            if (isAdmin) {
+                // Para ADMIN, obtener todas las notificaciones del usuario especificado
+                List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
+                return ResponseEntity.ok(notifications);
+            } else {
+                // Para CLIENT, verificar que solo pueda acceder a sus propias notificaciones
                 String userEmail = authentication.getName();
-                // Aquí necesitamos obtener el user por email para comparar IDs
-                // Por seguridad, un CLIENT solo puede ver sus propias notificaciones
-                // Delegamos esta verificación al servicio
                 List<NotificationDTO> notifications = notificationService.getUserNotificationsByIdAndEmail(id, userEmail);
                 return ResponseEntity.ok(notifications);
             }
-            
-            // Para ADMIN, obtener todas las notificaciones del usuario especificado
-            List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
-            return ResponseEntity.ok(notifications);
         } catch (Exception e) {
             System.err.println("Error fetching notifications for user " + id + ": " + e.getMessage());
             return ResponseEntity.ok(List.of());
@@ -140,15 +137,15 @@ public class NotificationController {
      * Marca todas las notificaciones como leídas para un usuario
      */
     @PutMapping("/user/{userId}/mark-all-read")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
     public ResponseEntity<String> markAllAsRead(@PathVariable Long userId, Authentication authentication) {
         try {
-            // Si no es ADMIN, verificar que el usuario pueda marcar solo sus propias notificaciones
-            if (authentication != null && 
-                authentication.getAuthorities().stream()
-                    .noneMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"))) {
-                
-                // Para CLIENTs, verificar que el userId corresponda al usuario autenticado
+            // Verificar si es ADMIN
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+            
+            if (!isAdmin) {
+                // Para CLIENT, verificar que el userId corresponda al usuario autenticado
                 String userEmail = authentication.getName();
                 Optional<User> user = userRepository.findByEmail(userEmail);
                 if (user.isEmpty() || !user.get().getId().equals(userId)) {
