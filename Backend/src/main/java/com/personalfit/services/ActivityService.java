@@ -15,7 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personalfit.dto.Activity.ActivityDetailInfoDTO;
 import com.personalfit.dto.Activity.ActivityFormTypeDTO;
 import com.personalfit.dto.Activity.ActivityTypeDTO;

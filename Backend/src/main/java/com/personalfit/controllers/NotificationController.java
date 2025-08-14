@@ -1,10 +1,12 @@
 package com.personalfit.controllers;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.personalfit.dto.Notification.NotificationDTO;
 import com.personalfit.enums.NotificationStatus;
+import com.personalfit.models.User;
+import com.personalfit.repository.UserRepository;
 import com.personalfit.services.NotificationService;
 
 @RestController
@@ -23,13 +27,31 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     /**
      * Obtiene las notificaciones de un usuario específico
      */
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
-    public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id, Authentication authentication) {
         try {
+            // Si no es ADMIN, verificar que el usuario pueda acceder solo a sus propias notificaciones
+            if (authentication != null && 
+                authentication.getAuthorities().stream()
+                    .noneMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"))) {
+                
+                // Para CLIENTs, obtener el ID del usuario autenticado y verificar coincidencia
+                String userEmail = authentication.getName();
+                // Aquí necesitamos obtener el user por email para comparar IDs
+                // Por seguridad, un CLIENT solo puede ver sus propias notificaciones
+                // Delegamos esta verificación al servicio
+                List<NotificationDTO> notifications = notificationService.getUserNotificationsByIdAndEmail(id, userEmail);
+                return ResponseEntity.ok(notifications);
+            }
+            
+            // Para ADMIN, obtener todas las notificaciones del usuario especificado
             List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
             return ResponseEntity.ok(notifications);
         } catch (Exception e) {
@@ -118,9 +140,22 @@ public class NotificationController {
      * Marca todas las notificaciones como leídas para un usuario
      */
     @PutMapping("/user/{userId}/mark-all-read")
-    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
-    public ResponseEntity<String> markAllAsRead(@PathVariable Long userId) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> markAllAsRead(@PathVariable Long userId, Authentication authentication) {
         try {
+            // Si no es ADMIN, verificar que el usuario pueda marcar solo sus propias notificaciones
+            if (authentication != null && 
+                authentication.getAuthorities().stream()
+                    .noneMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"))) {
+                
+                // Para CLIENTs, verificar que el userId corresponda al usuario autenticado
+                String userEmail = authentication.getName();
+                Optional<User> user = userRepository.findByEmail(userEmail);
+                if (user.isEmpty() || !user.get().getId().equals(userId)) {
+                    return ResponseEntity.status(403).body("Access denied");
+                }
+            }
+            
             notificationService.markAllAsReadByUserId(userId);
             return ResponseEntity.ok("All notifications marked as read");
         } catch (Exception e) {

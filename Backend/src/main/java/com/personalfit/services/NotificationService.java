@@ -16,12 +16,16 @@ import com.personalfit.enums.UserRole;
 import com.personalfit.models.Notification;
 import com.personalfit.models.User;
 import com.personalfit.repository.NotificationRepository;
+import com.personalfit.repository.UserRepository;
 
 @Service
 public class NotificationService {
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public List<NotificationDTO> getAllByUserId(Long id) {
         try {
@@ -45,6 +49,29 @@ public class NotificationService {
             }).collect(Collectors.toList());
         } catch (Exception e) {
             System.err.println("Error fetching notifications for user " + id + ": " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    public List<NotificationDTO> getUserNotificationsByIdAndEmail(Long userId, String userEmail) {
+        try {
+            // Verificar que el usuario corresponde al email autenticado
+            Optional<User> user = userRepository.findByEmail(userEmail);
+            if (user.isEmpty()) {
+                System.err.println("User not found with email: " + userEmail);
+                return new ArrayList<>();
+            }
+            
+            // Verificar que el ID del usuario coincide con el solicitado
+            if (!user.get().getId().equals(userId)) {
+                System.err.println("User ID mismatch. Requested: " + userId + ", Found: " + user.get().getId());
+                return new ArrayList<>();
+            }
+            
+            // Si la validación es exitosa, obtener las notificaciones
+            return getAllByUserId(userId);
+        } catch (Exception e) {
+            System.err.println("Error fetching notifications for user with email " + userEmail + ": " + e.getMessage());
             return new ArrayList<>();
         }
     }
