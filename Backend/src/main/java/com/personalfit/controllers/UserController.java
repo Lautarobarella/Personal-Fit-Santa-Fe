@@ -146,15 +146,7 @@ public class UserController {
             
         } catch (IllegalArgumentException e) {
             Map<String, Object> response = new HashMap<>();
-            
-            // Verificar si es error de contraseña incorrecta
-            if (e.getMessage().contains("Current password is incorrect")) {
-                response.put("message", "Contraseña actual incorrecta");
-                response.put("error", "INVALID_CURRENT_PASSWORD");
-            } else {
-                response.put("message", e.getMessage());
-            }
-            
+            response.put("message", e.getMessage());
             response.put("success", false);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }

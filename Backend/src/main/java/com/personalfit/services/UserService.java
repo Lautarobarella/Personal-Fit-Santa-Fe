@@ -438,7 +438,7 @@ public class UserService {
         // Verificar que la contraseña actual sea correcta
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             log.warn("Password update failed for user ID: {} - Invalid current password", userId);
-            throw new IllegalArgumentException("Current password is incorrect");
+            throw new IllegalArgumentException("Contraseña actual incorrecta");
         }
         
         // Verificar que la nueva contraseña sea diferente

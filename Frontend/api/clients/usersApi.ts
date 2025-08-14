@@ -41,11 +41,7 @@ export async function updateUserPassword(data: {
   try {
     return await jwtPermissionsApi.put('/api/users/update-password', data);
   } catch (error) {
-    if (isValidationError(error)) {
-      handleValidationError(error);
-    } else {
-      handleApiError(error, 'Error al actualizar la contraseña');
-    }
+    // No mostrar toasts aquí, dejar que el componente maneje el error
     throw error;
   }
 }
