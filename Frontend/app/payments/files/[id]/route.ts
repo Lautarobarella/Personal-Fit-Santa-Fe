@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = params.id;
+    const resolvedParams = await params;
+    const fileId = resolvedParams.id;
     
     // Hacer la petición al backend (ahora sin autenticación requerida)
     // Usar la URL del backend directamente, no la del frontend

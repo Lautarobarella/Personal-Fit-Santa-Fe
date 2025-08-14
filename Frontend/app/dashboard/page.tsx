@@ -10,6 +10,7 @@ import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useClientStats } from "@/hooks/use-client-stats"
 import { usePayment } from "@/hooks/use-payment"
+import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { ActivityStatus, PaymentStatus, UserRole } from "@/lib/types"
 import {
   Activity,
@@ -45,6 +46,11 @@ function DashboardContent() {
 
   // Usar hooks de forma segura
   const paymentHook = usePayment(user?.id, user?.role === UserRole.ADMIN)
+  const { 
+    pendingPayments, 
+    totalPendingPayments, 
+    loading: pendingPaymentsLoading 
+  } = usePendingPayments(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
   const { activities, loadActivities } = useActivities()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
@@ -119,7 +125,7 @@ function DashboardContent() {
     return null
   }
 
-  if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading)) {
+  if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading) || (user.role === UserRole.ADMIN && pendingPaymentsLoading)) {
     return (
       <div className="min-h-screen bg-background pb-20">
         <MobileHeader title="Cargando..." />
@@ -292,10 +298,14 @@ function DashboardContent() {
 
   const getAlerts = () => {
     if (user.role === UserRole.ADMIN) {
-      // Calcular pagos pendientes
-      const pendingPayments = payments.filter(p => p.status === PaymentStatus.PENDING).length;
-      return pendingPayments > 0
-        ? [{ type: "info", message: `${pendingPayments} pagos pendientes requieren atención`, action: "Ver pagos", href: "/payments" }]
+      // Usar el hook de pagos pendientes para obtener la cantidad actualizada
+      return totalPendingPayments > 0
+        ? [{ 
+            type: "info", 
+            message: `${totalPendingPayments} pagos pendientes requieren atención`, 
+            action: "Ver pagos", 
+            href: "/payments/verify" 
+          }]
         : []
     } else if (user.role === UserRole.TRAINER) {
       return [

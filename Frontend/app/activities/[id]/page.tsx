@@ -17,12 +17,13 @@ import { Calendar, Clock, Users, Loader2 } from "lucide-react"
 import { ActivityFormType, UserRole } from "@/lib/types"
 import { useActivities } from "@/hooks/use-activity"
 
-export default function EditActivityPage({ params }: { params: { id: number } }) {
+export default function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
 
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [activityId, setActivityId] = useState<number | null>(null)
   const {
     form,
     setForm,
@@ -32,11 +33,19 @@ export default function EditActivityPage({ params }: { params: { id: number } })
     trainers,
     loadTrainers,
     loading } = useActivities()
-    
+
+  // Resolver params de forma asíncrona
   useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      const id = parseInt(resolvedParams.id)
+      setActivityId(id)
+      loadActivityDetail(id)
+    }
+    
+    resolveParams()
     loadTrainers()
-    loadActivityDetail(params.id)
-  }, [params.id, loadTrainers, loadActivityDetail])
+  }, [params, loadTrainers, loadActivityDetail])
 
   // Efecto separado para precargar el formulario cuando selectedActivity cambie
   useEffect(() => {
