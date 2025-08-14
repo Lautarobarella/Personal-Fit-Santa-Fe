@@ -1,6 +1,6 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
+import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
 import { UserFormType } from "@/lib/types";
-import { handleApiError, isValidationError, handleValidationError } from "@/lib/error-handler";
 
 export async function fetchUsers() {
   try {
@@ -28,6 +28,23 @@ export async function createUser(user: UserFormType) {
       handleValidationError(error);
     } else {
       handleApiError(error, 'Error al crear el usuario');
+    }
+    throw error;
+  }
+}
+
+export async function updateUserPassword(data: { 
+  userId: number; 
+  currentPassword: string; 
+  newPassword: string; 
+}) {
+  try {
+    return await jwtPermissionsApi.put('/api/users/update-password', data);
+  } catch (error) {
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al actualizar la contraseña');
     }
     throw error;
   }

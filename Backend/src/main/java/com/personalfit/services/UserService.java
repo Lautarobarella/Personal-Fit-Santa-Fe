@@ -153,6 +153,13 @@ public class UserService {
         return user.get();
     }
 
+    public User getUserByEmail(String email) {
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isEmpty())
+            throw new EntityNotFoundException("Usuario con email: " + email + " no encontrado", "Api/User/getUserByEmail");
+        return user.get();
+    }
+
     public UserDetailInfoDTO createUserDetailInfoDTO(User user) {
         UserDetailInfoDTO userDto = new UserDetailInfoDTO(user);
         Integer age = getUserAge(user);
@@ -412,5 +419,38 @@ public class UserService {
      */
     public UserStatus getMembershipStatus(User client) {
         return client.getStatus();
+    }
+
+    /**
+     * Actualiza la contraseña de un usuario
+     * @param userId ID del usuario
+     * @param currentPassword Contraseña actual
+     * @param newPassword Nueva contraseña
+     * @throws EntityNotFoundException Si el usuario no existe
+     * @throws IllegalArgumentException Si la contraseña actual es incorrecta
+     */
+    public void updatePassword(Long userId, String currentPassword, String newPassword) {
+        log.info("Updating password for user ID: {}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId, "UserService/updatePassword"));
+        
+        // Verificar que la contraseña actual sea correcta
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            log.warn("Password update failed for user ID: {} - Invalid current password", userId);
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        
+        // Verificar que la nueva contraseña sea diferente
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            log.warn("Password update failed for user ID: {} - New password same as current", userId);
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+        
+        // Actualizar la contraseña
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        
+        log.info("Password updated successfully for user ID: {}", userId);
     }
 }

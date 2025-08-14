@@ -1,7 +1,6 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
-import { UserRole } from "@/lib/types"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -9,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/use-theme"
-import { Bell, DollarSign, Globe, HelpCircle, LogOut, Moon, SettingsIcon, Shield, Smartphone, User } from "lucide-react"
+import { UserRole } from "@/lib/types"
+import { Bell, DollarSign, HelpCircle, LogOut, Moon, SettingsIcon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
@@ -48,7 +48,7 @@ export default function SettingsPage() {
 
                 </p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => router.push('/settings/edit')}>
                 <User className="h-4 w-4 mr-2" />
                 Editar
               </Button>

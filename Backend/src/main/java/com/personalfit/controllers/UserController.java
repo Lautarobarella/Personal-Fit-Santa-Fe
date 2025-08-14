@@ -8,6 +8,8 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.personalfit.dto.User.ClientStatsDTO;
 import com.personalfit.dto.User.CreateUserDTO;
+import com.personalfit.dto.User.UpdatePasswordDTO;
 import com.personalfit.dto.User.UserTypeDTO;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
@@ -109,6 +112,44 @@ public class UserController {
         response.put("success", true);
         response.put("dni", dni);
         return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    @PutMapping("/update-password")
+    public ResponseEntity<Map<String, Object>> updatePassword(
+            @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO,
+            Authentication authentication) {
+        try {
+            // Verificar que el usuario solo pueda cambiar su propia contraseña (excepto ADMIN)
+            String currentUserEmail = authentication.getName();
+            User currentUser = userService.getUserByEmail(currentUserEmail);
+            
+            // Solo permitir si es ADMIN o si está cambiando su propia contraseña
+            if (!currentUser.getRole().equals(UserRole.ADMIN) && 
+                !currentUser.getId().equals(updatePasswordDTO.getUserId())) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No tienes permisos para cambiar la contraseña de otro usuario");
+                response.put("success", false);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+            
+            userService.updatePassword(
+                updatePasswordDTO.getUserId(),
+                updatePasswordDTO.getCurrentPassword(),
+                updatePasswordDTO.getNewPassword()
+            );
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Contraseña actualizada exitosamente");
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            response.put("success", false);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 
     @Transactional
