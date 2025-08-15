@@ -47,8 +47,8 @@ jest.mock('@/hooks/use-payment', () => ({
 
 // Mock useMonthlyRevenue hook
 jest.mock('@/hooks/use-monthly-revenue', () => ({
-  useMonthlyRevenue: () => ({
-    currentMonthRevenue: {
+  useMonthlyRevenue: (enabled: boolean = false) => ({
+    currentMonthRevenue: enabled ? {
       id: 1,
       year: 2025,
       month: 8,
@@ -59,8 +59,8 @@ jest.mock('@/hooks/use-monthly-revenue', () => ({
       updatedAt: new Date().toISOString(),
       archivedAt: null,
       isCurrentMonth: true,
-    },
-    archivedRevenues: [],
+    } : undefined,
+    archivedRevenues: enabled ? [] : [],
     isLoading: false,
   })
 }))

@@ -44,18 +44,22 @@ export default function PaymentsPage() {
         isLoading,
     } = usePayment(user?.id, user?.role === UserRole.ADMIN)
 
-    // Hook para ingresos mensuales (solo para admin)
+    // Hook para ingresos mensuales archivados (solo para admin y solo para historial)
     const { 
-        currentMonthRevenue, 
         archivedRevenues, 
         isLoading: isLoadingRevenue 
-    } = useMonthlyRevenue()
+    } = useMonthlyRevenue(user?.role === UserRole.ADMIN)
 
     // Forzar actualización de datos cuando se monta el componente
     useEffect(() => {
         if (user?.id || user?.role === UserRole.ADMIN) {
             const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
             queryClient.invalidateQueries({ queryKey })
+            
+            // También invalidar monthly revenue si es admin
+            if (user?.role === UserRole.ADMIN) {
+                queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+            }
 
             // Verificar si hay un flag de actualización desde un pago nuevo
             const shouldRefresh = localStorage.getItem('refreshPayments')
@@ -64,6 +68,9 @@ export default function PaymentsPage() {
                 // Forzar actualización adicional después de un breve delay
                 setTimeout(() => {
                     queryClient.invalidateQueries({ queryKey })
+                    if (user?.role === UserRole.ADMIN) {
+                        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+                    }
                 }, 1000)
             }
         }
@@ -97,6 +104,10 @@ export default function PaymentsPage() {
                 if (user?.id || user?.role === UserRole.ADMIN) {
                     const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
                     queryClient.invalidateQueries({ queryKey });
+                    // También invalidar monthly revenue para mantener consistencia
+                    if (user?.role === UserRole.ADMIN) {
+                        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] });
+                    }
                 }
             }
         };
@@ -175,10 +186,19 @@ export default function PaymentsPage() {
     const paidPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PAID)
     const pendingPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PENDING)
     
-    // Para admin: usar datos del backend para ingresos del mes actual
-    // Para cliente: calcular desde pagos filtrados (históricos)
+    // Calcular ingresos del mes actual de la misma manera que en dashboard
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
     const totalRevenue = user?.role === UserRole.ADMIN 
-        ? (currentMonthRevenue?.totalRevenue || 0)
+        ? payments
+            .filter(p => {
+                const paymentDate = p.createdAt ? new Date(p.createdAt) : null
+                return p.status === PaymentStatus.PAID &&
+                    paymentDate &&
+                    paymentDate.getMonth() === currentMonth &&
+                    paymentDate.getFullYear() === currentYear
+            })
+            .reduce((sum, p) => sum + p.amount, 0)
         : paidPayments.reduce((sum, p) => sum + p.amount, 0)
 
     // Obtener información del plan activo y pendiente

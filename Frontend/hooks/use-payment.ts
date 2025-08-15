@@ -1,15 +1,15 @@
 import {
-  createPayment,
-  fetchAllPayments,
-  fetchPaymentDetails,
-  fetchUserPayments,
-  updatePaymentStatus
+    createPayment,
+    fetchAllPayments,
+    fetchPaymentDetails,
+    fetchUserPayments,
+    updatePaymentStatus
 } from "@/api/payments/paymentsApi"
 import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
+    useMutation,
+    useQuery,
+    useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -42,6 +42,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
       if (queryClient) {
         queryClient.invalidateQueries({ queryKey: ["payments"] })
+        // También invalidar monthly revenue para mantener consistencia
+        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
       }
     },
   })
@@ -60,6 +62,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
       if (queryClient) {
         queryClient.invalidateQueries({ queryKey: ["payments"] })
+        // También invalidar monthly revenue para mantener consistencia
+        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
       }
     },
   })

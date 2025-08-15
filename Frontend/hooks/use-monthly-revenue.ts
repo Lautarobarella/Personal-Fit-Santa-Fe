@@ -5,13 +5,14 @@ import { useQuery } from "@tanstack/react-query"
 /**
  * Hook para manejo de ingresos mensuales (solo para administradores)
  */
-export function useMonthlyRevenue() {
+export function useMonthlyRevenue(enabled: boolean = false) {
   // Ingresos del mes actual
   const { data: currentMonthRevenue, isLoading: isLoadingCurrent, error: currentError } = useQuery<MonthlyRevenue>({
     queryKey: ["monthlyRevenue", "current"],
     queryFn: fetchCurrentMonthRevenue,
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 1,
+    enabled, // Solo ejecutar si está habilitado (admin)
   })
 
   // Historial de ingresos archivados
@@ -20,6 +21,7 @@ export function useMonthlyRevenue() {
     queryFn: fetchArchivedMonthlyRevenues,
     staleTime: 10 * 60 * 1000, // 10 minutos (historial cambia menos frecuentemente)
     retry: 1,
+    enabled, // Solo ejecutar si está habilitado (admin)
   })
 
   return {
