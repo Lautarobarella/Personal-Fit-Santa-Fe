@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
+import { useMonthlyRevenue } from "@/hooks/use-monthly-revenue"
 import { usePayment } from "@/hooks/use-payment"
 import { PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
@@ -42,6 +43,13 @@ export default function PaymentsPage() {
         updatePaymentStatus,
         isLoading,
     } = usePayment(user?.id, user?.role === UserRole.ADMIN)
+
+    // Hook para ingresos mensuales (solo para admin)
+    const { 
+        currentMonthRevenue, 
+        archivedRevenues, 
+        isLoading: isLoadingRevenue 
+    } = useMonthlyRevenue()
 
     // Forzar actualización de datos cuando se monta el componente
     useEffect(() => {
@@ -166,7 +174,12 @@ export default function PaymentsPage() {
     )
     const paidPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PAID)
     const pendingPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PENDING)
-    const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0)
+    
+    // Para admin: usar datos del backend para ingresos del mes actual
+    // Para cliente: calcular desde pagos filtrados (históricos)
+    const totalRevenue = user?.role === UserRole.ADMIN 
+        ? (currentMonthRevenue?.totalRevenue || 0)
+        : paidPayments.reduce((sum, p) => sum + p.amount, 0)
 
     // Obtener información del plan activo y pendiente
     const activePayment = paidPayments.find(p => {
@@ -390,6 +403,41 @@ export default function PaymentsPage() {
                         ))}
                     </TabsContent>
                 </Tabs>
+
+                {/* Historial de Ingresos Mensuales - Solo para admin */}
+                {user?.role === UserRole.ADMIN && archivedRevenues.length > 0 && (
+                    <Card className="mt-6">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-2 mb-4">
+                                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                <h3 className="font-semibold">Historial de Ingresos Mensuales</h3>
+                            </div>
+                            <div className="space-y-3">
+                                {archivedRevenues.slice(0, 6).map((revenue) => (
+                                    <div key={revenue.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                                        <div>
+                                            <p className="font-medium capitalize">{revenue.monthName} {revenue.year}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {revenue.totalPayments} pago{revenue.totalPayments !== 1 ? 's' : ''}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold">
+                                                {showRevenue ? formatCurrency(revenue.totalRevenue) : "••••••"}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {new Intl.DateTimeFormat("es-ES", {
+                                                    day: "numeric",
+                                                    month: "short"
+                                                }).format(new Date(revenue.archivedAt || revenue.updatedAt || ''))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
             {verificationDialog.paymentId !== null && (

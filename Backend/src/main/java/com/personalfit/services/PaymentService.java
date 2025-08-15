@@ -6,8 +6,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.personalfit.dto.Payment.MonthlyRevenueDTO;
 import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
@@ -28,9 +31,11 @@ import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.exceptions.FileException;
+import com.personalfit.models.MonthlyRevenue;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
 import com.personalfit.models.User;
+import com.personalfit.repository.MonthlyRevenueRepository;
 import com.personalfit.repository.PaymentFileRepository;
 import com.personalfit.repository.PaymentRepository;
 
@@ -54,6 +59,9 @@ public class PaymentService {
 
     @Autowired
     private PaymentFileRepository paymentFileRepository;
+
+    @Autowired
+    private MonthlyRevenueRepository monthlyRevenueRepository;
 
     @Autowired
     @Lazy
@@ -155,20 +163,48 @@ public class PaymentService {
 
     /**
      * Obtiene todos los pagos (para admin)
+     * Solo muestra pagos del mes actual
      */
     public List<PaymentTypeDTO> getAllPayments() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
         return paymentRepository.findAll().stream()
-                .map(this::convertToPaymentTypeDTO)
+                .filter(payment -> payment.getCreatedAt().isAfter(startOfMonth) && 
+                                 payment.getCreatedAt().isBefore(endOfMonth))
+                .map(payment -> {
+                    PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
+                    // Actualizar estado a EXPIRED si está vencido y era PAID
+                    if (payment.getStatus() == PaymentStatus.PAID && 
+                        payment.getExpiresAt() != null && 
+                        payment.getExpiresAt().isBefore(now)) {
+                        dto.setStatus(PaymentStatus.EXPIRED);
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
     /**
      * Obtiene pagos de un usuario específico
+     * Para clientes, muestra todos los pagos históricos con estados actualizados
      */
     public List<PaymentTypeDTO> getUserPayments(Long userId) {
         User user = userService.getUserById(userId);
+        LocalDateTime now = LocalDateTime.now();
+
         return user.getPayments().stream()
-                .map(this::convertToPaymentTypeDTO)
+                .map(payment -> {
+                    PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
+                    // Actualizar estado a EXPIRED si está vencido y era PAID
+                    if (payment.getStatus() == PaymentStatus.PAID && 
+                        payment.getExpiresAt() != null && 
+                        payment.getExpiresAt().isBefore(now)) {
+                        dto.setStatus(PaymentStatus.EXPIRED);
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -206,6 +242,8 @@ public class PaymentService {
             payment.setVerifiedAt(LocalDateTime.now());
             // Activar usuario si el pago es aprobado
             updateUserStatusIfPaid(payment.getUser(), payment);
+            // Actualizar ingresos mensuales
+            updateMonthlyRevenue(payment.getAmount());
         }
 
         paymentRepository.save(payment);
@@ -431,6 +469,127 @@ public class PaymentService {
 
         } catch (Exception e) {
             log.error("Error during daily payment expiration process: {}", e.getMessage(), e);
+        }
+    }
+
+    // ===== MÉTODOS PARA MANEJO DE INGRESOS MENSUALES =====
+
+    /**
+     * Actualiza los ingresos del mes actual cuando se confirma un pago
+     */
+    @Transactional
+    private void updateMonthlyRevenue(Double amount) {
+        if (amount == null || amount <= 0) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Integer year = now.getYear();
+        Integer month = now.getMonthValue();
+
+        MonthlyRevenue monthlyRevenue = monthlyRevenueRepository.findByYearAndMonth(year, month)
+                .orElse(MonthlyRevenue.builder()
+                        .year(year)
+                        .month(month)
+                        .totalRevenue(0.0)
+                        .totalPayments(0)
+                        .createdAt(now)
+                        .build());
+
+        monthlyRevenue.addRevenue(amount);
+        monthlyRevenueRepository.save(monthlyRevenue);
+
+        log.info("Monthly revenue updated: Year={}, Month={}, Amount={}, Total={}", 
+                year, month, amount, monthlyRevenue.getTotalRevenue());
+    }
+
+    /**
+     * Obtiene los ingresos del mes actual
+     */
+    public MonthlyRevenueDTO getCurrentMonthRevenue() {
+        LocalDateTime now = LocalDateTime.now();
+        Optional<MonthlyRevenue> currentRevenue = monthlyRevenueRepository
+                .findByYearAndMonth(now.getYear(), now.getMonthValue());
+
+        if (currentRevenue.isPresent()) {
+            return convertToMonthlyRevenueDTO(currentRevenue.get(), true);
+        } else {
+            // Crear DTO vacío para el mes actual
+            return MonthlyRevenueDTO.builder()
+                    .year(now.getYear())
+                    .month(now.getMonthValue())
+                    .monthName(now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES")))
+                    .totalRevenue(0.0)
+                    .totalPayments(0)
+                    .isCurrentMonth(true)
+                    .build();
+        }
+    }
+
+    /**
+     * Obtiene el historial de ingresos mensuales archivados
+     */
+    public List<MonthlyRevenueDTO> getArchivedMonthlyRevenues() {
+        return monthlyRevenueRepository.findArchivedRevenues().stream()
+                .map(revenue -> convertToMonthlyRevenueDTO(revenue, false))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Convierte MonthlyRevenue a DTO
+     */
+    private MonthlyRevenueDTO convertToMonthlyRevenueDTO(MonthlyRevenue revenue, boolean isCurrentMonth) {
+        String monthName = java.time.Month.of(revenue.getMonth())
+                .getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
+
+        return MonthlyRevenueDTO.builder()
+                .id(revenue.getId())
+                .year(revenue.getYear())
+                .month(revenue.getMonth())
+                .monthName(monthName)
+                .totalRevenue(revenue.getTotalRevenue())
+                .totalPayments(revenue.getTotalPayments())
+                .createdAt(revenue.getCreatedAt())
+                .updatedAt(revenue.getUpdatedAt())
+                .archivedAt(revenue.getArchivedAt())
+                .isCurrentMonth(isCurrentMonth)
+                .build();
+    }
+
+    /**
+     * Tarea programada que se ejecuta el primer día de cada mes a las 00:00
+     * Archiva los ingresos del mes anterior y reinicia el conteo
+     */
+    @Scheduled(cron = "0 0 0 1 * ?")
+    @Transactional
+    public void archiveMonthlyRevenue() {
+        try {
+            log.info("Starting monthly revenue archival process...");
+
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime lastMonth = now.minusMonths(1);
+            Integer lastYear = lastMonth.getYear();
+            Integer lastMonthNumber = lastMonth.getMonthValue();
+
+            // Buscar ingresos del mes anterior
+            Optional<MonthlyRevenue> lastMonthRevenue = monthlyRevenueRepository
+                    .findByYearAndMonth(lastYear, lastMonthNumber);
+
+            if (lastMonthRevenue.isPresent()) {
+                MonthlyRevenue revenue = lastMonthRevenue.get();
+                revenue.setArchivedAt(now);
+                monthlyRevenueRepository.save(revenue);
+
+                log.info("Monthly revenue archived: Year={}, Month={}, Total Revenue={}, Total Payments={}", 
+                        lastYear, lastMonthNumber, revenue.getTotalRevenue(), revenue.getTotalPayments());
+            } else {
+                log.info("No revenue found for previous month: Year={}, Month={}", lastYear, lastMonthNumber);
+            }
+
+            log.info("Monthly revenue archival process completed successfully");
+
+        } catch (Exception e) {
+            log.error("Error during monthly revenue archival process: {}", e.getMessage(), e);
         }
     }
 

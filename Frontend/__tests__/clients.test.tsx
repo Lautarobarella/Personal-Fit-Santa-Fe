@@ -1,5 +1,5 @@
 import ClientsPage from '@/app/clients/page'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 jest.mock('next/navigation', () => ({
@@ -51,7 +51,10 @@ jest.mock('@/components/providers/notifications-provider', () => {
 describe('ClientsPage', () => {
   it('muestra métricas y permite filtrar para ver inactivos', async () => {
     const user = userEvent.setup()
-    render(<ClientsPage />)
+    
+    await act(async () => {
+      render(<ClientsPage />)
+    })
 
     // Métricas (permitir múltiples ocurrencias)
     expect(screen.getAllByText(/Activos/i).length).toBeGreaterThan(0)
@@ -59,10 +62,12 @@ describe('ClientsPage', () => {
 
     // Lista por defecto (Activos)
     expect(screen.getByText('Juan Perez')).toBeInTheDocument()
+    
     // Cambiar filtro a Inactivos y verificar
-    await user.click(screen.getAllByText(/Inactivos/i)[0])
+    await act(async () => {
+      await user.click(screen.getAllByText(/Inactivos/i)[0])
+    })
+    
     expect(await screen.findByText('Ana Gomez')).toBeInTheDocument()
   })
 })
-
-

@@ -201,6 +201,19 @@ export interface PaymentType {
   receiptUrl?: string | null
 }
 
+export interface MonthlyRevenue {
+  id: number
+  year: number
+  month: number
+  monthName: string
+  totalRevenue: number
+  totalPayments: number
+  createdAt: Date | string | null
+  updatedAt: Date | string | null
+  archivedAt: Date | string | null
+  isCurrentMonth: boolean
+}
+
 export interface Notification {
   id: number
   title: string

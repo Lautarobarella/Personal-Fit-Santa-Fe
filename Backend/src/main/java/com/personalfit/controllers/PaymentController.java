@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.personalfit.dto.Payment.MonthlyRevenueDTO;
 import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
@@ -210,5 +211,29 @@ public class PaymentController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getFileName())
                 .contentType(MediaType.parseMediaType(file.getContentType()))
                 .body(fileContent);
+    }
+
+    // ===== ENDPOINTS DE INGRESOS MENSUALES =====
+
+    /**
+     * Obtener ingresos del mes actual (solo para admin)
+     */
+    @GetMapping("/revenue/current")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MonthlyRevenueDTO> getCurrentMonthRevenue() {
+        log.info("Obteniendo ingresos del mes actual");
+        MonthlyRevenueDTO currentRevenue = paymentService.getCurrentMonthRevenue();
+        return ResponseEntity.ok(currentRevenue);
+    }
+
+    /**
+     * Obtener historial de ingresos mensuales archivados (solo para admin)
+     */
+    @GetMapping("/revenue/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<MonthlyRevenueDTO>> getArchivedMonthlyRevenues() {
+        log.info("Obteniendo historial de ingresos mensuales");
+        List<MonthlyRevenueDTO> archivedRevenues = paymentService.getArchivedMonthlyRevenues();
+        return ResponseEntity.ok(archivedRevenues);
     }
 }

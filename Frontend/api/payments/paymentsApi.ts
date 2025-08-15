@@ -1,7 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
+import { MonthlyRevenue, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
 
 /**
  * API unificada para manejo de pagos
@@ -154,6 +154,32 @@ export async function createCheckoutPreference(
  */
 export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
   return buildFileUrl(receiptId);
+}
+
+// ===== INGRESOS MENSUALES =====
+
+/**
+ * Obtiene los ingresos del mes actual (solo para admin)
+ */
+export async function fetchCurrentMonthRevenue(): Promise<MonthlyRevenue> {
+  try {
+    return await jwtPermissionsApi.get('/api/payments/revenue/current');
+  } catch (error) {
+    handleApiError(error, 'Error al cargar los ingresos del mes actual');
+    throw error;
+  }
+}
+
+/**
+ * Obtiene el historial de ingresos mensuales archivados (solo para admin)
+ */
+export async function fetchArchivedMonthlyRevenues(): Promise<MonthlyRevenue[]> {
+  try {
+    return await jwtPermissionsApi.get('/api/payments/revenue/history');
+  } catch (error) {
+    handleApiError(error, 'Error al cargar el historial de ingresos');
+    return [];
+  }
 }
 
 

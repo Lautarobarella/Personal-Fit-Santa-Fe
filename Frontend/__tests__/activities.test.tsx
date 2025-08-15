@@ -1,5 +1,5 @@
 import ActivitiesPage from '@/app/activities/page'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
@@ -63,10 +63,10 @@ jest.mock('@/components/providers/notifications-provider', () => {
 })
 
 describe('ActivitiesPage', () => {
-  it('lista actividades de la semana', () => {
-    render(<ActivitiesPage />)
+  it('lista actividades de la semana', async () => {
+    await act(async () => {
+      render(<ActivitiesPage />)
+    })
     expect(screen.getByText('Yoga Matutino')).toBeInTheDocument()
   })
 })
-
-

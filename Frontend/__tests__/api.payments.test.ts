@@ -1,5 +1,11 @@
 import { jwtPermissionsApi } from '@/api/JWTAuth/api'
-import { fetchAllPayments, fetchPaymentDetails, fetchUserPayments } from '@/api/payments/paymentsApi'
+import {
+    fetchAllPayments,
+    fetchArchivedMonthlyRevenues,
+    fetchCurrentMonthRevenue,
+    fetchPaymentDetails,
+    fetchUserPayments
+} from '@/api/payments/paymentsApi'
 
 jest.mock('@/api/JWTAuth/api', () => ({
   jwtPermissionsApi: {
@@ -10,6 +16,10 @@ jest.mock('@/api/JWTAuth/api', () => ({
 }))
 
 describe('paymentsApi', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('fetchAllPayments llama al endpoint correcto', async () => {
     ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce([])
     await fetchAllPayments()
@@ -27,6 +37,43 @@ describe('paymentsApi', () => {
     await fetchPaymentDetails(1)
     expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/payments/info/1')
   })
-})
 
+  it('fetchCurrentMonthRevenue llama al endpoint correcto', async () => {
+    const mockRevenue = { 
+      id: 1, 
+      year: 2025, 
+      month: 8, 
+      monthName: 'agosto',
+      totalRevenue: 50000, 
+      totalPayments: 2, 
+      isCurrentMonth: true 
+    }
+    ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce(mockRevenue)
+    
+    const result = await fetchCurrentMonthRevenue()
+    
+    expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/payments/revenue/current')
+    expect(result).toEqual(mockRevenue)
+  })
+
+  it('fetchArchivedMonthlyRevenues llama al endpoint correcto', async () => {
+    const mockArchivedRevenues = [
+      { 
+        id: 1, 
+        year: 2025, 
+        month: 7, 
+        monthName: 'julio',
+        totalRevenue: 45000, 
+        totalPayments: 3, 
+        isCurrentMonth: false 
+      }
+    ]
+    ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce(mockArchivedRevenues)
+    
+    const result = await fetchArchivedMonthlyRevenues()
+    
+    expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/payments/revenue/history')
+    expect(result).toEqual(mockArchivedRevenues)
+  })
+})
 

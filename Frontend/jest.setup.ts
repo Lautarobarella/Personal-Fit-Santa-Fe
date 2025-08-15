@@ -13,6 +13,26 @@ if (!(global as any).fetch) {
   (global as any).fetch = (..._args: any[]) => Promise.reject(new Error('fetch not implemented in test'))
 }
 
+// Mock scrollIntoView for JSDOM
+Object.defineProperty(Element.prototype, 'scrollIntoView', {
+  value: jest.fn(),
+  writable: true,
+});
+
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// Mock IntersectionObserver
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
 // Default mock for Next.js router hooks used by components like BottomNav
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
@@ -28,7 +48,10 @@ if (!(global as any).Request && typeof (window as any) !== 'undefined' && (windo
 // Silence noisy API error logs during tests to keep output clean
 const originalError = console.error;
 console.error = (...args: any[]) => {
-  if (typeof args[0] === 'string' && args[0].includes('API Error')) {
+  if (typeof args[0] === 'string' && 
+      (args[0].includes('API Error') || 
+       args[0].includes('Warning: An update to') ||
+       args[0].includes('Warning: ReactDOM.render'))) {
     return;
   }
   originalError(...args);

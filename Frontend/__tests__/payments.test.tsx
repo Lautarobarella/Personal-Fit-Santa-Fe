@@ -1,6 +1,6 @@
 import PaymentsPage from '@/app/payments/page'
 import { AuthProvider } from '@/components/providers/auth-provider'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 
 // Mock router
 jest.mock('next/navigation', () => ({
@@ -45,6 +45,26 @@ jest.mock('@/hooks/use-payment', () => ({
   })
 }))
 
+// Mock useMonthlyRevenue hook
+jest.mock('@/hooks/use-monthly-revenue', () => ({
+  useMonthlyRevenue: () => ({
+    currentMonthRevenue: {
+      id: 1,
+      year: 2025,
+      month: 8,
+      monthName: 'agosto',
+      totalRevenue: 50000,
+      totalPayments: 2,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archivedAt: null,
+      isCurrentMonth: true,
+    },
+    archivedRevenues: [],
+    isLoading: false,
+  })
+}))
+
 // Minimal mock auth context
 jest.mock('@/components/providers/auth-provider', () => {
   const actual = jest.requireActual('@/components/providers/auth-provider')
@@ -77,13 +97,15 @@ jest.mock('@/components/providers/notifications-provider', () => {
 
 describe('PaymentsPage', () => {
   it('muestra conteos de pagos pendientes y lista elementos clave', async () => {
-    render(
-      <ReactQueryProvider>
-        <AuthProvider>
-          <PaymentsPage />
-        </AuthProvider>
-      </ReactQueryProvider>
-    )
+    await act(async () => {
+      render(
+        <ReactQueryProvider>
+          <AuthProvider>
+            <PaymentsPage />
+          </AuthProvider>
+        </ReactQueryProvider>
+      )
+    })
 
     // Tab headers
     expect(await screen.findByText(/Pendientes/i)).toBeInTheDocument()
@@ -97,5 +119,4 @@ describe('PaymentsPage', () => {
     expect(screen.getAllByText(/Pendiente|Pagado/).length).toBeGreaterThan(0)
   })
 })
-
 

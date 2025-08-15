@@ -7,16 +7,16 @@ export type PendingPaymentType = PaymentType & { receiptUrl: string | null }
 
 export function usePendingPayments(userId?: number, isAdmin?: boolean) {
   const { payments, isLoading } = usePayment(userId, isAdmin)
-  const [pendingPayments, setPendingPayments] = useState<PaymentType[]>([])
+  const [pendingPayments, setPendingPayments] = useState<PendingPaymentType[]>([])
   const [loading, setLoading] = useState(true)
   const [totalPendingPayments, setTotalPendingPayments] = useState(0)
 
   // Efecto reactivo que se actualiza cada vez que payments cambia
   useEffect(() => {
     if (!isLoading) {
-      const pendings: PaymentType[] = payments
+      const pendings: PendingPaymentType[] = payments
         .filter((p) => p.status === PaymentStatus.PENDING)
-        .map((p) => ({
+        .map((p): PendingPaymentType => ({
           ...p,
           receiptUrl: buildReceiptUrl(p.receiptId),
         }))
