@@ -50,13 +50,8 @@ export function useActivities() {
     setError(null)
     try {
       const data = await fetchActivitiesByDate(date)
-      // Evitar duplicados por ID
-      setActivities((prev) => {
-        const existingIds = new Set(prev.map((a) => a.id))
-        const newActivities = data.filter((a: ActivityType) => !existingIds.has(a.id))
-        return [...prev, ...newActivities]
-      })
-
+      // Reemplazar actividades completamente para evitar problemas con el domingo
+      setActivities(data)
     } catch (err) {
       setError("Error al cargar las actividades")
     } finally {

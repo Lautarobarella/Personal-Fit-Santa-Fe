@@ -41,6 +41,7 @@ export default function ActivitiesPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
+  const [hasScrolledToToday, setHasScrolledToToday] = useState(false)
   const router = useRouter()
   const [currentWeek, setCurrentWeek] = useState(() => {
     const today = new Date()
@@ -61,6 +62,35 @@ export default function ActivitiesPage() {
       loadActivitiesByWeek(currentWeek)
     }
   }, [currentWeek, loadActivitiesByWeek])
+
+  // Auto-scroll al día actual cuando se cargan las actividades
+  useEffect(() => {
+    if (!loading && !hasScrolledToToday && activities.length > 0) {
+      const today = new Date()
+      const currentWeekStart = new Date(currentWeek)
+      const currentWeekEnd = new Date(currentWeek)
+      currentWeekEnd.setDate(currentWeekEnd.getDate() + 6)
+      
+      // Solo hacer scroll si hoy está en la semana actual
+      if (today >= currentWeekStart && today <= currentWeekEnd) {
+        const dayIndex = (today.getDay() + 6) % 7 // Convertir domingo=0 a domingo=6
+        const targetElement = document.getElementById(`day-${dayIndex}`)
+        
+        if (targetElement) {
+          targetElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          })
+          setHasScrolledToToday(true)
+        }
+      }
+    }
+  }, [loading, activities, hasScrolledToToday, currentWeek])
+
+  // Resetear el flag de scroll cuando cambia la semana
+  useEffect(() => {
+    setHasScrolledToToday(false)
+  }, [currentWeek])
 
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean
@@ -187,6 +217,7 @@ export default function ActivitiesPage() {
     monday.setDate(monday.getDate() - diffToMonday)
     monday.setHours(0, 0, 0, 0)
     setCurrentWeek(monday)
+    setHasScrolledToToday(false) // Resetear para que vuelva a hacer scroll
   }
 
   const isToday = (date: Date) => {
@@ -367,7 +398,7 @@ export default function ActivitiesPage() {
         <div className="space-y-4">
           {activitiesByDay.map((day, dayIndex) => (
 
-            <Card key={dayIndex} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
+            <Card key={dayIndex} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
