@@ -109,7 +109,7 @@ describe('PaymentsPage', () => {
 
     // Tab headers
     expect(await screen.findByText(/Pendientes/i)).toBeInTheDocument()
-    expect(screen.getByText(/Todos/i)).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Todos/i })).toBeInTheDocument()
 
     // Renderiza pagos
     expect(screen.getByText('Juan Perez')).toBeInTheDocument()
