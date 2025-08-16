@@ -253,14 +253,14 @@ export default function PaymentVerificationPage() {
                 </CardContent>
               </Card>
 
-              {/* Receipt section - usar el nuevo componente */}
+              {/* Receipt section - usar el nuevo componente con tamaño reducido */}
               <Card className="mb-2">
                 <CardContent className="p-2">
-                  <Label className="text-sm font-medium mb-1 block">Comprobante de Pago</Label>
+                  <Label className="text-xs font-medium mb-1 block">Comprobante de Pago</Label>
                   <PaymentReceiptDisplay
                     fileId={currentPayment.receiptId}
                     fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
-                    className=""
+                    className="max-h-48"
                     showActions={false}
                   />
                   <div className="mt-1 flex gap-1">
@@ -299,15 +299,15 @@ export default function PaymentVerificationPage() {
           )}
 
           {/* Rejection reason - más compacto */}
-          <Card className="mb-2">
+          <Card className="mb-1">
             <CardContent className="p-2">
-              <Label htmlFor="rejectionReason" className="text-sm">Razón del rechazo</Label>
+              <Label htmlFor="rejectionReason" className="text-xs">Razón del rechazo</Label>
               <Textarea
                 id="rejectionReason"
                 placeholder="Explica por qué se rechaza el pago..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                rows={1}
+                rows={2}
                 className="resize-none text-xs mt-1"
                 disabled={!currentPayment}
               />
@@ -315,12 +315,12 @@ export default function PaymentVerificationPage() {
           </Card>
 
           {/* Action buttons - más compactos */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-2">
             <Button
               variant="secondary"
               onClick={() => handleStatusUpdate("rejected")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-2 text-sm font-semibold h-9"
+              className="w-1/2 py-1.5 text-sm font-semibold h-8"
             >
               {isVerifying && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
               {!isVerifying && <X className="mr-1 h-3 w-3" />}
@@ -330,7 +330,7 @@ export default function PaymentVerificationPage() {
               variant="default"
               onClick={() => handleStatusUpdate("paid")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-2 text-sm font-semibold h-9"
+              className="w-1/2 py-1.5 text-sm font-semibold h-8"
             >
               {isVerifying && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
               {!isVerifying && <Check className="mr-1 h-3 w-3" />}

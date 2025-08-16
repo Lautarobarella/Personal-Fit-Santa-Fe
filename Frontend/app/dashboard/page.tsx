@@ -442,23 +442,19 @@ function DashboardContent() {
               <Card
                 key={index}
                 className={`border-l-4 shadow-professional transition-all duration-200 hover:shadow-professional-lg ${alert.type === "warning"
-                  ? "border-l-warning bg-warning/5 hover:bg-warning/10"
+                  ? "border-l-primary hover:bg-background/50"
                   : alert.type === "info"
-                    ? "border-l-primary bg-primary/5 hover:bg-primary/10"
+                    ? "border-l-primary hover:bg-background/50"
                     : "border-l-success bg-success/5 hover:bg-success/10"
                   }`}
               >
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${alert.type === "warning" ? "bg-warning/20" :
-                        alert.type === "info" ? "bg-primary/20" : "bg-success/20"
-                        }`}>
-                        {alert.type === "warning" && <AlertTriangle className="h-5 w-5 text-warning" />}
-                        {alert.type === "info" && <Bell className="h-5 w-5 text-primary" />}
-                        {alert.type === "success" && <CheckCircle className="h-5 w-5 text-success" />}
-                      </div>
-                      <span className="text-sm font-semibold text-foreground">{alert.message}</span>
+                    <div className="flex items-center gap-2">
+                      {alert.type === "warning" && <AlertTriangle className="h-4 w-4 text-primary flex-shrink-0" />}
+                      {alert.type === "info" && <Bell className="h-4 w-4 text-primary flex-shrink-0" />}
+                      {alert.type === "success" && <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />}
+                      <span className="text-sm font-semibold text-foreground flex-1">{alert.message}</span>
                     </div>
                     <Link href={alert.href}>
                       <Button variant="ghost" size="sm" className="text-xs font-medium hover:bg-background/50 rounded-xl">
