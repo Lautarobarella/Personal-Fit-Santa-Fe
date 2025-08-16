@@ -1,5 +1,6 @@
 "use client"
 
+import { PaymentReceiptDisplay } from "@/components/payments/payment-receipt-display"
 import { useAuth } from "@/components/providers/auth-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -252,24 +253,28 @@ export default function PaymentVerificationPage() {
                 </CardContent>
               </Card>
 
-              {/* Receipt section - priorizar tamaño */}
+              {/* Receipt section - usar el nuevo componente */}
               <Card className="mb-2">
                 <CardContent className="p-2">
                   <Label className="text-sm font-medium mb-1 block">Comprobante de Pago</Label>
-                  <div className="border rounded-lg overflow-hidden">
-                    <img
-                      src={currentPayment.receiptUrl || "/placeholder.svg"}
-                      alt="Comprobante de pago"
-                      className="w-full max-h-[280px] object-contain bg-gray-50 mx-auto"
-                    />
-                  </div>
+                  <PaymentReceiptDisplay
+                    fileId={currentPayment.receiptId}
+                    fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
+                    className=""
+                    showActions={false}
+                  />
                   <div className="mt-1 flex gap-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(currentPayment.receiptUrl!, "_blank")}
+                      onClick={() => {
+                        const fileId = currentPayment.receiptId;
+                        if (fileId) {
+                          window.open(`/payments/files/${fileId}`, "_blank");
+                        }
+                      }}
                       className="bg-transparent text-xs px-2 py-1 h-7"
-                      disabled={!currentPayment.receiptUrl}
+                      disabled={!currentPayment.receiptId}
                     >
                       Ver completo
                     </Button>

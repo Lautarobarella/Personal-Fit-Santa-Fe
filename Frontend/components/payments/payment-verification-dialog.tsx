@@ -1,16 +1,16 @@
 "use client"
 
-import { AuthenticatedImage } from "@/components/ui/authenticated-image"
+import { PaymentReceiptDisplay } from "@/components/payments/payment-receipt-display"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -179,42 +179,12 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
             <Card>
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
-                <div className="border rounded-lg overflow-hidden">
-                  <AuthenticatedImage
-                    fileId={selectedPayment.receiptId}
-                    alt="Comprobante de pago"
-                    className="w-full max-h-[400px] object-contain bg-gray-50 mx-auto"
-                    fallbackSrc="/placeholder.svg"
-                  />
-                </div>
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const url = selectedPayment.receiptUrl;
-                      if (url) window.open(url, "_blank");
-                    }}
-                    className="bg-transparent"
-                  >
-                    Ver en tamaño completo
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (!selectedPayment.receiptUrl) return;
-
-                      const link = document.createElement("a")
-                      link.href = selectedPayment.receiptUrl as string
-                      link.download = `comprobante-${selectedPayment.clientName}-${selectedPayment.createdAt}.jpg`
-                      link.click()
-                    }}
-                    className="bg-transparent"
-                  >
-                    Descargar
-                  </Button>
-                </div>
+                <PaymentReceiptDisplay
+                  fileId={selectedPayment.receiptId}
+                  fileName={`comprobante-${selectedPayment.clientName}-${selectedPayment.id}`}
+                  className=""
+                  showActions={true}
+                />
               </CardContent>
             </Card>
           ) : (

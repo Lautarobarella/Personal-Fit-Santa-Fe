@@ -148,13 +148,6 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             const previewUrl = await createOptimizedPreview(file)
             setPreviewUrl(previewUrl)
             
-            // Mostrar mensaje informativo sobre compresión
-            if (file.size > 1024 * 1024) { // Si es mayor a 1MB
-                toast({
-                    title: "Archivo procesado",
-                    description: `El archivo será comprimido automáticamente para optimizar el almacenamiento (${formatFileSize(file.size)})`,
-                })
-            }
         } catch (error) {
             console.error('Error al procesar archivo:', error)
             toast({
