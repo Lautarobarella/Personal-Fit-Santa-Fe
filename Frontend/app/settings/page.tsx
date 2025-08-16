@@ -9,7 +9,7 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/use-theme"
 import { UserRole } from "@/lib/types"
-import { Bell, DollarSign, HelpCircle, LogOut, Moon, SettingsIcon, Shield, Smartphone, User } from "lucide-react"
+import { BarChart3, Bell, DollarSign, LogOut, Moon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
@@ -60,7 +60,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5" />
+              <Smartphone className="h-5 w-5" />
               Aplicación
             </CardTitle>
           </CardHeader>
@@ -134,7 +134,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card> */}
 
-        {/* Support */}
+        {/* Support
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export default function SettingsPage() {
               Términos y Condiciones
             </Button>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Admin Settings */}
         {user.role === UserRole.ADMIN && (
@@ -177,13 +177,13 @@ export default function SettingsPage() {
                 Establecer valor de la cuota
               </Button>
 
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                <SettingsIcon className="h-4 w-4 mr-3" />
-                Configuración del Sistema
-              </Button>
-
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                Respaldos y Exportación
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent"
+                onClick={() => router.push('/payments/monthly-revenue')}
+              >
+                <BarChart3 className="h-4 w-4 mr-3" />
+                Registro de ingresos mensuales
               </Button>
             </CardContent>
           </Card>

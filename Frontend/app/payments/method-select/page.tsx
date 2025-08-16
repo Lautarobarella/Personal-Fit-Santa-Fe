@@ -71,7 +71,7 @@ export default function PaymentMethodSelectPage() {
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold text-lg">Pagar Online</h3>
-                                                <p className="text-sm text-gray-200">
+                                                <p className="text-sm text-gray-600">
                                                     Pago inmediato con MercadoPago
                                                 </p>
                                             </div>

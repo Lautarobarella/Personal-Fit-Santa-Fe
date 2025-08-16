@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/providers/auth-provider"
 import { useMonthlyRevenue } from "@/hooks/use-monthly-revenue"
 import { usePayment } from "@/hooks/use-payment"
-import { PaymentStatus, UserRole } from "@/lib/types"
+import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import {
@@ -36,6 +37,7 @@ export default function PaymentsPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
     const [showRevenue, setShowRevenue] = useState(true)
+    const [methodFilter, setMethodFilter] = useState<MethodType | "ALL">("ALL")
     const queryClient = useQueryClient()
 
     const {
@@ -45,9 +47,9 @@ export default function PaymentsPage() {
     } = usePayment(user?.id, user?.role === UserRole.ADMIN)
 
     // Hook para ingresos mensuales archivados (solo para admin y solo para historial)
-    const { 
-        archivedRevenues, 
-        isLoading: isLoadingRevenue 
+    const {
+        archivedRevenues,
+        isLoading: isLoadingRevenue
     } = useMonthlyRevenue(user?.role === UserRole.ADMIN)
 
     // Forzar actualización de datos cuando se monta el componente
@@ -55,7 +57,7 @@ export default function PaymentsPage() {
         if (user?.id || user?.role === UserRole.ADMIN) {
             const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
             queryClient.invalidateQueries({ queryKey })
-            
+
             // También invalidar monthly revenue si es admin
             if (user?.role === UserRole.ADMIN) {
                 queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
@@ -178,18 +180,34 @@ export default function PaymentsPage() {
         }).format(amount)
     }
 
-    const filteredPayments = payments.filter(
-        (p) =>
-            p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    const getMethodText = (method: MethodType) => {
+        switch (method) {
+            case MethodType.CASH:
+                return "Efectivo"
+            case MethodType.CARD:
+                return "Tarjeta"
+            case MethodType.TRANSFER:
+                return "Transferencia"
+            default:
+                return method
+        }
+    }
+
+    const filteredPayments = payments.filter((p) => {
+        const matchesSearch = p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase())
+
+        const matchesMethod = methodFilter === "ALL" || p.method === methodFilter
+
+        return matchesSearch && matchesMethod
+    })
     const paidPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PAID)
     const pendingPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PENDING)
-    
+
     // Calcular ingresos del mes actual de la misma manera que en dashboard
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
-    const totalRevenue = user?.role === UserRole.ADMIN 
+    const totalRevenue = user?.role === UserRole.ADMIN
         ? payments
             .filter(p => {
                 const paymentDate = p.createdAt ? new Date(p.createdAt) : null
@@ -346,6 +364,26 @@ export default function PaymentsPage() {
                         <TabsTrigger value="all">Todos</TabsTrigger>
                     </TabsList>
 
+                    {/* Filtro por método de pago - Solo para admin */}
+                    {user?.role === UserRole.ADMIN && (
+                        <div className="mt-4">
+                            <Select
+                                value={methodFilter}
+                                onValueChange={(value: "ALL" | MethodType) => setMethodFilter(value)}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Filtrar por método de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">Todos los métodos</SelectItem>
+                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                    <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
+                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <TabsContent value="all" className="space-y-3 mt-4">
                         {filteredPayments.map((p) => (
                             <Card key={p.id}>
@@ -361,6 +399,9 @@ export default function PaymentsPage() {
                                                 <span>{formatDate(p.createdAt)}</span>
                                                 <span>•</span>
                                                 <span>Vence: {formatDate(p.expiresAt)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                                <span>Método: {getMethodText(p.method)}</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
@@ -396,6 +437,9 @@ export default function PaymentsPage() {
                                                 <span>{formatMonth(p.createdAt)}</span>
                                                 <span>•</span>
                                                 <span>Vence: {formatDate(p.expiresAt)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                                <span>Método: {getMethodText(p.method)}</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
@@ -475,7 +519,7 @@ export default function PaymentsPage() {
             {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
             {user.role === UserRole.ADMIN && pendingPayments.length > 0 && (
                 <Link href="/payments/verify" className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-                    <Button 
+                    <Button
                         className="shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
                         size="default"
                     >
