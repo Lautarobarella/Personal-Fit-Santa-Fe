@@ -134,7 +134,7 @@ function DashboardContent() {
 
   if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading) || (user.role === UserRole.ADMIN && pendingPaymentsLoading)) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-32">
         <MobileHeader title="Cargando..." />
         <div className="container-centered py-6 space-y-6">
           <Card>
@@ -332,7 +332,7 @@ function DashboardContent() {
   const alerts = getAlerts()
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       <MobileHeader title={`Hola, ${user.firstName}`} />
 
       <div className="container-centered py-6 space-y-6">

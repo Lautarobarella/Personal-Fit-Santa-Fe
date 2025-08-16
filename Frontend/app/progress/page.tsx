@@ -26,7 +26,7 @@ export default function ProgressPage() {
                 title="Mi Progreso" 
             />
             
-            <main className="container mx-auto px-4 py-6 pb-20 space-y-6">
+            <main className="container mx-auto px-4 py-6 pb-32 space-y-6">
                 {/* Coming Soon Card */}
                 <Card>
                     <CardHeader className="text-center">

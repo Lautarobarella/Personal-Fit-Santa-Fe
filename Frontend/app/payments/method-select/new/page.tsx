@@ -51,7 +51,7 @@ export default function NewPaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       <div className="container-centered py-6 space-y-6">
         <CreatePaymentDialog
           open={true}

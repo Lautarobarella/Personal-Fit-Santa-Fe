@@ -25,7 +25,7 @@ export default function SettingsPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       <MobileHeader title="Configuración" />
 
       <div className="container-centered py-6 space-y-6">

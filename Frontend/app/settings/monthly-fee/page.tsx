@@ -1,7 +1,6 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
-import { UserRole } from "@/lib/types"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useToast } from "@/hooks/use-toast"
+import { UserRole } from "@/lib/types"
 import { ArrowLeft, DollarSign } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -91,7 +91,7 @@ export default function MonthlyFeePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       <MobileHeader title="Valor de la Cuota" />
 
       <div className="container-centered py-6 space-y-6">
