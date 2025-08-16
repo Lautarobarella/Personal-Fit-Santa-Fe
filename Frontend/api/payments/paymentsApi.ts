@@ -1,6 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
+import { compressFile, formatFileSize, validatePaymentFile } from "@/lib/file-compression";
 import { MonthlyRevenue, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
 
 /**
@@ -74,8 +75,29 @@ export async function createPayment(
 
   formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }));
 
-  if (paymentData.file) {
-    formData.append("file", paymentData.file);
+  // Procesar archivo si existe (solo para pagos manuales)
+  if (paymentData.file && !isAutomaticPayment) {
+    try {
+      // Validar archivo antes de procesar
+      const validation = validatePaymentFile(paymentData.file);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
+      console.log(`Archivo original: ${formatFileSize(paymentData.file.size)}`);
+      
+      // Comprimir archivo automáticamente
+      const { compressedFile, originalSize, compressedSize, compressionRatio } = await compressFile(paymentData.file);
+      
+      console.log(`Archivo comprimido: ${formatFileSize(compressedSize)} (${compressionRatio}% reducción)`);
+      
+      // Usar archivo comprimido para upload
+      formData.append("file", compressedFile);
+    } catch (compressionError) {
+      console.error('Error al comprimir archivo:', compressionError);
+      // Si falla la compresión, intentar con archivo original
+      formData.append("file", paymentData.file);
+    }
   }
 
   try {

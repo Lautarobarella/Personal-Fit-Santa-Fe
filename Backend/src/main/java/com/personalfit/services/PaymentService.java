@@ -49,7 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class PaymentService {
 
-    private static final Integer MAX_FILE_SIZE_MB = 5;
+    // Aumentamos a 3MB ya que los archivos vienen pre-comprimidos desde el frontend
+    private static final Integer MAX_FILE_SIZE_MB = 3;
 
     @Value("${spring.datasource.files.path}")
     private String UPLOAD_FOLDER;
@@ -356,11 +357,13 @@ public class PaymentService {
             Path filePath = uploadDir.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Crear registro en base de datos
+            // Crear registro en base de datos con metadatos
             PaymentFile paymentFile = PaymentFile.builder()
                     .fileName(originalFilename)
                     .filePath(filePath.toString())
                     .contentType(file.getContentType())
+                    .compressedSize(file.getSize())
+                    .isCompressed(true) // Asumimos que viene comprimido desde frontend
                     .build();
 
             return paymentFileRepository.save(paymentFile);
@@ -376,16 +379,24 @@ public class PaymentService {
             throw new FileException("El archivo está vacío", "/api/payments/new");
         }
 
+        log.info("Validando archivo: {} ({} bytes, tipo: {})", 
+                file.getOriginalFilename(), file.getSize(), file.getContentType());
+
         if (file.getSize() > MAX_FILE_SIZE_MB * 1024 * 1024) {
-            throw new FileException("El archivo excede el tamaño máximo de " + MAX_FILE_SIZE_MB + "MB",
+            throw new FileException("El archivo excede el tamaño máximo de " + MAX_FILE_SIZE_MB + "MB. " +
+                    "El archivo tiene " + String.format("%.2f", file.getSize() / 1024.0 / 1024.0) + "MB",
                     "/api/payments/new");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-            throw new FileException("Tipo de archivo no permitido. Solo se permiten imágenes y PDFs",
+            throw new FileException("Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, WebP) y PDFs. " +
+                    "Tipo recibido: " + contentType,
                     "/api/payments/new");
         }
+
+        log.info("Archivo validado correctamente: {} ({}MB)", 
+                file.getOriginalFilename(), String.format("%.2f", file.getSize() / 1024.0 / 1024.0));
     }
 
     private void updateUserStatusIfPaid(User user, Payment payment) {

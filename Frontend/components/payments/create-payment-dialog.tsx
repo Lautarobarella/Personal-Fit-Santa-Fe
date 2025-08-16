@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
+import { createOptimizedPreview, formatFileSize, validatePaymentFile } from "@/lib/file-compression"
 import { PaymentStatus, UserRole } from "@/lib/types"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
@@ -122,21 +123,46 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const monthOptions = generateMonthOptions()
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
-        if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+        // Usar nueva validación mejorada
+        const validation = validatePaymentFile(file)
+        if (!validation.isValid) {
             toast({
                 title: "Archivo inválido",
-                description: "Debe ser una imagen menor a 5MB",
+                description: validation.error,
                 variant: "destructive"
             })
             return
         }
 
-        setSelectedFile(file)
-        setPreviewUrl(URL.createObjectURL(file))
+        try {
+            // Mostrar información del archivo original
+            console.log(`Archivo seleccionado: ${file.name} (${formatFileSize(file.size)})`);
+            
+            setSelectedFile(file)
+            
+            // Crear preview optimizado
+            const previewUrl = await createOptimizedPreview(file)
+            setPreviewUrl(previewUrl)
+            
+            // Mostrar mensaje informativo sobre compresión
+            if (file.size > 1024 * 1024) { // Si es mayor a 1MB
+                toast({
+                    title: "Archivo procesado",
+                    description: `El archivo será comprimido automáticamente para optimizar el almacenamiento (${formatFileSize(file.size)})`,
+                })
+            }
+        } catch (error) {
+            console.error('Error al procesar archivo:', error)
+            toast({
+                title: "Error al procesar archivo",
+                description: "No se pudo procesar el archivo seleccionado",
+                variant: "destructive"
+            })
+        }
     }
 
     const handleCameraCapture = () => {
@@ -380,17 +406,26 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                 <div className="border-2 border-dashed p-6 text-center rounded-lg">
                                     <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                     <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
-                                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                                    <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
+                                    <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
                                 </div>
                             ) : (
                                 <div>
                                     <div className="relative border rounded-lg overflow-hidden">
-                                        <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                        {selectedFile.type.startsWith('image/') ? (
+                                            <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                        ) : (
+                                            <div className="p-8 text-center">
+                                                <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                                                <p className="font-medium">{selectedFile.name}</p>
+                                                <p className="text-sm text-muted-foreground">Archivo PDF</p>
+                                            </div>
+                                        )}
                                         <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
+                                    <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
                                 </div>
                             )}
 
