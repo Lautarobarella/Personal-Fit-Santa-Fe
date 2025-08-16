@@ -317,7 +317,8 @@ export default function PaymentsPage() {
                                         <div className="flex-1">
                                             <h3 className="font-semibold text-red-800">Membresía Vencida</h3>
                                             <p className="text-sm text-yellow-700">
-                                                Tu membresía ha expirado. Realiza un nuevo pago para continuar.
+                                                Tu membresía ha expirado.<br />
+                                                Presiona en <span className="font-semibold text-red-800"> 'Nuevo'</span> para elegir el método de pago.
                                             </p>
                                         </div>
                                     </>

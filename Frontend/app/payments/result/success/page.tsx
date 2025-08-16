@@ -42,7 +42,7 @@ function SuccessPageContent() {
     const handleGoToPayments = async () => {
         // Marcar flag para forzar actualización en la página de pagos
         localStorage.setItem('refreshPayments', 'true');
-        
+
         // Invalidar queries antes de navegar
         if (user?.id) {
             queryClient.invalidateQueries({ queryKey: ["payments", user.id] });
@@ -83,7 +83,7 @@ function SuccessPageContent() {
                     <p className="text-muted-foreground">
                         Tu pago se ha procesado correctamente. Recibirás una confirmación por email.
                     </p>
-                    
+
                     {paymentId && (
                         <div className="rounded-lg text-sm p-3 bg-gray-50 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
                             <p><strong>ID de Pago:</strong> {paymentId}</p>
@@ -94,24 +94,24 @@ function SuccessPageContent() {
                     )}
 
                     <div className="space-y-2">
-                        <Button 
-                            onClick={handleGoToPayments} 
+                        <Button
+                            onClick={handleGoToPayments}
                             className="w-full"
                         >
                             Ver mis pagos
                         </Button>
-                        <Button 
-                            onClick={() => router.push('/dashboard')} 
-                            variant="outline" 
+                        <Button
+                            onClick={() => router.push('/dashboard')}
+                            variant="outline"
                             className="w-full"
                         >
                             Ir al inicio
                         </Button>
-                            </div>
-    </CardContent>
-  </Card>
-</div>
-);
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }
 
 export default function SuccessPage() {

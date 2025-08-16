@@ -5,7 +5,6 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { Progress } from "@/components/ui/progress"
 import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useClientStats } from "@/hooks/use-client-stats"
@@ -171,54 +170,69 @@ function DashboardContent() {
           icon: CreditCard,
           description: "vs mes anterior",
           isRevenue: true,
-          dynamicFontSize: getDynamicFontSize(revenueValue)
+          dynamicFontSize: getDynamicFontSize(revenueValue),
+          color: "primary"
         },
         {
           title: "Clientes Activos",
           value: dashboardStats.activeClients.toString(),
           icon: Users,
-          description: "este mes"
+          description: "este mes",
+          dynamicFontSize: getDynamicFontSize(dashboardStats.activeClients.toString()),
+          color: "primary"
         },
         {
           title: "Actividades Hoy",
           value: dashboardStats.todayActivities.toString(),
           icon: Activity,
-          description: "en progreso"
+          description: "en progreso",
+          dynamicFontSize: getDynamicFontSize(dashboardStats.todayActivities.toString()),
+          color: "primary"
         },
         {
           title: "Tasa de Asistencia",
           value: `${dashboardStats.attendanceRate}%`,
           icon: Target,
-          description: "promedio semanal"
+          description: "promedio semanal",
+          dynamicFontSize: getDynamicFontSize(`${dashboardStats.attendanceRate}%`),
+          color: "primary"
         },
-      ]
+      ];
     } else if (user.role === UserRole.TRAINER) {
       return [
         {
           title: "Mis Clientes",
           value: "42",
           icon: Users,
-          description: "asignados"
+          description: "asignados",
+          dynamicFontSize: "text-2xl",
+          color: "primary"
         },
         {
           title: "Clases Hoy",
           value: "6",
           icon: Activity,
-          description: "programadas"
+          description: "programadas",
+          dynamicFontSize: "text-2xl",
+          color: "primary"
         },
         {
           title: "Asistencia Promedio",
           value: "92%",
           icon: Target,
-          description: "esta semana"
+          description: "esta semana",
+          dynamicFontSize: "text-2xl",
+          color: "primary"
         },
         {
           title: "Próxima Clase",
           value: "2:00 PM",
           icon: Clock,
-          description: "en 45 min"
+          description: "en 45 min",
+          dynamicFontSize: "text-2xl",
+          color: "primary"
         },
-      ]
+      ];
     } else {
       // Formatear la próxima clase
       const formatNextClass = () => {
@@ -249,32 +263,61 @@ function DashboardContent() {
 
       const nextClassValue = formatNextClass();
 
+      // Calcular días restantes del plan activo
+      let diasRestantes = 0;
+      let ultimoPago = null;
+      if (payments.length > 0) {
+        ultimoPago = payments.filter(p => p.status === PaymentStatus.PAID && p.expiresAt).sort((a, b) => {
+          const aDate = a.expiresAt ? new Date(a.expiresAt as string) : new Date(0);
+          const bDate = b.expiresAt ? new Date(b.expiresAt as string) : new Date(0);
+          return bDate.getTime() - aDate.getTime();
+        })[0];
+        if (ultimoPago && user.status === "ACTIVE" && ultimoPago.expiresAt) {
+          const hoy = new Date();
+          const vencimiento = new Date(ultimoPago.expiresAt as string);
+          diasRestantes = Math.max(0, Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+      }
+
+      // Progreso mensual de actividades (fallback a weeklyActivityCount si no existe)
+  const actividadesMes = clientStats.weeklyActivityCount ?? 0;
+      const progresoMensual = actividadesMes;
+
+      // Estructura uniforme para stats
       return [
         {
-          title: "Actividades Inscritas",
-          value: clientStats.weeklyActivityCount.toString(),
+          title: "Plan activo",
+          value: user.status === "ACTIVE" ? "Plan activo" : "Sin plan activo",
+          icon: CheckCircle,
+          description: user.status === "ACTIVE" && diasRestantes > 0 ? `Restan ${diasRestantes} días` : "Membresía vencida",
+          color: user.status === "ACTIVE" ? "success" : "destructive",
+          dynamicFontSize: "text-2xl"
+        },
+        {
+          title: "Actividades este mes",
+          value: progresoMensual.toString(),
           icon: Activity,
-          description: "este mes"
+          description: "completadas",
+          color: "warning",
+          dynamicFontSize: "text-2xl"
         },
         {
           title: "Próxima Clase",
           value: nextClassValue,
           icon: Clock,
-          description: "mañana"
+          description: "próxima",
+          color: "secondary",
+          dynamicFontSize: "text-2xl"
         },
         {
           title: "Progreso Mensual",
-          value: "75%",
+          value: `${Math.min(100, Math.round((progresoMensual / 20) * 100))}%`,
           icon: Target,
-          description: "completadas"
+          description: "completadas",
+          color: "primary",
+          dynamicFontSize: "text-2xl"
         },
-        {
-          title: "Estado de Pago",
-          value: "Al día",
-          icon: CheckCircle,
-          description: "sin pendientes"
-        },
-      ]
+      ];
     }
   }
 
@@ -305,11 +348,10 @@ function DashboardContent() {
 
   const getAlerts = () => {
     if (user.role === UserRole.ADMIN) {
-      // Usar el hook de pagos pendientes para obtener la cantidad actualizada
       return totalPendingPayments > 0
         ? [{
-          type: "info",
-          message: `${totalPendingPayments} pagos pendientes requieren atención`,
+          type: "warning",
+          message: `${totalPendingPayments} pagos pendientes a validar`,
           action: "Ver pagos",
           href: "/payments/verify"
         }]
@@ -320,9 +362,13 @@ function DashboardContent() {
         { type: "success", message: "Excelente asistencia esta semana (92%)", action: "Ver estadísticas", href: "/stats" },
       ]
     } else {
+      // Card naranja si no tiene plan activo
+      if (user.status !== "ACTIVE") {
+        return [{ type: "warning", message: "Tu membresía está vencida. Realiza un pago para reactivar tu plan.", action: "Realizar pago", href: "/payments" }];
+      }
       return [
-        { type: "info", message: "¡Felicidades! Completaste 18 clases este mes", action: "Ver progreso", href: "/progress" },
-      ]
+        { type: "info", message: `¡Felicidades! Completaste ${clientStats.weeklyActivityCount || 0} actividades este mes`, action: "Ver progreso", href: "/progress" },
+      ];
     }
   }
 
@@ -416,11 +462,11 @@ function DashboardContent() {
         {/* Stats Grid - Diseño profesional moderno */}
         <div className="grid grid-cols-2 gap-4">
           {stats.map((stat, index) => (
-            <Card key={index} className="relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card">
-              <CardContent className="p-5">
+            <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card min-h-[160px] flex flex-col justify-center`}>
+              <CardContent className="p-5 flex flex-col justify-center h-full">
                 {/* Icono plano en la esquina */}
                 <div className="absolute top-4 right-4 flex items-center gap-1">
-                  <stat.icon className="h-6 w-6 text-foreground" />
+                  <stat.icon className={`h-6 w-6 ${stat.color === "success" ? "text-green-600" : stat.color === "destructive" ? "text-red-600" : "text-foreground"}`} />
                   {stat.isRevenue && (
                     <button
                       onClick={() => setShowRevenue(!showRevenue)}
@@ -438,9 +484,8 @@ function DashboardContent() {
 
                 <div className="pr-16">
                   <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{stat.title}</p>
-                  <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold text-foreground mb-2 tracking-tight`}>{stat.value}</p>
-
-                  <p className="text-xs text-muted-foreground font-medium">{stat.description}</p>
+                  <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-foreground"} mb-2 tracking-tight`}>{stat.value}</p>
+                  <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-muted-foreground"}`}>{stat.description}</p>
                 </div>
 
                 {/* Elemento decorativo */}
@@ -449,44 +494,6 @@ function DashboardContent() {
             </Card>
           ))}
         </div>
-
-        {/* Progress Section for Clients - Diseño profesional */}
-        {user.role === UserRole.CLIENT && (
-          <Card className="shadow-professional border-0 bg-gradient-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-bold flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <Target className="h-6 w-6 text-primary" />
-                </div>
-                Tu Progreso Este Mes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="bg-background/50 rounded-2xl p-4">
-                <div className="flex justify-between text-sm mb-3">
-                  <span className="font-semibold text-foreground">Clases Completadas</span>
-                  <span className="font-bold text-primary">18/24</span>
-                </div>
-                <Progress value={75} className="h-3 bg-muted" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center bg-background/50 rounded-2xl p-4">
-                  <div className="text-2xl font-bold text-primary mb-1">18</div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Completadas</div>
-                </div>
-                <div className="text-center bg-background/50 rounded-2xl p-4">
-                  <div className="text-2xl font-bold text-secondary mb-1">6</div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Restantes</div>
-                </div>
-                <div className="text-center bg-background/50 rounded-2xl p-4">
-                  <div className="text-2xl font-bold text-success mb-1">92%</div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Asistencia</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Quick Actions - Diseño profesional */}
         <Card className="shadow-professional border-0">
@@ -516,7 +523,7 @@ function DashboardContent() {
         </Card>
 
         {/* Recent Activity - Diseño profesional */}
-        <Card className="shadow-professional border-0">
+        {/* <Card className="shadow-professional border-0">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-bold flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-xl">
@@ -553,7 +560,7 @@ function DashboardContent() {
               <span className="text-xs text-muted-foreground bg-background/50 px-2 py-1 rounded-full font-medium">Hace 1 hora</span>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       <BottomNav />

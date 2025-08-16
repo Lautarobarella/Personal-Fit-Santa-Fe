@@ -62,78 +62,80 @@ export default function PaymentMethodSelectPage() {
 
                         {/* Pago con MercadoPago - Solo para clientes */}
                         {user.role === UserRole.CLIENT && (
-                            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                                <CreditCard className="w-6 h-6 text-blue-600" />
+                            <>
+                                {/* Pago Manual */}
+                                <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-gray-300">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <FileText className="w-6 h-6 text-gray-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-lg">
+                                                        Pago Manual
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600">
+                                                        Adjuntar comprobante de pago
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-semibold text-lg">Pagar Online</h3>
-                                                <p className="text-sm text-gray-600">
-                                                    Pago inmediato con MercadoPago
-                                                </p>
-                                            </div>
+                                            <Button
+                                                onClick={() => handleMethodSelect('manual')}
+                                                variant="outline"
+                                                className="border-gray-300 hover:bg-gray-50"
+                                            >
+                                                Subir <ArrowRight className="w-4 h-4 ml-1" />
+                                            </Button>
                                         </div>
-                                        <Button
-                                            onClick={() => handleMethodSelect('mercadopago')}
-                                            className="bg-blue-600 hover:bg-blue-700"
-                                        >
-                                            Pagar <ArrowRight className="w-4 h-4 ml-1" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                                <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                                    <CreditCard className="w-6 h-6 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-lg">Pagar Online</h3>
+                                                    <p className="text-sm text-gray-600">
+                                                        Pago inmediato con MercadoPago
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                onClick={() => handleMethodSelect('mercadopago')}
+                                                className="bg-blue-600 hover:bg-blue-700"
+                                            >
+                                                Pagar <ArrowRight className="w-4 h-4 ml-1" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </>
                         )}
 
-                        {/* Pago Manual */}
-                        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-gray-300">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                                            <FileText className="w-6 h-6 text-gray-600" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-lg">
-                                                Pago Manual
-                                            </h3>
-                                            <p className="text-sm text-gray-600">
-                                                Subir comprobante de pago
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        onClick={() => handleMethodSelect('manual')}
-                                        variant="outline"
-                                        className="border-gray-300 hover:bg-gray-50"
-                                    >
-                                        Elegir <ArrowRight className="w-4 h-4 ml-1" />
-                                    </Button>
+
+                        {/* Información adicional - Solo para clientes */}
+
+                        <Card className="bg-yellow-50 border-yellow-200">
+                            <CardContent className="p-4">
+                                <h4 className="font-semibold text-yellow-800 mb-2">
+                                    💡 ¿Cuál elegir?
+                                </h4>
+                                <div className="space-y-2 text-sm text-yellow-700">
+                                    <p>
+                                        <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
+                                    </p>
+                                    <p>
+                                        <strong>Pago Online:</strong> Inmediato y automático.
+                                    </p>
                                 </div>
                             </CardContent>
                         </Card>
+
                     </div>
-
-                    {/* Información adicional - Solo para clientes */}
-
-                    <Card className="bg-yellow-50 border-yellow-200">
-                        <CardContent className="p-4">
-                            <h4 className="font-semibold text-yellow-800 mb-2">
-                                💡 ¿Cuál elegir?
-                            </h4>
-                            <div className="space-y-2 text-sm text-yellow-700">
-                                <p>
-                                    <strong>Pago Online:</strong> Inmediato y automático.
-                                </p>
-                                <p>
-                                    <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
                 </div>
             </div>
         </div>

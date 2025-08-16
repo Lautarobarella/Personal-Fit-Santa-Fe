@@ -348,7 +348,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             type="text"
                             value={amount}
                             readOnly
-                            // className="text-foreground"
+                            //className="text-foreground"
                             onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
                     </div>
