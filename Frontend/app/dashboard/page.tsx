@@ -48,10 +48,10 @@ function DashboardContent() {
 
   // Usar hooks de forma segura
   const paymentHook = usePayment(user?.id, user?.role === UserRole.ADMIN)
-  const { 
-    pendingPayments, 
-    totalPendingPayments, 
-    loading: pendingPaymentsLoading 
+  const {
+    pendingPayments,
+    totalPendingPayments,
+    loading: pendingPaymentsLoading
   } = usePendingPayments(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
   const { activities, loadActivities } = useActivities()
@@ -65,7 +65,7 @@ function DashboardContent() {
     setMounted(true)
     loadClients()
     loadActivities()
-    
+
     // Invalidar queries de pagos para asegurar datos frescos al entrar al dashboard
     if (user?.role === UserRole.ADMIN) {
       queryClient.invalidateQueries({ queryKey: ["payments"] })
@@ -307,12 +307,12 @@ function DashboardContent() {
     if (user.role === UserRole.ADMIN) {
       // Usar el hook de pagos pendientes para obtener la cantidad actualizada
       return totalPendingPayments > 0
-        ? [{ 
-            type: "info", 
-            message: `${totalPendingPayments} pagos pendientes requieren atención`, 
-            action: "Ver pagos", 
-            href: "/payments/verify" 
-          }]
+        ? [{
+          type: "info",
+          message: `${totalPendingPayments} pagos pendientes requieren atención`,
+          action: "Ver pagos",
+          href: "/payments/verify"
+        }]
         : []
     } else if (user.role === UserRole.TRAINER) {
       return [
@@ -321,8 +321,7 @@ function DashboardContent() {
       ]
     } else {
       return [
-        { type: "success", message: "¡Felicidades! Completaste 18 clases este mes", action: "Ver progreso", href: "/progress" },
-        { type: "info", message: "Nueva clase de Pilates disponible", action: "Inscribirse", href: "/activities" },
+        { type: "info", message: "¡Felicidades! Completaste 18 clases este mes", action: "Ver progreso", href: "/progress" },
       ]
     }
   }

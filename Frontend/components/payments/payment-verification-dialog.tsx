@@ -208,7 +208,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
           {/* Rejection Reason Input (for new rejections) */}
           {selectedPayment.status === PaymentStatus.PENDING && (
-            <div className="space-y-2">
+            <div className="space-y-2 pl-4 pr-4 pb-4">
               <Label htmlFor="rejectionReason">
                 Razón del rechazo (opcional para aprobación, requerida para rechazo)
               </Label>

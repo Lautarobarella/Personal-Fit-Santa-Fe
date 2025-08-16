@@ -518,7 +518,7 @@ export default function PaymentsPage() {
 
             {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
             {user.role === UserRole.ADMIN && pendingPayments.length > 0 && (
-                <Link href="/payments/verify" className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+                <Link href="/payments/verify" className="fixed bottom-28 left-1/2 transform -translate-x-1/2 z-50">
                     <Button
                         className="shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
                         size="default"

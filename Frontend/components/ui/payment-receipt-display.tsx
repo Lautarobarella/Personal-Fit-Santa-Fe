@@ -2,20 +2,22 @@
 
 import { Download, Eye, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "./button";
 
 interface PaymentReceiptDisplayProps {
     fileId: number | null | undefined;
     fileName?: string;
     className?: string;
     showActions?: boolean;
+    pdfHeight?: string; // Nueva prop para controlar altura del PDF
 }
 
 export function PaymentReceiptDisplay({
     fileId,
     fileName,
     className = "",
-    showActions = true
+    showActions = true,
+    pdfHeight = "400px" // Valor por defecto
 }: PaymentReceiptDisplayProps) {
     const [fileData, setFileData] = useState<{
         url: string;
@@ -109,12 +111,14 @@ export function PaymentReceiptDisplay({
         <div className={`space-y-3 ${className}`}>
             <div className="border rounded-lg overflow-hidden">
                 {isPDF ? (
-                    <div className="bg-gray-50 p-8 text-center">
-                        <FileText className="h-16 w-16 mx-auto text-red-600 mb-4" />
-                        <p className="text-lg font-medium text-gray-900 mb-2">Documento PDF</p>
-                        <p className="text-sm text-gray-600">
-                            Haz clic en "Ver completo" para abrir el PDF
-                        </p>
+                    <div className="w-full">
+                        <iframe
+                            src={fileData.url}
+                            className="w-full border-0"
+                            style={{ height: pdfHeight }}
+                            title="Comprobante PDF"
+                            loading="lazy"
+                        />
                     </div>
                 ) : isImage ? (
                     <img
@@ -143,7 +147,7 @@ export function PaymentReceiptDisplay({
                         className="bg-transparent"
                     >
                         <Eye className="h-4 w-4 mr-2" />
-                        Ver completo
+                        Ver en tamaño completo
                     </Button>
                     <Button
                         variant="outline"

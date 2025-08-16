@@ -262,6 +262,7 @@ export default function PaymentVerificationPage() {
                     fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
                     className=""
                     showActions={false}
+                    pdfHeight="280px"
                   />
                   <div className="mt-1 flex gap-1">
                     <Button
