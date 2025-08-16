@@ -243,13 +243,6 @@ export default function PaymentVerificationPage() {
                       </Badge>
                     </div>
                   </div>
-                  {currentPayment.receiptUrl && (
-                    <div className="mt-1.5 pt-1.5 border-t">
-                      <span className="text-sm text-muted-foreground">
-                        Comprobante: {formatDateTime(currentPayment.createdAt)}
-                      </span>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
