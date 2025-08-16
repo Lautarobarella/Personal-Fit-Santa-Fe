@@ -348,7 +348,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             type="text"
                             value={amount}
                             readOnly
-                            //className="text-foreground"
+                            className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
                             onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
                     </div>
@@ -362,6 +362,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             readOnly
                             value={new Date().toISOString().split("T")[0]}
                             placeholder="Fecha de inicio"
+                            className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
                         />
                     </div>
 
@@ -386,6 +387,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                 return safeDate.toISOString().split("T")[0]
                             })()}
                             placeholder="Fecha de vencimiento"
+                            className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
                         />
                     </div>
 

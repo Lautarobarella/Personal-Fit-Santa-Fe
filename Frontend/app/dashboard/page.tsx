@@ -272,7 +272,7 @@ function DashboardContent() {
           const bDate = b.expiresAt ? new Date(b.expiresAt as string) : new Date(0);
           return bDate.getTime() - aDate.getTime();
         })[0];
-        if (ultimoPago && user.status === "ACTIVE" && ultimoPago.expiresAt) {
+        if (ultimoPago && ultimoPago.expiresAt) {
           const hoy = new Date();
           const vencimiento = new Date(ultimoPago.expiresAt as string);
           diasRestantes = Math.max(0, Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
@@ -286,11 +286,11 @@ function DashboardContent() {
       // Estructura uniforme para stats
       return [
         {
-          title: "Plan activo",
-          value: user.status === "ACTIVE" ? "Plan activo" : "Sin plan activo",
+          title: "Estado del plan",
+          value: diasRestantes > 0 ? "Plan activo" : "Sin plan activo",
           icon: CheckCircle,
-          description: user.status === "ACTIVE" && diasRestantes > 0 ? `Restan ${diasRestantes} días` : "Membresía vencida",
-          color: user.status === "ACTIVE" ? "success" : "destructive",
+          description: diasRestantes > 0 ? `Restan ${diasRestantes} días` : "Membresía vencida",
+          color: "primary",
           dynamicFontSize: "text-2xl"
         },
         {
@@ -362,9 +362,23 @@ function DashboardContent() {
         { type: "success", message: "Excelente asistencia esta semana (92%)", action: "Ver estadísticas", href: "/stats" },
       ]
     } else {
-      // Card naranja si no tiene plan activo
-      if (user.status !== "ACTIVE") {
-        return [{ type: "warning", message: "Tu membresía está vencida. Realiza un pago para reactivar tu plan.", action: "Realizar pago", href: "/payments" }];
+      // Card naranja si no tiene plan activo basado en historial de pagos
+      let diasRestantes = 0;
+      let ultimoPago = null;
+      if (payments.length > 0) {
+        ultimoPago = payments.filter(p => p.status === PaymentStatus.PAID && p.expiresAt).sort((a, b) => {
+          const aDate = a.expiresAt ? new Date(a.expiresAt as string) : new Date(0);
+          const bDate = b.expiresAt ? new Date(b.expiresAt as string) : new Date(0);
+          return bDate.getTime() - aDate.getTime();
+        })[0];
+        if (ultimoPago && ultimoPago.expiresAt) {
+          const hoy = new Date();
+          const vencimiento = new Date(ultimoPago.expiresAt as string);
+          diasRestantes = Math.max(0, Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+      }
+      if (diasRestantes === 0) {
+        return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", href: "/payments" }];
       }
       return [
         { type: "info", message: `¡Felicidades! Completaste ${clientStats.weeklyActivityCount || 0} actividades este mes`, action: "Ver progreso", href: "/progress" },
@@ -430,18 +444,18 @@ function DashboardContent() {
                 className={`border-l-4 shadow-professional transition-all duration-200 hover:shadow-professional-lg ${alert.type === "warning"
                   ? "border-l-warning bg-warning/5 hover:bg-warning/10"
                   : alert.type === "info"
-                    ? "border-l-secondary bg-secondary/5 hover:bg-secondary/10"
+                    ? "border-l-primary bg-primary/5 hover:bg-primary/10"
                     : "border-l-success bg-success/5 hover:bg-success/10"
                   }`}
               >
-                <CardContent className="p-5">
+                <CardContent className="p-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full ${alert.type === "warning" ? "bg-warning/20" :
-                        alert.type === "info" ? "bg-secondary/20" : "bg-success/20"
+                        alert.type === "info" ? "bg-primary/20" : "bg-success/20"
                         }`}>
                         {alert.type === "warning" && <AlertTriangle className="h-5 w-5 text-warning" />}
-                        {alert.type === "info" && <Bell className="h-5 w-5 text-secondary" />}
+                        {alert.type === "info" && <Bell className="h-5 w-5 text-primary" />}
                         {alert.type === "success" && <CheckCircle className="h-5 w-5 text-success" />}
                       </div>
                       <span className="text-sm font-semibold text-foreground">{alert.message}</span>
