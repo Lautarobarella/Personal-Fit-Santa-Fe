@@ -106,8 +106,8 @@ export function PaymentReceiptDisplay({
     const isImage = fileData.type.startsWith('image/');
 
     return (
-        <div className={`space-y-3 ${className}`}>
-            <div className="border rounded-lg overflow-hidden">
+        <div className={`space-y-3`}>
+            <div className={`border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 ${className.includes('h-') || className.includes('max-h-') ? className : 'h-[400px]'}`}>
                 {isPDF ? (
                     <div className="bg-gray-50 p-8 text-center">
                         <FileText className="h-16 w-16 mx-auto text-red-600 mb-4" />
@@ -120,7 +120,7 @@ export function PaymentReceiptDisplay({
                     <img
                         src={fileData.url}
                         alt="Comprobante de pago"
-                        className="w-full max-h-[400px] object-contain bg-gray-50"
+                        className="max-w-full max-h-full object-contain"
                         onError={() => setError(true)}
                     />
                 ) : (

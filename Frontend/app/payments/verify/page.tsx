@@ -198,16 +198,16 @@ export default function PaymentVerificationPage() {
       />
 
       <div className="flex-1 overflow-hidden px-3 py-2">
-        {/* Progress section - más compacto */}
-        <div className="flex items-center justify-between text-xs mb-1">
+        {/* Progress section */}
+        <div className="flex items-center justify-between text-sm mb-1.5">
           <span className="font-medium">Progreso</span>
           <span className="text-muted-foreground">
             {reviewedCount} completados, {totalPendingPayments} totales
           </span>
         </div>
-        <div className="w-full bg-muted rounded-full h-1 mb-2">
+        <div className="w-full bg-muted rounded-full h-1.5 mb-2">
           <div
-            className="bg-primary h-1 rounded-full transition-all duration-300"
+            className="bg-primary h-1.5 rounded-full transition-all duration-300"
             style={{
               width: (!initialPendingCount.current || reviewedCount === 0)
                 ? "0%"
@@ -216,36 +216,36 @@ export default function PaymentVerificationPage() {
           />
         </div>
 
-        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} overflow-hidden`}>
+        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} space-y-2`}>
           {/* Renderiza solo si hay currentPayment */}
           {currentPayment && (
             <>
-              {/* Payment details card - más compacto */}
+              {/* Payment details card */}
               <Card className="mb-2">
-                <CardContent className="p-2">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3 text-muted-foreground" />
+                <CardContent className="p-2.5">
+                  <div className="grid grid-cols-2 gap-2.5 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium truncate">{currentPayment.clientName}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="truncate">{formatDateTime(currentPayment.createdAt)}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3 text-muted-foreground" />
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="font-bold">{currentPayment.amount}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <Badge variant={getStatusColor(currentPayment.status)} className="text-xs px-1.5 py-0.5">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Badge variant={getStatusColor(currentPayment.status)} className="text-sm px-2 py-1">
                         {getStatusText(currentPayment.status)}
                       </Badge>
                     </div>
                   </div>
                   {currentPayment.receiptUrl && (
-                    <div className="mt-1 pt-1 border-t">
-                      <span className="text-xs text-muted-foreground">
+                    <div className="mt-1.5 pt-1.5 border-t">
+                      <span className="text-sm text-muted-foreground">
                         Comprobante: {formatDateTime(currentPayment.createdAt)}
                       </span>
                     </div>
@@ -253,17 +253,17 @@ export default function PaymentVerificationPage() {
                 </CardContent>
               </Card>
 
-              {/* Receipt section - usar el nuevo componente con tamaño reducido */}
+              {/* Receipt section */}
               <Card className="mb-2">
-                <CardContent className="p-2">
-                  <Label className="text-xs font-medium mb-1 block">Comprobante de Pago</Label>
+                <CardContent className="p-2.5">
+                  <Label className="text-sm font-medium mb-1.5 block">Comprobante de Pago</Label>
                   <PaymentReceiptDisplay
                     fileId={currentPayment.receiptId}
                     fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
-                    className="max-h-48"
+                    className="h-72"
                     showActions={false}
                   />
-                  <div className="mt-1 flex gap-1">
+                  <div className="mt-1.5 flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -273,7 +273,7 @@ export default function PaymentVerificationPage() {
                           window.open(`/payments/files/${fileId}`, "_blank");
                         }
                       }}
-                      className="bg-transparent text-xs px-2 py-1 h-7"
+                      className="bg-transparent text-sm px-2.5 py-1.5 h-8"
                       disabled={!currentPayment.receiptId}
                     >
                       Ver completo
@@ -287,7 +287,7 @@ export default function PaymentVerificationPage() {
                         link.download = `comprobante-${currentPayment.clientName}-${currentPayment.createdAt}.jpg`
                         link.click()
                       }}
-                      className="bg-transparent text-xs px-2 py-1 h-7"
+                      className="bg-transparent text-sm px-2.5 py-1.5 h-8"
                       disabled={!currentPayment.receiptUrl}
                     >
                       Descargar
@@ -298,42 +298,42 @@ export default function PaymentVerificationPage() {
             </>
           )}
 
-          {/* Rejection reason - más compacto */}
-          <Card className="mb-1">
-            <CardContent className="p-2">
-              <Label htmlFor="rejectionReason" className="text-xs">Razón del rechazo</Label>
+          {/* Rejection reason */}
+          <Card className="mb-2">
+            <CardContent className="p-2.5">
+              <Label htmlFor="rejectionReason" className="text-sm font-medium">Razón del rechazo</Label>
               <Textarea
                 id="rejectionReason"
                 placeholder="Explica por qué se rechaza el pago..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={2}
-                className="resize-none text-xs mt-1"
+                className="resize-none text-sm mt-1.5"
                 disabled={!currentPayment}
               />
             </CardContent>
           </Card>
 
-          {/* Action buttons - más compactos */}
-          <div className="flex gap-2 mt-2">
+          {/* Action buttons */}
+          <div className="flex gap-2 mt-2 mb-3">
             <Button
               variant="secondary"
               onClick={() => handleStatusUpdate("rejected")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-1.5 text-sm font-semibold h-8"
+              className="w-1/2 py-2 text-sm font-semibold h-9"
             >
-              {isVerifying && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-              {!isVerifying && <X className="mr-1 h-3 w-3" />}
+              {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!isVerifying && <X className="mr-2 h-4 w-4" />}
               Rechazar
             </Button>
             <Button
               variant="default"
               onClick={() => handleStatusUpdate("paid")}
               disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-1.5 text-sm font-semibold h-8"
+              className="w-1/2 py-2 text-sm font-semibold h-9"
             >
-              {isVerifying && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-              {!isVerifying && <Check className="mr-1 h-3 w-3" />}
+              {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!isVerifying && <Check className="mr-2 h-4 w-4" />}
               Aprobar
             </Button>
           </div>
