@@ -67,28 +67,41 @@ export default function ActivitiesPage() {
   useEffect(() => {
     if (!loading && !hasScrolledToToday && activities.length > 0) {
       const today = new Date()
+      today.setHours(0, 0, 0, 0) // Normalizar la hora para comparación
+
       const currentWeekStart = new Date(currentWeek)
+      currentWeekStart.setHours(0, 0, 0, 0)
+
       const currentWeekEnd = new Date(currentWeek)
       currentWeekEnd.setDate(currentWeekEnd.getDate() + 6)
-      
+      currentWeekEnd.setHours(23, 59, 59, 999)
+
       // Solo hacer scroll si hoy está en la semana actual
       if (today >= currentWeekStart && today <= currentWeekEnd) {
-        // Calcular el índice del día basado en cómo se construye weekDates
-        // weekDates[0] = lunes, weekDates[1] = martes, ..., weekDates[6] = domingo
-        const todayDayOfWeek = today.getDay() // 0=domingo, 1=lunes, ..., 6=sábado
-        const dayIndex = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1 // Convertir a índice de weekDates
-        
-        const targetElement = document.getElementById(`day-${dayIndex}`)
-        
-        if (targetElement) {
-          targetElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-          })
-          setHasScrolledToToday(true)
-        } else {
-          console.log(`Element day-${dayIndex} not found for day ${todayDayOfWeek}`)
+        // Buscar el día actual en el array weekDates
+        const todayIndex = weekDates.findIndex(date =>
+          date.toDateString() === today.toDateString()
+        )
+
+        if (todayIndex === -1) {
+          return
         }
+
+        // Usar setTimeout para asegurar que el DOM esté completamente renderizado
+        setTimeout(() => {
+          const targetElement = document.getElementById(`day-${todayIndex}`)
+
+          if (targetElement) {
+            // Scroll para que el día aparezca en la parte superior con un margen
+            targetElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+              inline: 'nearest'
+            })
+
+            setHasScrolledToToday(true)
+          }
+        }, 200)
       }
     }
   }, [loading, activities, hasScrolledToToday, currentWeek])
@@ -550,10 +563,10 @@ export default function ActivitiesPage() {
                             <div className="w-full bg-muted rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full transition-all ${activity.currentParticipants >= activity.maxParticipants
-                                    ? "bg-destructive"
-                                    : activity.currentParticipants / activity.maxParticipants > 0.8
-                                      ? "bg-warning"
-                                      : "bg-primary"
+                                  ? "bg-destructive"
+                                  : activity.currentParticipants / activity.maxParticipants > 0.8
+                                    ? "bg-warning"
+                                    : "bg-primary"
                                   }`}
                                 style={{
                                   width: `${(activity.currentParticipants / activity.maxParticipants) * 100}%`,
