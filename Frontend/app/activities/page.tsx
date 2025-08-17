@@ -73,7 +73,11 @@ export default function ActivitiesPage() {
       
       // Solo hacer scroll si hoy está en la semana actual
       if (today >= currentWeekStart && today <= currentWeekEnd) {
-        const dayIndex = (today.getDay() + 6) % 7 // Convertir domingo=0 a domingo=6
+        // Calcular el índice del día basado en cómo se construye weekDates
+        // weekDates[0] = lunes, weekDates[1] = martes, ..., weekDates[6] = domingo
+        const todayDayOfWeek = today.getDay() // 0=domingo, 1=lunes, ..., 6=sábado
+        const dayIndex = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1 // Convertir a índice de weekDates
+        
         const targetElement = document.getElementById(`day-${dayIndex}`)
         
         if (targetElement) {
@@ -82,6 +86,8 @@ export default function ActivitiesPage() {
             block: 'center' 
           })
           setHasScrolledToToday(true)
+        } else {
+          console.log(`Element day-${dayIndex} not found for day ${todayDayOfWeek}`)
         }
       }
     }
