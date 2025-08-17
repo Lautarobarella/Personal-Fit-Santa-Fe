@@ -29,12 +29,10 @@ export async function fetchActivitiesByDate(date: Date) {
 
 export async function fetchActivityDetail(id: number) {
   try {
-    console.log("Fetching activity detail for ID:", id) // Debug
     const response = await jwtPermissionsApi.get(`/api/activities/${id}`);
-    console.log("Activity detail response:", response) // Debug
     return response;
   } catch (error) {
-    console.error("Error in fetchActivityDetail:", error) // Debug
+    console.error("Error in fetchActivityDetail:", error);
     handleApiError(error, 'Error al cargar los detalles de la actividad');
     throw error;
   }
