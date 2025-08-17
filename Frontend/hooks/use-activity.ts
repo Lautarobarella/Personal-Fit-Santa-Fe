@@ -98,18 +98,22 @@ export function useActivities() {
     }
   }, [loadActivities])
 
-  const editActivity = useCallback(async (activity: ActivityFormType) => {
+  const editActivity = useCallback(async (activityId: number, activity: ActivityFormType) => {
     setLoading(true)
     setError(null)
     try {
-      await editActivityBack(activity) 
+      // Añadir el ID al objeto activity para la API
+      const activityWithId = { ...activity, id: activityId.toString() }
+      await editActivityBack(activityWithId)
+      // Recargar actividades después de editar
+      await loadActivities()
     } catch (err) {
       setError("Error al editar la actividad")
       throw err
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadActivities])
 
   const deleteActivityById = useCallback(async (activityId: number) => {
     setLoading(true)

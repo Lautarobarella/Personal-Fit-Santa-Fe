@@ -752,7 +752,7 @@ export default function ActivitiesPage() {
                                     Ver Detalles
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/activities/${activity.id}`}>Editar</Link>
+                                    <Link href={`/activities/edit/${activity.id}`}>Editar</Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>Ver Asistencia</DropdownMenuItem>
                                   <DropdownMenuItem
@@ -913,7 +913,9 @@ export default function ActivitiesPage() {
           activityId={detailsDialog.activity.id}
           onEdit={() => {
             setDetailsDialog({ open: false, activity: null })
-            router.push('/activities/' + detailsDialog.activity + '/edit')
+            if (detailsDialog.activity) {
+              router.push('/activities/edit/' + detailsDialog.activity.id)
+            }
           }}
           onDelete={() => {
             setDetailsDialog({ open: false, activity: null })
