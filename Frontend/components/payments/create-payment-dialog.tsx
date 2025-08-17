@@ -344,8 +344,6 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                     setSelectedClient(value)
                                 }
                             }}
-                            disabled={user?.role === UserRole.CLIENT}
-                            className={user?.role === UserRole.CLIENT ? "bg-muted text-foreground cursor-not-allowed border border-orange-300" : ""}
                         />
                     </div>
 
@@ -361,6 +359,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                     <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
                                     <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
                                     <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                    <SelectItem value={MethodType.MERCADOPAGO}>MercadoPago</SelectItem>
                                 </SelectContent>
                             </Select>
                         ) : (

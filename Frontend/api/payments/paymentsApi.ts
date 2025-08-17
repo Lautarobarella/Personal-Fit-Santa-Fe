@@ -71,7 +71,7 @@ export async function createPayment(
     createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
     expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
     paymentStatus,
-    method: paymentData.method,
+    methodType: paymentData.method,
   };
 
   formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }));

@@ -25,7 +25,8 @@ export enum AttendanceStatus {
 export enum MethodType {
   CASH = "CASH",
   CARD = "CARD",
-  TRANSFER = "TRANSFER"
+  TRANSFER = "TRANSFER",
+  MERCADOPAGO = "MERCADOPAGO"
 }
 
 export enum PaymentStatus {

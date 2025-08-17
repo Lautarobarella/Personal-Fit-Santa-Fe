@@ -77,10 +77,10 @@ export async function processWebhookNotification(payload: WebhookPayload) {
 
         if (notificationType === "payment" && payload.data?.id) {
             const mpPayment = await getPaymentById(payload.data.id);
-            
+
             if (mpPayment && mpPayment.status === 'approved') {
                 const clientInfo = await mapPaymentToClient(mpPayment);
-                
+
                 return {
                     success: true,
                     paymentId: mpPayment.id,
@@ -96,10 +96,10 @@ export async function processWebhookNotification(payload: WebhookPayload) {
             }
         }
 
-        return { 
+        return {
             success: false,
-            message: "Tipo de notificación no procesado", 
-            type: notificationType 
+            message: "Tipo de notificación no procesado",
+            type: notificationType
         };
 
     } catch (error) {
@@ -115,7 +115,7 @@ export async function processWebhookNotification(payload: WebhookPayload) {
 async function mapPaymentToClient(mpPayment: any) {
     try {
         const externalRef = mpPayment.external_reference;
-        
+
         if (!externalRef) {
             return null;
         }
@@ -124,7 +124,7 @@ async function mapPaymentToClient(mpPayment: any) {
         if (parts.length >= 3) {
             const userDni = parseInt(parts[0]);
             const productId = parts[1];
-            
+
             const paymentInfo = {
                 productId: productId,
                 productName: 'Cuota mensual gimnasio',
@@ -139,14 +139,14 @@ async function mapPaymentToClient(mpPayment: any) {
                 mpPaymentId: mpPayment.id,
                 clientDni: userDni,
             };
-            
+
             await createPaymentMP(paymentInfo);
-            
+
             return paymentInfo;
         }
-        
+
         return null;
-        
+
     } catch (error) {
         return null;
     }
@@ -157,7 +157,7 @@ async function mapPaymentToClient(mpPayment: any) {
  */
 async function createPaymentMP(paymentInfo: any) {
     const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
-    
+
     if (newStatus === 'paid') {
         const paymentData = {
             clientDni: paymentInfo.clientDni,
@@ -167,10 +167,10 @@ async function createPaymentMP(paymentInfo: any) {
             mpPaymentId: paymentInfo.mpPaymentId,
             paymentMethod: paymentInfo.paymentMethod,
         };
-        
+
         return await createPaymentServerSide(paymentData);
     }
-    
+
     return null;
 }
 
@@ -187,7 +187,7 @@ async function createPaymentServerSide(paymentData: {
     paymentMethod: string;
 }) {
     const url = buildApiUrl('/api/payments/webhook/mercadopago');
-    
+
     const payment = {
         clientDni: paymentData.clientDni,
         amount: paymentData.amount,
@@ -233,7 +233,9 @@ function mapMercadoPagoStatus(mpStatus: string): string {
 
 /**
  * Mapea el método de pago de MercadoPago al método del sistema
+ * Todos los pagos de MercadoPago se clasifican como MERCADOPAGO
  */
+
 function mapPaymentMethod(mpMethod: string): MethodType {
     switch (mpMethod) {
         case 'credit_card':
@@ -242,7 +244,7 @@ function mapPaymentMethod(mpMethod: string): MethodType {
         case 'bank_transfer':
             return MethodType.TRANSFER;
         default:
-            return MethodType.CASH;
+            return MethodType.MERCADOPAGO;
     }
 }
 
@@ -252,14 +254,14 @@ function mapPaymentMethod(mpMethod: string): MethodType {
 export async function testMercadoPagoConfiguration() {
     const accessToken = process.env.MP_ACCESS_TOKEN;
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
-    
+
     if (!accessToken) {
         return {
             success: false,
             error: 'Token de acceso de MercadoPago no configurado'
         };
     }
-    
+
     return {
         success: true,
         message: "Configuración de MercadoPago verificada",

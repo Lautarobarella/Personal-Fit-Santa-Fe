@@ -188,6 +188,8 @@ export default function PaymentsPage() {
                 return "Tarjeta"
             case MethodType.TRANSFER:
                 return "Transferencia"
+            case MethodType.MERCADOPAGO:
+                return "MercadoPago"
             default:
                 return method
         }
@@ -380,6 +382,7 @@ export default function PaymentsPage() {
                                     <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
                                     <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
                                     <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                    <SelectItem value={MethodType.MERCADOPAGO}>MercadoPago</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
