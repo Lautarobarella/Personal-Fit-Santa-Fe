@@ -68,6 +68,10 @@ public class PaymentService {
     @Lazy
     private UserService userService;
 
+    @Autowired
+    @Lazy
+    private NotificationService notificationService;
+
     /**
      * Crea un nuevo pago con archivo opcional
      * Unifica la lógica de creación manual y automática
@@ -172,14 +176,14 @@ public class PaymentService {
         LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
 
         return paymentRepository.findAll().stream()
-                .filter(payment -> payment.getCreatedAt().isAfter(startOfMonth) && 
-                                 payment.getCreatedAt().isBefore(endOfMonth))
+                .filter(payment -> payment.getCreatedAt().isAfter(startOfMonth) &&
+                        payment.getCreatedAt().isBefore(endOfMonth))
                 .map(payment -> {
                     PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
                     // Actualizar estado a EXPIRED si está vencido y era PAID
-                    if (payment.getStatus() == PaymentStatus.PAID && 
-                        payment.getExpiresAt() != null && 
-                        payment.getExpiresAt().isBefore(now)) {
+                    if (payment.getStatus() == PaymentStatus.PAID &&
+                            payment.getExpiresAt() != null &&
+                            payment.getExpiresAt().isBefore(now)) {
                         dto.setStatus(PaymentStatus.EXPIRED);
                     }
                     return dto;
@@ -199,9 +203,9 @@ public class PaymentService {
                 .map(payment -> {
                     PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
                     // Actualizar estado a EXPIRED si está vencido y era PAID
-                    if (payment.getStatus() == PaymentStatus.PAID && 
-                        payment.getExpiresAt() != null && 
-                        payment.getExpiresAt().isBefore(now)) {
+                    if (payment.getStatus() == PaymentStatus.PAID &&
+                            payment.getExpiresAt() != null &&
+                            payment.getExpiresAt().isBefore(now)) {
                         dto.setStatus(PaymentStatus.EXPIRED);
                     }
                     return dto;
@@ -379,7 +383,7 @@ public class PaymentService {
             throw new FileException("El archivo está vacío", "/api/payments/new");
         }
 
-        log.info("Validando archivo: {} ({} bytes, tipo: {})", 
+        log.info("Validando archivo: {} ({} bytes, tipo: {})",
                 file.getOriginalFilename(), file.getSize(), file.getContentType());
 
         if (file.getSize() > MAX_FILE_SIZE_MB * 1024 * 1024) {
@@ -390,12 +394,13 @@ public class PaymentService {
 
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-            throw new FileException("Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, WebP) y PDFs. " +
-                    "Tipo recibido: " + contentType,
+            throw new FileException(
+                    "Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, WebP) y PDFs. " +
+                            "Tipo recibido: " + contentType,
                     "/api/payments/new");
         }
 
-        log.info("Archivo validado correctamente: {} ({}MB)", 
+        log.info("Archivo validado correctamente: {} ({}MB)",
                 file.getOriginalFilename(), String.format("%.2f", file.getSize() / 1024.0 / 1024.0));
     }
 
@@ -458,6 +463,7 @@ public class PaymentService {
 
             final var today = java.time.LocalDate.now();
             int expiredCount = 0;
+            List<User> usersWithExpiredPayments = new ArrayList<>();
 
             for (Payment payment : paidPayments) {
                 if (payment.getExpiresAt() == null) {
@@ -468,12 +474,21 @@ public class PaymentService {
                     payment.setStatus(PaymentStatus.EXPIRED);
                     payment.setUpdatedAt(LocalDateTime.now());
                     userService.updateUserStatus(payment.getUser(), UserStatus.INACTIVE);
+                    usersWithExpiredPayments.add(payment.getUser());
                     expiredCount++;
                 }
             }
 
             if (expiredCount > 0) {
                 paymentRepository.saveAll(paidPayments);
+
+                // Enviar notificaciones de pago vencido a los usuarios afectados
+                try {
+                    notificationService.createPaymentExpiredNotification(usersWithExpiredPayments, new ArrayList<>());
+                    log.info("Payment expiration notifications sent to {} users", usersWithExpiredPayments.size());
+                } catch (Exception notifEx) {
+                    log.error("Error sending payment expiration notifications: {}", notifEx.getMessage(), notifEx);
+                }
             }
 
             log.info("Daily expiration completed. Payments expired today: {}", expiredCount);
@@ -510,7 +525,7 @@ public class PaymentService {
         monthlyRevenue.addRevenue(amount);
         monthlyRevenueRepository.save(monthlyRevenue);
 
-        log.info("Monthly revenue updated: Year={}, Month={}, Amount={}, Total={}", 
+        log.info("Monthly revenue updated: Year={}, Month={}, Amount={}, Total={}",
                 year, month, amount, monthlyRevenue.getTotalRevenue());
     }
 
@@ -591,7 +606,7 @@ public class PaymentService {
                 revenue.setArchivedAt(now);
                 monthlyRevenueRepository.save(revenue);
 
-                log.info("Monthly revenue archived: Year={}, Month={}, Total Revenue={}, Total Payments={}", 
+                log.info("Monthly revenue archived: Year={}, Month={}, Total Revenue={}, Total Payments={}",
                         lastYear, lastMonthNumber, revenue.getTotalRevenue(), revenue.getTotalPayments());
             } else {
                 log.info("No revenue found for previous month: Year={}, Month={}", lastYear, lastMonthNumber);

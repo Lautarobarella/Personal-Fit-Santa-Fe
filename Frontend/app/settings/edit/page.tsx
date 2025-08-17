@@ -265,7 +265,6 @@ export default function EditProfilePage() {
                                     onClick={handleCancel}
                                     disabled={isLoading}
                                 >
-                                    <ArrowLeft className="h-4 w-4 mr-2" />
                                     Cancelar
                                 </Button>
                                 <Button

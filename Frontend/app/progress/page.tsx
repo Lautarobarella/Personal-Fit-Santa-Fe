@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Progress } from "@/components/ui/progress"
 import { Award, Calendar, Target, TrendingUp } from "lucide-react"
+import { useRouter } from "next/dist/client/components/navigation"
 
 export default function ProgressPage() {
     const { user } = useAuth()
-
+    const router = useRouter()
     if (!user) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -22,10 +23,12 @@ export default function ProgressPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <MobileHeader 
-                title="Mi Progreso" 
+            <MobileHeader
+                title="Mi Progreso"
+                showBack
+                onBack={() => router.push("/dashboard")}
             />
-            
+
             <main className="container mx-auto px-4 py-6 pb-32 space-y-6">
                 {/* Coming Soon Card */}
                 <Card>
@@ -54,7 +57,7 @@ export default function ProgressPage() {
                                     <p className="text-sm text-muted-foreground">de --</p>
                                 </div>
                             </div>
-                            
+
                             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <Target className="h-5 w-5 text-green-500" />
@@ -68,7 +71,7 @@ export default function ProgressPage() {
                                     <Progress value={0} className="w-20 h-2 mt-1" />
                                 </div>
                             </div>
-                            
+
                             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <Award className="h-5 w-5 text-yellow-500" />
@@ -83,19 +86,19 @@ export default function ProgressPage() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Coming Soon Message */}
                         <div className="text-center p-6 bg-gradient-to-br from-emerald-50 to-blue-50 dark:from-emerald-950/20 dark:to-blue-950/20 rounded-lg">
                             <h3 className="font-semibold text-lg mb-2">¡Muy Pronto!</h3>
                             <p className="text-muted-foreground text-sm">
-                                Estamos trabajando para brindarte estadísticas detalladas de tu progreso, 
+                                Estamos trabajando para brindarte estadísticas detalladas de tu progreso,
                                 gráficos de evolución y un sistema de logros personalizado.
                             </p>
                         </div>
                     </CardContent>
                 </Card>
             </main>
-            
+
             <BottomNav />
         </div>
     )

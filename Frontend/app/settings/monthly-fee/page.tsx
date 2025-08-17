@@ -23,7 +23,7 @@ export default function MonthlyFeePage() {
 
   // Redirect if not admin
   useEffect(() => {
-            if (user && user.role !== UserRole.ADMIN) {
+    if (user && user.role !== UserRole.ADMIN) {
       router.push("/settings")
     }
   }, [user, router])
@@ -48,7 +48,7 @@ export default function MonthlyFeePage() {
       }
     }
 
-            if (user?.role === UserRole.ADMIN) {
+    if (user?.role === UserRole.ADMIN) {
       fetchMonthlyFee()
     }
   }, [user, toast])
@@ -86,13 +86,13 @@ export default function MonthlyFeePage() {
     }
   }
 
-          if (!user || user.role !== UserRole.ADMIN) {
+  if (!user || user.role !== UserRole.ADMIN) {
     return null
   }
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <MobileHeader title="Valor de la Cuota" />
+      <MobileHeader title="Valor de la Cuota" showBack onBack={() => router.back()} />
 
       <div className="container-centered py-6 space-y-6">
         <Card>
@@ -127,7 +127,6 @@ export default function MonthlyFeePage() {
                 disabled={isSaving}
                 className="flex-1"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
                 Cancelar
               </Button>
               <Button
