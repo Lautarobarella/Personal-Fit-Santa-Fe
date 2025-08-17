@@ -1,15 +1,15 @@
 import {
-    createPayment,
-    fetchAllPayments,
-    fetchPaymentDetails,
-    fetchUserPayments,
-    updatePaymentStatus
+  createPayment,
+  fetchAllPayments,
+  fetchPaymentDetails,
+  fetchUserPayments,
+  updatePaymentStatus
 } from "@/api/payments/paymentsApi"
 import { NewPaymentInput, PaymentType } from "@/lib/types"
 import {
-    useMutation,
-    useQuery,
-    useQueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback } from "react"
 
@@ -38,12 +38,24 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   const createPaymentMutation = useMutation({
     mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) =>
       createPayment(data.paymentData, data.isMercadoPagoPayment),
-    onSuccess: () => {
+    onSuccess: async (response, variables) => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
       if (queryClient) {
         queryClient.invalidateQueries({ queryKey: ["payments"] })
-        // También invalidar monthly revenue para mantener consistencia
-        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+        
+        // Si es un pago automático (admin) o un pago PAID, invalidar ingresos mensuales
+        const isAutomaticPayment = variables.isMercadoPagoPayment
+        if (isAutomaticPayment) {
+          // Invalidar inmediatamente
+          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
+          
+          // Invalidar nuevamente después de un breve delay para asegurar consistencia
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+            queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
+          }, 1000)
+        }
       }
     },
   })
@@ -58,12 +70,23 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       status: "paid" | "rejected"
       rejectionReason?: string
     }) => updatePaymentStatus(id, status, rejectionReason),
-    onSuccess: () => {
+    onSuccess: (response, variables) => {
       // Invalidar todas las queries de pagos para asegurar que se actualice tanto para admin como para clientes
       if (queryClient) {
         queryClient.invalidateQueries({ queryKey: ["payments"] })
-        // También invalidar monthly revenue para mantener consistencia
-        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+        
+        // Si se aprueba un pago (status = "paid"), invalidar ingresos mensuales
+        if (variables.status === "paid") {
+          // Invalidar inmediatamente
+          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
+          
+          // Invalidar nuevamente después de un breve delay para asegurar consistencia
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
+            queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
+          }, 1000)
+        }
       }
     },
   })

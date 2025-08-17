@@ -10,9 +10,10 @@ export function useMonthlyRevenue(enabled: boolean = false) {
   const { data: currentMonthRevenue, isLoading: isLoadingCurrent, error: currentError } = useQuery<MonthlyRevenue>({
     queryKey: ["monthlyRevenue", "current"],
     queryFn: fetchCurrentMonthRevenue,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 1 * 60 * 1000, // Reducido a 1 minuto para actualizaciones más frecuentes
     retry: 1,
     enabled, // Solo ejecutar si está habilitado (admin)
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana toma foco
   })
 
   // Historial de ingresos archivados
