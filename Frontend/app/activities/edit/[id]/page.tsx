@@ -201,7 +201,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
     if (apiError || error || !currentActivity) {
         return (
             <div className="min-h-screen bg-background pb-32">
-                <MobileHeader title="Editar Actividad" showBack />
+                <MobileHeader title="Editar Actividad" showBack onBack={() => router.push("/activities")} />
                 <div className="container-centered py-6">
                     <Card>
                         <CardContent className="pt-6">
@@ -226,7 +226,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
 
     return (
         <div className="min-h-screen bg-background pb-32">
-            <MobileHeader title="Editar Actividad" showBack />
+            <MobileHeader title="Editar Actividad" showBack onBack={() => router.push("/activities")} />
 
             <div className="container-centered py-6 space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
