@@ -1,4 +1,4 @@
-import { createUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
+import { checkUserMembershipStatus, createUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
 import { fetchUserPayments } from "@/api/payments/paymentsApi"
 import { UserRole, type UserDetailInfo, type UserFormType, type UserType } from "@/lib/types"
 import { useCallback, useState } from "react"
@@ -68,6 +68,16 @@ export function useClients() {
   // Limpiar cliente seleccionado
   const clearSelectedClient = () => setSelectedClient(null)
 
+  // Verificar si un usuario tiene membresía activa
+  const checkMembershipStatus = useCallback(async (userId: number): Promise<boolean> => {
+    try {
+      return await checkUserMembershipStatus(userId)
+    } catch (error) {
+      console.error("Error checking membership status:", error)
+      return false
+    }
+  }, [])
+
   return {
     clients,
     selectedClient,
@@ -79,6 +89,7 @@ export function useClients() {
     loadClients,
     loadClientDetail,
     clearSelectedClient,
+    checkMembershipStatus,
     setClients, // opcional, por si quieres manipular manualmente
   }
 }

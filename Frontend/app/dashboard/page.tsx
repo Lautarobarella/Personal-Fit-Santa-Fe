@@ -8,9 +8,9 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useClientStats } from "@/hooks/use-client-stats"
-import { usePayment } from "@/hooks/use-payment"
+import { useMonthlyRevenue } from "@/hooks/use-monthly-revenue"
 import { usePendingPayments } from "@/hooks/use-pending-payments"
-import { ActivityStatus, PaymentStatus, UserRole } from "@/lib/types"
+import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   Activity,
@@ -46,7 +46,7 @@ function DashboardContent() {
   const [showRevenue, setShowRevenue] = useState(true)
 
   // Usar hooks de forma segura
-  const paymentHook = usePayment(user?.id, user?.role === UserRole.ADMIN)
+  const { checkMembershipStatus } = useClients()
   const {
     pendingPayments,
     totalPendingPayments,
@@ -55,9 +55,12 @@ function DashboardContent() {
   const { clients, loadClients } = useClients()
   const { activities, loadActivities } = useActivities()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
+  
+  // Hook para ingresos mensuales (solo para admin)
+  const { currentMonthRevenue, isLoadingCurrent } = useMonthlyRevenue(user?.role === UserRole.ADMIN)
 
-  // Extraer datos de forma segura
-  const payments = paymentHook?.payments || []
+  // Estado para cachear el estado de membresía
+  const [membershipStatus, setMembershipStatus] = useState<boolean | null>(null)
 
   // Marcar como montado para evitar SSR e invalidar queries para datos frescos
   useEffect(() => {
@@ -65,9 +68,13 @@ function DashboardContent() {
     loadClients()
     loadActivities()
 
-    // Invalidar queries de pagos para asegurar datos frescos al entrar al dashboard
+    // Para clientes, verificar estado de membresía
+    if (user?.role === UserRole.CLIENT && user.id) {
+      checkMembershipStatus(user.id).then(setMembershipStatus)
+    }
+
+    // Invalidar queries para asegurar datos frescos al entrar al dashboard
     if (user?.role === UserRole.ADMIN) {
-      queryClient.invalidateQueries({ queryKey: ["payments"] })
     }
   }, [loadClients, loadActivities, user?.role, queryClient])
 
@@ -79,18 +86,8 @@ function DashboardContent() {
     }
 
     try {
-      // 1. Ingresos del mes (solo pagos pagados)
-      const currentMonth = new Date().getMonth()
-      const currentYear = new Date().getFullYear()
-      const monthlyRevenue = payments
-        .filter(p => {
-          const paymentDate = p.createdAt ? new Date(p.createdAt) : null
-          return p.status === PaymentStatus.PAID &&
-            paymentDate &&
-            paymentDate.getMonth() === currentMonth &&
-            paymentDate.getFullYear() === currentYear
-        })
-        .reduce((sum, p) => sum + p.amount, 0)
+      // 1. Ingresos del mes (usar datos del backend en tiempo real)
+      const monthlyRevenue = currentMonthRevenue?.totalRevenue || 0
 
       // 2. Clientes activos
       const activeClients = clients.filter(c => c.status === "ACTIVE").length
@@ -102,9 +99,9 @@ function DashboardContent() {
 
       const todayActivities = activities.filter(a => {
         const activityDate = new Date(a.date)
-        return a.status === ActivityStatus.ACTIVE && 
-               activityDate >= today && 
-               activityDate < tomorrow
+        return a.status === ActivityStatus.ACTIVE &&
+          activityDate >= today &&
+          activityDate < tomorrow
       }).length
 
       // 4. Tasa de asistencia (simulada por ahora)
@@ -127,7 +124,7 @@ function DashboardContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [user, payments, clients, activities, mounted])
+  }, [user, clients, activities, mounted])
 
   // Evitar renderizado durante SSR
   if (!mounted) {
@@ -266,20 +263,15 @@ function DashboardContent() {
 
       const nextClassValue = formatNextClass();
 
-      // Calcular días restantes del plan activo
+      // Usar el estado de membresía validado por el backend
+      const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
+      
+      // Para el cálculo de días restantes, usar el estado de membresía validado
       let diasRestantes = 0;
-      let ultimoPago = null;
-      if (payments.length > 0) {
-        ultimoPago = payments.filter(p => p.status === PaymentStatus.PAID && p.expiresAt).sort((a, b) => {
-          const aDate = a.expiresAt ? new Date(a.expiresAt as string) : new Date(0);
-          const bDate = b.expiresAt ? new Date(b.expiresAt as string) : new Date(0);
-          return bDate.getTime() - aDate.getTime();
-        })[0];
-        if (ultimoPago && ultimoPago.expiresAt) {
-          const hoy = new Date();
-          const vencimiento = new Date(ultimoPago.expiresAt as string);
-          diasRestantes = Math.max(0, Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
-        }
+      if (hasActiveMembership) {
+        // Si tiene membresía activa, asumir 30 días como ejemplo
+        // En el futuro se puede obtener esta información del backend
+        diasRestantes = 30;
       }
 
       // Progreso mensual de actividades (fallback a weeklyActivityCount si no existe)
@@ -365,22 +357,10 @@ function DashboardContent() {
         { type: "success", message: "Excelente asistencia esta semana (92%)", action: "Ver estadísticas", href: "/stats" },
       ]
     } else {
-      // Card naranja si no tiene plan activo basado en historial de pagos
-      let diasRestantes = 0;
-      let ultimoPago = null;
-      if (payments.length > 0) {
-        ultimoPago = payments.filter(p => p.status === PaymentStatus.PAID && p.expiresAt).sort((a, b) => {
-          const aDate = a.expiresAt ? new Date(a.expiresAt as string) : new Date(0);
-          const bDate = b.expiresAt ? new Date(b.expiresAt as string) : new Date(0);
-          return bDate.getTime() - aDate.getTime();
-        })[0];
-        if (ultimoPago && ultimoPago.expiresAt) {
-          const hoy = new Date();
-          const vencimiento = new Date(ultimoPago.expiresAt as string);
-          diasRestantes = Math.max(0, Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
-        }
-      }
-      if (diasRestantes === 0) {
+      // Usar el estado de membresía validado por el backend
+      const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
+      
+      if (!hasActiveMembership) {
         return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", href: "/payments" }];
       }
       return [

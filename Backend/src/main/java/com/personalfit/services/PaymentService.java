@@ -530,26 +530,42 @@ public class PaymentService {
     }
 
     /**
-     * Obtiene los ingresos del mes actual
+     * Obtiene los ingresos del mes actual calculados en tiempo real
      */
     public MonthlyRevenueDTO getCurrentMonthRevenue() {
         LocalDateTime now = LocalDateTime.now();
-        Optional<MonthlyRevenue> currentRevenue = monthlyRevenueRepository
-                .findByYearAndMonth(now.getYear(), now.getMonthValue());
+        Integer year = now.getYear();
+        Integer month = now.getMonthValue();
 
-        if (currentRevenue.isPresent()) {
-            return convertToMonthlyRevenueDTO(currentRevenue.get(), true);
-        } else {
-            // Crear DTO vacío para el mes actual
-            return MonthlyRevenueDTO.builder()
-                    .year(now.getYear())
-                    .month(now.getMonthValue())
-                    .monthName(now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES")))
-                    .totalRevenue(0.0)
-                    .totalPayments(0)
-                    .isCurrentMonth(true)
-                    .build();
-        }
+        // Calcular ingresos en tiempo real desde los pagos PAID del mes actual
+        LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
+        List<Payment> paidPaymentsThisMonth = paymentRepository.findAll().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID)
+                .filter(p -> p.getCreatedAt() != null)
+                .filter(p -> !p.getCreatedAt().isBefore(startOfMonth) && !p.getCreatedAt().isAfter(endOfMonth))
+                .collect(Collectors.toList());
+
+        Double totalRevenue = paidPaymentsThisMonth.stream()
+                .mapToDouble(Payment::getAmount)
+                .sum();
+
+        Integer totalPayments = paidPaymentsThisMonth.size();
+
+        String monthName = now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
+
+        log.info("Calculated current month revenue in real time: Year={}, Month={}, TotalRevenue={}, TotalPayments={}", 
+                year, month, totalRevenue, totalPayments);
+
+        return MonthlyRevenueDTO.builder()
+                .year(year)
+                .month(month)
+                .monthName(monthName)
+                .totalRevenue(totalRevenue)
+                .totalPayments(totalPayments)
+                .isCurrentMonth(true)
+                .build();
     }
 
     /**

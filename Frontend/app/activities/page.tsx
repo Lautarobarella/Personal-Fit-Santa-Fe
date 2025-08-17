@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useActivities } from "@/hooks/use-activity"
+import { useClients } from "@/hooks/use-client"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityStatus, ActivityType, UserRole } from "@/lib/types"
 import {
@@ -34,7 +35,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 
 export default function ActivitiesPage() {
@@ -52,10 +53,28 @@ export default function ActivitiesPage() {
     isUserEnrolled,
     getUserEnrollmentStatus,
   } = useActivities()
+  const { checkMembershipStatus } = useClients()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
   const [hasScrolledToToday, setHasScrolledToToday] = useState(false)
+  const [membershipStatusCache, setMembershipStatusCache] = useState<{[userId: number]: boolean}>({})
+
+  // Función para verificar membresía con cache
+  const getMembershipStatus = useCallback(async (userId: number): Promise<boolean> => {
+    if (membershipStatusCache[userId] !== undefined) {
+      return membershipStatusCache[userId]
+    }
+    
+    try {
+      const isActive = await checkMembershipStatus(userId)
+      setMembershipStatusCache(prev => ({ ...prev, [userId]: isActive }))
+      return isActive
+    } catch (error) {
+      console.error("Error checking membership:", error)
+      return false
+    }
+  }, [checkMembershipStatus, membershipStatusCache])
   const router = useRouter()
   const [currentWeek, setCurrentWeek] = useState(() => {
     const today = new Date()
@@ -308,8 +327,14 @@ export default function ActivitiesPage() {
     const diffToMonday = (monday.getDay() + 6) % 7
     monday.setDate(monday.getDate() - diffToMonday)
     monday.setHours(0, 0, 0, 0)
+    
+    // Limpiar cache y forzar recarga de actividades para la semana actual
+    loadedWeeks.current.clear()
     setCurrentWeek(monday)
     setHasScrolledToToday(false) // Resetear para que vuelva a hacer scroll
+    
+    // Forzar recarga inmediata
+    loadActivitiesByWeek(monday)
   }
 
   const scrollToToday = () => {
@@ -337,6 +362,14 @@ export default function ActivitiesPage() {
 
   const isActivityCompleted = (activity: ActivityType) => {
     return activity.status === ActivityStatus.COMPLETED
+  }
+
+  // Función para verificar si una actividad ya comenzó
+  const isActivityPast = (activity: ActivityType) => {
+    const now = new Date()
+    // Crear fecha y hora de la actividad (asumiendo que date contiene la fecha completa)
+    const activityDateTime = new Date(activity.date)
+    return activityDateTime < now
   }
 
   const getActivityStatusBadge = (activity: ActivityType) => {
@@ -410,7 +443,7 @@ export default function ActivitiesPage() {
     }
   }
 
-  const handleEnrollActivity = (activity: ActivityType) => {
+  const handleEnrollActivity = async (activity: ActivityType) => {
     // Prevenir inscripción en actividades completadas o canceladas
     if (activity.status === ActivityStatus.COMPLETED || activity.status === ActivityStatus.CANCELLED) {
       toast({
@@ -419,6 +452,37 @@ export default function ActivitiesPage() {
         variant: "destructive",
       })
       return
+    }
+
+    // Verificar restricciones para clientes
+    if (user?.role === UserRole.CLIENT && !isUserEnrolled(activity, user.id)) {
+      if (isActivityPast(activity)) {
+        toast({
+          title: "Actividad pasada",
+          description: "No puedes inscribirte a actividades que ya han comenzado.",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      try {
+        const hasActiveMembership = await getMembershipStatus(user.id)
+        if (!hasActiveMembership) {
+          toast({
+            title: "Membresía requerida",
+            description: "Necesitas tener una membresía activa para inscribirte a las actividades. Por favor, realiza el pago de tu membresía.",
+            variant: "destructive",
+          })
+          return
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo verificar el estado de tu membresía. Intenta nuevamente.",
+          variant: "destructive",
+        })
+        return
+      }
     }
 
     setEnrollDialog({

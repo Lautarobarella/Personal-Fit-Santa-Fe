@@ -45,3 +45,18 @@ export async function updateUserPassword(data: {
     throw error;
   }
 }
+
+/**
+ * Verifica si un usuario tiene membresía activa
+ * @param userId ID del usuario
+ * @returns Promise<boolean> true si la membresía está activa
+ */
+export async function checkUserMembershipStatus(userId: number): Promise<boolean> {
+  try {
+    const response = await jwtPermissionsApi.get(`/api/users/${userId}/membership-status`);
+    return response.status === "ACTIVE";
+  } catch (error) {
+    console.error("Error checking membership status:", error);
+    return false;
+  }
+}
