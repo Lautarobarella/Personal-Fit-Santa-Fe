@@ -101,7 +101,10 @@ function DashboardContent() {
       tomorrow.setDate(tomorrow.getDate() + 1)
 
       const todayActivities = activities.filter(a => {
-        return a.status === ActivityStatus.ACTIVE
+        const activityDate = new Date(a.date)
+        return a.status === ActivityStatus.ACTIVE && 
+               activityDate >= today && 
+               activityDate < tomorrow
       }).length
 
       // 4. Tasa de asistencia (simulada por ahora)
