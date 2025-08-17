@@ -225,12 +225,12 @@ public class ActivityService {
 
     public List<ActivityTypeDTO> getAllActivitiesTypeDtoAtWeek(LocalDate date) {
 
-        // Obtener el inicio de la semana: domingo (incluido)
-        LocalDate startOfWeekDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
+        // Obtener el inicio de la semana: lunes (incluido) - formato ISO/europeo
+        LocalDate startOfWeekDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDateTime startOfWeek = startOfWeekDate.atStartOfDay(); // 00:00:00
 
-        // Obtener fin de semana: sábado (incluido)
-        LocalDate endOfWeekDate = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
+        // Obtener fin de semana: domingo (incluido) - formato ISO/europeo
+        LocalDate endOfWeekDate = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         LocalDateTime endOfWeek = endOfWeekDate.atTime(LocalTime.MAX); // 23:59:59.999999999
 
         // Obtener todas las actividades entre el inicio y fin de semana

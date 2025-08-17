@@ -17,8 +17,21 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
-import { ActivityType, UserRole } from "@/lib/types"
-import { Calendar, ChevronLeft, ChevronRight, Clock, Loader2, MapPin, MoreVertical, Plus, Search, Users } from "lucide-react"
+import { ActivityStatus, ActivityType, UserRole } from "@/lib/types"
+import {
+  Calendar,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Loader2,
+  MapPin,
+  MoreVertical,
+  Plus,
+  Search,
+  Users,
+  X,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -31,6 +44,7 @@ export default function ActivitiesPage() {
     activities,
     loading,
     error,
+    loadActivities,
     loadActivitiesByWeek,
     enrollIntoActivity,
     unenrollFromActivity,
@@ -54,14 +68,14 @@ export default function ActivitiesPage() {
 
   const loadedWeeks = useRef<Set<string>>(new Set())
 
+  // Cargar actividades - todos usan loadActivitiesByWeek para mostrar solo la semana actual
   useEffect(() => {
     const weekKey = currentWeek.toISOString().slice(0, 10)
-
     if (!loadedWeeks.current.has(weekKey)) {
       loadedWeeks.current.add(weekKey)
       loadActivitiesByWeek(currentWeek)
     }
-  }, [currentWeek, loadActivitiesByWeek])
+  }, [user?.role, currentWeek, loadActivitiesByWeek])
 
   // Auto-scroll al día actual cuando se cargan las actividades
   useEffect(() => {
@@ -172,33 +186,77 @@ export default function ActivitiesPage() {
   const weekDates = getWeekDates(currentWeek)
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
-  // Filter activities for current week
+  // Filter activities based on user role
   const weekActivities = activities.filter((activity) => {
     const activityDate = new Date(activity.date)
+    const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesTrainer = filterTrainer === "all" || activity.trainerName === filterTrainer
+    
+    // Tanto CLIENT como ADMIN/TRAINER filtran por semana actual (ya viene filtrado del backend)
     const weekStart = weekDates[0]
     const weekEnd = new Date(weekDates[6])
     weekEnd.setHours(23, 59, 59, 999)
     const matchesWeek = activityDate >= weekStart && activityDate <= weekEnd
-    const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesTrainer = filterTrainer === "all" || activity.trainerName === filterTrainer
-
+    
     return matchesWeek && matchesSearch && matchesTrainer
   })
 
   // Group activities by day
-  const activitiesByDay = weekDates.map((date) => {
-    const dayActivities = weekActivities
-      .filter((activity) => {
-        const activityDate = new Date(activity.date)
-        return activityDate.toDateString() === date.toDateString()
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const activitiesByDay = user?.role === UserRole.CLIENT
+    ? getActivitiesByDayForClient(weekActivities)
+    : getActivitiesByDayForAdmin(weekActivities, weekDates)
 
-    return {
-      date,
-      activities: dayActivities,
+  // Función para agrupar actividades por día para clientes (formato semanal lunes-domingo)
+  function getActivitiesByDayForClient(activities: typeof weekActivities) {
+    // Para CLIENT, mostrar la semana actual usando el mismo formato que ADMIN
+    const result = []
+    
+    for (const date of weekDates) {
+      const dayActivities = activities
+        .filter((activity) => {
+          const activityDate = new Date(activity.date)
+          const normalizedActivityDate = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate())
+          const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+          return normalizedActivityDate.getTime() === normalizedDate.getTime()
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      
+      result.push({
+        date,
+        activities: dayActivities,
+      })
     }
-  })
+    
+    return result
+  }
+
+  // Función para agrupar actividades por día para admin (semana actual)
+  function getActivitiesByDayForAdmin(activities: typeof weekActivities, weekDates: Date[]) {
+    return weekDates.map((date) => {
+      const dayActivities = activities
+        .filter((activity) => {
+          const activityDate = new Date(activity.date)
+          
+          // Normalizar ambas fechas para comparación precisa
+          const normalizedActivityDate = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate())
+          const normalizedWeekDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+          
+          return normalizedActivityDate.getTime() === normalizedWeekDate.getTime()
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      
+      return {
+        date,
+        activities: dayActivities,
+      }
+    })
+  }
+
+  // Función para obtener el nombre del día en español
+  const getDayName = (date: Date) => {
+    const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+    return dayNames[date.getDay()]
+  }
 
   // Get unique categories and trainers for filters
   const trainers = [...new Set(activities.map((a) => a.trainerName))]
@@ -224,8 +282,23 @@ export default function ActivitiesPage() {
   }
 
   const navigateWeek = (direction: "prev" | "next") => {
+    // Solo ADMIN y TRAINER pueden navegar por semanas
+    if (user?.role === UserRole.CLIENT) return
+
     const newDate = new Date(currentWeek)
     newDate.setDate(currentWeek.getDate() + (direction === "next" ? 7 : -7))
+    
+    // Restringir navegación hacia adelante para ADMIN/TRAINER
+    const today = new Date()
+    const mondayOfThisWeek = new Date(today)
+    const diffToMonday = (mondayOfThisWeek.getDay() + 6) % 7
+    mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
+    mondayOfThisWeek.setHours(0, 0, 0, 0)
+    
+    if (direction === "next" && newDate > mondayOfThisWeek) {
+      return // No permitir navegar más allá de la semana actual
+    }
+    
     setCurrentWeek(newDate)
   }
 
@@ -239,9 +312,52 @@ export default function ActivitiesPage() {
     setHasScrolledToToday(false) // Resetear para que vuelva a hacer scroll
   }
 
+  const scrollToToday = () => {
+    const today = new Date()
+    const todayIndex = activitiesByDay.findIndex(day => 
+      day.date.toDateString() === today.toDateString()
+    )
+    
+    if (todayIndex !== -1) {
+      const element = document.getElementById(`day-${todayIndex}`)
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        })
+      }
+    }
+  }
+
   const isToday = (date: Date) => {
     const today = new Date()
     return date.toDateString() === today.toDateString()
+  }
+
+  const isActivityCompleted = (activity: ActivityType) => {
+    return activity.status === ActivityStatus.COMPLETED
+  }
+
+  const getActivityStatusBadge = (activity: ActivityType) => {
+    switch (activity.status) {
+      case ActivityStatus.COMPLETED:
+        return (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Finalizada
+          </Badge>
+        )
+      case ActivityStatus.CANCELLED:
+        return (
+          <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">
+            <X className="h-3 w-3 mr-1" />
+            Cancelada
+          </Badge>
+        )
+      default:
+        return null
+    }
   }
 
   // const getCategoryColor = (category: string) => {
@@ -295,6 +411,16 @@ export default function ActivitiesPage() {
   }
 
   const handleEnrollActivity = (activity: ActivityType) => {
+    // Prevenir inscripción en actividades completadas o canceladas
+    if (activity.status === ActivityStatus.COMPLETED || activity.status === ActivityStatus.CANCELLED) {
+      toast({
+        title: "No disponible",
+        description: `No puedes inscribirte en una actividad ${activity.status === ActivityStatus.COMPLETED ? 'finalizada' : 'cancelada'}.`,
+        variant: "destructive",
+      })
+      return
+    }
+
     setEnrollDialog({
       open: true,
       activity,
@@ -353,34 +479,79 @@ export default function ActivitiesPage() {
       />
 
       <div className="container-centered py-6 space-y-6">
-        {/* Week Navigation */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className="bg-transparent">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+        {/* Week Navigation - Solo para ADMIN y TRAINER */}
+        {user?.role !== UserRole.CLIENT && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className="bg-transparent">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
 
-              <div className="text-center">
-                <h2 className="font-semibold text-lg">{formatWeekRange()}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(weekDates[0])}
-                </p>
+                <div className="text-center">
+                  <h2 className="font-semibold text-lg">{formatWeekRange()}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(weekDates[0])}
+                  </p>
+                </div>
+
+                {/* Solo mostrar flecha hacia adelante si no estamos en la semana actual */}
+                {(() => {
+                  const today = new Date()
+                  const mondayOfThisWeek = new Date(today)
+                  const diffToMonday = (mondayOfThisWeek.getDay() + 6) % 7
+                  mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
+                  mondayOfThisWeek.setHours(0, 0, 0, 0)
+                  
+                  const nextWeek = new Date(currentWeek)
+                  nextWeek.setDate(currentWeek.getDate() + 7)
+                  
+                  const canGoForward = nextWeek <= mondayOfThisWeek
+                  
+                  return canGoForward ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => navigateWeek("next")} 
+                      className="bg-transparent"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <div className="w-10 h-9" /> // Spacer para mantener el centrado
+                  )
+                })()}
               </div>
 
-              <Button variant="outline" size="sm" onClick={() => navigateWeek("next")} className="bg-transparent">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+              <div className="flex justify-center mt-3">
+                <Button variant="outline" size="sm" onClick={goToToday} className="bg-transparent">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Hoy
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <div className="flex justify-center mt-3">
-              <Button variant="outline" size="sm" onClick={goToToday} className="bg-transparent">
-                <Calendar className="h-4 w-4 mr-2" />
-                Hoy
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Client Activities Title y botón Hoy - Solo para CLIENT */}
+        {user?.role === UserRole.CLIENT && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <h2 className="font-semibold text-lg">Todas las Actividades</h2>
+                <p className="text-sm text-muted-foreground">
+                  Actividades disponibles por fecha
+                </p>
+              </div>
+              <div className="flex justify-center mt-3">
+                <Button variant="outline" size="sm" onClick={scrollToToday} className="bg-transparent">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Ir a Hoy
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card>
@@ -415,45 +586,66 @@ export default function ActivitiesPage() {
 
         {/* Weekly Calendar */}
         <div className="space-y-4">
-          {activitiesByDay.map((day, dayIndex) => (
+          {activitiesByDay.map((day, dayIndex) => {
+            // Para CLIENT, calcular el índice del día de la semana correctamente
+            const dayOfWeekIndex = user?.role === UserRole.CLIENT 
+              ? (day.date.getDay() + 6) % 7  // Convertir domingo=0 a domingo=6, lunes=1 a lunes=0
+              : dayIndex
 
-            <Card key={dayIndex} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`text-center ${isToday(day.date) ? "text-primary" : ""}`}>
-                      <div className="text-sm font-medium">{dayNames[dayIndex]}</div>
-                      <div
-                        className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full w-9 h-9 flex items-center justify-center" : ""}`}
-                      >
-                        {day.date.getDate()}
+            return (
+              <Card key={dayIndex} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`text-center ${isToday(day.date) ? "text-primary" : ""}`}>
+                        <div className="text-sm font-medium">
+                          {dayNames[dayOfWeekIndex]}
+                        </div>
+                        <div
+                          className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full w-9 h-9 flex items-center justify-center" : ""}`}
+                        >
+                          {day.date.getDate()}
+                        </div>
                       </div>
+                      {isToday(day.date) && (
+                        <Badge variant="default" className="text-xs">
+                          Hoy
+                        </Badge>
+                      )}
                     </div>
-                    {isToday(day.date) && (
-                      <Badge variant="default" className="text-xs">
-                        Hoy
-                      </Badge>
-                    )}
+                    <div className="text-sm text-muted-foreground">
+                      {day.activities.length} {day.activities.length === 1 ? "actividad" : "actividades"}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {day.activities.length} {day.activities.length === 1 ? "actividad" : "actividades"}
-                  </div>
-                </div>
 
                 {day.activities.length > 0 ? (
                   <div className="space-y-3">
-                    {day.activities.map((activity) => (
-                      <Card key={activity.id} className="border-l-4 border-l-primary">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-base">{activity.name}</h3>
-                                {/* <Badge variant="outline" className={`text-xs ${getCategoryColor(activity.category)}`}>
-                                  {activity.category}
-                                </Badge> */}
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
+                    {day.activities.map((activity) => {
+                      const isCompleted = isActivityCompleted(activity)
+                      return (
+                        <Card 
+                          key={activity.id} 
+                          className={`border-l-4 ${
+                            isCompleted 
+                              ? "border-l-gray-300 opacity-75" 
+                              : "border-l-primary"
+                          }`}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className={`font-semibold text-base ${isCompleted ? "text-gray-600" : ""}`}>
+                                    {activity.name}
+                                  </h3>
+                                  {getActivityStatusBadge(activity)}
+                                  {/* <Badge variant="outline" className={`text-xs ${getCategoryColor(activity.category)}`}>
+                                    {activity.category}
+                                  </Badge> */}
+                                </div>
+                                <p className={`text-sm mb-2 ${isCompleted ? "text-gray-500" : "text-muted-foreground"}`}>
+                                  {activity.description}
+                                </p>
 
                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1">
@@ -528,15 +720,29 @@ export default function ActivitiesPage() {
                                 <Button
                                   size="sm"
                                   onClick={() => handleEnrollActivity(activity)}
-                                  disabled={activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id)}
+                                  disabled={
+                                    isCompleted || 
+                                    activity.status === ActivityStatus.CANCELLED ||
+                                    (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id))
+                                  }
                                   className="text-xs"
-                                  variant={isUserEnrolled(activity, user.id) ? "destructive" : "default"}
+                                  variant={
+                                    isCompleted 
+                                      ? "secondary" 
+                                      : isUserEnrolled(activity, user.id) 
+                                        ? "destructive" 
+                                        : "default"
+                                  }
                                 >
-                                  {isUserEnrolled(activity, user.id)
-                                    ? "Desinscribir"
-                                    : activity.currentParticipants >= activity.maxParticipants
-                                      ? "Completo"
-                                      : "Inscribirse"}
+                                  {isCompleted
+                                    ? "Finalizada"
+                                    : activity.status === ActivityStatus.CANCELLED
+                                      ? "Cancelada"
+                                      : isUserEnrolled(activity, user.id)
+                                        ? "Desinscribir"
+                                        : activity.currentParticipants >= activity.maxParticipants
+                                          ? "Completo"
+                                          : "Inscribirse"}
                                 </Button>
                               )}
                               {canManageActivities && (
@@ -576,7 +782,7 @@ export default function ActivitiesPage() {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                    )})}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -586,7 +792,8 @@ export default function ActivitiesPage() {
                 )}
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
 
         {/* Weekly Summary */}
