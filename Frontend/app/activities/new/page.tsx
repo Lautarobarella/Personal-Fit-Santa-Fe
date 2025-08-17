@@ -4,8 +4,9 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
+import { TimePicker } from "@/components/ui/time-picker"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -85,7 +86,7 @@ export default function NewActivityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!form.name.trim() || !form.trainerId || !form.date || !form.time || !form.duration || !form.maxParticipants) {
       toast({
         title: "Error",
@@ -117,12 +118,12 @@ export default function NewActivityPage() {
 
     try {
       await createActivity(form)
-      
+
       toast({
         title: "Actividad creada",
         description: "La actividad ha sido creada exitosamente",
       })
-      
+
       router.push("/activities")
     } catch (error) {
       toast({
@@ -186,24 +187,22 @@ export default function NewActivityPage() {
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
-                      <SelectContent>                    
+                      <SelectContent>
                         {trainers.map((trainer) => (
-                            <SelectItem key={trainer.id} value={trainer.id.toString()}>
-                              {trainer.firstName + " " + trainer.lastName}
-                            </SelectItem>
+                          <SelectItem key={trainer.id} value={trainer.id.toString()}>
+                            {trainer.firstName + " " + trainer.lastName}
+                          </SelectItem>
                         ))}
                       </SelectContent>
-                    </Select> 
+                    </Select>
                   </div>
                 )}
 
                 <div className="space-y-2">
                   <Label htmlFor="date">Fecha</Label>
-                  <Input
-                    id="date"
-                    type="date"
+                  <DatePicker
                     value={form.date}
-                    onChange={(e) => handleInputChange("date", e.target.value)}
+                    onChange={(date) => handleInputChange("date", date)}
                   />
                 </div>
               </div>
@@ -217,11 +216,9 @@ export default function NewActivityPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="time">Hora de inicio</Label>
-                  <Input
-                    id="time"
-                    type="time"
+                  <TimePicker
                     value={form.time}
-                    onChange={(e) => handleInputChange("time", e.target.value)}
+                    onChange={(time) => handleInputChange("time", time)}
                   />
                 </div>
 
@@ -270,33 +267,6 @@ export default function NewActivityPage() {
                     />
                   </div>
                 </div>
-
-                {form.isRecurring && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                    <div className="space-y-2">
-                      <Label>Días de la semana</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Selecciona los días en los que se realizará esta actividad. Se crearán actividades separadas para cada día seleccionado.
-                      </p>
-                      <div className="grid grid-cols-7 gap-2">
-                        {DAYS_OF_WEEK.map((day) => (
-                          <div key={day.key} className="flex flex-col items-center space-y-1">
-                            <Checkbox
-                              id={`day-${day.key}`}
-                              checked={form.weeklySchedule?.[day.key] || false}
-                              onCheckedChange={(checked) => 
-                                handleWeeklyScheduleChange(day.key, checked as boolean)
-                              }
-                            />
-                            <Label htmlFor={`day-${day.key}`} className="text-xs">
-                              {day.short}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Capacity */}
@@ -305,17 +275,17 @@ export default function NewActivityPage() {
                   <Users className="h-5 w-5" />
                   Capacidad
                 </h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="maxParticipants">Máximo Participantes</Label>
-                    <Input
-                      id="maxParticipants"
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={form.maxParticipants}
-                      onChange={(e) => handleInputChange("maxParticipants", Number.parseInt(e.target.value) || 0)}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxParticipants">Máxima cantidad de participantes</Label>
+                  <Input
+                    id="maxParticipants"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={form.maxParticipants}
+                    onChange={(e) => handleInputChange("maxParticipants", Number.parseInt(e.target.value) || 0)}
+                  />
+                </div>
               </div>
 
               {/* Action Buttons */}

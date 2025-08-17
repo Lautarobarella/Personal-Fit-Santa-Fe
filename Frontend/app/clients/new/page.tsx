@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { UserRole } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -131,7 +132,7 @@ export default function NewClientPage() {
                     id="firstName"
                     value={form.firstName}
                     onChange={(e) => handleInputChange("firstName", e.target.value)}
-                    placeholder="María"
+                    placeholder="Nombre"
                     className={errors.firstName ? "border-error" : ""}
                   />
                   {errors.firstName && <p className="text-sm text-error">{errors.firstName}</p>}
@@ -143,7 +144,7 @@ export default function NewClientPage() {
                     id="lastName"
                     value={form.lastName}
                     onChange={(e) => handleInputChange("lastName", e.target.value)}
-                    placeholder="Gonzalez"
+                    placeholder="Apellido"
                     className={errors.firstName ? "border-error" : ""}
                   />
                   {errors.firstName && <p className="text-sm text-error">{errors.firstName}</p>}
@@ -156,7 +157,7 @@ export default function NewClientPage() {
                     type="email"
                     value={form.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="maria@email.com"
+                    placeholder="email@email.com"
                     className={errors.email ? "border-error" : ""}
                   />
                   {errors.email && <p className="text-sm text-error">{errors.email}</p>}
@@ -177,13 +178,9 @@ export default function NewClientPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                  <Input
-                    id="birthDate"
-                    type="date"
+                  <DatePicker
                     value={form.birthDate}
-                    onChange={(e) => handleInputChange("birthDate", e.target.value)}
-                    max={new Date().toISOString().split("T")[0]}
-                    className={errors.birthDate ? "border-error" : ""}
+                    onChange={(date) => handleInputChange("birthDate", date)}
                   />
                   {errors.birthDate && <p className="text-sm text-error">{errors.birthDate}</p>}
                 </div>
