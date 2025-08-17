@@ -230,6 +230,7 @@ export interface NewPaymentInput {
   createdAt: string
   expiresAt: string
   paymentStatus: "PENDING" | "PAID"
+  method: MethodType
   file?: File
 }
 

@@ -280,7 +280,7 @@ function DashboardContent() {
       }
 
       // Progreso mensual de actividades (fallback a weeklyActivityCount si no existe)
-  const actividadesMes = clientStats.weeklyActivityCount ?? 0;
+      const actividadesMes = clientStats.weeklyActivityCount ?? 0;
       const progresoMensual = actividadesMes;
 
       // Estructura uniforme para stats
@@ -331,16 +331,16 @@ function DashboardContent() {
       ]
     } else if (user.role === UserRole.TRAINER) {
       return [
-        { title: "Mis Actividades", href: "/activities", icon: Activity, color: "bg-purple-500" },
-        { title: "Tomar Asistencia", href: "/attendance", icon: CheckCircle, color: "bg-emerald-500" },
-        { title: "Ver Clientes", href: "/clients", icon: Users, color: "bg-blue-500" },
+        { title: "Mis Actividades", href: "/activities", icon: Activity, color: "bg-orange-500" },
+        { title: "Tomar Asistencia", href: "/attendance", icon: CheckCircle, color: "bg-gray-500" },
+        { title: "Ver Clientes", href: "/clients", icon: Users, color: "bg-gray-500" },
         { title: "Mi Horario", href: "/schedule", icon: Calendar, color: "bg-orange-500" },
       ]
     } else {
       return [
-        { title: "Ver Actividades", href: "/activities", icon: Activity, color: "bg-blue-500" },
-        { title: "Mi Progreso", href: "/progress", icon: TrendingUp, color: "bg-emerald-500" },
-        { title: "Realizar Pago", href: "/payments", icon: CreditCard, color: "bg-purple-500" },
+        { title: "Ver Actividades", href: "/activities", icon: Activity, color: "bg-orange-500" },
+        { title: "Mi Progreso", href: "/progress", icon: TrendingUp, color: "bg-gray-500" },
+        { title: "Realizar Pago", href: "/payments", icon: CreditCard, color: "bg-gray-500" },
         { title: "Mi Perfil", href: "/profile", icon: Users, color: "bg-orange-500" },
       ]
     }

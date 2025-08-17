@@ -5,7 +5,7 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
-import { UserRole } from "@/lib/types"
+import { MethodType, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"
 
 export default function NewPaymentPage() {
@@ -19,6 +19,7 @@ export default function NewPaymentPage() {
     amount: number
     createdAt: string
     expiresAt: string
+    method: MethodType
     file?: File
   }) => {
     try {

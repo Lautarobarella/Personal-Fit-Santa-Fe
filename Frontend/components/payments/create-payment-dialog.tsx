@@ -13,10 +13,11 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePayment } from "@/hooks/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, formatFileSize, validatePaymentFile } from "@/lib/file-compression"
-import { PaymentStatus, UserRole } from "@/lib/types"
+import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
@@ -32,6 +33,7 @@ interface CreatePaymentDialogProps {
         amount: number
         createdAt: string
         expiresAt: string
+        method: MethodType
         file?: File
     }) => Promise<void>
 }
@@ -53,6 +55,9 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const [amount, setAmount] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
+    
+    // Estado para método de pago
+    const [paymentMethod, setPaymentMethod] = useState<MethodType>(MethodType.TRANSFER)
 
     // Hook para obtener pagos del cliente
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePayment(
@@ -244,6 +249,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 amount: amountNum,
                 createdAt: startDate,
                 expiresAt: dueDate,
+                method: paymentMethod,
                 file: selectedFile ?? undefined,
             })
 
@@ -291,6 +297,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setSelectedFile(null)
         setPreviewUrl(null)
         setNotes("")
+        setPaymentMethod(MethodType.TRANSFER) // Reset payment method
 
         // Mensaje según el rol del usuario
         const isAutomaticPayment = user?.role === UserRole.ADMIN
@@ -337,7 +344,35 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                     setSelectedClient(value)
                                 }
                             }}
+                            disabled={user?.role === UserRole.CLIENT}
+                            className={user?.role === UserRole.CLIENT ? "bg-muted text-foreground cursor-not-allowed border border-orange-300" : ""}
                         />
+                    </div>
+
+                    {/* Método de Pago */}
+                    <div className="space-y-2">
+                        <Label htmlFor="paymentMethod">Método de Pago *</Label>
+                        {user?.role === UserRole.ADMIN ? (
+                            <Select value={paymentMethod} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                <SelectTrigger id="paymentMethod">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                    <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
+                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input
+                                id="paymentMethod"
+                                type="text"
+                                value="Transferencia"
+                                readOnly
+                                className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
+                                onFocus={(e) => e.currentTarget.blur()}
+                            />
+                        )}
                     </div>
 
                     {/* Monto */}

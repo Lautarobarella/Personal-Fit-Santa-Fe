@@ -67,6 +67,14 @@ export default function MonthlyRevenuePage() {
         })
         .reduce((sum, p) => sum + p.amount, 0)
 
+
+
+    // Combinar datos reales con mock para demostración
+    const displayRevenues = archivedRevenues.length > 0 ? archivedRevenues : []
+
+    // Calcular total acumulado simple
+    const totalRevenue = displayRevenues.reduce((sum, rev) => sum + rev.totalRevenue, 0) + currentMonthAmount
+
     // Obtener nombre del mes actual
     const currentMonthName = new Date().toLocaleDateString('es-ES', {
         month: 'long',
@@ -86,17 +94,17 @@ export default function MonthlyRevenuePage() {
             />
 
             <div className="container-centered py-6 space-y-6">
-                {/* Header con estadísticas generales */}
-                <Card className="border-l-4 border-l-green-500">
+                {/* Header simple */}
+                <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-green-600" />
+                                <BarChart3 className="h-5 w-5 text-primary" />
                                 <span>Resumen de Ingresos</span>
                             </div>
                             <button
                                 onClick={() => setShowAmounts(!showAmounts)}
-                                className="p-1 hover:bg-muted rounded-full transition-colors"
+                                className="p-2 hover:bg-muted rounded-full transition-colors"
                                 aria-label={showAmounts ? "Ocultar montos" : "Mostrar montos"}
                             >
                                 {showAmounts ? (
@@ -108,39 +116,40 @@ export default function MonthlyRevenuePage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="text-center">
-                                <p className="text-sm text-muted-foreground mb-1">Total de Registros</p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {archivedRevenues.length + 1} meses
-                                </p>
-                            </div>
+                        <div className="text-center">
+                            <p className="text-sm text-muted-foreground mb-1">Total Acumulado</p>
+                            <p className="text-2xl font-bold text-primary">
+                                {showAmounts ? formatCurrency(totalRevenue) : "••••••••"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {displayRevenues.length + 1} meses registrados
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Mes Actual */}
-                <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+                <Card className="border-l-4 border-l-primary">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-full">
-                                    <Calendar className="h-5 w-5 text-blue-600" />
+                                <div className="p-2 bg-primary/10 rounded-full">
+                                    <Calendar className="h-5 w-5 text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-blue-800 capitalize">
-                                        {currentMonthName} (Actual)
+                                    <h3 className="font-semibold capitalize">
+                                        {currentMonthName}
                                     </h3>
-                                    <p className="text-sm text-blue-600">
-                                        Ingresos del mes en curso
+                                    <p className="text-sm text-muted-foreground">
+                                        Mes actual
                                     </p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="text-2xl font-bold text-blue-800">
+                                <div className="text-2xl font-bold">
                                     {showAmounts ? formatCurrency(currentMonthAmount) : "••••••"}
                                 </div>
-                                <p className="text-xs text-blue-600 flex items-center gap-1">
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                                     <TrendingUp className="h-3 w-3" />
                                     En tiempo real
                                 </p>
@@ -149,7 +158,7 @@ export default function MonthlyRevenuePage() {
                     </CardContent>
                 </Card>
 
-                {/* Historial de Ingresos Archivados */}
+                {/* Historial de Ingresos */}
                 {isLoading ? (
                     <Card>
                         <CardContent className="p-8 text-center">
@@ -157,19 +166,19 @@ export default function MonthlyRevenuePage() {
                             <p className="text-muted-foreground mt-4">Cargando historial...</p>
                         </CardContent>
                     </Card>
-                ) : archivedRevenues.length > 0 ? (
+                ) : displayRevenues.length > 0 ? (
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <DollarSign className="h-5 w-5" />
-                                Historial de Ingresos Mensuales
+                                Historial Mensual
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            {archivedRevenues.map((revenue) => (
+                            {displayRevenues.map((revenue) => (
                                 <div
                                     key={revenue.id}
-                                    className="flex items-center justify-between p-4 border border-muted rounded-lg hover:bg-muted/30 transition-colors"
+                                    className="flex items-center justify-between p-3 border border-border rounded-lg"
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-muted rounded-full">
@@ -180,7 +189,7 @@ export default function MonthlyRevenuePage() {
                                                 {revenue.monthName} {revenue.year}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                Archivado el {formatDate(revenue.archivedAt)}
+                                                {(revenue as any).transactionCount ? `${(revenue as any).transactionCount} transacciones • ` : ''}Archivado {formatDate(revenue.archivedAt)}
                                             </p>
                                         </div>
                                     </div>
@@ -210,17 +219,18 @@ export default function MonthlyRevenuePage() {
                 )}
 
                 {/* Información adicional */}
-                <Card className="bg-amber-50 border-amber-200">
+                <Card className="bg-muted/30">
                     <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                            <div className="p-1 bg-amber-100 rounded-full">
-                                <DollarSign className="h-4 w-4 text-amber-600" />
+                            <div className="p-2 bg-primary/10 rounded-full">
+                                <DollarSign className="h-4 w-4 text-primary" />
                             </div>
-                            <div className="text-sm text-amber-700">
-                                <p className="font-medium mb-1">Información sobre los registros</p>
-                                <ul className="space-y-1 text-xs">
+                            <div className="text-sm">
+                                <p className="font-medium mb-2">Información sobre los registros</p>
+                                <ul className="space-y-1 text-xs text-muted-foreground">
                                     <li>• Los ingresos del mes actual se calculan en tiempo real</li>
                                     <li>• Los registros se archivan automáticamente el primer día de cada mes</li>
+                                    <li>• Las estadísticas incluyen solo pagos confirmados y procesados</li>
                                 </ul>
                             </div>
                         </div>
