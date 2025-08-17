@@ -72,10 +72,13 @@ export function useActivities() {
   const loadActivityDetail = useCallback(async (id: number) => {
     setLoading(true)
     setError(null)
+    console.log("Cargando actividad con ID:", id) // Debug
     try {
       const detail = await fetchActivityDetail(id)
+      console.log("Actividad cargada:", detail) // Debug
       setSelectedActivity(detail)
     } catch (err) {
+      console.error("Error al cargar actividad:", err) // Debug
       setError("Error al cargar el detalle de la actividad")
     } finally {
       setLoading(false)

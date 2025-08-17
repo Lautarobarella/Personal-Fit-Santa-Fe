@@ -1,9 +1,11 @@
 "use client"
 
+import { fetchActivityDetail } from "@/api/activities/activitiesApi"
 import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -12,32 +14,33 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
-import { UserRole } from "@/lib/types"
-import { ArrowLeft, Calendar, Clock, MapPin, Save, Users } from "lucide-react"
+import { ActivityDetailInfo, UserRole } from "@/lib/types"
+import { ArrowLeft, Calendar, Clock, MapPin, Save, Users, Repeat } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 
 interface EditActivityPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 const DAYS_OF_WEEK = [
-  { label: "Lunes", value: 0 },
-  { label: "Martes", value: 1 },
-  { label: "Miércoles", value: 2 },
-  { label: "Jueves", value: 3 },
-  { label: "Viernes", value: 4 },
-  { label: "Sábado", value: 5 },
-  { label: "Domingo", value: 6 },
+  { label: "Lunes", value: 0, key: 0, short: "L" },
+  { label: "Martes", value: 1, key: 1, short: "M" },
+  { label: "Miércoles", value: 2, key: 2, short: "X" },
+  { label: "Jueves", value: 3, key: 3, short: "J" },
+  { label: "Viernes", value: 4, key: 4, short: "V" },
+  { label: "Sábado", value: 5, key: 5, short: "S" },
+  { label: "Domingo", value: 6, key: 6, short: "D" }
 ]
 
 export default function EditActivityPage({ params }: EditActivityPageProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
-  const activityId = parseInt(params.id)
+  const resolvedParams = use(params)
+  const activityId = parseInt(resolvedParams.id)
 
   const {
     selectedActivity,
@@ -52,6 +55,9 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
     clearSelectedActivity,
   } = useActivities()
 
+  const [currentActivity, setCurrentActivity] = useState<ActivityDetailInfo | null>(null)
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Verificar permisos - solo ADMIN puede acceder
@@ -69,40 +75,61 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
 
   // Cargar datos iniciales
   useEffect(() => {
-    if (activityId && user?.role === UserRole.ADMIN) {
-      loadActivityDetail(activityId)
+    console.log("useEffect - activityId:", activityId, "user role:", user?.role) // Debug
+    console.log("activityId isNaN:", isNaN(activityId)) // Debug
+    if (activityId && !isNaN(activityId) && user?.role === UserRole.ADMIN) {
+      console.log("Llamando fetchActivityDetail directamente con ID:", activityId) // Debug
+      setIsLoadingActivity(true)
+      setApiError(null)
+      
+      fetchActivityDetail(activityId)
+        .then((detail) => {
+          console.log("Actividad cargada directamente:", detail) // Debug
+          setCurrentActivity(detail)
+          setIsLoadingActivity(false)
+        })
+        .catch((err) => {
+          console.error("Error al cargar actividad directamente:", err) // Debug
+          setApiError("Error al cargar la actividad")
+          setIsLoadingActivity(false)
+        })
+      
       loadTrainers()
+    } else {
+      console.log("No se cumplieron las condiciones para cargar la actividad") // Debug
     }
-  }, [activityId, user?.role, loadActivityDetail, loadTrainers])
+  }, [activityId, user?.role, loadTrainers])
 
   // Poblar formulario cuando se carga la actividad
   useEffect(() => {
-    if (selectedActivity) {
-      const activityDate = new Date(selectedActivity.date)
+    console.log("useEffect para poblar formulario - currentActivity:", currentActivity) // Debug
+    if (currentActivity) {
+      console.log("Poblando formulario con actividad:", currentActivity) // Debug
+      const activityDate = new Date(currentActivity.date)
       const dateStr = activityDate.toISOString().split('T')[0]
       const timeStr = activityDate.toTimeString().slice(0, 5)
 
       setForm({
-        name: selectedActivity.name,
-        description: selectedActivity.description,
-        location: selectedActivity.location,
-        trainerId: selectedActivity.trainerId?.toString() || "",
+        name: currentActivity.name,
+        description: currentActivity.description,
+        location: currentActivity.location,
+        trainerId: currentActivity.trainerId?.toString() || "",
         date: dateStr,
         time: timeStr,
-        duration: selectedActivity.duration?.toString() || "",
-        maxParticipants: selectedActivity.maxParticipants?.toString() || "",
-        isRecurring: selectedActivity.isRecurring || false,
-        weeklySchedule: selectedActivity.weeklySchedule || [false, false, false, false, false, false, false],
+        duration: currentActivity.duration?.toString() || "",
+        maxParticipants: currentActivity.maxParticipants?.toString() || "",
+        isRecurring: currentActivity.isRecurring || false,
+        weeklySchedule: currentActivity.weeklySchedule || [false, false, false, false, false, false, false],
       })
     }
-  }, [selectedActivity, setForm])
+  }, [currentActivity, setForm])
 
   // Cleanup al desmontar
   useEffect(() => {
     return () => {
-      clearSelectedActivity()
+      setCurrentActivity(null)
     }
-  }, [clearSelectedActivity])
+  }, [])
 
   const handleWeeklyScheduleChange = (dayIndex: number, checked: boolean) => {
     const newSchedule = [...(form.weeklySchedule || [false, false, false, false, false, false, false])]
@@ -166,7 +193,8 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
     return null // El useEffect ya redirige, esto evita flash
   }
 
-  if (loading) {
+  if (isLoadingActivity || loading) {
+    console.log("Renderizando loading state - isLoadingActivity:", isLoadingActivity, "loading:", loading) // Debug
     return (
       <div className="min-h-screen bg-background pb-32">
         <MobileHeader title="Editar Actividad" showBack />
@@ -180,7 +208,8 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
     )
   }
 
-  if (error || !selectedActivity) {
+  if (apiError || error || !currentActivity) {
+    console.log("Renderizando error state - apiError:", apiError, "error:", error, "currentActivity:", currentActivity) // Debug
     return (
       <div className="min-h-screen bg-background pb-32">
         <MobileHeader title="Editar Actividad" showBack />
@@ -188,7 +217,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center text-destructive">
-                {error || "No se pudo cargar la actividad"}
+                {apiError || error || "No se pudo cargar la actividad"}
               </div>
               <Button
                 variant="outline"
@@ -205,6 +234,8 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
       </div>
     )
   }
+
+  console.log("Renderizando formulario principal - currentActivity:", currentActivity) // Debug
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -349,7 +380,10 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
           {/* Repetición Semanal */}
           <Card>
             <CardHeader>
-              <CardTitle>Repetición Semanal</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Repeat className="h-5 w-5" />
+                Repetición Semanal
+              </CardTitle>
               <CardDescription>
                 Configura si esta actividad se repite cada semana. Los cambios se aplicarán a futuras creaciones.
               </CardDescription>
@@ -365,21 +399,28 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
               </div>
 
               {form.isRecurring && (
-                <div>
-                  <Label>Días de la semana</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {DAYS_OF_WEEK.map((day) => (
-                      <div key={day.value} className="flex items-center space-x-2">
-                        <Switch
-                          id={`day-${day.value}`}
-                          checked={(form.weeklySchedule || [])[day.value] || false}
-                          onCheckedChange={(checked) => handleWeeklyScheduleChange(day.value, checked)}
-                        />
-                        <Label htmlFor={`day-${day.value}`} className="text-sm">
-                          {day.label}
-                        </Label>
-                      </div>
-                    ))}
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="space-y-2">
+                    <Label>Días de la semana</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Selecciona los días en los que se realizará esta actividad. Se crearán actividades separadas para cada día seleccionado.
+                    </p>
+                    <div className="grid grid-cols-7 gap-2">
+                      {DAYS_OF_WEEK.map((day) => (
+                        <div key={day.key} className="flex flex-col items-center space-y-1">
+                          <Checkbox
+                            id={`day-${day.key}`}
+                            checked={form.weeklySchedule?.[day.key] || false}
+                            onCheckedChange={(checked) => 
+                              handleWeeklyScheduleChange(day.key, checked as boolean)
+                            }
+                          />
+                          <Label htmlFor={`day-${day.key}`} className="text-xs">
+                            {day.short}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

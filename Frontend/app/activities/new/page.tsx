@@ -1,8 +1,7 @@
 "use client"
 
-import type React from "react"
-
 import { useAuth } from "@/components/providers/auth-provider"
+import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,81 +13,121 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
-import { ActivityFormType, UserRole } from "@/lib/types"
+import { UserRole } from "@/lib/types"
 import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 const DAYS_OF_WEEK = [
-  { key: 0, label: "Lunes", short: "Lun" },
-  { key: 1, label: "Martes", short: "Mar" },
-  { key: 2, label: "Miércoles", short: "Mié" },
-  { key: 3, label: "Jueves", short: "Jue" },
-  { key: 4, label: "Viernes", short: "Vie" },
-  { key: 5, label: "Sábado", short: "Sáb" },
-  { key: 6, label: "Domingo", short: "Dom" },
+  { label: "Lunes", value: 0, key: 0, short: "L" },
+  { label: "Martes", value: 1, key: 1, short: "M" },
+  { label: "Miércoles", value: 2, key: 2, short: "X" },
+  { label: "Jueves", value: 3, key: 3, short: "J" },
+  { label: "Viernes", value: 4, key: 4, short: "V" },
+  { label: "Sábado", value: 5, key: 5, short: "S" },
+  { label: "Domingo", value: 6, key: 6, short: "D" }
 ]
 
 export default function NewActivityPage() {
   const { user } = useAuth()
-  const router = useRouter()
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  const { form, setForm, createActivity, loadTrainers, trainers, resetForm } = useActivities()
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  
-  useEffect(() =>{ 
-    loadTrainers()
-  }, [])
+  const router = useRouter()
 
-      if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.TRAINER)) {
-    return <div>No tienes permisos para crear actividades</div>
+  const {
+    form,
+    setForm,
+    trainers,
+    loading,
+    error,
+    createActivity,
+    loadTrainers,
+    resetForm,
+  } = useActivities()
+
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Verificar permisos - solo ADMIN puede acceder
+  useEffect(() => {
+    if (user && user.role !== UserRole.ADMIN) {
+      toast({
+        title: "Acceso denegado",
+        description: "No tienes permisos para crear actividades",
+        variant: "destructive",
+      })
+      router.push("/activities")
+      return
+    }
+  }, [user, router, toast])
+
+  // Cargar trainers al montar el componente
+  useEffect(() => {
+    if (user?.role === UserRole.ADMIN) {
+      loadTrainers()
+    }
+  }, [user?.role, loadTrainers])
+
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      resetForm()
+    }
+  }, [resetForm])
+
+  const handleWeeklyScheduleChange = (dayIndex: number, checked: boolean) => {
+    const newSchedule = [...(form.weeklySchedule || [false, false, false, false, false, false, false])]
+    newSchedule[dayIndex] = checked
+    setForm({ ...form, weeklySchedule: newSchedule })
   }
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    try {
-    if (!form.name.trim()) newErrors.name = "El nombre es requerido"
-    if (!form.description.trim()) newErrors.description = "La descripción es requerida"
-    if (!form.time) newErrors.time = "La hora es requerida"
-    if (!form.duration) newErrors.duration = "La duración debe ser mayor a 0"
-    if (!form.maxParticipants) newErrors.maxParticipants = "El número de participantes debe ser mayor a 0"
-    if (!form.trainerId.trim()) form.trainerId = user.id.toString()
-
-    // Validate recurring activity settings
-    if (form.isRecurring) {
-      if (!form.weeklySchedule?.some(day => day)) {
-        newErrors.weeklySchedule = "Debe seleccionar al menos un día de la semana"
-      }
-    }
-    } catch (error) {
-      console.error("Error validating form:", error)
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const handleInputChange = (field: string, value: string | boolean | number) => {
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!form.name.trim() || !form.trainerId || !form.date || !form.time || !form.duration || !form.maxParticipants) {
+      toast({
+        title: "Error",
+        description: "Por favor completa todos los campos obligatorios",
+        variant: "destructive",
+      })
+      return
+    }
 
-    if (!validateForm()) return
+    if (parseInt(form.duration) <= 0 || parseInt(form.maxParticipants) <= 0) {
+      toast({
+        title: "Error",
+        description: "La duración y cantidad máxima de participantes deben ser mayores a 0",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (form.isRecurring && !(form.weeklySchedule || []).some(day => day)) {
+      toast({
+        title: "Error",
+        description: "Para actividades recurrentes debes seleccionar al menos un día de la semana",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsLoading(true)
 
     try {
-      const response = await createActivity(form)
+      await createActivity(form)
+      
       toast({
-        title: "Éxito",
-        description: response?.message || "La actividad ha sido creada exitosamente",
+        title: "Actividad creada",
+        description: "La actividad ha sido creada exitosamente",
       })
-
-      resetForm()
+      
       router.push("/activities")
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo crear la actividad",
+        description: "No se pudo crear la actividad. Intenta nuevamente.",
         variant: "destructive",
       })
     } finally {
@@ -96,20 +135,8 @@ export default function NewActivityPage() {
     }
   }
 
-  const handleInputChange = (field: keyof Partial<ActivityFormType>, value: string | number | boolean) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-    // Clear error for this field if it exists
-    if (errors[field as string]) {
-      const newErrors = { ...errors }
-      delete newErrors[field as string]
-      setErrors(newErrors)
-    }
-  }
-
-  const handleWeeklyScheduleChange = (dayIndex: number, checked: boolean) => {
-    const newSchedule = [...(form.weeklySchedule || [false, false, false, false, false, false, false])]
-    newSchedule[dayIndex] = checked
-    setForm(prev => ({ ...prev, weeklySchedule: newSchedule }))
+  if (user?.role !== UserRole.ADMIN) {
+    return null
   }
 
   return (
@@ -137,9 +164,7 @@ export default function NewActivityPage() {
                     value={form.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="Ej: Yoga Matutino"
-                    className={errors.name ? "border-destructive" : ""}
                   />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -150,9 +175,7 @@ export default function NewActivityPage() {
                     onChange={(e) => handleInputChange("description", e.target.value)}
                     placeholder="Describe la actividad, nivel requerido, etc."
                     rows={3}
-                    className={errors.description ? "border-destructive" : ""}
                   />
-                  {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                 </div>
 
                 {user.role === UserRole.ADMIN && (
@@ -160,7 +183,7 @@ export default function NewActivityPage() {
                     <Label htmlFor="trainerName">Entrenador asignado</Label>
 
                     <Select value={form.trainerId} onValueChange={(value) => handleInputChange("trainerId", value)}>
-                      <SelectTrigger className={errors.trainerId ? "border-destructive" : ""}>
+                      <SelectTrigger>
                         <SelectValue placeholder="Seleccionar entrenador" />
                       </SelectTrigger>
                       <SelectContent>                    
@@ -171,10 +194,18 @@ export default function NewActivityPage() {
                         ))}
                       </SelectContent>
                     </Select> 
-
-                    {errors.trainerId && <p className="text-sm text-destructive">{errors.trainerId}</p>}
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="date">Fecha</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => handleInputChange("date", e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Schedule */}
@@ -191,9 +222,7 @@ export default function NewActivityPage() {
                     type="time"
                     value={form.time}
                     onChange={(e) => handleInputChange("time", e.target.value)}
-                    className={errors.time ? "border-destructive" : ""}
                   />
-                  {errors.time && <p className="text-sm text-destructive">{errors.time}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -213,8 +242,8 @@ export default function NewActivityPage() {
                       <SelectItem value="120">120 minutos</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.duration && <p className="text-sm text-destructive">{errors.duration}</p>}
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="location">Ubicación</Label>
                   <Input
@@ -222,9 +251,7 @@ export default function NewActivityPage() {
                     value={form.location}
                     onChange={(e) => handleInputChange("location", e.target.value)}
                     placeholder="Ej: Gimnasio principal"
-                    className={errors.location ? "border-destructive" : ""}
                   />
-                  {errors.location && <p className="text-sm text-destructive">{errors.location}</p>}
                 </div>
               </div>
 
@@ -241,10 +268,10 @@ export default function NewActivityPage() {
                       checked={form.isRecurring}
                       onCheckedChange={(checked) => handleInputChange("isRecurring", checked)}
                     />
-                    
                   </div>
                 </div>
 
+                {form.isRecurring && (
                   <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                     <div className="space-y-2">
                       <Label>Días de la semana</Label>
@@ -267,11 +294,9 @@ export default function NewActivityPage() {
                           </div>
                         ))}
                       </div>
-                      {errors.weeklySchedule && (
-                        <p className="text-sm text-destructive">{errors.weeklySchedule}</p>
-                      )}
                     </div>
                   </div>
+                )}
               </div>
 
               {/* Capacity */}
@@ -289,9 +314,7 @@ export default function NewActivityPage() {
                       max="50"
                       value={form.maxParticipants}
                       onChange={(e) => handleInputChange("maxParticipants", Number.parseInt(e.target.value) || 0)}
-                      className={errors.maxParticipants ? "border-destructive" : ""}
                     />
-                    {errors.maxParticipants && <p className="text-sm text-destructive">{errors.maxParticipants}</p>}
                   </div>
               </div>
 
@@ -309,6 +332,8 @@ export default function NewActivityPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

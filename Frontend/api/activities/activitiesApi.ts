@@ -1,6 +1,6 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
-import { ActivityFormType, Attendance, EnrollmentRequest } from "@/lib/types";
-import { handleApiError, isValidationError, handleValidationError } from "@/lib/error-handler";
+import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
+import { ActivityFormType, EnrollmentRequest } from "@/lib/types";
 
 export async function fetchActivities() {
   try {
@@ -29,8 +29,12 @@ export async function fetchActivitiesByDate(date: Date) {
 
 export async function fetchActivityDetail(id: number) {
   try {
-    return await jwtPermissionsApi.get(`/api/activities/${id}`);
+    console.log("Fetching activity detail for ID:", id) // Debug
+    const response = await jwtPermissionsApi.get(`/api/activities/${id}`);
+    console.log("Activity detail response:", response) // Debug
+    return response;
   } catch (error) {
+    console.error("Error in fetchActivityDetail:", error) // Debug
     handleApiError(error, 'Error al cargar los detalles de la actividad');
     throw error;
   }
