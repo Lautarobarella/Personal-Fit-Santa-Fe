@@ -115,3 +115,14 @@ export async function fetchTrainers() {
     return [];
   }
 }
+
+export async function markAttendance(activityId: number, participantId: number, status: string) {
+  try {
+    return await jwtPermissionsApi.put(`/api/activities/${activityId}/attendance/${participantId}`, {
+      status
+    });
+  } catch (error) {
+    handleApiError(error, 'Error al marcar asistencia');
+    throw error;
+  }
+}

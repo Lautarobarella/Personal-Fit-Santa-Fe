@@ -35,14 +35,14 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, useMemo } from "react"
 
 
 export default function ActivitiesPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const {
-    activities,
+    activities: allActivities,
     loading,
     error,
     loadActivities,
@@ -52,6 +52,7 @@ export default function ActivitiesPage() {
     deleteActivityById,
     isUserEnrolled,
     getUserEnrollmentStatus,
+    getActivitiesByWeek,
   } = useActivities()
   const { checkMembershipStatus } = useClients()
 
@@ -87,14 +88,17 @@ export default function ActivitiesPage() {
 
   const loadedWeeks = useRef<Set<string>>(new Set())
 
-  // Cargar actividades - todos usan loadActivitiesByWeek para mostrar solo la semana actual
+  // Filtrar actividades por la semana actual usando la función del provider
+  const activities = useMemo(() => {
+    return getActivitiesByWeek(currentWeek)
+  }, [allActivities, currentWeek, getActivitiesByWeek])
+
+  // Cargar actividades - carga todas las actividades una vez
   useEffect(() => {
-    const weekKey = currentWeek.toISOString().slice(0, 10)
-    if (!loadedWeeks.current.has(weekKey)) {
-      loadedWeeks.current.add(weekKey)
-      loadActivitiesByWeek(currentWeek)
+    if (user && allActivities.length === 0) {
+      loadActivities()
     }
-  }, [user?.role, currentWeek, loadActivitiesByWeek])
+  }, [user, allActivities.length, loadActivities])
 
   // Auto-scroll al día actual cuando se cargan las actividades
   useEffect(() => {
@@ -206,7 +210,7 @@ export default function ActivitiesPage() {
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
   // Filter activities based on user role
-  const weekActivities = activities.filter((activity) => {
+  const weekActivities = activities.filter((activity: ActivityType) => {
     const activityDate = new Date(activity.date)
     const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesTrainer = filterTrainer === "all" || activity.trainerName === filterTrainer
@@ -232,13 +236,13 @@ export default function ActivitiesPage() {
     
     for (const date of weekDates) {
       const dayActivities = activities
-        .filter((activity) => {
+        .filter((activity: ActivityType) => {
           const activityDate = new Date(activity.date)
           const normalizedActivityDate = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate())
           const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
           return normalizedActivityDate.getTime() === normalizedDate.getTime()
         })
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .sort((a: ActivityType, b: ActivityType) => new Date(a.date).getTime() - new Date(b.date).getTime())
       
       result.push({
         date,
@@ -253,7 +257,7 @@ export default function ActivitiesPage() {
   function getActivitiesByDayForAdmin(activities: typeof weekActivities, weekDates: Date[]) {
     return weekDates.map((date) => {
       const dayActivities = activities
-        .filter((activity) => {
+        .filter((activity: ActivityType) => {
           const activityDate = new Date(activity.date)
           
           // Normalizar ambas fechas para comparación precisa
@@ -262,7 +266,7 @@ export default function ActivitiesPage() {
           
           return normalizedActivityDate.getTime() === normalizedWeekDate.getTime()
         })
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .sort((a: ActivityType, b: ActivityType) => new Date(a.date).getTime() - new Date(b.date).getTime())
       
       return {
         date,
@@ -278,7 +282,7 @@ export default function ActivitiesPage() {
   }
 
   // Get unique categories and trainers for filters
-  const trainers = [...new Set(activities.map((a) => a.trainerName))]
+  const trainers = [...new Set(activities.map((a: ActivityType) => a.trainerName))]
 
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -637,7 +641,7 @@ export default function ActivitiesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los entrenadores</SelectItem>
-                  {trainers.map((trainer) => (
+                  {trainers.map((trainer: string) => (
                     <SelectItem key={trainer} value={trainer}>
                       {trainer}
                     </SelectItem>
@@ -684,7 +688,7 @@ export default function ActivitiesPage() {
 
                 {day.activities.length > 0 ? (
                   <div className="space-y-3">
-                    {day.activities.map((activity) => {
+                    {day.activities.map((activity: ActivityType) => {
                       const isCompleted = isActivityCompleted(activity)
                       return (
                         <Card 
@@ -772,7 +776,7 @@ export default function ActivitiesPage() {
                                 <AvatarFallback className="text-xs">
                                   {activity.trainerName
                                     .split(" ")
-                                    .map((n) => n[0])
+                                    .map((n: string) => n[0])
                                     .join("")}
                                 </AvatarFallback>
                               </Avatar>
@@ -872,7 +876,7 @@ export default function ActivitiesPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-success">
-                  {weekActivities.reduce((sum, a) => sum + a.currentParticipants, 0)}
+                  {weekActivities.reduce((sum: number, a: ActivityType) => sum + a.currentParticipants, 0)}
                 </div>
                 <div className="text-sm text-muted-foreground">Participantes</div>
               </div>

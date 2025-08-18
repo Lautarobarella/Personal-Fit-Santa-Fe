@@ -1,3 +1,4 @@
+import { ActivityProvider } from "@/components/providers/activity-provider"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { NotificationsProvider } from "@/components/providers/notifications-provider"
 import { ReactQueryProvider } from "@/components/providers/react-query-provider"
@@ -48,14 +49,16 @@ export default function RootLayout({
         <ThemeProvider>
           <ReactQueryProvider>
             <AuthProvider>
-              <NotificationsProvider>
-                <div className="min-h-screen flex justify-center bg-background">
-                  <div className="w-full max-w-md mx-auto relative">
-                    {children}
+              <ActivityProvider>
+                <NotificationsProvider>
+                  <div className="min-h-screen flex justify-center bg-background">
+                    <div className="w-full max-w-md mx-auto relative">
+                      {children}
+                    </div>
                   </div>
-                </div>
-                <Toaster />
-              </NotificationsProvider>
+                  <Toaster />
+                </NotificationsProvider>
+              </ActivityProvider>
             </AuthProvider>
           </ReactQueryProvider>
         </ThemeProvider>
