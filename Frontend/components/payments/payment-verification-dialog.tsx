@@ -143,7 +143,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
         <div className="space-y-4">
           {/* Payment Info */}
-          <Card>
+          <Card className="m-2">
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
           {/* Receipt Display */}
           {selectedPayment.receiptId ? (
-            <Card>
+            <Card className="m-2">
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
                 <PaymentReceiptDisplay
@@ -188,7 +188,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
               </CardContent>
             </Card>
           ) : (
-            <Card>
+            <Card className="m-2">
               <CardContent className="py-8 text-center">
                 <FileImage className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">No hay comprobante subido</p>

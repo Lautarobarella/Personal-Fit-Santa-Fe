@@ -111,12 +111,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start justify-between mt-4">
-            <div className="flex-1">
-              <DialogTitle className="text-xl mb-2 flex">{selectedActivity.name}</DialogTitle>
-              <DialogDescription >{selectedActivity.description}</DialogDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge >{getStatusText(selectedActivity.status)}</Badge>
+            <div className="flex items-center gap-2 justify-between w-full">
               <div className="flex gap-1">
                 {onEdit && (
                   <Button size="sm" variant="outline" onClick={onEdit}>
@@ -129,7 +124,14 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                   </Button>
                 )}
               </div>
+              <div className="flex-1 flex justify-end">
+                <Badge>{getStatusText(selectedActivity.status)}</Badge>
+              </div>
             </div>
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-xl mb-2 flex">{selectedActivity.name}</DialogTitle>
+            <DialogDescription >{selectedActivity.description}</DialogDescription>
           </div>
         </DialogHeader>
 
@@ -142,9 +144,9 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 mt-4">
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-2">
               {/* Basic Info Card */}
-              <Card>
+              <Card className="m-2">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
@@ -199,7 +201,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
               </Card>
 
               {/* Stats Card */}
-              <Card>
+              <Card className="m-2">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -213,15 +215,15 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                       <div className="text-sm text-muted-foreground">Inscritos</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-success">{occupancyRate}%</div>
+                      <div className="text-2xl font-bold text-secondary">{occupancyRate}%</div>
                       <div className="text-sm text-muted-foreground">Ocupación</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-warning">{presentParticipants.length}</div>
+                      <div className="text-2xl font-bold text-secondary">{presentParticipants.length}</div>
                       <div className="text-sm text-muted-foreground">Confirmados</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-error">{absentParticipants.length}</div>
+                      <div className="text-2xl font-bold text-primary">{absentParticipants.length}</div>
                       <div className="text-sm text-muted-foreground">Pendientes</div>
                     </div>
                   </div>
@@ -277,18 +279,18 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
           {/* Participants Tab */}
           <TabsContent value="attendance" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Lista de Participantes</h3>
-              <div className="flex gap-2">
+            <div className="m-2">
+              <div className="flex justify-end gap-2">
                 <Badge variant={'success'}>{presentParticipants.length} Presentes</Badge>
                 <Badge variant="destructive">{absentParticipants.length} Ausentes</Badge>
               </div>
+              <h3 className="text-lg font-semibold mt-2 text-left">Lista de Participantes</h3>
             </div>
 
             <div className="space-y-2">
               {selectedActivity.participants.map((p) => (
 
-                <Card key={p.id}>
+                <Card key={p.id } className="m-2">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -346,7 +348,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
 
           {/* Details Tab */}
           <TabsContent value="details" className="space-y-4 mt-4">
-            <Card>
+            <Card className="m-2">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -379,7 +381,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="m-2">
               <CardHeader>
                 <CardTitle className="text-lg">Configuración Avanzada</CardTitle>
               </CardHeader>
@@ -404,7 +406,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
             </Card>
 
             {/* Quick Actions */}
-            <Card>
+            <Card className="m-2">
               <CardHeader>
                 <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
               </CardHeader>

@@ -15,8 +15,8 @@ const badgeVariants = cva(
         destructive:
           "whitespace-nowrap border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "whitespace-nowrap text-foreground",
-        success: "whitespace-nowrap border-transparent bg-success text-success-foreground hover:bg-success/80",
-        warning: "whitespace-nowrap border-transparent bg-warning text-warning-foreground hover:bg-warning/80",
+        success: "whitespace-nowrap border-transparent bg-success text-success hover:bg-success/80",
+        warning: "whitespace-nowrap border-transparent bg-warning text-warning hover:bg-warning/80",
       },
     },
     defaultVariants: {
