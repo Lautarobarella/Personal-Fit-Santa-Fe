@@ -8,7 +8,7 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/hooks/use-activity', () => ({
   useActivities: () => ({
-    activities: [
+    allActivities: [
       {
         id: 1,
         name: 'Yoga Matutino',
@@ -23,14 +23,38 @@ jest.mock('@/hooks/use-activity', () => ({
         status: 'ACTIVE',
       },
     ],
+    activities: [], // Mantenemos por compatibilidad
     loading: false,
     error: null,
+    loadActivities: jest.fn(),
     loadActivitiesByWeek: jest.fn(),
     enrollIntoActivity: jest.fn(),
     unenrollFromActivity: jest.fn(),
     deleteActivityById: jest.fn(),
     isUserEnrolled: () => false,
-    getUserEnrollmentStatus: () => 'PENDING',
+    getUserEnrollmentStatus: () => 'not_enrolled',
+    getActivitiesByWeek: jest.fn(() => [
+      {
+        id: 1,
+        name: 'Yoga Matutino',
+        description: 'Clase de yoga',
+        location: 'Sala A',
+        trainerName: 'Laura',
+        date: new Date(),
+        duration: 60,
+        participants: [],
+        maxParticipants: 10,
+        currentParticipants: 5,
+        status: 'ACTIVE',
+      },
+    ]),
+    getTodayActivities: jest.fn(() => []),
+  })
+}))
+
+jest.mock('@/hooks/use-client', () => ({
+  useClients: () => ({
+    checkMembershipStatus: jest.fn().mockResolvedValue(true),
   })
 }))
 
