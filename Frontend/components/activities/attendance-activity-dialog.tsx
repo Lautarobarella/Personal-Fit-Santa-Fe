@@ -3,24 +3,24 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog"
-import { Button } from "../ui/button"
-import { Badge } from "../ui/badge"
-import { Avatar, AvatarFallback } from "../ui/avatar"
-import { Card, CardContent } from "../ui/card"
-import { CheckCircle, AlertCircle, Loader2, Users, MailWarningIcon } from "lucide-react"
 import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus } from "@/lib/types"
+import { AlertCircle, CheckCircle, Loader2, MailWarningIcon, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useAuth } from "../providers/auth-provider"
+import { Avatar, AvatarFallback } from "../ui/avatar"
+import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
+import { Card, CardContent } from "../ui/card"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../ui/dialog"
 
 interface AttendanceActivityDialogProps {
   open: boolean
@@ -33,7 +33,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
   const { user } = useAuth()
   const [isAttending, setIsAttending] = useState(false)
   const { toast } = useToast()
-  const { selectedActivity, loadActivityDetail, markParticipantPresent } = useActivities()
+  const { selectedActivity, loadActivityDetail, markParticipantAttendance } = useActivities()
 
   useEffect(() => {
     loadActivityDetail(activityId)
@@ -62,7 +62,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantPresent(selectedActivity.id, participantId, AttendanceStatus.PRESENT)
+      const result = await markParticipantAttendance(selectedActivity.id, participantId, AttendanceStatus.PRESENT)
       
       if (result.success) {
         toast({
@@ -92,7 +92,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantPresent(selectedActivity.id, participantId, AttendanceStatus.ABSENT)
+      const result = await markParticipantAttendance(selectedActivity.id, participantId, AttendanceStatus.ABSENT)
       
       if (result.success) {
         toast({
@@ -122,7 +122,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantPresent(selectedActivity.id, participantId, AttendanceStatus.LATE)
+      const result = await markParticipantAttendance(selectedActivity.id, participantId, AttendanceStatus.LATE)
       
       if (result.success) {
         toast({

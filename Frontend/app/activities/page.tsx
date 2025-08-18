@@ -35,7 +35,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 
 export default function ActivitiesPage() {
@@ -45,11 +45,11 @@ export default function ActivitiesPage() {
     activities: allActivities,
     loading,
     error,
-    loadActivities,
+    refreshActivities,
     loadActivitiesByWeek,
-    enrollIntoActivity,
+    enrollInActivity,
     unenrollFromActivity,
-    deleteActivityById,
+    removeActivity,
     isUserEnrolled,
     getUserEnrollmentStatus,
     getActivitiesByWeek,
@@ -96,9 +96,9 @@ export default function ActivitiesPage() {
   // Cargar actividades - carga todas las actividades una vez
   useEffect(() => {
     if (user && allActivities.length === 0) {
-      loadActivities()
+      refreshActivities()
     }
-  }, [user, allActivities.length, loadActivities])
+  }, [user, allActivities.length, refreshActivities])
 
   // Auto-scroll al día actual cuando se cargan las actividades
   useEffect(() => {
@@ -421,7 +421,7 @@ export default function ActivitiesPage() {
 
   const handleConfirmDelete = async (activityId: number) => {
     try {
-      const result = await deleteActivityById(activityId)
+      const result = await removeActivity(activityId)
 
       if (result.success) {
         toast({
@@ -504,7 +504,7 @@ export default function ActivitiesPage() {
           // Mostrar toast de éxito
         }
       } else {
-        const result = await enrollIntoActivity(activity.id, user.id)
+        const result = await enrollInActivity(activity.id, user.id)
         if (result.success) {
           // Mostrar toast de éxito
         }

@@ -1,7 +1,6 @@
 "use client"
 
 import { fetchActivityDetail } from "@/api/activities/activitiesApi"
-import { useActivities } from "@/hooks/use-activity"
 import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -13,6 +12,7 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityDetailInfo, UserRole } from "@/lib/types"
 import { ArrowLeft, Calendar, Clock, MapPin, Repeat, Save, Users } from "lucide-react"
@@ -51,7 +51,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
         error,
         loadActivityDetail,
         loadTrainers,
-        editActivity,
+        updateActivity,
         clearSelectedActivity,
     } = useActivities()
 
@@ -161,7 +161,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
         setIsSubmitting(true)
 
         try {
-            await editActivity(activityId, form)
+            await updateActivity(activityId, form)
 
             toast({
                 title: "Actividad actualizada",

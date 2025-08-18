@@ -13,20 +13,20 @@ import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-  Activity,
-  AlertTriangle,
-  ArrowUpRight,
-  Bell,
-  Calendar,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  Eye,
-  EyeOff,
-  Target,
-  TrendingUp,
-  Users,
-  Zap
+    Activity,
+    AlertTriangle,
+    ArrowUpRight,
+    Bell,
+    Calendar,
+    CheckCircle,
+    Clock,
+    CreditCard,
+    Eye,
+    EyeOff,
+    Target,
+    TrendingUp,
+    Users,
+    Zap
 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -53,7 +53,7 @@ function DashboardContent() {
     loading: pendingPaymentsLoading
   } = usePendingPayments(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
-  const { activities, loadActivities } = useActivities()
+  const { activities, refreshActivities } = useActivities()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
   
   // Hook para ingresos mensuales (solo para admin)
@@ -66,7 +66,7 @@ function DashboardContent() {
   useEffect(() => {
     setMounted(true)
     loadClients()
-    loadActivities()
+    refreshActivities()
 
     // Para clientes, verificar estado de membresía
     if (user?.role === UserRole.CLIENT && user.id) {
@@ -76,7 +76,7 @@ function DashboardContent() {
     // Invalidar queries para asegurar datos frescos al entrar al dashboard
     if (user?.role === UserRole.ADMIN) {
     }
-  }, [loadClients, loadActivities, user?.role, queryClient])
+  }, [loadClients, refreshActivities, user?.role, queryClient])
 
   // Calcular estadísticas reales
   useEffect(() => {

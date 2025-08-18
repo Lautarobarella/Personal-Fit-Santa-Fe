@@ -1,33 +1,30 @@
 "use client"
 
-import React, { createContext, useContext, ReactNode, useState, useCallback, useMemo } from 'react'
 import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  UseQueryResult,
-  UseMutationResult,
-} from '@tanstack/react-query'
-import {
-  fetchActivities,
-  fetchActivitiesByDate,
-  fetchActivityDetail,
-  newActivity,
-  editActivityBack,
-  deleteActivity,
-  enrollActivity,
-  unenrollActivity,
-  fetchTrainers,
-  markAttendance,
+    deleteActivity,
+    editActivityBack,
+    enrollActivity,
+    fetchActivities,
+    fetchActivityDetail,
+    fetchTrainers,
+    markAttendance,
+    newActivity,
+    unenrollActivity
 } from '@/api/activities/activitiesApi'
 import {
-  ActivityType,
-  ActivityDetailInfo,
-  ActivityFormType,
-  UserType,
-  EnrollmentRequest,
-  AttendanceStatus,
+    ActivityDetailInfo,
+    ActivityFormType,
+    ActivityType,
+    AttendanceStatus,
+    EnrollmentStatus,
+    UserType
 } from '@/lib/types'
+import {
+    useMutation,
+    useQuery,
+    useQueryClient
+} from '@tanstack/react-query'
+import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react'
 import { useAuth } from './auth-provider'
 
 // Interfaces para el contexto
@@ -65,7 +62,7 @@ interface ActivityContextType {
   
   // Utility functions
   isUserEnrolled: (activity: ActivityType, userId: number) => boolean
-  getUserEnrollmentStatus: (activity: ActivityType, userId: number) => "enrolled" | "not_enrolled" | "full"
+  getUserEnrollmentStatus: (activity: ActivityType, userId: number) => EnrollmentStatus
   canUserEnroll: (activity: ActivityType, userId: number) => boolean
   getActivitiesByWeek: (weekStartDate: Date) => ActivityType[]
   getTodayActivities: () => ActivityType[]
@@ -77,13 +74,6 @@ interface ActivityContextType {
   isEnrolling: boolean
   isUnenrolling: boolean
   isMarkingAttendance: boolean
-  
-  // Aliases para compatibilidad con código existente
-  deleteActivityById: (id: number) => Promise<{ success: boolean; message: string }>
-  enrollIntoActivity: (activityId: number, userId: number) => Promise<{ success: boolean; message: string }>
-  markParticipantPresent: (activityId: number, participantId: number, status: AttendanceStatus) => Promise<{ success: boolean; message: string }>
-  editActivity: (id: number, activity: Omit<ActivityFormType, 'id'>) => Promise<ActivityType>
-  loadActivities: () => Promise<void>
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined)
@@ -306,14 +296,14 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
     return activity.participants.includes(userId)
   }
 
-  const getUserEnrollmentStatus = (activity: ActivityType, userId: number): "enrolled" | "not_enrolled" | "full" => {
+  const getUserEnrollmentStatus = (activity: ActivityType, userId: number): EnrollmentStatus => {
     if (activity.participants.includes(userId)) {
-      return "enrolled"
+      return EnrollmentStatus.ENROLLED
     }
     if (activity.currentParticipants >= activity.maxParticipants) {
-      return "full"
+      return EnrollmentStatus.FULL
     }
-    return "not_enrolled"
+    return EnrollmentStatus.NOT_ENROLLED
   }
 
   const canUserEnroll = (activity: ActivityType, userId: number): boolean => {
@@ -428,13 +418,6 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
     }
   }
 
-  // Aliases para compatibilidad con el código existente
-  const deleteActivityById = removeActivity
-  const enrollIntoActivity = enrollInActivity
-  const markParticipantPresent = markParticipantAttendance
-  const editActivity = updateActivity
-  const loadActivities = refreshActivities
-
   // Estado de carga consolidado
   const isLoading = isLoadingActivities || isLoadingTrainers
 
@@ -486,13 +469,6 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
     isEnrolling: enrollMutation.isPending,
     isUnenrolling: unenrollMutation.isPending,
     isMarkingAttendance: markAttendanceMutation.isPending,
-    
-    // Aliases para compatibilidad
-    deleteActivityById,
-    enrollIntoActivity,
-    markParticipantPresent,
-    editActivity,
-    loadActivities,
     loading: isLoading, // Alias para compatibilidad
   }
 

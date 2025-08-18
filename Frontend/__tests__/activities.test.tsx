@@ -1,4 +1,5 @@
 import ActivitiesPage from '@/app/activities/page'
+import { EnrollmentStatus } from '@/lib/types'
 import { act, render, screen } from '@testing-library/react'
 
 jest.mock('next/navigation', () => ({
@@ -26,13 +27,13 @@ jest.mock('@/hooks/use-activity', () => ({
     activities: [], // Mantenemos por compatibilidad
     loading: false,
     error: null,
-    loadActivities: jest.fn(),
+    refreshActivities: jest.fn(),
     loadActivitiesByWeek: jest.fn(),
-    enrollIntoActivity: jest.fn(),
+    enrollInActivity: jest.fn(),
     unenrollFromActivity: jest.fn(),
-    deleteActivityById: jest.fn(),
+    removeActivity: jest.fn(),
     isUserEnrolled: () => false,
-    getUserEnrollmentStatus: () => 'not_enrolled',
+    getUserEnrollmentStatus: () => EnrollmentStatus.NOT_ENROLLED,
     getActivitiesByWeek: jest.fn(() => [
       {
         id: 1,

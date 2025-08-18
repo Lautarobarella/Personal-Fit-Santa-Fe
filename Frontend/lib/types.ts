@@ -22,6 +22,12 @@ export enum AttendanceStatus {
   LATE = "LATE"
 }
 
+export enum EnrollmentStatus {
+  ENROLLED = "ENROLLED",
+  NOT_ENROLLED = "NOT_ENROLLED",
+  FULL = "FULL"
+}
+
 export enum MethodType {
   CASH = "CASH",
   CARD = "CARD",
