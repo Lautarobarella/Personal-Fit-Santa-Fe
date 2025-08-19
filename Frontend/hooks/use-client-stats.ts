@@ -1,10 +1,10 @@
 import {
-  ClientStats,
-  fetchClientStats,
-  fetchCompletedClasses,
-  fetchMembershipStatus,
-  fetchNextClass,
-  fetchWeeklyActivities
+    ClientStats,
+    fetchClientStats,
+    fetchCompletedClasses,
+    fetchMembershipStatus,
+    fetchNextClass,
+    fetchWeeklyActivities
 } from '@/api/clients/clientStatsApi';
 import { UserStatus } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';

@@ -1,5 +1,6 @@
 "use client"
 
+import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -13,20 +14,20 @@ import { usePendingPayments } from "@/hooks/use-pending-payments"
 import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-    Activity,
-    AlertTriangle,
-    ArrowUpRight,
-    Bell,
-    Calendar,
-    CheckCircle,
-    Clock,
-    CreditCard,
-    Eye,
-    EyeOff,
-    Target,
-    TrendingUp,
-    Users,
-    Zap
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  Bell,
+  Calendar,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Eye,
+  EyeOff,
+  Target,
+  TrendingUp,
+  Users,
+  Zap
 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -61,6 +62,9 @@ function DashboardContent() {
 
   // Estado para cachear el estado de membresía
   const [membershipStatus, setMembershipStatus] = useState<boolean | null>(null)
+  
+  // Estado para el dialog de perfil del cliente
+  const [showProfileDialog, setShowProfileDialog] = useState(false)
 
   // Marcar como montado para evitar SSR e invalidar queries para datos frescos
   useEffect(() => {
@@ -331,7 +335,7 @@ function DashboardContent() {
         { title: "Ver Actividades", href: "/activities", icon: Activity, color: "bg-orange-500" },
         { title: "Mi Progreso", href: "/progress", icon: TrendingUp, color: "bg-gray-500" },
         { title: "Realizar Pago", href: "/payments", icon: CreditCard, color: "bg-gray-500" },
-        { title: "Mi Perfil", href: "/profile", icon: Users, color: "bg-orange-500" },
+        { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-orange-500" },
       ]
     }
   }
@@ -494,19 +498,37 @@ function DashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
-            {quickActions.map((action, index) => (
-              <Link key={index} href={action.href}>
-                <Button
-                  variant="outline"
-                  className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
-                >
-                  <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
-                    <action.icon className="h-7 w-7 text-white" />
-                  </div>
-                  <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
-                </Button>
-              </Link>
-            ))}
+            {quickActions.map((action, index) => {
+              if (action.onClick) {
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
+                    onClick={action.onClick}
+                  >
+                    <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
+                      <action.icon className="h-7 w-7 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
+                  </Button>
+                )
+              } else {
+                return (
+                  <Link key={index} href={action.href!}>
+                    <Button
+                      variant="outline"
+                      className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
+                    >
+                      <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
+                        <action.icon className="h-7 w-7 text-white" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
+                    </Button>
+                  </Link>
+                )
+              }
+            })}
           </CardContent>
         </Card>
 
@@ -552,6 +574,15 @@ function DashboardContent() {
       </div>
 
       <BottomNav />
+      
+      {/* Dialog de perfil para clientes */}
+      {user?.role === UserRole.CLIENT && user.id && (
+        <ClientDetailsDialog
+          open={showProfileDialog}
+          onOpenChange={setShowProfileDialog}
+          userId={user.id}
+        />
+      )}
     </div>
   )
 }
