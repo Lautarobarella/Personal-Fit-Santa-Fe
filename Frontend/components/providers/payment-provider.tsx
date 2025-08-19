@@ -1,10 +1,10 @@
-// components/providers/react-query-provider.tsx
+// components/providers/payment-provider.tsx
 "use client"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactNode, useState } from "react"
 
-export function ReactQueryProvider({ children }: { children: ReactNode }) {
+export function PaymentProvider({ children }: { children: ReactNode }) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {

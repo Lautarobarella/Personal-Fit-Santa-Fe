@@ -1,21 +1,25 @@
 "use client"
 
+import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "../ui/button";
 
 interface PaymentReceiptDisplayProps {
     fileId: number | null | undefined;
     fileName?: string;
     className?: string;
     showActions?: boolean;
+    pdfHeight?: string; // Nueva prop para controlar altura del PDF
+    imageHeight?: string; // Nueva prop para controlar altura máxima de la imagen
 }
 
 export function PaymentReceiptDisplay({
     fileId,
     fileName,
     className = "",
-    showActions = true
+    showActions = true,
+    pdfHeight = "400px", // Valor por defecto
+    imageHeight = "400px" // Valor por defecto para altura de imagen
 }: PaymentReceiptDisplayProps) {
     const [fileData, setFileData] = useState<{
         url: string;
@@ -106,23 +110,27 @@ export function PaymentReceiptDisplay({
     const isImage = fileData.type.startsWith('image/');
 
     return (
-        <div className={`space-y-3`}>
-            <div className={`border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 ${className.includes('h-') || className.includes('max-h-') ? className : 'h-[400px]'}`}>
+        <div className={`space-y-3 ${className}`}>
+            <div className="border rounded-lg overflow-hidden" style={{ height: isImage ? imageHeight : 'auto' }}>
                 {isPDF ? (
-                    <div className="bg-gray-50 p-8 text-center">
-                        <FileText className="h-16 w-16 mx-auto text-red-600 mb-4" />
-                        <p className="text-lg font-medium text-gray-900 mb-2">Documento PDF</p>
-                        <p className="text-sm text-gray-600">
-                            Haz clic en "Ver completo" para abrir el PDF
-                        </p>
+                    <div className="w-full">
+                        <iframe
+                            src={fileData.url}
+                            className="w-full border-0"
+                            style={{ height: pdfHeight }}
+                            title="Comprobante PDF"
+                            loading="lazy"
+                        />
                     </div>
                 ) : isImage ? (
-                    <img
-                        src={fileData.url}
-                        alt="Comprobante de pago"
-                        className="max-w-full max-h-full object-contain"
-                        onError={() => setError(true)}
-                    />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                        <img
+                            src={fileData.url}
+                            alt="Comprobante de pago"
+                            className="max-w-full max-h-full object-contain"
+                            onError={() => setError(true)}
+                        />
+                    </div>
                 ) : (
                     <div className="bg-gray-50 p-8 text-center">
                         <FileText className="h-16 w-16 mx-auto text-gray-600 mb-4" />

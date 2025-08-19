@@ -253,39 +253,11 @@ export default function PaymentVerificationPage() {
                   <PaymentReceiptDisplay
                     fileId={currentPayment.receiptId}
                     fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
-                    className="h-72"
-                    showActions={false}
+                    className=""
+                    showActions={true}
+                    pdfHeight="280px"
+                    imageHeight="280px"
                   />
-                  <div className="mt-1.5 flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const fileId = currentPayment.receiptId;
-                        if (fileId) {
-                          window.open(`/payments/files/${fileId}`, "_blank");
-                        }
-                      }}
-                      className="bg-transparent text-sm px-2.5 py-1.5 h-8"
-                      disabled={!currentPayment.receiptId}
-                    >
-                      Ver completo
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const link = document.createElement("a")
-                        link.href = currentPayment.receiptUrl!
-                        link.download = `comprobante-${currentPayment.clientName}-${currentPayment.createdAt}.jpg`
-                        link.click()
-                      }}
-                      className="bg-transparent text-sm px-2.5 py-1.5 h-8"
-                      disabled={!currentPayment.receiptUrl}
-                    >
-                      Descargar
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </>

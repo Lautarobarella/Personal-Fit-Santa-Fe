@@ -8,8 +8,8 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/payments',
 }))
 
-// Mock React Query provider wrapper
-const ReactQueryProvider = ({ children }: { children: React.ReactNode }) => {
+// Mock Payment provider wrapper
+const PaymentProvider = ({ children }: { children: React.ReactNode }) => {
   const { QueryClient, QueryClientProvider } = require('@tanstack/react-query')
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -99,11 +99,11 @@ describe('PaymentsPage', () => {
   it('muestra conteos de pagos pendientes y lista elementos clave', async () => {
     await act(async () => {
       render(
-        <ReactQueryProvider>
+        <PaymentProvider>
           <AuthProvider>
             <PaymentsPage />
           </AuthProvider>
-        </ReactQueryProvider>
+        </PaymentProvider>
       )
     })
 

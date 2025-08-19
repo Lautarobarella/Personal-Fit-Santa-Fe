@@ -1,7 +1,7 @@
 import { ActivityProvider } from "@/components/providers/activity-provider"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { NotificationsProvider } from "@/components/providers/notifications-provider"
-import { ReactQueryProvider } from "@/components/providers/react-query-provider"
+import { PaymentProvider } from "@/components/providers/payment-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
@@ -47,7 +47,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider>
-          <ReactQueryProvider>
+          <PaymentProvider>
             <AuthProvider>
               <ActivityProvider>
                 <NotificationsProvider>
@@ -60,7 +60,7 @@ export default function RootLayout({
                 </NotificationsProvider>
               </ActivityProvider>
             </AuthProvider>
-          </ReactQueryProvider>
+          </PaymentProvider>
         </ThemeProvider>
       </body>
     </html>
