@@ -12,6 +12,7 @@ export interface ClientStats {
   } | null;
   completedClassesCount: number;
   membershipStatus: UserStatus;
+  remainingDays: number;
 }
 
 /**
@@ -29,7 +30,8 @@ export async function fetchClientStats(clientId: number): Promise<ClientStats> {
       weeklyActivityCount: 0,
       nextClass: null,
       completedClassesCount: 0,
-      membershipStatus: UserStatus.INACTIVE
+      membershipStatus: UserStatus.INACTIVE,
+      remainingDays: 0
     };
   }
 }

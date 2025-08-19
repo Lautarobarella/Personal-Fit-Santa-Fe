@@ -18,6 +18,7 @@ public class ClientStatsDTO {
     private NextClassDTO nextClass;
     private Integer completedClassesCount;
     private UserStatus membershipStatus;
+    private Integer remainingDays;
 
     @Data
     @Builder

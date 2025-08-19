@@ -14,7 +14,8 @@ export function useClientStats(clientId?: number) {
     weeklyActivityCount: 0,
     nextClass: null,
     completedClassesCount: 0,
-    membershipStatus: UserStatus.INACTIVE
+    membershipStatus: UserStatus.INACTIVE,
+    remainingDays: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +55,8 @@ export function useClientStats(clientId?: number) {
           weeklyActivityCount: weeklyActivityCount.status === 'fulfilled' ? weeklyActivityCount.value : 0,
           nextClass: nextClass.status === 'fulfilled' ? nextClass.value : null,
           completedClassesCount: completedClassesCount.status === 'fulfilled' ? completedClassesCount.value : 0,
-          membershipStatus: membershipStatus.status === 'fulfilled' ? membershipStatus.value : UserStatus.INACTIVE
+          membershipStatus: membershipStatus.status === 'fulfilled' ? membershipStatus.value : UserStatus.INACTIVE,
+          remainingDays: 0 // Fallback temporal para endpoints individuales
         });
       } catch (individualError) {
         // Si los endpoints individuales tampoco existen, usar datos simulados temporales
@@ -68,7 +70,8 @@ export function useClientStats(clientId?: number) {
             time: "10:00"
           },
           completedClassesCount: Math.floor(Math.random() * 50) + 10, // 10-60 clases
-          membershipStatus: Math.random() > 0.3 ? UserStatus.ACTIVE : UserStatus.INACTIVE // 70% activo
+          membershipStatus: Math.random() > 0.3 ? UserStatus.ACTIVE : UserStatus.INACTIVE, // 70% activo
+          remainingDays: Math.floor(Math.random() * 30) + 1 // 1-30 días simulados
         });
       }
 

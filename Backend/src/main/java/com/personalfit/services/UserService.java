@@ -321,6 +321,7 @@ public class UserService {
                 .nextClass(getNextClass(client))
                 .completedClassesCount(getCompletedClassesCount(client))
                 .membershipStatus(client.getStatus())
+                .remainingDays(getRemainingPlanDays(client))
                 .build();
     }
 
@@ -452,5 +453,46 @@ public class UserService {
         userRepository.save(user);
         
         log.info("Password updated successfully for user ID: {}", userId);
+    }
+
+    /**
+     * Calcula los días restantes del plan de un cliente basado en su último pago activo
+     * @param client Usuario cliente
+     * @return Días restantes del plan (0 si no tiene plan activo)
+     */
+    public Integer getRemainingPlanDays(User client) {
+        // Buscar el último pago PAID del cliente
+        Optional<Payment> lastPaidPayment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(
+                client, PaymentStatus.PAID);
+        
+        if (lastPaidPayment.isEmpty()) {
+            log.debug("No paid payment found for client ID: {}", client.getId());
+            return 0;
+        }
+        
+        Payment payment = lastPaidPayment.get();
+        
+        // Verificar que el pago tenga fecha de expiración y no haya expirado
+        if (payment.getExpiresAt() == null) {
+            log.debug("Payment for client ID: {} has no expiration date", client.getId());
+            return 0;
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = payment.getExpiresAt();
+        
+        // Si ya expiró, retornar 0
+        if (expiresAt.isBefore(now) || expiresAt.isEqual(now)) {
+            log.debug("Payment for client ID: {} has expired", client.getId());
+            return 0;
+        }
+        
+        // Calcular días restantes
+        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(now.toLocalDate(), expiresAt.toLocalDate());
+        
+        int remainingDays = Math.max(0, (int) daysBetween);
+        
+        log.debug("Client ID: {} has {} remaining days on plan", client.getId(), remainingDays);
+        return remainingDays;
     }
 }

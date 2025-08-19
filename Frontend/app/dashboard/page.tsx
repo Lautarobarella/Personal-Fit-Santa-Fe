@@ -266,13 +266,8 @@ function DashboardContent() {
       // Usar el estado de membresía validado por el backend
       const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
       
-      // Para el cálculo de días restantes, usar el estado de membresía validado
-      let diasRestantes = 0;
-      if (hasActiveMembership) {
-        // Si tiene membresía activa, asumir 30 días como ejemplo
-        // En el futuro se puede obtener esta información del backend
-        diasRestantes = 30;
-      }
+      // Obtener días restantes del backend directamente
+      const diasRestantes = clientStats.remainingDays ?? 0;
 
       // Progreso mensual de actividades (fallback a weeklyActivityCount si no existe)
       const actividadesMes = clientStats.weeklyActivityCount ?? 0;
