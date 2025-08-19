@@ -328,15 +328,19 @@ export function ClientDetailsDialog({
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span>{formatDate(selectedClient.joinDate)}</span>
                         </p>
-                        <span className="text-muted-foreground text-sm">Rol:</span>
-                        <p className="text-sm mt-1 flex items-start gap-1">
-                          <Dice3 className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {selectedClient.role === UserRole.CLIENT && "Cliente"}
-                            {selectedClient.role === UserRole.TRAINER && "Entrenador"}
-                            {selectedClient.role === UserRole.ADMIN && "Administrador"}
-                          </span>
-                        </p>
+                        {user?.role !== UserRole.CLIENT && (
+                          <>
+                            <span className="text-muted-foreground text-sm">Rol:</span>
+                            <p className="text-sm mt-1 flex items-start gap-1">
+                              <Dice3 className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                {selectedClient.role === UserRole.CLIENT && "Cliente"}
+                                {selectedClient.role === UserRole.TRAINER && "Entrenador"}
+                                {selectedClient.role === UserRole.ADMIN && "Administrador"}
+                              </span>
+                            </p>
+                          </>
+                        )}
                       </div>
                     </>
                   )}
@@ -504,27 +508,28 @@ export function ClientDetailsDialog({
                 </Card>
 
                 {/* Financial Stats */}
-                <Card className="min-h-[13vh] m-2">
-                  <CardHeader className="py-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Estadísticas Financieras
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-2 space-y-1">
-                    <div className="grid grid-cols-2 gap-3 text-center">
-                      <div>
-                        <div className="text-lg font-bold text-secondary">${totalPaid}</div>
-                        <div className="text-xs text-muted-foreground">Total Pagado</div>
+                {user?.role !== UserRole.CLIENT && (
+                  <Card className="min-h-[13vh] m-2">
+                    <CardHeader className="py-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <DollarSign className="h-5 w-5" />
+                        Estadísticas Financieras
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-2 space-y-1">
+                      <div className="grid grid-cols-2 gap-3 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-secondary">${totalPaid}</div>
+                          <div className="text-xs text-muted-foreground">Total Pagado</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-primary">{selectedClient.listPayments.length}</div>
+                          <div className="text-xs text-muted-foreground">Transacciones</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-lg font-bold text-primary">{selectedClient.listPayments.length}</div>
-                        <div className="text-xs text-muted-foreground">Transacciones</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
+                    </CardContent>
+                  </Card>
+                )}
                 {/* Client Summary */}
                 <Card className="min-h-[20vh] m-2">
                   <CardHeader className="py-2">
@@ -581,6 +586,6 @@ export function ClientDetailsDialog({
           </Tabs>
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   )
 }

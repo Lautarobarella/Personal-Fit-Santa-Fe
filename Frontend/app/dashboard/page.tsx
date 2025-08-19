@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { useToast } from "@/hooks/use-toast"
 import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useClientStats } from "@/hooks/use-client-stats"
@@ -29,12 +30,14 @@ import {
   Users,
   Zap
 } from "lucide-react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 // Componente que se renderiza solo en el cliente
 function DashboardContent() {
   const { user } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
   const queryClient = useQueryClient()
   const [dashboardStats, setDashboardStats] = useState({
     monthlyRevenue: 0,
@@ -315,26 +318,54 @@ function DashboardContent() {
     }
   }
 
+  // Función para manejar navegación con validaciones especiales
+  const handleNavigation = (route: string, title: string) => {
+    // Para reportes - mostrar toast en desarrollo
+    if (route === "/reports") {
+      toast({
+        title: "Función en desarrollo",
+        description: "Estamos trabajando en generar reportes",
+        variant: "default"
+      })
+      return
+    }
+
+    // Para verificar pagos - validar si hay pagos pendientes
+    if (route === "/payments/verify" && user?.role === UserRole.ADMIN) {
+      if (totalPendingPayments === 0) {
+        toast({
+          title: "Sin pagos pendientes",
+          description: "No hay pagos pendientes de verificación",
+          variant: "default"
+        })
+        return
+      }
+    }
+
+    // Navegación normal
+    router.push(route)
+  }
+
   const getQuickActions = () => {
     if (user.role === UserRole.ADMIN) {
       return [
-        { title: "Nueva Actividad", href: "/activities/new", icon: Activity, color: "bg-orange-500" },
-        { title: "Gestionar Clientes", href: "/clients", icon: Users, color: "bg-gray-500" },
-        { title: "Verificar Pagos", href: "/payments/verify", icon: CreditCard, color: "bg-gray-500" },
-        { title: "Ver Reportes", href: "/reports", icon: TrendingUp, color: "bg-orange-500" },
+        { title: "Nueva Actividad", route: "/activities/new", icon: Activity, color: "bg-orange-500" },
+        { title: "Gestionar Clientes", route: "/clients", icon: Users, color: "bg-gray-500" },
+        { title: "Verificar Pagos", route: "/payments/verify", icon: CreditCard, color: "bg-gray-500" },
+        { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
       ]
     } else if (user.role === UserRole.TRAINER) {
       return [
-        { title: "Mis Actividades", href: "/activities", icon: Activity, color: "bg-orange-500" },
-        { title: "Tomar Asistencia", href: "/attendance", icon: CheckCircle, color: "bg-gray-500" },
-        { title: "Ver Clientes", href: "/clients", icon: Users, color: "bg-gray-500" },
-        { title: "Mi Horario", href: "/schedule", icon: Calendar, color: "bg-orange-500" },
+        { title: "Mis Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
+        { title: "Tomar Asistencia", route: "/attendance", icon: CheckCircle, color: "bg-gray-500" },
+        { title: "Ver Clientes", route: "/clients", icon: Users, color: "bg-gray-500" },
+        { title: "Mi Horario", route: "/schedule", icon: Calendar, color: "bg-orange-500" },
       ]
     } else {
       return [
-        { title: "Ver Actividades", href: "/activities", icon: Activity, color: "bg-orange-500" },
-        { title: "Mi Progreso", href: "/progress", icon: TrendingUp, color: "bg-gray-500" },
-        { title: "Realizar Pago", href: "/payments", icon: CreditCard, color: "bg-gray-500" },
+        { title: "Ver Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
+        { title: "Mi Progreso", route: "/progress", icon: TrendingUp, color: "bg-gray-500" },
+        { title: "Realizar Pago", route: "/payments", icon: CreditCard, color: "bg-gray-500" },
         { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-orange-500" },
       ]
     }
@@ -347,23 +378,23 @@ function DashboardContent() {
           type: "warning",
           message: `${totalPendingPayments} pagos pendientes a validar`,
           action: "Ver pagos",
-          href: "/payments/verify"
+          route: "/payments/verify"
         }]
         : []
     } else if (user.role === UserRole.TRAINER) {
       return [
-        { type: "info", message: "Clase de Yoga en 45 minutos", action: "Ver detalles", href: "/activities" },
-        { type: "success", message: "Excelente asistencia esta semana (92%)", action: "Ver estadísticas", href: "/stats" },
+        { type: "info", message: "Clase de Yoga en 45 minutos", action: "Ver detalles", route: "/activities" },
+        { type: "success", message: "Excelente asistencia esta semana (92%)", action: "Ver estadísticas", route: "/stats" },
       ]
     } else {
       // Usar el estado de membresía validado por el backend
       const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
       
       if (!hasActiveMembership) {
-        return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", href: "/payments" }];
+        return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", route: "/payments" }];
       }
       return [
-        { type: "info", message: `¡Felicidades! Completaste ${clientStats.weeklyActivityCount || 0} actividades este mes`, action: "Ver progreso", href: "/progress" },
+        { type: "info", message: `¡Felicidades! Completaste ${clientStats.weeklyActivityCount || 0} actividades este mes`, action: "Ver progreso", route: "/progress" },
       ];
     }
   }
@@ -438,12 +469,15 @@ function DashboardContent() {
                       {alert.type === "success" && <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />}
                       <span className="text-sm font-semibold text-foreground flex-1">{alert.message}</span>
                     </div>
-                    <Link href={alert.href}>
-                      <Button variant="ghost" size="sm" className="text-xs font-medium hover:bg-background/50 rounded-xl">
-                        {alert.action}
-                        <ArrowUpRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs font-medium hover:bg-background/50 rounded-xl"
+                      onClick={() => handleNavigation(alert.route, alert.action)}
+                    >
+                      {alert.action}
+                      <ArrowUpRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -515,17 +549,17 @@ function DashboardContent() {
                 )
               } else {
                 return (
-                  <Link key={index} href={action.href!}>
-                    <Button
-                      variant="outline"
-                      className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
-                    >
-                      <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
-                        <action.icon className="h-7 w-7 text-white" />
-                      </div>
-                      <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
-                    </Button>
-                  </Link>
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
+                    onClick={() => handleNavigation(action.route, action.title)}
+                  >
+                    <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
+                      <action.icon className="h-7 w-7 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
+                  </Button>
                 )
               }
             })}

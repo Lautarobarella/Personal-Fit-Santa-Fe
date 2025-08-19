@@ -156,7 +156,8 @@ public class UserService {
     public User getUserByEmail(String email) {
         Optional<User> user = userRepository.findByEmail(email);
         if (user.isEmpty())
-            throw new EntityNotFoundException("Usuario con email: " + email + " no encontrado", "Api/User/getUserByEmail");
+            throw new EntityNotFoundException("Usuario con email: " + email + " no encontrado",
+                    "Api/User/getUserByEmail");
         return user.get();
     }
 
@@ -220,11 +221,11 @@ public class UserService {
     // batch function to create multiple clients (similar to createNewUser logic)
     public Integer createBatchClients(List<CreateUserDTO> newUsers) {
         List<User> usersToSave = new ArrayList<>();
-        
+
         for (CreateUserDTO newUser : newUsers) {
             // Verificar si ya existe un usuario con este DNI
             Optional<User> existingUser = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
-            
+
             if (existingUser.isPresent()) {
                 throw new EntityAlreadyExistsException("Ya existe un usuario con DNI: " + newUser.getDni(),
                         "Api/User/createBatchClients");
@@ -245,10 +246,10 @@ public class UserService {
             userToCreate.setBirthDate(newUser.getBirthDate());
             userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword())); // Encriptar contraseña
             userToCreate.setStatus(newUser.getStatus()); // Ya viene forzado como INACTIVE desde el controller
-            
+
             usersToSave.add(userToCreate);
         }
-        
+
         // Guardar todos los usuarios en lote para mejor rendimiento
         List<User> savedUsers = userRepository.saveAll(usersToSave);
         return savedUsers.size();
@@ -275,7 +276,7 @@ public class UserService {
         });
         if (!toUpdate.isEmpty()) {
             userRepository.saveAll(toUpdate);
-            // TODO: enviar notificación a usuarios y admins
+            log.info("Notifying users about expired payments.");
             notificationService.createPaymentExpiredNotification(toUpdate, getAllAdmins());
         }
     }
@@ -286,8 +287,6 @@ public class UserService {
         List<User> users = userRepository.findAllByBirthDate(LocalDate.now());
         log.info("Found {} users with birthday today.", users.size());
 
-        // TODO logica para enviar notificaciones a los usuarios y al admin del
-        // cumpleañero
         notificationService.createBirthdayNotification(users, getAllAdmins());
     }
 
@@ -307,6 +306,7 @@ public class UserService {
 
     /**
      * Obtiene las estadísticas completas de un cliente para el dashboard
+     * 
      * @param clientId ID del cliente
      * @return ClientStatsDTO con todas las estadísticas
      */
@@ -326,7 +326,9 @@ public class UserService {
     }
 
     /**
-     * Obtiene la cantidad de actividades en las que el cliente se inscribió y estuvo presente esta semana
+     * Obtiene la cantidad de actividades en las que el cliente se inscribió y
+     * estuvo presente esta semana
+     * 
      * @param client Usuario cliente
      * @return Cantidad de actividades de la semana
      */
@@ -334,15 +336,15 @@ public class UserService {
         LocalDate today = LocalDate.now();
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate sunday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-        
+
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfWeek = sunday.atTime(23, 59, 59);
 
         List<Attendance> weeklyAttendances = attendanceRepository.findByUser(client).stream()
                 .filter(attendance -> {
                     LocalDateTime activityDate = attendance.getActivity().getDate();
-                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek) 
-                           && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
+                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek)
+                            && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
                 })
                 .collect(Collectors.toList());
 
@@ -350,23 +352,25 @@ public class UserService {
     }
 
     /**
-     * Obtiene la cantidad de actividades en las que el cliente se inscribió y estuvo presente esta semana para una fecha específica
-     * @param client Usuario cliente
+     * Obtiene la cantidad de actividades en las que el cliente se inscribió y
+     * estuvo presente esta semana para una fecha específica
+     * 
+     * @param client        Usuario cliente
      * @param weekStartDate Fecha de inicio de la semana (lunes)
      * @return Cantidad de actividades de esa semana
      */
     public Integer getWeeklyActivityCount(User client, LocalDate weekStartDate) {
         LocalDate monday = weekStartDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate sunday = monday.plusDays(6);
-        
+
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfWeek = sunday.atTime(23, 59, 59);
 
         List<Attendance> weeklyAttendances = attendanceRepository.findByUser(client).stream()
                 .filter(attendance -> {
                     LocalDateTime activityDate = attendance.getActivity().getDate();
-                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek) 
-                           && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
+                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek)
+                            && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
                 })
                 .collect(Collectors.toList());
 
@@ -375,22 +379,24 @@ public class UserService {
 
     /**
      * Obtiene la próxima clase más cercana en la que el cliente está inscrito
+     * 
      * @param client Usuario cliente
-     * @return NextClassDTO con información de la próxima clase o null si no hay ninguna
+     * @return NextClassDTO con información de la próxima clase o null si no hay
+     *         ninguna
      */
     public ClientStatsDTO.NextClassDTO getNextClass(User client) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         Optional<Attendance> nextAttendance = attendanceRepository.findByUser(client).stream()
                 .filter(attendance -> attendance.getActivity().getDate().isAfter(now))
-                .filter(attendance -> attendance.getAttendance().equals(AttendanceStatus.PENDING) 
-                                   || attendance.getAttendance().equals(AttendanceStatus.PRESENT))
+                .filter(attendance -> attendance.getAttendance().equals(AttendanceStatus.PENDING)
+                        || attendance.getAttendance().equals(AttendanceStatus.PRESENT))
                 .min((a1, a2) -> a1.getActivity().getDate().compareTo(a2.getActivity().getDate()));
 
         if (nextAttendance.isPresent()) {
             Activity activity = nextAttendance.get().getActivity();
             DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-            
+
             return ClientStatsDTO.NextClassDTO.builder()
                     .id(activity.getId())
                     .name(activity.getName())
@@ -404,6 +410,7 @@ public class UserService {
 
     /**
      * Obtiene el total de clases completadas (inscrito y presente) del cliente
+     * 
      * @param client Usuario cliente
      * @return Cantidad total de clases completadas
      */
@@ -415,6 +422,7 @@ public class UserService {
 
     /**
      * Obtiene el estado de membresía del cliente
+     * 
      * @param client Usuario cliente
      * @return UserStatus del cliente
      */
@@ -424,39 +432,43 @@ public class UserService {
 
     /**
      * Actualiza la contraseña de un usuario
-     * @param userId ID del usuario
+     * 
+     * @param userId          ID del usuario
      * @param currentPassword Contraseña actual
-     * @param newPassword Nueva contraseña
-     * @throws EntityNotFoundException Si el usuario no existe
+     * @param newPassword     Nueva contraseña
+     * @throws EntityNotFoundException  Si el usuario no existe
      * @throws IllegalArgumentException Si la contraseña actual es incorrecta
      */
     public void updatePassword(Long userId, String currentPassword, String newPassword) {
         log.info("Updating password for user ID: {}", userId);
-        
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId, "UserService/updatePassword"));
-        
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId,
+                        "UserService/updatePassword"));
+
         // Verificar que la contraseña actual sea correcta
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             log.warn("Password update failed for user ID: {} - Invalid current password", userId);
             throw new IllegalArgumentException("Contraseña actual incorrecta");
         }
-        
+
         // Verificar que la nueva contraseña sea diferente
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             log.warn("Password update failed for user ID: {} - New password same as current", userId);
             throw new IllegalArgumentException("New password must be different from current password");
         }
-        
+
         // Actualizar la contraseña
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-        
+
         log.info("Password updated successfully for user ID: {}", userId);
     }
 
     /**
-     * Calcula los días restantes del plan de un cliente basado en su último pago activo
+     * Calcula los días restantes del plan de un cliente basado en su último pago
+     * activo
+     * 
      * @param client Usuario cliente
      * @return Días restantes del plan (0 si no tiene plan activo)
      */
@@ -464,34 +476,34 @@ public class UserService {
         // Buscar el último pago PAID del cliente
         Optional<Payment> lastPaidPayment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(
                 client, PaymentStatus.PAID);
-        
+
         if (lastPaidPayment.isEmpty()) {
             log.debug("No paid payment found for client ID: {}", client.getId());
             return 0;
         }
-        
+
         Payment payment = lastPaidPayment.get();
-        
+
         // Verificar que el pago tenga fecha de expiración y no haya expirado
         if (payment.getExpiresAt() == null) {
             log.debug("Payment for client ID: {} has no expiration date", client.getId());
             return 0;
         }
-        
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiresAt = payment.getExpiresAt();
-        
+
         // Si ya expiró, retornar 0
         if (expiresAt.isBefore(now) || expiresAt.isEqual(now)) {
             log.debug("Payment for client ID: {} has expired", client.getId());
             return 0;
         }
-        
+
         // Calcular días restantes
         long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(now.toLocalDate(), expiresAt.toLocalDate());
-        
+
         int remainingDays = Math.max(0, (int) daysBetween);
-        
+
         log.debug("Client ID: {} has {} remaining days on plan", client.getId(), remainingDays);
         return remainingDays;
     }
