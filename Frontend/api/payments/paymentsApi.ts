@@ -182,19 +182,8 @@ export function buildReceiptUrl(receiptId: number | null | undefined): string | 
 // ===== INGRESOS MENSUALES =====
 
 /**
- * Obtiene los ingresos del mes actual (solo para admin)
- */
-export async function fetchCurrentMonthRevenue(): Promise<MonthlyRevenue> {
-  try {
-    return await jwtPermissionsApi.get('/api/payments/revenue/current');
-  } catch (error) {
-    handleApiError(error, 'Error al cargar los ingresos del mes actual');
-    throw error;
-  }
-}
-
-/**
  * Obtiene el historial de ingresos mensuales archivados (solo para admin)
+ * El mes actual se calcula desde usePayment para mayor eficiencia
  */
 export async function fetchArchivedMonthlyRevenues(): Promise<MonthlyRevenue[]> {
   try {

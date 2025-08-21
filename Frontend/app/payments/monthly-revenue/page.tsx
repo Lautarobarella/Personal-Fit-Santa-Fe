@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useMonthlyRevenue } from "@/hooks/use-monthly-revenue"
 import { usePayment } from "@/hooks/use-payment"
-import { PaymentStatus, UserRole } from "@/lib/types"
+import { UserRole } from "@/lib/types"
 import { BarChart3, Calendar, DollarSign, Eye, EyeOff, TrendingUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -42,30 +42,23 @@ export default function MonthlyRevenuePage() {
         }
     }, [user, router])
 
-    // Obtener datos de ingresos mensuales
-    const { currentMonthRevenue, archivedRevenues, isLoading } = useMonthlyRevenue(
+    // Obtener datos optimizados
+    const { archivedRevenues, isLoading: isLoadingArchived } = useMonthlyRevenue(
         user?.role === UserRole.ADMIN
     )
 
-    // Obtener pagos del mes actual para calcular los ingresos actuales
-    const { payments } = usePayment(undefined, true)
+    // Obtener pagos y el ingreso del mes actual calculado desde los payments existentes
+    const { payments, currentMonthRevenue, isLoading: isLoadingPayments } = usePayment(undefined, true)
 
     if (!user || user.role !== UserRole.ADMIN) {
         return null
     }
 
-    // Calcular ingresos del mes actual de la misma manera que en dashboard y payments
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
-    const currentMonthAmount = payments
-        .filter(p => {
-            const paymentDate = p.createdAt ? new Date(p.createdAt) : null
-            return p.status === PaymentStatus.PAID &&
-                paymentDate &&
-                paymentDate.getMonth() === currentMonth &&
-                paymentDate.getFullYear() === currentYear
-        })
-        .reduce((sum, p) => sum + p.amount, 0)
+    // Estados de carga combinados
+    const isLoading = isLoadingArchived || isLoadingPayments
+
+    // Usar el ingreso del mes actual calculado desde usePayment
+    const currentMonthAmount = currentMonthRevenue.amount
 
 
 

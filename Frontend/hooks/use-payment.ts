@@ -1,17 +1,17 @@
 import {
-  createPayment,
-  fetchAllPayments,
-  fetchPaymentDetails,
-  fetchUserPayments,
-  updatePaymentStatus
+    createPayment,
+    fetchAllPayments,
+    fetchPaymentDetails,
+    fetchUserPayments,
+    updatePaymentStatus
 } from "@/api/payments/paymentsApi"
-import { NewPaymentInput, PaymentType } from "@/lib/types"
+import { NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types"
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
+    useMutation,
+    useQuery,
+    useQueryClient,
 } from "@tanstack/react-query"
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 
 /**
  * Hook unificado para manejo de pagos
@@ -27,6 +27,32 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 1,
   })
+
+  // Función para calcular ingresos del mes actual desde los payments existentes
+  const getCurrentMonthRevenue = useCallback(() => {
+    if (!payments || payments.length === 0) {
+      return { amount: 0, count: 0 }
+    }
+
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    
+    const currentMonthPayments = payments.filter(p => {
+      const paymentDate = p.createdAt ? new Date(p.createdAt) : null
+      return p.status === PaymentStatus.PAID &&
+             paymentDate &&
+             paymentDate.getMonth() === currentMonth &&
+             paymentDate.getFullYear() === currentYear
+    })
+
+    return {
+      amount: currentMonthPayments.reduce((sum, p) => sum + p.amount, 0),
+      count: currentMonthPayments.length
+    }
+  }, [payments])
+
+  // Memorizar el resultado para evitar recalculos innecesarios
+  const currentMonthRevenue = useMemo(() => getCurrentMonthRevenue(), [getCurrentMonthRevenue])
 
   const fetchSinglePayment = useCallback(
     async (paymentId: number): Promise<PaymentType & { receiptUrl: string | null }> => {
@@ -96,6 +122,9 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     payments,
     isLoading,
     error,
+
+    // Ingresos del mes actual calculados desde los payments existentes
+    currentMonthRevenue,
 
     // Operaciones
     createPayment: createPaymentMutation.mutateAsync,

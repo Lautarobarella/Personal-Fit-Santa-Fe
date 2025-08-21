@@ -13,6 +13,7 @@
 # production
 /Frontend/build
 /Frontend/package-lock.json
+/Frontend/tsconfig.tsbuildinfo
 
 /Backend/target/
 # debug

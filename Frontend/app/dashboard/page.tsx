@@ -6,29 +6,29 @@ import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useToast } from "@/hooks/use-toast"
 import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useClientStats } from "@/hooks/use-client-stats"
-import { useMonthlyRevenue } from "@/hooks/use-monthly-revenue"
+import { usePayment } from "@/hooks/use-payment"
 import { usePendingPayments } from "@/hooks/use-pending-payments"
+import { useToast } from "@/hooks/use-toast"
 import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-  Activity,
-  AlertTriangle,
-  ArrowUpRight,
-  Bell,
-  Calendar,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  Eye,
-  EyeOff,
-  Target,
-  TrendingUp,
-  Users,
-  Zap
+    Activity,
+    AlertTriangle,
+    ArrowUpRight,
+    Bell,
+    Calendar,
+    CheckCircle,
+    Clock,
+    CreditCard,
+    Eye,
+    EyeOff,
+    Target,
+    TrendingUp,
+    Users,
+    Zap
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -60,8 +60,8 @@ function DashboardContent() {
   const { activities, refreshActivities } = useActivities()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
   
-  // Hook para ingresos mensuales (solo para admin)
-  const { currentMonthRevenue, isLoadingCurrent } = useMonthlyRevenue(user?.role === UserRole.ADMIN)
+  // Hook para pagos (incluye cálculo optimizado de ingresos del mes actual)
+  const { currentMonthRevenue, isLoading: isLoadingPayments } = usePayment(undefined, user?.role === UserRole.ADMIN)
 
   // Estado para cachear el estado de membresía
   const [membershipStatus, setMembershipStatus] = useState<boolean | null>(null)
@@ -93,8 +93,8 @@ function DashboardContent() {
     }
 
     try {
-      // 1. Ingresos del mes (usar datos del backend en tiempo real)
-      const monthlyRevenue = currentMonthRevenue?.totalRevenue || 0
+      // 1. Ingresos del mes (usar datos calculados desde usePayment)
+      const monthlyRevenue = currentMonthRevenue?.amount || 0
 
       // 2. Clientes activos
       const activeClients = clients.filter(c => c.status === "ACTIVE").length
