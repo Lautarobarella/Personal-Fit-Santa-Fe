@@ -23,7 +23,7 @@ import {
   MessageCircleWarningIcon,
   MailWarningIcon,
 } from "lucide-react"
-import { useActivities } from "@/hooks/use-activity"
+import { useActivityContext } from "@/components/providers/activity-provider"
 import { ActivityStatus, AttendanceStatus } from "@/lib/types"
 
 interface DetailsActivityDialogProps {
@@ -39,7 +39,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
   const {
     selectedActivity,
     loadActivityDetail,
-  } = useActivities()
+  } = useActivityContext()
 
   useEffect(() => {
     loadActivityDetail(activityId)

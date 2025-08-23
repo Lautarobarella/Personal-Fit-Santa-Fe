@@ -12,7 +12,7 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { useActivities } from "@/hooks/use-activity"
+import { useActivityContext } from "@/components/providers/activity-provider"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityDetailInfo, UserRole } from "@/lib/types"
 import { ArrowLeft, Calendar, Clock, MapPin, Repeat, Save, Users } from "lucide-react"
@@ -24,16 +24,6 @@ interface EditActivityPageProps {
         id: string
     }>
 }
-
-const DAYS_OF_WEEK = [
-    { label: "Lunes", value: 0, key: 0, short: "L" },
-    { label: "Martes", value: 1, key: 1, short: "M" },
-    { label: "Miércoles", value: 2, key: 2, short: "X" },
-    { label: "Jueves", value: 3, key: 3, short: "J" },
-    { label: "Viernes", value: 4, key: 4, short: "V" },
-    { label: "Sábado", value: 5, key: 5, short: "S" },
-    { label: "Domingo", value: 6, key: 6, short: "D" }
-]
 
 export default function EditActivityPage({ params }: EditActivityPageProps) {
     const { user } = useAuth()
@@ -53,7 +43,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
         loadTrainers,
         updateActivity,
         clearSelectedActivity,
-    } = useActivities()
+    } = useActivityContext()
 
     const [currentActivity, setCurrentActivity] = useState<ActivityDetailInfo | null>(null)
     const [isLoadingActivity, setIsLoadingActivity] = useState(false)
@@ -121,12 +111,6 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
             setCurrentActivity(null)
         }
     }, [])
-
-    const handleWeeklyScheduleChange = (dayIndex: number, checked: boolean) => {
-        const newSchedule = [...(form.weeklySchedule || [false, false, false, false, false, false, false])]
-        newSchedule[dayIndex] = checked
-        setForm({ ...form, weeklySchedule: newSchedule })
-    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -384,33 +368,6 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                                 />
                                 <Label htmlFor="recurring">Repetir cada semana</Label>
                             </div>
-
-                            {form.isRecurring && (
-                                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                                    <div className="space-y-2">
-                                        <Label>Días de la semana</Label>
-                                        <p className="text-sm text-muted-foreground">
-                                            Selecciona los días en los que se realizará esta actividad. Se crearán actividades separadas para cada día seleccionado.
-                                        </p>
-                                        <div className="grid grid-cols-7 gap-2">
-                                            {DAYS_OF_WEEK.map((day) => (
-                                                <div key={day.key} className="flex flex-col items-center space-y-1">
-                                                    <Checkbox
-                                                        id={`day-${day.key}`}
-                                                        checked={form.weeklySchedule?.[day.key] || false}
-                                                        onCheckedChange={(checked) =>
-                                                            handleWeeklyScheduleChange(day.key, checked as boolean)
-                                                        }
-                                                    />
-                                                    <Label htmlFor={`day-${day.key}`} className="text-xs">
-                                                        {day.short}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
 

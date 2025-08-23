@@ -5,6 +5,7 @@ import { DeleteActivityDialog } from "@/components/activities/delete-activity-di
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
 import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
+import { useActivityContext } from "@/components/providers/activity-provider"
 import { useAuth } from "@/components/providers/auth-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +16,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityStatus, ActivityType, UserRole } from "@/lib/types"
@@ -53,7 +53,7 @@ export default function ActivitiesPage() {
     isUserEnrolled,
     getUserEnrollmentStatus,
     getActivitiesByWeek,
-  } = useActivities()
+  } = useActivityContext()
   const { checkMembershipStatus } = useClients()
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -318,10 +318,6 @@ export default function ActivitiesPage() {
     mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
     mondayOfThisWeek.setHours(0, 0, 0, 0)
     
-    if (direction === "next" && newDate > mondayOfThisWeek) {
-      return // No permitir navegar más allá de la semana actual
-    }
-    
     setCurrentWeek(newDate)
   }
 
@@ -350,7 +346,7 @@ export default function ActivitiesPage() {
     if (todayIndex !== -1) {
       const element = document.getElementById(`day-${todayIndex}`)
       if (element) {
-        element.scrollIntoView({ 
+        element.scrollIntoView({
           behavior: 'smooth', 
           block: 'start',
           inline: 'nearest'

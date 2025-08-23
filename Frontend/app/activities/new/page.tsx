@@ -12,22 +12,13 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { useActivities } from "@/hooks/use-activity"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
 import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useActivityContext } from "@/components/providers/activity-provider"
 
-const DAYS_OF_WEEK = [
-  { label: "Lunes", value: 0, key: 0, short: "L" },
-  { label: "Martes", value: 1, key: 1, short: "M" },
-  { label: "Miércoles", value: 2, key: 2, short: "X" },
-  { label: "Jueves", value: 3, key: 3, short: "J" },
-  { label: "Viernes", value: 4, key: 4, short: "V" },
-  { label: "Sábado", value: 5, key: 5, short: "S" },
-  { label: "Domingo", value: 6, key: 6, short: "D" }
-]
 
 export default function NewActivityPage() {
   const { user } = useAuth()
@@ -43,13 +34,15 @@ export default function NewActivityPage() {
     createActivity,
     loadTrainers,
     resetForm,
-  } = useActivities()
+  } = useActivityContext()
 
   const [isLoading, setIsLoading] = useState(false)
 
   // Verificar permisos - solo ADMIN puede acceder
   useEffect(() => {
-    if (user && user.role !== UserRole.ADMIN) {
+    if (user && user.role === UserRole.ADMIN) {
+      loadTrainers()
+    } else {
       toast({
         title: "Acceso denegado",
         description: "No tienes permisos para crear actividades",
@@ -58,14 +51,7 @@ export default function NewActivityPage() {
       router.push("/activities")
       return
     }
-  }, [user, router, toast])
-
-  // Cargar trainers al montar el componente
-  useEffect(() => {
-    if (user?.role === UserRole.ADMIN) {
-      loadTrainers()
-    }
-  }, [user?.role, loadTrainers])
+  }, [user, router, toast, loadTrainers])
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -73,12 +59,6 @@ export default function NewActivityPage() {
       resetForm()
     }
   }, [resetForm])
-
-  const handleWeeklyScheduleChange = (dayIndex: number, checked: boolean) => {
-    const newSchedule = [...(form.weeklySchedule || [false, false, false, false, false, false, false])]
-    newSchedule[dayIndex] = checked
-    setForm({ ...form, weeklySchedule: newSchedule })
-  }
 
   const handleInputChange = (field: string, value: string | boolean | number) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -100,15 +80,6 @@ export default function NewActivityPage() {
       toast({
         title: "Error",
         description: "La duración y cantidad máxima de participantes deben ser mayores a 0",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (form.isRecurring && !(form.weeklySchedule || []).some(day => day)) {
-      toast({
-        title: "Error",
-        description: "Para actividades recurrentes debes seleccionar al menos un día de la semana",
         variant: "destructive",
       })
       return

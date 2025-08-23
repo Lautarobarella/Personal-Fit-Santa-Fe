@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useActivities } from "@/hooks/use-activity"
+import { useActivityContext } from "@/components/providers/activity-provider"
 import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus } from "@/lib/types"
 import { AlertCircle, CheckCircle, Loader2, MailWarningIcon, Users } from "lucide-react"
@@ -33,7 +33,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
   const { user } = useAuth()
   const [isAttending, setIsAttending] = useState(false)
   const { toast } = useToast()
-  const { selectedActivity, loadActivityDetail, markParticipantAttendance } = useActivities()
+  const { selectedActivity, loadActivityDetail, markParticipantAttendance } = useActivityContext()
 
   useEffect(() => {
     loadActivityDetail(activityId)
