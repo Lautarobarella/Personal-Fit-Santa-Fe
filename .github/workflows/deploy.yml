@@ -8,22 +8,22 @@ on:
 jobs:
   frontend-tests:
     runs-on: ubuntu-latest
-    # steps:
-    #   - name: Checkout repo
-    #     uses: actions/checkout@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    #   - name: Use Node.js 20
-    #     uses: actions/setup-node@v4
-    #     with:
-    #       node-version: '20'
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-    #   - name: Install dependencies (Frontend)
-    #     working-directory: Frontend
-    #     run: npm install --no-audit --no-fund
+      - name: Install dependencies (Frontend)
+        working-directory: Frontend
+        run: npm install --no-audit --no-fund
 
-    #   - name: Run frontend tests
-    #     working-directory: Frontend
-    #     run: npm test --silent
+      # - name: Run frontend tests
+      #   working-directory: Frontend
+      #   run: npm test --silent
 
   deploy:
     needs: frontend-tests
