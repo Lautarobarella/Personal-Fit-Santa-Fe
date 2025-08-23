@@ -59,7 +59,6 @@ export function useActivity() {
     duration: "",
     maxParticipants: "",
     isRecurring: false,
-    weeklySchedule: [false, false, false, false, false, false, false],
   })
 
   // Verificación de permisos
@@ -192,7 +191,6 @@ export function useActivity() {
       duration: "",
       maxParticipants: "",
       isRecurring: false,
-      weeklySchedule: [false, false, false, false, false, false, false],
     })
   }, [])
 
