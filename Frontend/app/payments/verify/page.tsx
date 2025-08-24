@@ -1,14 +1,14 @@
 "use client"
 
 import { PaymentReceiptDisplay } from "@/components/payments/payment-receipt-display"
-import { useAuth } from "@/contexts/auth-provider"
-import { usePaymentContext } from "@/contexts/payment-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
@@ -19,12 +19,16 @@ export default function PaymentVerificationPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const [currentIndex, setCurrentIndex] = useState(0)
   const [isVerifying, setIsVerifying] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const [show, setShow] = useState(true)
   const [reviewedCount, setReviewedCount] = useState(0)
   const [isOnCooldown, setIsOnCooldown] = useState(false)
+  
+  // NUEVA LÓGICA: usar queue de IDs en lugar de índices
+  const [paymentQueue, setPaymentQueue] = useState<number[]>([])
+  const [currentPaymentId, setCurrentPaymentId] = useState<number | null>(null)
+  const initialPendingCount = useRef<number | null>(null) // Total inicial para progreso
   
   // Tiempo mínimo entre verificaciones (en milisegundos)
   const VERIFICATION_COOLDOWN = 2000 // 2 segundos
@@ -33,43 +37,57 @@ export default function PaymentVerificationPage() {
   const { 
     pendingPayments, 
     isLoading: loading, 
-    totalPendingPayments,
     updatePaymentStatus,
     fetchSinglePayment,
-    getInitialPendingCount
   } = usePaymentContext()
 
-  // Inicializa y congela la cantidad total de pagos al primer render
-  const initialPendingCount = useRef<number | null>(null)
+  // Inicializar la queue con los IDs de pagos pendientes (solo una vez)
   useEffect(() => {
-    // Solo setea cuando: no está cargando y nunca se seteo
-    if (!loading && initialPendingCount.current === null) {
-      initialPendingCount.current = getInitialPendingCount()
+    if (!loading && pendingPayments.length > 0 && paymentQueue.length === 0) {
+      const initialQueue = pendingPayments.map(p => p.id)
+      setPaymentQueue(initialQueue)
+      setCurrentPaymentId(initialQueue[0] || null)
+      // Almacenar el total inicial para el progreso
+      initialPendingCount.current = initialQueue.length
     }
-  }, [loading, getInitialPendingCount])
+  }, [loading, pendingPayments, paymentQueue.length])
+
+  // Inicializar contador si no hay pagos pendientes
+  useEffect(() => {
+    if (!loading && pendingPayments.length === 0 && initialPendingCount.current === null) {
+      initialPendingCount.current = 0
+    }
+  }, [loading, pendingPayments.length])
 
   const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
 
-  // Cargar el pago actual cuando cambie el índice o la lista de pendientes
+  // Cargar el pago actual cuando cambie el currentPaymentId
   useEffect(() => {
-    if (pendingPayments.length > 0 && currentIndex < pendingPayments.length) {
+    if (currentPaymentId) {
       const fetchPayment = async () => {
         try {
-          const payment = await fetchSinglePayment(pendingPayments[currentIndex].id)
+          const payment = await fetchSinglePayment(currentPaymentId)
           setCurrentPayment(payment)
         } catch (error) {
           console.error("Error al cargar el pago:", error)
-          // Si falla la carga, intentar con el siguiente
-          if (currentIndex + 1 < pendingPayments.length) {
-            setCurrentIndex(prev => prev + 1)
-          }
+          // Si falla la carga, intentar con el siguiente pago en la queue
+          moveToNextPayment()
         }
       }
       fetchPayment()
-    } else if (pendingPayments.length === 0) {
+    } else {
       setCurrentPayment(null)
     }
-  }, [currentIndex, pendingPayments, fetchSinglePayment])
+  }, [currentPaymentId, fetchSinglePayment])
+
+  // Función para mover al siguiente pago en la queue
+  const moveToNextPayment = () => {
+    setPaymentQueue(prevQueue => {
+      const newQueue = prevQueue.slice(1) // Remover el primer elemento
+      setCurrentPaymentId(newQueue[0] || null) // Setear el siguiente como actual
+      return newQueue
+    })
+  }
 
   // Redirige si no es admin
   useEffect(() => {
@@ -78,32 +96,22 @@ export default function PaymentVerificationPage() {
     }
   }, [user, router])
 
-  // Salir al finalizar
-  if (
-    !loading &&
-    initialPendingCount.current !== null &&
-    reviewedCount >= initialPendingCount.current &&
-    initialPendingCount.current > 0
-  ) {
+  // Verificar si la verificación ha terminado
+  const isVerificationComplete = !loading && paymentQueue.length === 0 && initialPendingCount.current !== null
+
+  if (isVerificationComplete) {
+    const hasReviewedPayments = reviewedCount > 0
+    const title = hasReviewedPayments ? "¡Verificación Completada!" : "No hay pagos pendientes"
+    const message = hasReviewedPayments 
+      ? `Has verificado ${reviewedCount} pagos exitosamente.`
+      : undefined
+
     setTimeout(() => router.replace("/payments"), 2000)
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Check className="h-16 w-16 text-success mb-4" />
-        <h2 className="text-2xl font-bold mb-2">¡Verificación Completada!</h2>
-        <p className="text-muted-foreground mb-6">Has verificado {initialPendingCount.current} pagos exitosamente.</p>
-        <Button onClick={() => router.replace("/payments")}>Volver a Pagos</Button>
-      </div>
-    )
-  }
-
-  if (
-    !loading &&
-    initialPendingCount.current === 0
-  ) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Check className="h-16 w-16 text-success mb-4" />
-        <h2 className="text-2xl font-bold mb-2">No hay pagos pendientes</h2>
+        <h2 className="text-2xl font-bold mb-2">{title}</h2>
+        {message && <p className="text-muted-foreground mb-6">{message}</p>}
         <Button onClick={() => router.replace("/payments")}>Volver a Pagos</Button>
       </div>
     )
@@ -179,13 +187,11 @@ export default function PaymentVerificationPage() {
       setRejectionReason("")
       setShow(false)
 
-      // Esperar a que se complete la transición visual antes de cambiar el índice
+      // Esperar a que se complete la transición visual antes de mover al siguiente pago
       setTimeout(() => {
         setShow(true)
-        // Avanzar al siguiente pago solo si hay más
-        if (currentIndex + 1 < pendingPayments.length) {
-          setCurrentIndex(prev => prev + 1)
-        }
+        // Mover al siguiente pago en la queue
+        moveToNextPayment()
         setReviewedCount(prev => prev + 1)
       }, 350)
 
@@ -221,16 +227,16 @@ export default function PaymentVerificationPage() {
         <div className="flex items-center justify-between text-sm mb-1.5">
           <span className="font-medium">Progreso</span>
           <span className="text-muted-foreground">
-            {reviewedCount} completados, {initialPendingCount.current || 0} totales
+            {reviewedCount} completados, {paymentQueue.length} pendientes
           </span>
         </div>
         <div className="w-full bg-muted rounded-full h-1.5 mb-2">
           <div
             className="bg-primary h-1.5 rounded-full transition-all duration-300"
             style={{
-              width: (!initialPendingCount.current || reviewedCount === 0)
-                ? "0%"
-                : `${(reviewedCount / (initialPendingCount.current ?? 1)) * 100}%`
+              width: initialPendingCount.current 
+                ? `${(reviewedCount / initialPendingCount.current) * 100}%`
+                : "0%"
             }}
           />
         </div>
