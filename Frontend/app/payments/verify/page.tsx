@@ -29,6 +29,7 @@ export default function PaymentVerificationPage() {
   const [paymentQueue, setPaymentQueue] = useState<number[]>([])
   const [currentPaymentId, setCurrentPaymentId] = useState<number | null>(null)
   const initialPendingCount = useRef<number | null>(null) // Total inicial para progreso
+  const hasInitialized = useRef(false) // Flag para ejecutar solo una vez
   
   // Tiempo mínimo entre verificaciones (en milisegundos)
   const VERIFICATION_COOLDOWN = 2000 // 2 segundos
@@ -41,23 +42,21 @@ export default function PaymentVerificationPage() {
     fetchSinglePayment,
   } = usePaymentContext()
 
-  // Inicializar la queue con los IDs de pagos pendientes (solo una vez)
+  // Inicializar la queue con los IDs de pagos pendientes (SOLO UNA VEZ)
   useEffect(() => {
-    if (!loading && pendingPayments.length > 0 && paymentQueue.length === 0) {
+    if (!loading && !hasInitialized.current && pendingPayments.length > 0) {
       const initialQueue = pendingPayments.map(p => p.id)
       setPaymentQueue(initialQueue)
       setCurrentPaymentId(initialQueue[0] || null)
       // Almacenar el total inicial para el progreso
       initialPendingCount.current = initialQueue.length
-    }
-  }, [loading, pendingPayments, paymentQueue.length])
-
-  // Inicializar contador si no hay pagos pendientes
-  useEffect(() => {
-    if (!loading && pendingPayments.length === 0 && initialPendingCount.current === null) {
+      hasInitialized.current = true // Marcar como inicializado
+    } else if (!loading && !hasInitialized.current && pendingPayments.length === 0) {
+      // Caso especial: no hay pagos pendientes
       initialPendingCount.current = 0
+      hasInitialized.current = true
     }
-  }, [loading, pendingPayments.length])
+  }, [loading, pendingPayments]) // Dependencias mínimas
 
   const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
 
