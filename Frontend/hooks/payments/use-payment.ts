@@ -321,6 +321,12 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   const paymentStats = useMemo(() => getPaymentStats(), [getPaymentStats])
   const totalPendingPayments = useMemo(() => pendingPayments.length, [pendingPayments])
 
+  // Función para obtener snapshot del total actual de pagos pendientes
+  // Útil para páginas que necesitan mantener el total fijo durante el proceso
+  const getInitialPendingCount = useCallback((): number => {
+    return pendingPayments.length
+  }, [pendingPayments])
+
   // Estado de carga consolidado
   const isLoading = useMemo(() => isLoadingPayments, [isLoadingPayments])
 
@@ -375,6 +381,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     getCurrentMonthRevenue,
     getPendingPayments,
     getPaymentStats,
+    getInitialPendingCount,
 
     // Permission checks
     canManagePayments,

@@ -31,7 +31,8 @@ export default function PaymentVerificationPage() {
     isLoading: loading, 
     totalPendingPayments,
     updatePaymentStatus,
-    fetchSinglePayment
+    fetchSinglePayment,
+    getInitialPendingCount
   } = usePaymentContext()
 
   // Inicializa y congela la cantidad total de pagos al primer render
@@ -39,9 +40,9 @@ export default function PaymentVerificationPage() {
   useEffect(() => {
     // Solo setea cuando: no está cargando y nunca se seteo
     if (!loading && initialPendingCount.current === null) {
-      initialPendingCount.current = totalPendingPayments
+      initialPendingCount.current = getInitialPendingCount()
     }
-  }, [loading, totalPendingPayments])
+  }, [loading, getInitialPendingCount])
 
   const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
 
@@ -206,7 +207,7 @@ export default function PaymentVerificationPage() {
         <div className="flex items-center justify-between text-sm mb-1.5">
           <span className="font-medium">Progreso</span>
           <span className="text-muted-foreground">
-            {reviewedCount} completados, {totalPendingPayments} totales
+            {reviewedCount} completados, {initialPendingCount.current || 0} totales
           </span>
         </div>
         <div className="w-full bg-muted rounded-full h-1.5 mb-2">
