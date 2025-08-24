@@ -15,6 +15,10 @@ public class SettingsService {
 
     private static final String MONTHLY_FEE_KEY = "monthly_fee";
     private static final Double DEFAULT_MONTHLY_FEE = 25000.0;
+    private static final String REGISTRATION_TIME_KEY = "registration_time_hours";
+    private static final Integer DEFAULT_REGISTRATION_TIME = 24;
+    private static final String UNREGISTRATION_TIME_KEY = "unregistration_time_hours";
+    private static final Integer DEFAULT_UNREGISTRATION_TIME = 12;
 
     public Double getMonthlyFee() {
         try {
@@ -41,6 +45,50 @@ public class SettingsService {
         return amount;
     }
 
+    public Integer getRegistrationTimeHours() {
+        Settings setting = settingsRepository.findByKey(REGISTRATION_TIME_KEY)
+                .orElseGet(() -> createDefaultRegistrationTimeSetting());
+        return setting != null ? Integer.parseInt(setting.getValue()) : DEFAULT_REGISTRATION_TIME; // Default 24 horas
+    }
+
+    public Integer setRegistrationTimeHours(Integer hours) {
+
+        if (hours == null || hours <= 0) {
+            throw new BusinessRuleException("Registration time must be a positive number", "Api/Settings/setRegistrationTimeHours");
+        }
+
+        Settings setting = settingsRepository.findByKey(REGISTRATION_TIME_KEY)
+                .orElseGet(() -> createDefaultRegistrationTimeSetting());
+
+        setting.setValue(hours.toString());
+
+        settingsRepository.save(setting);
+        return hours;
+    }
+
+    public Integer getUnregistrationTimeHours() {
+
+        Settings setting = settingsRepository.findByKey(UNREGISTRATION_TIME_KEY)
+                .orElseGet(() -> createDefaultUnregistrationTimeSetting());
+        return setting != null ? Integer.parseInt(setting.getValue()) : DEFAULT_UNREGISTRATION_TIME; // Default 12 horas
+    }
+
+    public Integer setUnregistrationTimeHours(Integer hours) {
+
+        if (hours == null || hours <= 0) {
+            throw new BusinessRuleException("Unregistration time must be a positive number", "Api/Settings/setUnregistrationTimeHours");
+        }
+        
+        Settings setting = settingsRepository.findByKey(UNREGISTRATION_TIME_KEY)
+                .orElseGet(() -> createDefaultUnregistrationTimeSetting());
+
+        setting.setValue(hours.toString());
+        
+        settingsRepository.save(setting);
+        return hours;
+    }
+
+
     /**
      * Crea la configuración por defecto de la cuota mensual
      * 
@@ -51,6 +99,32 @@ public class SettingsService {
                 MONTHLY_FEE_KEY,
                 DEFAULT_MONTHLY_FEE.toString(),
                 "Cuota mensual del gimnasio");
+        return settingsRepository.save(setting);
+    }
+
+    /**
+     * Crea la configuración por defecto del tiempo de inscripción
+     * 
+     * @return Settings - Configuración creada
+     */
+    private Settings createDefaultRegistrationTimeSetting() {
+        Settings setting = new Settings(
+                REGISTRATION_TIME_KEY,
+                DEFAULT_REGISTRATION_TIME.toString(),
+                "Tiempo mínimo de anticipación para inscribirse a una actividad (en horas)");
+        return settingsRepository.save(setting);
+    }
+
+    /**
+     * Crea la configuración por defecto del tiempo de desinscripción
+     * 
+     * @return Settings - Configuración creada
+     */
+    private Settings createDefaultUnregistrationTimeSetting() {
+        Settings setting = new Settings(
+                UNREGISTRATION_TIME_KEY,
+                DEFAULT_UNREGISTRATION_TIME.toString(),
+                "Tiempo mínimo de anticipación para desinscribirse de una actividad (en horas)");
         return settingsRepository.save(setting);
     }
 }

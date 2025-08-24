@@ -57,7 +57,7 @@ export default function ActivitiesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
   const [hasScrolledToToday, setHasScrolledToToday] = useState(false)
-  
+
   const router = useRouter()
   const [currentWeek, setCurrentWeek] = useState(() => {
     const today = new Date()
@@ -169,8 +169,7 @@ export default function ActivitiesPage() {
     )
   }
 
-  const canManageActivities = user.role === UserRole.ADMIN || user.role === UserRole.TRAINER
-
+  const canManageActivities = user.role === UserRole.ADMIN
   const weekDates = getWeekDates(currentWeek)
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
@@ -178,7 +177,7 @@ export default function ActivitiesPage() {
   const weekActivities = activities.filter((activity: ActivityType) => {
     const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesTrainer = filterTrainer === "all" || activity.trainerName === filterTrainer
-    
+
     return matchesSearch && matchesTrainer
   })
 
@@ -191,15 +190,15 @@ export default function ActivitiesPage() {
       const dayActivities = activities
         .filter((activity: ActivityType) => {
           const activityDate = new Date(activity.date)
-          
+
           // Normalizar ambas fechas para comparación precisa
           const normalizedActivityDate = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate())
           const normalizedWeekDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-          
+
           return normalizedActivityDate.getTime() === normalizedWeekDate.getTime()
         })
         .sort((a: ActivityType, b: ActivityType) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      
+
       return {
         date,
         activities: dayActivities,
@@ -236,14 +235,14 @@ export default function ActivitiesPage() {
 
     const newDate = new Date(currentWeek)
     newDate.setDate(currentWeek.getDate() + (direction === "next" ? 7 : -7))
-    
+
     // Restringir navegación hacia adelante para ADMIN/TRAINER
     const today = new Date()
     const mondayOfThisWeek = new Date(today)
     const diffToMonday = (mondayOfThisWeek.getDay() + 6) % 7
     mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
     mondayOfThisWeek.setHours(0, 0, 0, 0)
-    
+
     setCurrentWeek(newDate)
   }
 
@@ -253,25 +252,25 @@ export default function ActivitiesPage() {
     const diffToMonday = (monday.getDay() + 6) % 7
     monday.setDate(monday.getDate() - diffToMonday)
     monday.setHours(0, 0, 0, 0)
-    
+
     setCurrentWeek(monday)
     setHasScrolledToToday(false) // Resetear para que vuelva a hacer scroll
-    
+
     // Forzar recarga inmediata
     loadActivitiesByWeek(monday)
   }
 
   const scrollToToday = () => {
     const today = new Date()
-    const todayIndex = activitiesByDay.findIndex(day => 
+    const todayIndex = activitiesByDay.findIndex(day =>
       day.date.toDateString() === today.toDateString()
     )
-    
+
     if (todayIndex !== -1) {
       const element = document.getElementById(`day-${todayIndex}`)
       if (element) {
         element.scrollIntoView({
-          behavior: 'smooth', 
+          behavior: 'smooth',
           block: 'start',
           inline: 'nearest'
         })
@@ -312,21 +311,6 @@ export default function ActivitiesPage() {
         return null
     }
   }
-
-  // const getCategoryColor = (category: string) => {
-  //   const colors = {
-  //     Bienestar: "bg-green-100 text-green-800 border-green-200",
-  //     Fuerza: "bg-red-100 text-red-800 border-red-200",
-  //     Cardio: "bg-blue-100 text-blue-800 border-blue-200",
-  //     Flexibilidad: "bg-purple-100 text-purple-800 border-purple-200",
-  //     Baile: "bg-pink-100 text-pink-800 border-pink-200",
-  //     Funcional: "bg-orange-100 text-orange-800 border-orange-200",
-  //     Combate: "bg-gray-100 text-gray-800 border-gray-200",
-  //     Acuático: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  //     Grupal: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  //   }
-  //   return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
-  // }
 
   const handleDeleteActivity = (activity: ActivityType) => {
     setDeleteDialog({
@@ -384,7 +368,7 @@ export default function ActivitiesPage() {
         })
         return
       }
-      
+
       try {
         if (user.status !== "ACTIVE") {
           toast({
@@ -485,16 +469,16 @@ export default function ActivitiesPage() {
                   const diffToMonday = (mondayOfThisWeek.getDay() + 6) % 7
                   mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
                   mondayOfThisWeek.setHours(0, 0, 0, 0)
-                  
+
                   const nextWeek = new Date(currentWeek)
                   nextWeek.setDate(currentWeek.getDate() + 7)
-                  
+
 
                   return (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => navigateWeek("next")} 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateWeek("next")}
                       className="bg-transparent"
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -568,7 +552,7 @@ export default function ActivitiesPage() {
         <div className="space-y-4">
           {activitiesByDay.map((day, dayIndex) => {
             // Para CLIENT, calcular el índice del día de la semana correctamente
-            const dayOfWeekIndex = user?.role === UserRole.CLIENT 
+            const dayOfWeekIndex = user?.role === UserRole.CLIENT
               ? (day.date.getDay() + 6) % 7  // Convertir domingo=0 a domingo=6, lunes=1 a lunes=0
               : dayIndex
 
@@ -598,179 +582,172 @@ export default function ActivitiesPage() {
                     </div>
                   </div>
 
-                {day.activities.length > 0 ? (
-                  <div className="space-y-3">
-                    {day.activities.map((activity: ActivityType) => {
-                      return (
-                        <Card 
-                          key={activity.id} 
-                          className={`border-l-4 ${
-                            activity.status === ActivityStatus.COMPLETED 
-                              ? "border-l-gray-300 opacity-75" 
+                  {day.activities.length > 0 ? (
+                    <div className="space-y-3">
+                      {day.activities.map((activity: ActivityType) => {
+                        return (
+                          <Card
+                            key={activity.id}
+                            className={`border-l-4 ${activity.status === ActivityStatus.COMPLETED
+                              ? "border-l-gray-300 opacity-75"
                               : "border-l-primary"
-                          }`}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className={`font-semibold text-base ${activity.status === ActivityStatus.COMPLETED ? "text-gray-600" : ""}`}>
-                                    {activity.name}
-                                  </h3>
-                                  {getActivityStatusBadge(activity)}
-                                  {/* <Badge variant="outline" className={`text-xs ${getCategoryColor(activity.category)}`}>
+                              }`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className={`font-semibold text-base ${activity.status === ActivityStatus.COMPLETED ? "text-gray-600" : ""}`}>
+                                      {activity.name}
+                                    </h3>
+                                    {getActivityStatusBadge(activity)}
+                                    {/* <Badge variant="outline" className={`text-xs ${getCategoryColor(activity.category)}`}>
                                     {activity.category}
                                   </Badge> */}
-                                </div>
-                                <p className={`text-sm mb-2 ${activity.status === ActivityStatus.COMPLETED ? "text-gray-500" : "text-muted-foreground"}`}>
-                                  {activity.description}
-                                </p>
+                                  </div>
+                                  <p className={`text-sm mb-2 ${activity.status === ActivityStatus.COMPLETED ? "text-gray-500" : "text-muted-foreground"}`}>
+                                    {activity.description}
+                                  </p>
 
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span className="font-medium text-foreground">{formatTime(activity.date)}</span>
-                                  <span>({activity.duration}min)</span>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-4 w-4" />
+                                      <span className="font-medium text-foreground">{formatTime(activity.date)}</span>
+                                      <span>({activity.duration}min)</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Users className="h-4 w-4" />
+                                      <span>
+                                        {activity.currentParticipants}/{activity.maxParticipants}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="h-4 w-4" />
+                                      <span>{activity.location}</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />
-                                  <span>
-                                    {activity.currentParticipants}/{activity.maxParticipants}
-                                  </span>
+
+                                {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
+                                        Ver Detalles
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem asChild>
+                                        <Link href={`/activities/edit/${activity.id}`}>Editar</Link>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
+                                        Tomar asistencia
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-error"
+                                        onClick={() => handleDeleteActivity(activity)}
+                                      >
+                                        Eliminar
+                                      </DropdownMenuItem>
+
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarFallback className="text-xs">
+                                      {activity.trainerName
+                                        .split(" ")
+                                        .map((n: string) => n[0])
+                                        .join("")}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm font-medium">{activity.trainerName}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>{activity.location}</span>
+
+                                <div className="flex gap-2">
+                                  {user.role === UserRole.CLIENT && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEnrollActivity(activity)}
+                                      disabled={
+                                        activity.status === ActivityStatus.COMPLETED ||
+                                        activity.status === ActivityStatus.CANCELLED ||
+                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id))
+                                      }
+                                      className="text-xs"
+                                      variant={
+                                        activity.status === ActivityStatus.COMPLETED
+                                          ? "secondary"
+                                          : isUserEnrolled(activity, user.id)
+                                            ? "destructive"
+                                            : "default"
+                                      }
+                                    >
+                                      {activity.status === ActivityStatus.COMPLETED
+                                        ? "Finalizada"
+                                        : activity.status === ActivityStatus.CANCELLED
+                                          ? "Cancelada"
+                                          : isUserEnrolled(activity, user.id)
+                                            ? "Desinscribir"
+                                            : activity.currentParticipants >= activity.maxParticipants
+                                              ? "Completo"
+                                              : "Inscribirse"}
+                                    </Button>
+                                  )}
+                                  {canManageActivities && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDetailsClick(activity)}
+                                      className="text-xs bg-transparent"
+                                    >
+                                      Ver Detalles
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
 
-                              {/* Mostrar horario semanal si es una actividad recurrente */}
-                              {activity.isRecurring && activity.weeklySchedule && (
-                                <div className="mt-2">
-                                  <WeeklyScheduleDisplay
-                                    weeklySchedule={activity.weeklySchedule}
-                                    className="text-xs"
+                              {/* Capacity Bar */}
+                              <div className="mt-3">
+                                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                  <span>Capacidad</span>
+                                  <span>
+                                    {Math.round((activity.currentParticipants / activity.maxParticipants) * 100)}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${activity.currentParticipants >= activity.maxParticipants
+                                      ? "bg-destructive"
+                                      : activity.currentParticipants / activity.maxParticipants > 0.8
+                                        ? "bg-warning"
+                                        : "bg-primary"
+                                      }`}
+                                    style={{
+                                      width: `${(activity.currentParticipants / activity.maxParticipants) * 100}%`,
+                                    }}
                                   />
                                 </div>
-                              )}
-                            </div>
-
-                            {canManageActivities && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
-                                    Ver Detalles
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem asChild>
-                                    <Link href={`/activities/edit/${activity.id}`}>Editar</Link>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>Ver Asistencia</DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-error"
-                                    onClick={() => handleDeleteActivity(activity)}
-                                  >
-                                    Eliminar
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {activity.trainerName
-                                    .split(" ")
-                                    .map((n: string) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-medium">{activity.trainerName}</span>
-                            </div>
-
-                            <div className="flex gap-2">
-                              {user.role === UserRole.CLIENT && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleEnrollActivity(activity)}
-                                  disabled={
-                                    activity.status === ActivityStatus.COMPLETED || 
-                                    activity.status === ActivityStatus.CANCELLED ||
-                                    (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id))
-                                  }
-                                  className="text-xs"
-                                  variant={
-                                    activity.status === ActivityStatus.COMPLETED
-                                      ? "secondary"
-                                      : isUserEnrolled(activity, user.id)
-                                        ? "destructive"
-                                        : "default"
-                                  }
-                                >
-                                  {activity.status === ActivityStatus.COMPLETED
-                                    ? "Finalizada"
-                                    : activity.status === ActivityStatus.CANCELLED
-                                      ? "Cancelada"
-                                      : isUserEnrolled(activity, user.id)
-                                        ? "Desinscribir"
-                                        : activity.currentParticipants >= activity.maxParticipants
-                                          ? "Completo"
-                                          : "Inscribirse"}
-                                </Button>
-                              )}
-                              {canManageActivities && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDetailsClick(activity)}
-                                  className="text-xs bg-transparent"
-                                >
-                                  Ver Detalles
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Capacity Bar */}
-                          <div className="mt-3">
-                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                              <span>Capacidad</span>
-                              <span>
-                                {Math.round((activity.currentParticipants / activity.maxParticipants) * 100)}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all ${activity.currentParticipants >= activity.maxParticipants
-                                  ? "bg-destructive"
-                                  : activity.currentParticipants / activity.maxParticipants > 0.8
-                                    ? "bg-warning"
-                                    : "bg-primary"
-                                  }`}
-                                style={{
-                                  width: `${(activity.currentParticipants / activity.maxParticipants) * 100}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )})}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No hay actividades programadas</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No hay actividades programadas</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )
           })}
         </div>
@@ -845,3 +822,19 @@ export default function ActivitiesPage() {
     </div>
   )
 }
+
+
+  // const getCategoryColor = (category: string) => {
+  //   const colors = {
+  //     Bienestar: "bg-green-100 text-green-800 border-green-200",
+  //     Fuerza: "bg-red-100 text-red-800 border-red-200",
+  //     Cardio: "bg-blue-100 text-blue-800 border-blue-200",
+  //     Flexibilidad: "bg-purple-100 text-purple-800 border-purple-200",
+  //     Baile: "bg-pink-100 text-pink-800 border-pink-200",
+  //     Funcional: "bg-orange-100 text-orange-800 border-orange-200",
+  //     Combate: "bg-gray-100 text-gray-800 border-gray-200",
+  //     Acuático: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  //     Grupal: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  //   }
+  //   return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
+  // }

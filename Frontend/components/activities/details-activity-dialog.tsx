@@ -112,12 +112,12 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
             <div className="flex items-center gap-2 justify-between w-full">
               <div className="flex gap-1">
                 {onEdit && (
-                  <Button size="sm" variant="outline" onClick={onEdit}>
+                  <Button size="sm" variant="outline" disabled={selectedActivity.status === ActivityStatus.COMPLETED} onClick={onEdit}>
                     <Edit className="h-4 w-4" />
                   </Button>
                 )}
                 {onDelete && (
-                  <Button size="sm" variant="outline" onClick={onDelete} className="text-error bg-transparent">
+                  <Button size="sm" variant="outline" disabled={selectedActivity.status === ActivityStatus.COMPLETED} onClick={onDelete} className="text-error bg-transparent">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
@@ -218,7 +218,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-secondary">{presentParticipants.length}</div>
-                      <div className="text-sm text-muted-foreground">Confirmados</div>
+                      <div className="text-sm text-muted-foreground">Asistieron</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">{absentParticipants.length}</div>
@@ -418,12 +418,6 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                     <Users className="h-4 w-4 mr-2" />
                     Exportar Lista
                   </Button>
-                  {onEdit && (
-                    <Button size="sm" variant="outline" onClick={onEdit} className="bg-transparent">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar Actividad
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>

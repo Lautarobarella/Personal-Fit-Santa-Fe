@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/components/providers/auth-provider"
+import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -9,13 +10,15 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/use-theme"
 import { UserRole } from "@/lib/types"
-import { BarChart3, Bell, DollarSign, LogOut, Moon, Shield, Smartphone, User } from "lucide-react"
+import { BarChart3, Bell, Clock, DollarSign, LogOut, Moon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export default function SettingsPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
+  const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -41,7 +44,7 @@ export default function SettingsPage() {
               <div className="flex-1">
                 <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
                 {/* <p className="text-muted-foreground">{user.email}</p> */}
-                <p className="text-sm text-blue-600 capitalize">
+                <p className="text-sm text-primary capitalize">
                   {user.role === UserRole.ADMIN && "Administrador"}
                   {user.role === UserRole.TRAINER && "Entrenador"}
                   {user.role === UserRole.CLIENT && "Cliente"}
@@ -108,56 +111,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Account Settings, lo dejo comentado porque no es relevante ni tiene aún ningún uso, de encontrar en que se puede usar, se descomenta */}
-        {/* <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Cuenta
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              <User className="h-4 w-4 mr-3" />
-              Información Personal
-            </Button>
-
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              <Shield className="h-4 w-4 mr-3" />
-              Privacidad y Seguridad
-            </Button>
-
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              <Globe className="h-4 w-4 mr-3" />
-              Idioma y Región
-            </Button>
-          </CardContent>
-        </Card> */}
-
-        {/* Support
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5" />
-              Soporte
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              <HelpCircle className="h-4 w-4 mr-3" />
-              Centro de Ayuda
-            </Button>
-
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              Contactar Soporte
-            </Button>
-
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              Términos y Condiciones
-            </Button>
-          </CardContent>
-        </Card> */}
-
         {/* Admin Settings */}
         {user.role === UserRole.ADMIN && (
           <Card>
@@ -175,6 +128,15 @@ export default function SettingsPage() {
               >
                 <DollarSign className="h-4 w-4 mr-3" />
                 Establecer valor de la cuota
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-transparent"
+                onClick={() => router.push('/settings/activity-times')}
+              >
+                <Clock className="h-4 w-4 mr-3" />
+                Configurar tiempos de actividades
               </Button>
 
               <Button 
@@ -201,6 +163,12 @@ export default function SettingsPage() {
       </div>
 
       <BottomNav />
+
+      {/* Activity Times Dialog */}
+      <ActivityTimesDialog 
+        open={showActivityTimesDialog} 
+        onOpenChange={setShowActivityTimesDialog} 
+      />
     </div>
   )
 }

@@ -144,7 +144,6 @@ export interface ActivityDetailInfo {
   lastModified?: Date
   notes?: string
   isRecurring?: boolean
-  weeklySchedule?: boolean[] // [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
 }
 
 interface ActivityUserDetails {
@@ -169,7 +168,6 @@ export interface ActivityType {
   currentParticipants: number
   status: ActivityStatus
   isRecurring?: boolean
-  weeklySchedule?: boolean[]
 }
 
 export interface ActivityFormType {
@@ -183,7 +181,6 @@ export interface ActivityFormType {
   duration: string
   maxParticipants: string
   isRecurring?: boolean
-  weeklySchedule?: boolean[]
 }
 
 

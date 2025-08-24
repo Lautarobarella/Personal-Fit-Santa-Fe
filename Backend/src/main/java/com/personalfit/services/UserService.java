@@ -30,7 +30,6 @@ import com.personalfit.models.Activity;
 import com.personalfit.models.Attendance;
 import com.personalfit.models.Payment;
 import com.personalfit.models.User;
-import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.AttendanceRepository;
 import com.personalfit.repository.PaymentRepository;
 import com.personalfit.repository.UserRepository;
@@ -49,9 +48,6 @@ public class UserService {
 
     @Autowired
     private AttendanceRepository attendanceRepository;
-
-    @Autowired
-    private ActivityRepository activityRepository;
 
     @Autowired
     private NotificationService notificationService;
