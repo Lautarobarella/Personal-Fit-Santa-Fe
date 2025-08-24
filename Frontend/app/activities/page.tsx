@@ -35,7 +35,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 
 export default function ActivitiesPage() {
@@ -53,29 +53,14 @@ export default function ActivitiesPage() {
     isUserEnrolled,
     getUserEnrollmentStatus,
     getActivitiesByWeek,
+    getWeekDates,
   } = useActivityContext()
   const { checkMembershipStatus } = useClients()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
   const [hasScrolledToToday, setHasScrolledToToday] = useState(false)
-  const [membershipStatusCache, setMembershipStatusCache] = useState<{[userId: number]: boolean}>({})
-
-  // Función para verificar membresía con cache
-  const getMembershipStatus = useCallback(async (userId: number): Promise<boolean> => {
-    if (membershipStatusCache[userId] !== undefined) {
-      return membershipStatusCache[userId]
-    }
-    
-    try {
-      const isActive = await checkMembershipStatus(userId)
-      setMembershipStatusCache(prev => ({ ...prev, [userId]: isActive }))
-      return isActive
-    } catch (error) {
-      console.error("Error checking membership:", error)
-      return false
-    }
-  }, [checkMembershipStatus, membershipStatusCache])
+  
   const router = useRouter()
   const [currentWeek, setCurrentWeek] = useState(() => {
     const today = new Date()
@@ -85,8 +70,6 @@ export default function ActivitiesPage() {
     today.setHours(0, 0, 0, 0)
     return today
   })
-
-  const loadedWeeks = useRef<Set<string>>(new Set())
 
   // Filtrar actividades por la semana actual usando la función del provider
   const activities = useMemo(() => {
@@ -191,70 +174,22 @@ export default function ActivitiesPage() {
 
   const canManageActivities = user.role === UserRole.ADMIN || user.role === UserRole.TRAINER
 
-  // Get week dates (Monday to Sunday)
-  const getWeekDates = (startDate: Date) => {
-    const dates = []
-    const monday = new Date(startDate)
-    const diffToMonday = (monday.getDay() + 6) % 7
-    monday.setDate(monday.getDate() - diffToMonday) // Lunes de la semana actual
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday)
-      date.setDate(monday.getDate() + i)
-      dates.push(date)
-    }
-    return dates
-  }
-
   const weekDates = getWeekDates(currentWeek)
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
-  // Filter activities based on user role
+  // Filter activities (ya viene filtrado por semana desde getActivitiesByWeek)
   const weekActivities = activities.filter((activity: ActivityType) => {
-    const activityDate = new Date(activity.date)
     const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesTrainer = filterTrainer === "all" || activity.trainerName === filterTrainer
     
-    // Tanto CLIENT como ADMIN/TRAINER filtran por semana actual (ya viene filtrado del backend)
-    const weekStart = weekDates[0]
-    const weekEnd = new Date(weekDates[6])
-    weekEnd.setHours(23, 59, 59, 999)
-    const matchesWeek = activityDate >= weekStart && activityDate <= weekEnd
-    
-    return matchesWeek && matchesSearch && matchesTrainer
+    return matchesSearch && matchesTrainer
   })
 
   // Group activities by day
-  const activitiesByDay = user?.role === UserRole.CLIENT
-    ? getActivitiesByDayForClient(weekActivities)
-    : getActivitiesByDayForAdmin(weekActivities, weekDates)
+  const activitiesByDay = getActivitiesByDay(weekActivities, weekDates)
 
-  // Función para agrupar actividades por día para clientes (formato semanal lunes-domingo)
-  function getActivitiesByDayForClient(activities: typeof weekActivities) {
-    // Para CLIENT, mostrar la semana actual usando el mismo formato que ADMIN
-    const result = []
-    
-    for (const date of weekDates) {
-      const dayActivities = activities
-        .filter((activity: ActivityType) => {
-          const activityDate = new Date(activity.date)
-          const normalizedActivityDate = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate())
-          const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-          return normalizedActivityDate.getTime() === normalizedDate.getTime()
-        })
-        .sort((a: ActivityType, b: ActivityType) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      
-      result.push({
-        date,
-        activities: dayActivities,
-      })
-    }
-    
-    return result
-  }
-
-  // Función para agrupar actividades por día para admin (semana actual)
-  function getActivitiesByDayForAdmin(activities: typeof weekActivities, weekDates: Date[]) {
+  // Función unificada para agrupar actividades por día
+  function getActivitiesByDay(activities: typeof weekActivities, weekDates: Date[]) {
     return weekDates.map((date) => {
       const dayActivities = activities
         .filter((activity: ActivityType) => {
@@ -273,12 +208,6 @@ export default function ActivitiesPage() {
         activities: dayActivities,
       }
     })
-  }
-
-  // Función para obtener el nombre del día en español
-  const getDayName = (date: Date) => {
-    const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
-    return dayNames[date.getDay()]
   }
 
   // Get unique categories and trainers for filters
@@ -328,8 +257,6 @@ export default function ActivitiesPage() {
     monday.setDate(monday.getDate() - diffToMonday)
     monday.setHours(0, 0, 0, 0)
     
-    // Limpiar cache y forzar recarga de actividades para la semana actual
-    loadedWeeks.current.clear()
     setCurrentWeek(monday)
     setHasScrolledToToday(false) // Resetear para que vuelva a hacer scroll
     
@@ -358,10 +285,6 @@ export default function ActivitiesPage() {
   const isToday = (date: Date) => {
     const today = new Date()
     return date.toDateString() === today.toDateString()
-  }
-
-  const isActivityCompleted = (activity: ActivityType) => {
-    return activity.status === ActivityStatus.COMPLETED
   }
 
   // Función para verificar si una actividad ya comenzó
@@ -466,8 +389,7 @@ export default function ActivitiesPage() {
       }
       
       try {
-        const hasActiveMembership = await getMembershipStatus(user.id)
-        if (!hasActiveMembership) {
+        if (user.status !== "ACTIVE") {
           toast({
             title: "Membresía requerida",
             description: "Necesitas tener una membresía activa para inscribirte a las actividades. Por favor, realiza el pago de tu membresía.",
@@ -685,12 +607,11 @@ export default function ActivitiesPage() {
                 {day.activities.length > 0 ? (
                   <div className="space-y-3">
                     {day.activities.map((activity: ActivityType) => {
-                      const isCompleted = isActivityCompleted(activity)
                       return (
                         <Card 
                           key={activity.id} 
                           className={`border-l-4 ${
-                            isCompleted 
+                            activity.status === ActivityStatus.COMPLETED 
                               ? "border-l-gray-300 opacity-75" 
                               : "border-l-primary"
                           }`}
@@ -699,7 +620,7 @@ export default function ActivitiesPage() {
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h3 className={`font-semibold text-base ${isCompleted ? "text-gray-600" : ""}`}>
+                                  <h3 className={`font-semibold text-base ${activity.status === ActivityStatus.COMPLETED ? "text-gray-600" : ""}`}>
                                     {activity.name}
                                   </h3>
                                   {getActivityStatusBadge(activity)}
@@ -707,7 +628,7 @@ export default function ActivitiesPage() {
                                     {activity.category}
                                   </Badge> */}
                                 </div>
-                                <p className={`text-sm mb-2 ${isCompleted ? "text-gray-500" : "text-muted-foreground"}`}>
+                                <p className={`text-sm mb-2 ${activity.status === ActivityStatus.COMPLETED ? "text-gray-500" : "text-muted-foreground"}`}>
                                   {activity.description}
                                 </p>
 
@@ -785,20 +706,20 @@ export default function ActivitiesPage() {
                                   size="sm"
                                   onClick={() => handleEnrollActivity(activity)}
                                   disabled={
-                                    isCompleted || 
+                                    activity.status === ActivityStatus.COMPLETED || 
                                     activity.status === ActivityStatus.CANCELLED ||
                                     (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id))
                                   }
                                   className="text-xs"
                                   variant={
-                                    isCompleted 
-                                      ? "secondary" 
-                                      : isUserEnrolled(activity, user.id) 
-                                        ? "destructive" 
+                                    activity.status === ActivityStatus.COMPLETED
+                                      ? "secondary"
+                                      : isUserEnrolled(activity, user.id)
+                                        ? "destructive"
                                         : "default"
                                   }
                                 >
-                                  {isCompleted
+                                  {activity.status === ActivityStatus.COMPLETED
                                     ? "Finalizada"
                                     : activity.status === ActivityStatus.CANCELLED
                                       ? "Cancelada"

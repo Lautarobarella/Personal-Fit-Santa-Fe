@@ -1,12 +1,12 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
+import { useActivityContext } from "@/components/providers/activity-provider"
 import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useActivities } from "@/hooks/use-activity"
 import { useClients } from "@/hooks/use-client"
 import { useClientStats } from "@/hooks/use-client-stats"
 import { usePayment } from "@/hooks/use-payment"
@@ -57,7 +57,7 @@ function DashboardContent() {
     loading: pendingPaymentsLoading
   } = usePendingPayments(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
-  const { activities, refreshActivities } = useActivities()
+  const { activities, refreshActivities } = useActivityContext()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
   
   // Hook para pagos (incluye cálculo optimizado de ingresos del mes actual)

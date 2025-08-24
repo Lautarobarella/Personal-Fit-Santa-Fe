@@ -251,6 +251,21 @@ export function useActivity() {
     })
   }, [activities])
 
+  // Función para obtener las fechas de una semana (Lunes a Domingo)
+  const getWeekDates = useCallback((startDate: Date): Date[] => {
+    const dates = []
+    const monday = new Date(startDate)
+    const diffToMonday = (monday.getDay() + 6) % 7 // Convertir domingo=0 a domingo=6, lunes=1 a lunes=0
+    monday.setDate(monday.getDate() - diffToMonday) // Lunes de la semana actual
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday)
+      date.setDate(monday.getDate() + i)
+      dates.push(date)
+    }
+    return dates
+  }, [])
+
   // ===============================
   // FUNCIONES DE MANIPULACIÓN DE DATOS
   // ===============================
@@ -452,6 +467,7 @@ export function useActivity() {
     canUserEnroll,
     getActivitiesByWeek,
     getTodayActivities,
+    getWeekDates,
     
     // Permission checks
     canManageActivities,

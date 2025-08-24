@@ -69,16 +69,6 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
             setIsLoadingActivity(true)
             setApiError(null)
 
-            fetchActivityDetail(activityId)
-                .then((detail) => {
-                    setCurrentActivity(detail)
-                    setIsLoadingActivity(false)
-                })
-                .catch((err) => {
-                    setApiError("Error al cargar la actividad")
-                    setIsLoadingActivity(false)
-                })
-
             loadTrainers()
         }
     }, [activityId, user?.role, loadTrainers])
@@ -151,7 +141,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                 title: "Actividad actualizada",
                 description: "Los cambios se han guardado correctamente y se aplicarán a futuras repeticiones",
             })
-
+            clearSelectedActivity()
             router.push("/activities")
         } catch (error) {
             toast({

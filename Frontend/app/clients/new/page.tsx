@@ -20,8 +20,6 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 
-//  HACEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER
-
 export default function NewClientPage() {
   const { user } = useAuth()
   const router = useRouter()

@@ -54,11 +54,3 @@ export function useActivityContext(): ActivityContextType {
   
   return context
 }
-
-/**
- * Hook de compatibilidad con el código existente
- * @deprecated Usar useActivity en su lugar
- */
-export function useActivities(): ActivityContextType {
-  return useActivity()
-}
