@@ -1,8 +1,8 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
-import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
 import { usePaymentContext } from "@/contexts/payment-provider"
+import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
@@ -232,9 +232,8 @@ export default function PaymentsPage() {
     // Lógica para determinar si el cliente puede crear un nuevo pago
     const canCreateNewPayment = user.role === UserRole.CLIENT &&
         !activePayment &&
-        !pendingPayment &&
-        monthlyFee !== null
-
+        !pendingPayment
+        
     const handleVerificationClick = (id: number) => {
         setVerificationDialog({ open: true, paymentId: id })
     }

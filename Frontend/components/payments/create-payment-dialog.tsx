@@ -55,7 +55,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const [amount, setAmount] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
-    
+
     // Estado para método de pago
     const [paymentMethod, setPaymentMethod] = useState<MethodType>(MethodType.TRANSFER)
 
@@ -143,13 +143,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         try {
             // Mostrar información del archivo original
             console.log(`Archivo seleccionado: ${file.name} (${formatFileSize(file.size)})`);
-            
+
             setSelectedFile(file)
-            
+
             // Crear preview optimizado
             const previewUrl = await createOptimizedPreview(file)
             setPreviewUrl(previewUrl)
-            
+
         } catch (error) {
             console.error('Error al procesar archivo:', error)
             toast({
@@ -279,7 +279,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         onOpenChange(false)
         // Redirigir según el rol del usuario
         if (user?.role === UserRole.CLIENT) {
-            router.push("/payments/method-select")
+            // router.push("/payments/method-select") DESCOMENTAR PARA DEJAR ELEGIR EL METODO DE PAGO
+            router.push("/payments")
         } else {
             router.push("/payments")
         }
@@ -314,7 +315,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
 
                 <DialogHeader>

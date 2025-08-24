@@ -1,9 +1,9 @@
 "use client";
 
-import { useAuth } from '@/contexts/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MobileHeader } from '@/components/ui/mobile-header';
+import { useAuth } from '@/contexts/auth-provider';
 import { UserRole } from '@/lib/types';
 import { ArrowRight, CreditCard, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +17,8 @@ export default function PaymentMethodSelectPage() {
     }
 
     // Redirigir admins directamente a creación manual
-    if (user.role === UserRole.ADMIN) {
+    // REDIRIGIR TAMBIEN A CLIENTS A NEW, YA QUE MERCADOPAGO NO SERÁ UTILIZADO AL MENOS AÚN
+    if (user.role === UserRole.ADMIN || user.role === UserRole.CLIENT) {
         router.replace('/payments/method-select/new');
         return null;
     }
@@ -55,15 +56,13 @@ export default function PaymentMethodSelectPage() {
                     </Card>
 
                     {/* Opciones de pago */}
-                    <div className="space-y-4">
+                    {/* <div className="space-y-4">
                         <h2 className="text-xl font-bold text-center mb-6">
                             Elige tu método de pago
                         </h2>
 
-                        {/* Pago con MercadoPago - Solo para clientes */}
                         {user.role === UserRole.CLIENT && (
                             <>
-                                {/* Pago Manual */}
                                 <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-gray-300">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between">
@@ -117,27 +116,26 @@ export default function PaymentMethodSelectPage() {
                         )}
 
 
-                        {/* Información adicional - Solo para clientes */}
 
-                        <Card className="bg-yellow-50 border-yellow-200">
-                            <CardContent className="p-4">
-                                <h4 className="font-semibold text-yellow-800 mb-2">
-                                    💡 ¿Cuál elegir?
-                                </h4>
-                                <div className="space-y-2 text-sm text-yellow-700">
-                                    <p>
-                                        <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
-                                    </p>
-                                    <p>
-                                        <strong>Pago Online:</strong> Inmediato y automático.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                    <Card className="bg-yellow-50 border-yellow-200">
+                        <CardContent className="p-4">
+                            <h4 className="font-semibold text-yellow-800 mb-2">
+                                💡 ¿Cuál elegir?
+                            </h4>
+                            <div className="space-y-2 text-sm text-yellow-700">
+                                <p>
+                                    <strong>Pago Manual:</strong> Si ya pagaste por transferencia/efectivo.
+                                </p>
+                                <p>
+                                    <strong>Pago Online:</strong> Inmediato y automático.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                    </div>
+                </div> */}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
