@@ -217,6 +217,42 @@ export function useActivity() {
     return activity.currentParticipants < activity.maxParticipants
   }, [isUserEnrolled])
 
+  // Funciones para leer configuraciones del localStorage
+  const getRegistrationTime = (): number => {
+    const stored = localStorage.getItem('registration_time_hours')
+    return stored ? parseInt(stored, 10) : 24 // Default 24 horas
+  }
+
+  const getUnregistrationTime = (): number => {
+    const stored = localStorage.getItem('unregistration_time_hours')
+    return stored ? parseInt(stored, 10) : 3 // Default 3 horas
+  }
+
+  // Función para verificar si se puede inscribir basándose en el tiempo límite
+  const canEnrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
+    const now = new Date()
+    const activityDate = new Date(activity.date)
+    const timeDifferenceInHours = (activityDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+
+    return timeDifferenceInHours >= getRegistrationTime()
+  }, [getRegistrationTime])
+
+  // Función para verificar si se puede desinscribir basándose en el tiempo límite
+  const canUnenrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
+    const now = new Date()
+    const activityDate = new Date(activity.date)
+    const timeDifferenceInHours = (activityDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+
+    return timeDifferenceInHours >= getUnregistrationTime()
+  }, [getUnregistrationTime])
+
+  // Función para verificar si una actividad ya pasó
+  const isActivityPast = useCallback((activity: ActivityType): boolean => {
+    const now = new Date()
+    const activityDate = new Date(activity.date)
+    return activityDate < now
+  }, [])
+
   // Función para filtrar actividades por semana
   const getActivitiesByWeek = useCallback((weekStartDate: Date): ActivityType[] => {
     if (!activities.length) return []
@@ -466,7 +502,12 @@ export function useActivity() {
     getActivitiesByWeek,
     getTodayActivities,
     getWeekDates,
-    
+    canEnrollBasedOnTime,
+    canUnenrollBasedOnTime,
+    isActivityPast,
+    getRegistrationTime,
+    getUnregistrationTime,
+
     // Permission checks
     canManageActivities,
     isAdmin,

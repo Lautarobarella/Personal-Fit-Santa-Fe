@@ -52,6 +52,11 @@ export default function ActivitiesPage() {
     isUserEnrolled,
     getActivitiesByWeek,
     getWeekDates,
+    canEnrollBasedOnTime,
+    canUnenrollBasedOnTime,
+    isActivityPast,
+    getRegistrationTime,
+    getUnregistrationTime,
   } = useActivityContext()
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -283,14 +288,6 @@ export default function ActivitiesPage() {
     return date.toDateString() === today.toDateString()
   }
 
-  // Función para verificar si una actividad ya comenzó
-  const isActivityPast = (activity: ActivityType) => {
-    const now = new Date()
-    // Crear fecha y hora de la actividad (asumiendo que date contiene la fecha completa)
-    const activityDateTime = new Date(activity.date)
-    return activityDateTime < now
-  }
-
   const getActivityStatusBadge = (activity: ActivityType) => {
     switch (activity.status) {
       case ActivityStatus.COMPLETED:
@@ -359,16 +356,7 @@ export default function ActivitiesPage() {
     }
 
     // Verificar restricciones para clientes
-    if (user?.role === UserRole.CLIENT && !isUserEnrolled(activity, user.id)) {
-      if (isActivityPast(activity)) {
-        toast({
-          title: "Actividad pasada",
-          description: "No puedes inscribirte a actividades que ya han comenzado.",
-          variant: "destructive",
-        })
-        return
-      }
-
+    if (user?.role === UserRole.CLIENT) {
       try {
         if (user.status !== "ACTIVE") {
           toast({
@@ -385,6 +373,31 @@ export default function ActivitiesPage() {
           variant: "destructive",
         })
         return
+      }
+
+      // Verificar límites de tiempo
+      if (!isUserEnrolled(activity, user.id)) {
+        // Para inscripción
+        if (!canEnrollBasedOnTime(activity)) {
+          const registrationTime = getRegistrationTime()
+          toast({
+            title: "Tiempo insuficiente",
+            description: `Debes inscribirte con al menos ${registrationTime} horas de anticipación.`,
+            variant: "destructive",
+          })
+          return
+        }
+      } else {
+        // Para desinscripción
+        if (!canUnenrollBasedOnTime(activity)) {
+          const unregistrationTime = getUnregistrationTime()
+          toast({
+            title: "Tiempo insuficiente",
+            description: `Debes desinscribirte con al menos ${unregistrationTime} horas de anticipación.`,
+            variant: "destructive",
+          })
+          return
+        }
       }
     }
 
@@ -693,11 +706,13 @@ export default function ActivitiesPage() {
                                         ? "Finalizada"
                                         : activity.status === ActivityStatus.CANCELLED
                                           ? "Cancelada"
-                                          : isUserEnrolled(activity, user.id)
-                                            ? "Desinscribir"
-                                            : activity.currentParticipants >= activity.maxParticipants
-                                              ? "Completo"
-                                              : "Inscribirse"}
+                                          : isActivityPast(activity)
+                                            ? "Expirada"
+                                            : isUserEnrolled(activity, user.id)
+                                              ? "Desinscribir"
+                                              : activity.currentParticipants >= activity.maxParticipants
+                                                ? "Completo"
+                                                : "Inscribirse"}
                                     </Button>
                                   )}
                                   {canManageActivities && (
