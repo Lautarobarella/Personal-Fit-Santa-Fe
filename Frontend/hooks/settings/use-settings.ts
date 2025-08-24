@@ -30,23 +30,34 @@ export function useSettings() {
       if (localRegTime && localUnregTime) {
         setRegistrationTime(parseInt(localRegTime));
         setUnregistrationTime(parseInt(localUnregTime));
+        setLoading(false); // Datos disponibles inmediatamente desde localStorage
       }
 
-      // Cargar desde backend y sincronizar
+      // Siempre cargar desde backend para asegurar sincronización
+      // pero no bloquear la UI si ya tenemos datos en localStorage
       const [regTime, unregTime] = await Promise.all([
         fetchRegistrationTime(),
         fetchUnregistrationTime()
       ]);
 
-      setRegistrationTime(regTime);
-      setUnregistrationTime(unregTime);
+      // Solo actualizar si los valores cambiaron
+      if (regTime !== parseInt(localRegTime || '0') || unregTime !== parseInt(localUnregTime || '0')) {
+        setRegistrationTime(regTime);
+        setUnregistrationTime(unregTime);
 
-      // Actualizar localStorage
-      localStorage.setItem(REGISTRATION_TIME_KEY, regTime.toString());
-      localStorage.setItem(UNREGISTRATION_TIME_KEY, unregTime.toString());
+        // Actualizar localStorage con los nuevos valores
+        localStorage.setItem(REGISTRATION_TIME_KEY, regTime.toString());
+        localStorage.setItem(UNREGISTRATION_TIME_KEY, unregTime.toString());
+      }
 
     } catch (error) {
       console.error('Error loading settings:', error);
+      // Si falla la carga desde backend pero tenemos datos en localStorage, mantenerlos
+      if (!localStorage.getItem(REGISTRATION_TIME_KEY)) {
+        // Solo usar valores por defecto si no hay nada en localStorage
+        setRegistrationTime(24);
+        setUnregistrationTime(3);
+      }
     } finally {
       setLoading(false);
     }
