@@ -116,9 +116,9 @@ export async function fetchTrainers() {
   }
 }
 
-export async function markAttendance(activityId: number, participantId: number, status: string) {
+export async function markAttendance(attendanceId: number, status: string) {
   try {
-    return await jwtPermissionsApi.put(`/api/activities/${activityId}/attendance/${participantId}`, {
+    return await jwtPermissionsApi.put(`/api/attendance/${attendanceId}/status`, {
       status
     });
   } catch (error) {

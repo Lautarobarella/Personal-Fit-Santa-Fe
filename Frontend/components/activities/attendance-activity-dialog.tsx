@@ -45,9 +45,6 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
   const activityStart = new Date(selectedActivity.date)
   const activityEnd = new Date(activityStart.getTime() + selectedActivity.duration * 60000)
 
-  const isFuture = now < activityStart
-  const isPast = now > activityEnd
-
   const formatDateTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
       day: "2-digit",
@@ -58,11 +55,11 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     }).format(new Date(date))
   }
 
-  const handleMarkPresent = async (participantId: number) => {
+  const handleMarkPresent = async (attendanceId: number) => {
     setIsAttending(true)
     
     try {
-      const result = await markParticipantAttendance(selectedActivity.id, participantId, AttendanceStatus.PRESENT)
+      const result = await markParticipantAttendance(attendanceId, AttendanceStatus.PRESENT)
       
       if (result.success) {
         toast({
@@ -88,11 +85,11 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     }
   }
 
-  const handleMarkAbsent = async (participantId: number) => {
+  const handleMarkAbsent = async (attendanceId: number) => {
     setIsAttending(true)
     
     try {
-      const result = await markParticipantAttendance(selectedActivity.id, participantId, AttendanceStatus.ABSENT)
+      const result = await markParticipantAttendance(attendanceId, AttendanceStatus.ABSENT)
       
       if (result.success) {
         toast({
@@ -118,11 +115,11 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     }
   }
 
-  const handleMarkLate = async (participantId: number) => {
+  const handleMarkLate = async (attendanceId: number) => {
     setIsAttending(true)
     
     try {
-      const result = await markParticipantAttendance(selectedActivity.id, participantId, AttendanceStatus.LATE)
+      const result = await markParticipantAttendance(attendanceId, AttendanceStatus.LATE)
       
       if (result.success) {
         toast({
@@ -342,7 +339,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkAbsent(p.id)}
+                        onClick={() => handleMarkAbsent(p.attendanceId)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -351,7 +348,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkLate(p.id)}
+                        onClick={() => handleMarkLate(p.attendanceId)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -364,7 +361,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkPresent(p.id)}
+                        onClick={() => handleMarkPresent(p.attendanceId)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -373,7 +370,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkLate(p.id)}
+                        onClick={() => handleMarkLate(p.attendanceId)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -386,7 +383,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkPresent(p.id)}
+                        onClick={() => handleMarkPresent(p.attendanceId)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -395,7 +392,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkAbsent(p.id)}
+                        onClick={() => handleMarkAbsent(p.attendanceId)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}

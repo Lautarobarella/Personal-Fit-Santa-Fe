@@ -148,7 +148,8 @@ export interface ActivityDetailInfo {
 }
 
 interface ActivityUserDetails {
-  id: number
+  id: number // userId
+  attendanceId: number // attendanceId
   firstName: string
   lastName: string
   createdAt: Date

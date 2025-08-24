@@ -209,7 +209,8 @@ public class ActivityService {
                 .maxParticipants(act.getSlots())
                 .participants(act.getAttendances().stream().map(a -> {
                     return ActivityUserDetailDTO.builder()
-                            .id(a.getUser().getId())
+                            .id(a.getId())
+                            .userId(a.getUser().getId())
                             .firstName(a.getUser().getFirstName())
                             .lastName(a.getUser().getLastName())
                             .createdAt(act.getDate())

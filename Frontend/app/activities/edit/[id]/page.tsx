@@ -1,23 +1,23 @@
 "use client"
 
-import { fetchActivityDetail } from "@/api/activities/activitiesApi"
 import { useAuth } from "@/components/providers/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
+import { TimePicker } from "@/components/ui/time-picker"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { useActivityContext } from "@/components/providers/activity-provider"
 import { useToast } from "@/hooks/use-toast"
-import { ActivityDetailInfo, UserRole } from "@/lib/types"
-import { ArrowLeft, Calendar, Clock, MapPin, Repeat, Save, Users } from "lucide-react"
+import { UserRole } from "@/lib/types"
+import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { use, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import { useActivityContext } from "@/components/providers/activity-provider"
 
 interface EditActivityPageProps {
     params: Promise<{
@@ -26,362 +26,306 @@ interface EditActivityPageProps {
 }
 
 export default function EditActivityPage({ params }: EditActivityPageProps) {
-    const { user } = useAuth()
-    const { toast } = useToast()
-    const router = useRouter()
-    const resolvedParams = use(params)
-    const activityId = parseInt(resolvedParams.id)
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const router = useRouter()
 
-    const {
-        selectedActivity,
-        form,
-        setForm,
-        trainers,
-        loading,
-        error,
-        loadActivityDetail,
-        loadTrainers,
-        updateActivity,
-        clearSelectedActivity,
-    } = useActivityContext()
+  const {
+    form,
+    setForm,
+    trainers,
+    selectedActivity,
+    loading,
+    error,
+    updateActivity,
+    loadActivityDetail,
+    loadTrainers,
+    resetForm,
+  } = useActivityContext()
 
-    const [currentActivity, setCurrentActivity] = useState<ActivityDetailInfo | null>(null)
-    const [isLoadingActivity, setIsLoadingActivity] = useState(false)
-    const [apiError, setApiError] = useState<string | null>(null)
-    const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [activityId, setActivityId] = useState<string | null>(null)
 
-    // Verificar permisos - solo ADMIN puede acceder
-    useEffect(() => {
-        if (user && user.role !== UserRole.ADMIN) {
-            toast({
-                title: "Acceso denegado",
-                description: "No tienes permisos para editar actividades",
-                variant: "destructive",
-            })
-            router.push("/activities")
-            return
-        }
-    }, [user, router, toast])
+  // Obtener el ID del parámetro async
+  useEffect(() => {
+    const getParams = async () => {
+      const resolvedParams = await params
+      setActivityId(resolvedParams.id)
+    }
+    getParams()
+  }, [params])
 
-    // Cargar datos iniciales
-    useEffect(() => {
-        if (activityId && !isNaN(activityId) && user?.role === UserRole.ADMIN) {
-            setIsLoadingActivity(true)
-            setApiError(null)
+  // Verificar permisos y cargar datos - solo ADMIN puede acceder
+  useEffect(() => {
+    if (user && user.role === UserRole.ADMIN && activityId) {
+      loadActivityDetail(parseInt(activityId))
+      loadTrainers()
+    } else if (user && user.role !== UserRole.ADMIN) {
+      toast({
+        title: "Acceso denegado",
+        description: "No tienes permisos para editar actividades",
+        variant: "destructive",
+      })
+      router.push("/activities")
+      return
+    }
+  }, [user, activityId, router, toast, loadActivityDetail, loadTrainers])
 
-            loadTrainers()
-        }
-    }, [activityId, user?.role, loadTrainers])
+  // Poblar el formulario cuando se cargan los detalles de la actividad
+  useEffect(() => {
+    if (selectedActivity && selectedActivity.id.toString() === activityId) {
+      const activityDate = new Date(selectedActivity.date)
+      const dateString = activityDate.toISOString().split('T')[0] // YYYY-MM-DD
+      const timeString = activityDate.toTimeString().slice(0, 5) // HH:MM
+      
+      setForm({
+        id: selectedActivity.id.toString(),
+        name: selectedActivity.name,
+        description: selectedActivity.description || "",
+        location: selectedActivity.location || "",
+        trainerId: selectedActivity.trainerId?.toString() || "",
+        date: dateString,
+        time: timeString,
+        duration: selectedActivity.duration.toString(),
+        maxParticipants: selectedActivity.maxParticipants.toString(),
+        isRecurring: selectedActivity.isRecurring || false,
+      })
+    }
+  }, [selectedActivity, activityId, setForm])
 
-    // Poblar formulario cuando se carga la actividad
-    useEffect(() => {
-        if (currentActivity) {
-            const activityDate = new Date(currentActivity.date)
-            const dateStr = activityDate.toISOString().split('T')[0]
-            const timeStr = activityDate.toTimeString().slice(0, 5)
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      resetForm()
+    }
+  }, [resetForm])
 
-            setForm({
-                name: currentActivity.name,
-                description: currentActivity.description,
-                location: currentActivity.location,
-                trainerId: currentActivity.trainerId?.toString() || "",
-                date: dateStr,
-                time: timeStr,
-                duration: currentActivity.duration?.toString() || "",
-                maxParticipants: currentActivity.maxParticipants?.toString() || "",
-                isRecurring: currentActivity.isRecurring || false,
-                weeklySchedule: currentActivity.weeklySchedule || [false, false, false, false, false, false, false],
-            })
-        }
-    }, [currentActivity, setForm])
+  const handleInputChange = (field: string, value: string | boolean | number) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
 
-    // Cleanup al desmontar
-    useEffect(() => {
-        return () => {
-            setCurrentActivity(null)
-        }
-    }, [])
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-
-        if (!form.name.trim() || !form.trainerId || !form.date || !form.time || !form.duration || !form.maxParticipants) {
-            toast({
-                title: "Error",
-                description: "Por favor completa todos los campos obligatorios",
-                variant: "destructive",
-            })
-            return
-        }
-
-        if (parseInt(form.duration) <= 0 || parseInt(form.maxParticipants) <= 0) {
-            toast({
-                title: "Error",
-                description: "La duración y cantidad máxima de participantes deben ser mayores a 0",
-                variant: "destructive",
-            })
-            return
-        }
-
-        if (form.isRecurring && !(form.weeklySchedule || []).some(day => day)) {
-            toast({
-                title: "Error",
-                description: "Para actividades recurrentes debes seleccionar al menos un día de la semana",
-                variant: "destructive",
-            })
-            return
-        }
-
-        setIsSubmitting(true)
-
-        try {
-            await updateActivity(activityId, form)
-
-            toast({
-                title: "Actividad actualizada",
-                description: "Los cambios se han guardado correctamente y se aplicarán a futuras repeticiones",
-            })
-            clearSelectedActivity()
-            router.push("/activities")
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "No se pudo actualizar la actividad. Intenta nuevamente.",
-                variant: "destructive",
-            })
-        } finally {
-            setIsSubmitting(false)
-        }
+    if (!form.name.trim() || !form.trainerId || !form.date || !form.time || !form.duration || !form.maxParticipants) {
+      toast({
+        title: "Error",
+        description: "Por favor completa todos los campos obligatorios",
+        variant: "destructive",
+      })
+      return
     }
 
-    if (user?.role !== UserRole.ADMIN) {
-        return null // El useEffect ya redirige, esto evita flash
+    if (parseInt(form.duration) <= 0 || parseInt(form.maxParticipants) <= 0) {
+      toast({
+        title: "Error",
+        description: "La duración y cantidad máxima de participantes deben ser mayores a 0",
+        variant: "destructive",
+      })
+      return
     }
 
-    if (isLoadingActivity || loading) {
-        return (
-            <div className="min-h-screen bg-background pb-32">
-                <MobileHeader title="Editar Actividad" showBack onBack={() => router.push("/activities")} />
-                <div className="container-centered py-6">
-                    <div className="flex justify-center items-center h-48">
-                        <div className="text-muted-foreground">Cargando actividad...</div>
-                    </div>
+    if (!activityId) {
+      toast({
+        title: "Error",
+        description: "ID de actividad no encontrado",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Extraer id del form para evitar enviarlo en el payload
+      const { id, ...activityData } = form
+      await updateActivity(parseInt(activityId), activityData)
+
+      toast({
+        title: "Actividad actualizada",
+        description: "La actividad ha sido actualizada exitosamente",
+      })
+
+      router.push("/activities")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la actividad. Intenta nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (user?.role !== UserRole.ADMIN) {
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <MobileHeader title="Editar Actividad" showBack onBack={() => router.back()} />
+
+      <div className="container-centered py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Editar Actividad
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-md font-medium">Información Básica</h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre de la Actividad</Label>
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    placeholder="Ej: Yoga Matutino"
+                  />
                 </div>
-                <BottomNav />
-            </div>
-        )
-    }
 
-    if (apiError || error || !currentActivity) {
-        return (
-            <div className="min-h-screen bg-background pb-32">
-                <MobileHeader title="Editar Actividad" showBack onBack={() => router.push("/activities")} />
-                <div className="container-centered py-6">
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="text-center text-destructive">
-                                {apiError || error || "No se pudo cargar la actividad"}
-                            </div>
-                            <Button
-                                variant="outline"
-                                className="w-full mt-4"
-                                onClick={() => router.push("/activities")}
-                            >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Volver a Actividades
-                            </Button>
-                        </CardContent>
-                    </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descripción</Label>
+                  <Textarea
+                    id="description"
+                    value={form.description}
+                    onChange={(e) => handleInputChange("description", e.target.value)}
+                    placeholder="Describe la actividad, nivel requerido, etc."
+                    rows={3}
+                  />
                 </div>
-                <BottomNav />
-            </div>
-        )
-    }
 
-    return (
-        <div className="min-h-screen bg-background pb-32">
-            <MobileHeader title="Editar Actividad" showBack onBack={() => router.push("/activities")} />
+                {user.role === UserRole.ADMIN && (
+                  <div className="space-y-2">
+                    <Label htmlFor="trainerName">Entrenador asignado</Label>
 
-            <div className="container-centered py-6 space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Información Básica */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Calendar className="w-5 h-5" />
-                                Información de la Actividad
-                            </CardTitle>
-                            <CardDescription>
-                                Modifica los datos básicos de la actividad
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="name">Nombre *</Label>
-                                <Input
-                                    id="name"
-                                    value={form.name}
-                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                    placeholder="Ej: Yoga matutino"
-                                    required
-                                />
-                            </div>
+                    <Select value={form.trainerId} onValueChange={(value) => handleInputChange("trainerId", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar entrenador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {trainers.map((trainer) => (
+                          <SelectItem key={trainer.id} value={trainer.id.toString()}>
+                            {trainer.firstName + " " + trainer.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-                            <div>
-                                <Label htmlFor="description">Descripción</Label>
-                                <Textarea
-                                    id="description"
-                                    value={form.description}
-                                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                    placeholder="Descripción de la actividad..."
-                                    rows={3}
-                                />
-                            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Fecha</Label>
+                  <DatePicker
+                    value={form.date}
+                    onChange={(date) => handleInputChange("date", date)}
+                  />
+                </div>
+              </div>
 
-                            <div>
-                                <Label htmlFor="location">Ubicación *</Label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="location"
-                                        value={form.location}
-                                        onChange={(e) => setForm({ ...form, location: e.target.value })}
-                                        placeholder="Ej: Salón principal"
-                                        className="pl-10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+              {/* Schedule */}
+              <div className="space-y-4">
+                <h3 className="text-md font-medium flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Horario
+                </h3>
 
-                    {/* Instructor y Programación */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="w-5 h-5" />
-                                Instructor y Horario
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="trainer">Instructor *</Label>
-                                <Select value={form.trainerId} onValueChange={(value) => setForm({ ...form, trainerId: value })}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar instructor" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {trainers.map((trainer) => (
-                                            <SelectItem key={trainer.id} value={trainer.id.toString()}>
-                                                {trainer.firstName} {trainer.lastName}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time">Hora de inicio</Label>
+                  <TimePicker
+                    value={form.time}
+                    onChange={(time) => handleInputChange("time", time)}
+                  />
+                </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="date">Fecha *</Label>
-                                    <Input
-                                        id="date"
-                                        type="date"
-                                        value={form.date}
-                                        onChange={(e) => setForm({ ...form, date: e.target.value })}
-                                        required
-                                    />
-                                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duración (minutos)</Label>
+                  <Select
+                    value={form.duration.toString()}
+                    onValueChange={(value) => handleInputChange("duration", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 minutos</SelectItem>
+                      <SelectItem value="45">45 minutos</SelectItem>
+                      <SelectItem value="60">60 minutos</SelectItem>
+                      <SelectItem value="90">90 minutos</SelectItem>
+                      <SelectItem value="120">120 minutos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                                <div>
-                                    <Label htmlFor="time">Hora *</Label>
-                                    <div className="relative">
-                                        <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="time"
-                                            type="time"
-                                            value={form.time}
-                                            onChange={(e) => setForm({ ...form, time: e.target.value })}
-                                            className="pl-10"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Ubicación</Label>
+                  <Input
+                    id="location"
+                    value={form.location}
+                    onChange={(e) => handleInputChange("location", e.target.value)}
+                    placeholder="Ej: Gimnasio principal"
+                  />
+                </div>
+              </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="duration">Duración (minutos) *</Label>
-                                    <Input
-                                        id="duration"
-                                        type="number"
-                                        value={form.duration}
-                                        onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                                        placeholder="60"
-                                        min="1"
-                                        required
-                                    />
-                                </div>
+              {/* Recurring Schedule */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-md font-medium flex items-center gap-2">
+                    <Repeat className="h-5 w-5" />
+                    Repetir semanalmente
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="recurring"
+                      checked={form.isRecurring}
+                      onCheckedChange={(checked) => handleInputChange("isRecurring", checked)}
+                    />
+                  </div>
+                </div>
+              </div>
 
-                                <div>
-                                    <Label htmlFor="maxParticipants">Máx. Participantes *</Label>
-                                    <Input
-                                        id="maxParticipants"
-                                        type="number"
-                                        value={form.maxParticipants}
-                                        onChange={(e) => setForm({ ...form, maxParticipants: e.target.value })}
-                                        placeholder="20"
-                                        min="1"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+              {/* Capacity */}
+              <div className="space-y-4">
+                <h3 className="text-md font-medium flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Capacidad
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="maxParticipants">Máxima cantidad de participantes</Label>
+                  <Input
+                    id="maxParticipants"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={form.maxParticipants}
+                    onChange={(e) => handleInputChange("maxParticipants", Number.parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
 
-                    {/* Repetición Semanal */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Repeat className="h-5 w-5" />
-                                Repetición Semanal
-                            </CardTitle>
-                            <CardDescription>
-                                Configura si esta actividad se repite cada semana. Los cambios se aplicarán a futuras creaciones.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center space-x-2">
-                                <Switch
-                                    id="recurring"
-                                    checked={form.isRecurring}
-                                    onCheckedChange={(checked) => setForm({ ...form, isRecurring: checked })}
-                                />
-                                <Label htmlFor="recurring">Repetir cada semana</Label>
-                            </div>
-                        </CardContent>
-                    </Card>
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 bg-transparent">
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading} className="flex-1">
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Actualizar Actividad
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
 
-                    {/* Botones de Acción */}
-                    <div className="flex flex-col gap-3">
-                        <Button type="submit" disabled={isSubmitting} className="w-full">
-                            <Save className="w-4 h-4 mr-2" />
-                            {isSubmitting ? "Guardando..." : "Guardar Cambios"}
-                        </Button>
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.push("/activities")}
-                            className="w-full"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Cancelar
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            <BottomNav />
-        </div>
-    )
+      <BottomNav />
+    </div>
+  )
 }

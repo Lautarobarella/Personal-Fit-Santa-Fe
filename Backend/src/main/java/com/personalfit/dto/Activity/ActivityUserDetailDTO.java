@@ -14,7 +14,8 @@ import com.personalfit.enums.AttendanceStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ActivityUserDetailDTO {
-    private Long id;
+    private Long id; 
+    private Long userId;
     private String firstName;
     private String lastName;
     private LocalDateTime createdAt;

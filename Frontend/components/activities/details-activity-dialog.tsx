@@ -1,6 +1,6 @@
 "use client"
 
-import { act, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,6 @@ import {
   Calendar,
   Users,
   MapPin,
-  DollarSign,
   User,
   Edit,
   Trash2,
@@ -20,7 +19,6 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  MessageCircleWarningIcon,
   MailWarningIcon,
 } from "lucide-react"
 import { useActivityContext } from "@/components/providers/activity-provider"

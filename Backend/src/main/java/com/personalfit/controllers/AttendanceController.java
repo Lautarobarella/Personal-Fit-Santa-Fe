@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.personalfit.dto.Attendance.AttendanceDTO;
@@ -58,14 +58,30 @@ public class AttendanceController {
     @PutMapping("/{attendanceId}/status")
     public ResponseEntity<Map<String, Object>> updateAttendanceStatus(
             @PathVariable Long attendanceId, 
-            @RequestParam AttendanceStatus status) {
-        attendanceService.updateAttendanceStatus(attendanceId, status);
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Estado de asistencia actualizado exitosamente");
-        response.put("success", true);
-        response.put("attendanceId", attendanceId);
-        response.put("status", status);
-        return ResponseEntity.ok(response);
+            @RequestBody Map<String, String> requestBody) {
+        try {
+            String statusString = requestBody.get("status");
+            AttendanceStatus status = AttendanceStatus.valueOf(statusString.toUpperCase());
+            
+            attendanceService.updateAttendanceStatus(attendanceId, status);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Estado de asistencia actualizado exitosamente");
+            response.put("success", true);
+            response.put("attendanceId", attendanceId);
+            response.put("status", status);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Estado de asistencia inválido");
+            response.put("success", false);
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Error al actualizar la asistencia: " + e.getMessage());
+            response.put("success", false);
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
     
     @GetMapping("/{activityId}/enrolled/{userId}")

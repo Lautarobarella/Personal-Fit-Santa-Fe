@@ -29,11 +29,6 @@ public class AttendanceService {
     @Autowired
     private UserService userService;
 
-    public void markAttendance(String userId, String activityId, String status) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'markAttendance'");
-    }
-
     public AttendanceDTO enrollUser(Long userId, Long activityId) {
         User user = userService.getUserById(userId);
         Activity activity = activityRepository.findById(activityId)

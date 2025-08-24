@@ -164,11 +164,10 @@ export function useActivity() {
   })
 
   const markAttendanceMutation = useMutation({
-    mutationFn: ({ activityId, participantId, status }: { 
-      activityId: number; 
-      participantId: number; 
+    mutationFn: ({ attendanceId, status }: { 
+      attendanceId: number; 
       status: AttendanceStatus 
-    }) => markAttendance(activityId, participantId, status),
+    }) => markAttendance(attendanceId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] })
       queryClient.invalidateQueries({ queryKey: ['activity-detail'] })
@@ -375,8 +374,7 @@ export function useActivity() {
   }, [unenrollMutation, user, canManageActivities])
 
   const markParticipantAttendance = useCallback(async (
-    activityId: number, 
-    participantId: number, 
+    attendanceId: number, 
     status: AttendanceStatus
   ): Promise<ActivityMutationResult> => {
     if (!canManageActivities) {
@@ -384,7 +382,7 @@ export function useActivity() {
     }
     
     try {
-      await markAttendanceMutation.mutateAsync({ activityId, participantId, status })
+      await markAttendanceMutation.mutateAsync({ attendanceId, status })
       return { success: true, message: "Asistencia marcada exitosamente" }
     } catch (error) {
       return { success: false, message: "Error al marcar asistencia" }
