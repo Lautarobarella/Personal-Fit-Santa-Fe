@@ -1,4 +1,5 @@
 import { ActivityProvider } from "@/components/providers/activity-provider"
+import { AttendanceProvider } from "@/components/providers/attendance-provider"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { NotificationsProvider } from "@/components/providers/notifications-provider"
 import { PaymentProvider } from "@/components/providers/payment-provider"
@@ -50,14 +51,16 @@ export default function RootLayout({
           <PaymentProvider>
             <AuthProvider>
               <ActivityProvider>
-                <NotificationsProvider>
-                  <div className="min-h-screen flex justify-center bg-background">
-                    <div className="w-full max-w-md mx-auto relative">
-                      {children}
+                <AttendanceProvider>
+                  <NotificationsProvider>
+                    <div className="min-h-screen flex justify-center bg-background">
+                      <div className="w-full max-w-md mx-auto relative">
+                        {children}
+                      </div>
                     </div>
-                  </div>
-                  <Toaster />
-                </NotificationsProvider>
+                    <Toaster />
+                  </NotificationsProvider>
+                </AttendanceProvider>
               </ActivityProvider>
             </AuthProvider>
           </PaymentProvider>

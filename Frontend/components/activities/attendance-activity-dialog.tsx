@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useActivityContext } from "@/components/providers/activity-provider"
+import { useAttendance } from "@/hooks/use-attendance"
 import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus } from "@/lib/types"
 import { AlertCircle, CheckCircle, Loader2, MailWarningIcon, Users } from "lucide-react"
@@ -33,19 +33,48 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
   const { user } = useAuth()
   const [isAttending, setIsAttending] = useState(false)
   const { toast } = useToast()
-  const { selectedActivity, loadActivityDetail, markParticipantAttendance } = useActivityContext()
+  const { 
+    activityAttendances, 
+    isLoading, 
+    error, 
+    loadActivityAttendances, 
+    markAttendance,
+    getAttendanceStats 
+  } = useAttendance()
 
   useEffect(() => {
-    loadActivityDetail(activityId)
-  }, [activityId, loadActivityDetail])
+    if (open && activityId) {
+      loadActivityAttendances(activityId)
+    }
+  }, [activityId, open, loadActivityAttendances])
   
-  if (!selectedActivity) return null
+  if (isLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Cargando asistencias...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
-  const now = new Date()
-  const activityStart = new Date(selectedActivity.date)
-  const activityEnd = new Date(activityStart.getTime() + selectedActivity.duration * 60000)
+  if (error) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-center h-64">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <span className="ml-2 text-destructive">Error: {error}</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
-  const formatDateTime = (date: Date) => {
+  const formatDateTime = (date: Date | string) => {
     return new Intl.DateTimeFormat("es-ES", {
       day: "2-digit",
       month: "2-digit",
@@ -55,11 +84,13 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     }).format(new Date(date))
   }
 
+  const stats = getAttendanceStats()
+
   const handleMarkPresent = async (attendanceId: number) => {
     setIsAttending(true)
     
     try {
-      const result = await markParticipantAttendance(attendanceId, AttendanceStatus.PRESENT)
+      const result = await markAttendance(attendanceId, AttendanceStatus.PRESENT)
       
       if (result.success) {
         toast({
@@ -89,7 +120,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantAttendance(attendanceId, AttendanceStatus.ABSENT)
+      const result = await markAttendance(attendanceId, AttendanceStatus.ABSENT)
       
       if (result.success) {
         toast({
@@ -119,7 +150,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
     setIsAttending(true)
     
     try {
-      const result = await markParticipantAttendance(attendanceId, AttendanceStatus.LATE)
+      const result = await markAttendance(attendanceId, AttendanceStatus.LATE)
       
       if (result.success) {
         toast({
@@ -154,192 +185,81 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center mt-4">
-            Asistencias: "{selectedActivity.name}"
+            Asistencias de Actividad #{activityId}
           </DialogTitle>
           <DialogDescription className="flex">
             A continuación se muestra la lista de participantes inscriptos:
           </DialogDescription>
         </DialogHeader>
 
-        {/* Sección de asistencia del profesor (solo admin)
-        {user?.role === "ADMIN" && (
-          <div className="m-4 mb-6">
-            <h3 className="text-lg font-semibold mb-2">Asistencia del Profesor</h3>
-            <Card className="m-2">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
-                      {`${trainer.firstName[0] ?? ""}${trainer.lastName[0] ?? ""}`}
-                    </AvatarFallback>
-                  </Avatar>
-                  <p className="font-medium">{trainer.firstName + " " + trainer.lastName}</p>
-                  {trainer.status === AttendanceStatus.PRESENT && (
-                    <Badge variant={'success'} className="ml-2">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Presente
-                    </Badge>
-                  )}
-                  {trainer.status === AttendanceStatus.ABSENT && (
-                    <Badge variant={'destructive'} className="ml-2">
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      Ausente
-                    </Badge>
-                  )}
-                  {trainer.status === AttendanceStatus.PENDING && (
-                    <Badge variant={'warning'} className="ml-2">
-                      <MailWarningIcon className="h-3 w-3 mr-1" />
-                      Pendiente
-                    </Badge>
-                  )}
-                  {trainer.status === AttendanceStatus.LATE && (
-                    <Badge variant={'secondary'} className="ml-2">
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      Tardanza
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex gap-1 ml-11">
-                  {trainer.status === AttendanceStatus.PRESENT && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkAbsent(trainer.id)}
-                        disabled={isAttending}
-                      >
-                        {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                        Ausente
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkLate(trainer.id)}
-                        disabled={isAttending}
-                      >
-                        {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                        Tardanza
-                      </Button>
-                    </>
-                  )}
-                  {(trainer.status === AttendanceStatus.PENDING || trainer.status === AttendanceStatus.ABSENT) && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkPresent(trainer.id)}
-                        disabled={isAttending}
-                      >
-                        {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                        Presente
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkLate(trainer.id)}
-                        disabled={isAttending}
-                      >
-                        {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                        Tardanza
-                      </Button>
-                    </>
-                  )}
-                  {trainer.status === AttendanceStatus.LATE && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkPresent(trainer.id)}
-                        disabled={isAttending}
-                      >
-                        {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                        Presente
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkAbsent(trainer.id)}
-                        disabled={isAttending}
-                      >
-                        {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                        Ausente
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )} */}
-
-        {/* Lista de participantes (excluyendo al profesor) */}
+        {/* Lista de participantes */}
         <div className="m-4">
           <h3 className="text-lg font-semibold mb-2">Lista de Participantes</h3>
           <div className="flex gap-2 text-sm flex-wrap">
             <Badge variant="success">
-              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.PRESENT && p.id !== selectedActivity.trainerId).length} Presentes
+              {stats.present} Presentes
             </Badge>
             <Badge variant="destructive">
-              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.ABSENT && p.id !== selectedActivity.trainerId).length} Ausentes
+              {stats.absent} Ausentes
             </Badge>
             <Badge variant="secondary">
-              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.LATE && p.id !== selectedActivity.trainerId).length} Tardanzas
+              {stats.late} Tardanzas
             </Badge>
             <Badge variant="warning">
-              {selectedActivity.participants.filter(p => p.status === AttendanceStatus.PENDING && p.id !== selectedActivity.trainerId).length} Pendientes
+              {stats.pending} Pendientes
             </Badge>
           </div>
         </div>
 
         <div className="space-y-2">
-          {selectedActivity.participants.map((p) => (
-            <Card key={p.id} className="m-2">
+          {activityAttendances.map((attendance) => (
+            <Card key={attendance.id} className="m-2">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-2">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs">
-                      {`${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`}
+                      {`${attendance.firstName?.[0] ?? ""}${attendance.lastName?.[0] ?? ""}`}
                     </AvatarFallback>
                   </Avatar>
-                  <p className="font-medium">{p.firstName + " " + p.lastName}</p>
-                  {p.status === AttendanceStatus.PRESENT && (
+                  <p className="font-medium">{attendance.firstName} {attendance.lastName}</p>
+                  {attendance.status === AttendanceStatus.PRESENT && (
                     <Badge variant={'success'} className="ml-2">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Presente
                     </Badge>
                   )}
-                  {p.status === AttendanceStatus.ABSENT && (
+                  {attendance.status === AttendanceStatus.ABSENT && (
                     <Badge variant={'destructive'} className="ml-2">
                       <AlertCircle className="h-3 w-3 mr-1" />
                       Ausente
                     </Badge>
                   )}
-                  {p.status === AttendanceStatus.PENDING && (
+                  {attendance.status === AttendanceStatus.PENDING && (
                     <Badge variant={'warning'} className="ml-2">
                       <MailWarningIcon className="h-3 w-3 mr-1" />
                       Pendiente
                     </Badge>
                   )}
-                  {p.status === AttendanceStatus.LATE && (
+                  {attendance.status === AttendanceStatus.LATE && (
                     <Badge variant={'secondary'} className="ml-2">
                       <AlertCircle className="h-3 w-3 mr-1" />
                       Tardanza
                     </Badge>
                   )}
                 </div>
-                {p.createdAt && (
+                {attendance.createdAt && (
                   <p className="text-xs text-muted-foreground mb-2 ml-11">
-                    Inscrito: {formatDateTime(p.createdAt)}
+                    Inscrito: {formatDateTime(attendance.createdAt)}
                   </p>
                 )}
                 <div className="flex gap-1 ml-11">
                   {/* Botones para marcar asistencia */}
-                  {p.status === AttendanceStatus.PRESENT && (
+                  {attendance.status === AttendanceStatus.PRESENT && (
                     <>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkAbsent(p.attendanceId)}
+                        onClick={() => handleMarkAbsent(attendance.id)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -348,7 +268,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkLate(p.attendanceId)}
+                        onClick={() => handleMarkLate(attendance.id)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -356,12 +276,12 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       </Button>
                     </>
                   )}
-                  {(p.status === AttendanceStatus.PENDING || p.status === AttendanceStatus.ABSENT) && (
+                  {(attendance.status === AttendanceStatus.PENDING || attendance.status === AttendanceStatus.ABSENT) && (
                     <>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkPresent(p.attendanceId)}
+                        onClick={() => handleMarkPresent(attendance.id)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -370,7 +290,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkLate(p.attendanceId)}
+                        onClick={() => handleMarkLate(attendance.id)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -378,12 +298,12 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       </Button>
                     </>
                   )}
-                  {p.status === AttendanceStatus.LATE && (
+                  {attendance.status === AttendanceStatus.LATE && (
                     <>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkPresent(p.attendanceId)}
+                        onClick={() => handleMarkPresent(attendance.id)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -392,7 +312,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkAbsent(p.attendanceId)}
+                        onClick={() => handleMarkAbsent(attendance.id)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -405,7 +325,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
             </Card>
           ))}
 
-          {selectedActivity.participants.length === 0 && (
+          {activityAttendances.length === 0 && (
             <Card className="m-4 h-[35vh] flex items-center justify-center">
               <CardContent className="flex flex-col items-center justify-center h-full">
                 <Users className="h-16 w-16 text-muted-foreground mb-4" />

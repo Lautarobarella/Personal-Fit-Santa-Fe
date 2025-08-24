@@ -49,6 +49,12 @@ public class AttendanceController {
         return ResponseEntity.ok(attendances);
     }
     
+    @GetMapping("/activity/{activityId}/with-user-info")
+    public ResponseEntity<List<AttendanceDTO>> getActivityAttendancesWithUserInfo(@PathVariable Long activityId) {
+        List<AttendanceDTO> attendances = attendanceService.getActivityAttendancesWithUserInfo(activityId);
+        return ResponseEntity.ok(attendances);
+    }
+    
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<AttendanceDTO>> getUserAttendances(@PathVariable Long userId) {
         List<AttendanceDTO> attendances = attendanceService.getUserAttendances(userId);

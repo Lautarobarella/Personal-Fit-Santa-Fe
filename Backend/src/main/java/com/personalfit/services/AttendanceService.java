@@ -91,6 +91,15 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
+    public List<AttendanceDTO> getActivityAttendancesWithUserInfo(Long activityId) {
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/getActivityAttendancesWithUserInfo"));
+
+        return attendanceRepository.findByActivity(activity).stream()
+                .map(this::convertToAttendanceDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<AttendanceDTO> getUserAttendances(Long userId) {
         User user = userService.getUserById(userId);
 
@@ -131,6 +140,19 @@ public class AttendanceService {
                 .id(attendance.getId())
                 .activityId(attendance.getActivity().getId())
                 .userId(attendance.getUser().getId())
+                .status(attendance.getAttendance())
+                .createdAt(attendance.getCreatedAt())
+                .updatedAt(attendance.getUpdatedAt())
+                .build();
+    }
+
+    private AttendanceDTO convertToAttendanceDTO(Attendance attendance) {
+        return AttendanceDTO.builder()
+                .id(attendance.getId())
+                .activityId(attendance.getActivity().getId())
+                .userId(attendance.getUser().getId())
+                .firstName(attendance.getUser().getFirstName())
+                .lastName(attendance.getUser().getLastName())
                 .status(attendance.getAttendance())
                 .createdAt(attendance.getCreatedAt())
                 .updatedAt(attendance.getUpdatedAt())

@@ -186,12 +186,17 @@ export interface ActivityFormType {
   weeklySchedule?: boolean[]
 }
 
+
+// Interfaz extendida que incluye información del usuario
 export interface Attendance {
-  id?: number
+  id: number // attendanceId
   activityId: number
   userId: number
-  createdAt: Date
+  firstName: string
+  lastName: string
   status: AttendanceStatus
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface PaymentType {
