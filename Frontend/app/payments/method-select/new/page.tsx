@@ -1,9 +1,9 @@
 "use client"
 
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
-import { usePayment } from "@/hooks/use-payment"
+import { usePayment } from "@/hooks/payments/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { MethodType, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"

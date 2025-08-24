@@ -11,7 +11,7 @@ import {
   unenrollUserFromActivity 
 } from "@/api/attendance/attendanceApi"
 import { Attendance, AttendanceStatus } from "@/lib/types"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 
 /**
  * Tipos para el estado del hook

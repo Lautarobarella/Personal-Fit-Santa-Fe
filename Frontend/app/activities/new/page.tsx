@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +17,7 @@ import { UserRole } from "@/lib/types"
 import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useActivityContext } from "@/components/providers/activity-provider"
+import { useActivityContext } from "@/contexts/activity-provider"
 
 
 export default function NewActivityPage() {

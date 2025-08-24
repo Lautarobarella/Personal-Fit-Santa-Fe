@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from '@/components/providers/auth-provider';
+import { useAuth } from '@/contexts/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQueryClient } from '@tanstack/react-query';

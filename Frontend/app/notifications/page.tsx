@@ -1,12 +1,12 @@
 "use client"
 
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useNotifications } from "@/hooks/use-notifications"
+import { useNotifications } from "@/hooks/notifications/use-notifications"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationCategoryType, NotificationStatus, NotificationType } from "@/lib/types"
 import {

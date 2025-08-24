@@ -1,8 +1,8 @@
 "use client"
 
-import { useAuth } from "@/components/providers/auth-provider"
-import { useMonthlyRevenue } from "@/hooks/use-monthly-revenue"
-import { usePayment } from "@/hooks/use-payment"
+import { useAuth } from "@/contexts/auth-provider"
+import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
+import { usePayment } from "@/hooks/payments/use-payment"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"

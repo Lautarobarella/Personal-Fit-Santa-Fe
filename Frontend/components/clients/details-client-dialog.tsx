@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useClients } from "@/hooks/use-client"
+import { useClients } from "@/hooks/clients/use-client"
 import { ActivityStatus, AttendanceStatus, PaymentStatus, UserRole, UserStatus } from "@/lib/types"
 import {
   Activity,
@@ -28,7 +28,7 @@ import {
   UserX
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAuth } from "../providers/auth-provider"
+import { useAuth } from "../../contexts/auth-provider"
 
 interface ClientDetailsDialogProps {
   open: boolean

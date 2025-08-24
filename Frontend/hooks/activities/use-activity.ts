@@ -11,7 +11,7 @@ import {
   unenrollActivity,
   markAttendance
 } from "@/api/activities/activitiesApi"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { 
   ActivityType, 
   ActivityDetailInfo, 

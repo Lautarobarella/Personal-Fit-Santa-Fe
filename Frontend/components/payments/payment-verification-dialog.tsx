@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { usePayment } from "@/hooks/use-payment"
+import { usePayment } from "@/hooks/payments/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"

@@ -3,12 +3,12 @@
 
 "use client"
 
-import { useAttendance } from "@/hooks/use-attendance"
+import { useAttendance } from "@/hooks/activities/use-attendance"
 import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus } from "@/lib/types"
 import { AlertCircle, CheckCircle, Loader2, MailWarningIcon, Users } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAuth } from "../providers/auth-provider"
+import { useAuth } from "../../contexts/auth-provider"
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"

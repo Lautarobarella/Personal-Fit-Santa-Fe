@@ -1,6 +1,6 @@
 "use client"
 
-import { useActivity, type ActivityState } from "@/hooks/use-activity"
+import { useActivity, type ActivityState } from "@/hooks/activities/use-activity"
 import { createContext, useContext, type ReactNode } from "react"
 
 /**

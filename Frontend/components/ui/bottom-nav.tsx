@@ -1,7 +1,7 @@
 "use client"
 
 import { Home, Calendar, Users, CreditCard, Settings } from "lucide-react"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { UserRole } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"

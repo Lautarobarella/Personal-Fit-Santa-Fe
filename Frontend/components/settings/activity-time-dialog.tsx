@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useSettings } from "@/hooks/use-settings"
+import { useSettings } from "@/hooks/settings/use-settings"
 import { toast } from "sonner"
 
 interface ActivityTimesDialogProps {

@@ -5,8 +5,8 @@ import { DeleteActivityDialog } from "@/components/activities/delete-activity-di
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
 import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
-import { useActivityContext } from "@/components/providers/activity-provider"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useActivityContext } from "@/contexts/activity-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -32,7 +32,6 @@ import {
   Users,
   X,
 } from "lucide-react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
@@ -448,12 +447,10 @@ export default function ActivitiesPage() {
         title="Actividades"
         actions={
           canManageActivities ? (
-            <Link href="/activities/new">
-              <Button size="sm">
+              <Button size="sm" onClick={() => {router.push('/activities/new')}}>
                 <Plus className="h-4 w-4 mr-1" />
                 Nueva
               </Button>
-            </Link>
           ) : null
         }
       />
@@ -652,8 +649,8 @@ export default function ActivitiesPage() {
                                       <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
                                         Ver Detalles
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem asChild>
-                                        <Link href={`/activities/edit/${activity.id}`}>Editar</Link>
+                                      <DropdownMenuItem asChild onClick={() => router.push(`/activities/edit/${activity.id}`)}>
+                                        Editar
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
                                         Tomar asistencia

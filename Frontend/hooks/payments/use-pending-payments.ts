@@ -1,5 +1,5 @@
 import { buildReceiptUrl } from "@/api/payments/paymentsApi"
-import { usePayment } from "@/hooks/use-payment"
+import { usePayment } from "@/hooks/payments/use-payment"
 import { PaymentStatus, PaymentType } from "@/lib/types"
 import { useEffect, useState } from "react"
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
-import { useThemeToggle } from "@/hooks/use-theme"
+import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { UserRole } from "@/lib/types"
 import { BarChart3, Bell, Clock, DollarSign, LogOut, Moon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -133,7 +133,7 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start bg-transparent"
-                onClick={() => router.push('/settings/activity-times')}
+                onClick={() => setShowActivityTimesDialog(true)}
               >
                 <Clock className="h-4 w-4 mr-3" />
                 Configurar tiempos de actividades

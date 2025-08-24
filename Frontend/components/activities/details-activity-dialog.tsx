@@ -21,7 +21,7 @@ import {
   CheckCircle,
   MailWarningIcon,
 } from "lucide-react"
-import { useActivityContext } from "@/components/providers/activity-provider"
+import { useActivityContext } from "@/contexts/activity-provider"
 import { ActivityStatus, AttendanceStatus } from "@/lib/types"
 
 interface DetailsActivityDialogProps {
@@ -404,7 +404,7 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
             </Card>
 
             {/* Quick Actions */}
-            <Card className="m-2">
+            <Card className="m-2 mb-2">
               <CardHeader>
                 <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
               </CardHeader>

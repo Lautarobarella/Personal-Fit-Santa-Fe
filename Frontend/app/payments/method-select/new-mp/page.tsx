@@ -1,7 +1,7 @@
 "use client";
 
 import CheckoutForm from '@/components/payments/CheckoutForm';
-import { useAuth } from '@/components/providers/auth-provider';
+import { useAuth } from '@/contexts/auth-provider';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { MobileHeader } from '@/components/ui/mobile-header';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -1,5 +1,5 @@
 import PaymentsPage from '@/app/payments/page'
-import { AuthProvider } from '@/components/providers/auth-provider'
+import { AuthProvider } from '@/contexts/auth-provider'
 import { act, render, screen } from '@testing-library/react'
 
 // Mock router

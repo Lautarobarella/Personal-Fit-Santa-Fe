@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { UserRole } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useClients } from "@/hooks/use-client"
+import { useClients } from "@/hooks/clients/use-client"
 import { useToast } from "@/hooks/use-toast"
 import { UserFormType } from "@/lib/types"
 import { Loader2, User } from "lucide-react"

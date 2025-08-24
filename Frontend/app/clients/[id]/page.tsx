@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { UserRole } from "@/lib/types"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { User, Loader2 } from "lucide-react"
 import { UserFormType } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useClients } from "@/hooks/use-client"
+import { useClients } from "@/hooks/clients/use-client"
 
 
 export default function EditClientPage() {

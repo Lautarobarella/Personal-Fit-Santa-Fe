@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.personalfit.dto.Auth.AuthRequestDTO;
 import com.personalfit.dto.Auth.AuthResponseDTO;
-import com.personalfit.repository.UserRepository;
 import com.personalfit.services.AuthService;
 
 import jakarta.validation.Valid;
@@ -23,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
     private final AuthService authService;
-    private final UserRepository userRepository;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> authenticate(@Valid @RequestBody AuthRequestDTO request) {

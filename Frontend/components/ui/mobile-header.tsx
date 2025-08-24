@@ -2,10 +2,10 @@
 
 import type React from "react"
 
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/contexts/auth-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useNotifications } from "@/hooks/use-notifications"
+import { useNotifications } from "@/hooks/notifications/use-notifications"
 import { ArrowLeft, Bell, Menu } from "lucide-react"
 import Link from "next/link"
 
