@@ -24,6 +24,10 @@ export default function PaymentVerificationPage() {
   const [rejectionReason, setRejectionReason] = useState("")
   const [show, setShow] = useState(true)
   const [reviewedCount, setReviewedCount] = useState(0)
+  const [isOnCooldown, setIsOnCooldown] = useState(false)
+  
+  // Tiempo mínimo entre verificaciones (en milisegundos)
+  const VERIFICATION_COOLDOWN = 2000 // 2 segundos
 
   // Usar el contexto unificado de pagos
   const { 
@@ -144,7 +148,7 @@ export default function PaymentVerificationPage() {
     }
   }
 
-  // Acción de aprobar/rechazar
+  // Acción de aprobar/rechazar con cooldown
   const handleStatusUpdate = async (status: "paid" | "rejected") => {
     if (!currentPayment) return
 
@@ -158,6 +162,8 @@ export default function PaymentVerificationPage() {
     }
 
     setIsVerifying(true)
+    setIsOnCooldown(true) // Activar cooldown inmediatamente
+    
     try {
       await updatePaymentStatus({
         id: currentPayment.id,
@@ -182,7 +188,15 @@ export default function PaymentVerificationPage() {
         }
         setReviewedCount(prev => prev + 1)
       }, 350)
+
+      // Desactivar cooldown después del tiempo especificado
+      setTimeout(() => {
+        setIsOnCooldown(false)
+      }, VERIFICATION_COOLDOWN)
+
     } catch (error) {
+      // En caso de error, desactivar cooldown inmediatamente
+      setIsOnCooldown(false)
       toast({
         title: "Error",
         description: "No se pudo procesar la verificación",
@@ -289,22 +303,22 @@ export default function PaymentVerificationPage() {
             <Button
               variant="secondary"
               onClick={() => handleStatusUpdate("rejected")}
-              disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
+              disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
               className="w-1/2 py-2 text-sm font-semibold h-9"
             >
               {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isVerifying && <X className="mr-2 h-4 w-4" />}
-              Rechazar
+              {isOnCooldown ? "Espera..." : "Rechazar"}
             </Button>
             <Button
               variant="default"
               onClick={() => handleStatusUpdate("paid")}
-              disabled={isVerifying || !currentPayment || loading || pendingPayments.length === 0}
+              disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
               className="w-1/2 py-2 text-sm font-semibold h-9"
             >
               {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {!isVerifying && <Check className="mr-2 h-4 w-4" />}
-              Aprobar
+              {!isVerifying && !isOnCooldown && <Check className="mr-2 h-4 w-4" />}
+              {isVerifying ? "Procesando..." : isOnCooldown ? "Espera..." : "Aprobar"}
             </Button>
           </div>
         </div>
