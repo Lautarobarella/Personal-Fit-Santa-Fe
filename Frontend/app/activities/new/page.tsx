@@ -224,7 +224,7 @@ export default function NewActivityPage() {
               </div>
 
               {/* Recurring Schedule */}
-              <div className="space-y-4">
+              <div className="space-y-4 pt-6 pb-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-md font-medium flex items-center gap-2">
                     <Repeat className="h-5 w-5" />

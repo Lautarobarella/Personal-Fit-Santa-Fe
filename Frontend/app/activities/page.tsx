@@ -16,7 +16,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useClients } from "@/hooks/use-client"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityStatus, ActivityType, UserRole } from "@/lib/types"
 import {
@@ -51,11 +50,9 @@ export default function ActivitiesPage() {
     unenrollFromActivity,
     removeActivity,
     isUserEnrolled,
-    getUserEnrollmentStatus,
     getActivitiesByWeek,
     getWeekDates,
   } = useActivityContext()
-  const { checkMembershipStatus } = useClients()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTrainer, setFilterTrainer] = useState("all")
@@ -492,9 +489,8 @@ export default function ActivitiesPage() {
                   const nextWeek = new Date(currentWeek)
                   nextWeek.setDate(currentWeek.getDate() + 7)
                   
-                  const canGoForward = nextWeek <= mondayOfThisWeek
-                  
-                  return canGoForward ? (
+
+                  return (
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -503,8 +499,6 @@ export default function ActivitiesPage() {
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                  ) : (
-                    <div className="w-10 h-9" /> // Spacer para mantener el centrado
                   )
                 })()}
               </div>
