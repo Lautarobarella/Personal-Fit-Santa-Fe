@@ -3,14 +3,13 @@
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
-import { usePayment } from "@/hooks/payments/use-payment"
-import { usePendingPayments } from "@/hooks/payments/use-pending-payments"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
@@ -51,17 +50,18 @@ function DashboardContent() {
 
   // Usar hooks de forma segura
   const { checkMembershipStatus } = useClients()
-  const {
-    pendingPayments,
-    totalPendingPayments,
-    loading: pendingPaymentsLoading
-  } = usePendingPayments(user?.id, user?.role === UserRole.ADMIN)
   const { clients, loadClients } = useClients()
   const { activities, refreshActivities } = useActivityContext()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
   
-  // Hook para pagos (incluye cálculo optimizado de ingresos del mes actual)
-  const { currentMonthRevenue, isLoading: isLoadingPayments } = usePayment(undefined, user?.role === UserRole.ADMIN)
+  // Usar el contexto unificado de pagos
+  const { 
+    pendingPayments,
+    totalPendingPayments,
+    currentMonthRevenue, 
+    isLoading: isLoadingPayments 
+  } = usePaymentContext()
+  const pendingPaymentsLoading = isLoadingPayments
 
   // Estado para cachear el estado de membresía
   const [membershipStatus, setMembershipStatus] = useState<boolean | null>(null)

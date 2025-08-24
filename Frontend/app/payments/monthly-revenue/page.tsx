@@ -1,11 +1,11 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
-import { usePayment } from "@/hooks/payments/use-payment"
 import { UserRole } from "@/lib/types"
 import { BarChart3, Calendar, DollarSign, Eye, EyeOff, TrendingUp } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -48,7 +48,7 @@ export default function MonthlyRevenuePage() {
     )
 
     // Obtener pagos y el ingreso del mes actual calculado desde los payments existentes
-    const { payments, currentMonthRevenue, isLoading: isLoadingPayments } = usePayment(undefined, true)
+    const { payments, currentMonthRevenue, isLoading: isLoadingPayments } = usePaymentContext()
 
     if (!user || user.role !== UserRole.ADMIN) {
         return null

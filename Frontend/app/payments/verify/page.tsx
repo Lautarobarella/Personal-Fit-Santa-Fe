@@ -2,14 +2,13 @@
 
 import { PaymentReceiptDisplay } from "@/components/payments/payment-receipt-display"
 import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
-import { usePayment } from "@/hooks/payments/use-payment"
-import { usePendingPayments } from "@/hooks/payments/use-pending-payments"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
@@ -26,9 +25,14 @@ export default function PaymentVerificationPage() {
   const [show, setShow] = useState(true)
   const [reviewedCount, setReviewedCount] = useState(0)
 
-  // Hook separado para pagos pendientes
-  const { pendingPayments, loading, totalPendingPayments } = usePendingPayments(user?.id, true)
-  const { updatePaymentStatus, fetchSinglePayment } = usePayment(user?.id, true)
+  // Usar el contexto unificado de pagos
+  const { 
+    pendingPayments, 
+    isLoading: loading, 
+    totalPendingPayments,
+    updatePaymentStatus,
+    fetchSinglePayment
+  } = usePaymentContext()
 
   // Inicializa y congela la cantidad total de pagos al primer render
   const initialPendingCount = useRef<number | null>(null)

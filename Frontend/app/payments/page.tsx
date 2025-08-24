@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/auth-provider"
 import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
-import { usePayment } from "@/hooks/payments/use-payment"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
@@ -44,7 +44,7 @@ export default function PaymentsPage() {
         payments,
         updatePaymentStatus,
         isLoading,
-    } = usePayment(user?.id, user?.role === UserRole.ADMIN)
+    } = usePaymentContext()
 
     // Hook para ingresos mensuales archivados (solo para admin y solo para historial)
     const {

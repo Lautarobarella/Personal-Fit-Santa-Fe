@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { usePayment } from "@/hooks/payments/use-payment"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, formatFileSize, validatePaymentFile } from "@/lib/file-compression"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
@@ -59,11 +59,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Estado para método de pago
     const [paymentMethod, setPaymentMethod] = useState<MethodType>(MethodType.TRANSFER)
 
-    // Hook para obtener pagos del cliente
-    const { payments: clientPayments, isLoading: isLoadingPayments } = usePayment(
-        user?.role === UserRole.CLIENT ? user.id : undefined,
-        false
-    )
+    // Hook para obtener pagos del cliente usando el contexto
+    const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
 
     // Fetch monthly fee when component mounts
     useEffect(() => {

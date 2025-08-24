@@ -48,8 +48,8 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider>
-          <PaymentProvider>
-            <AuthProvider>
+          <AuthProvider>
+            <PaymentProvider>
               <ActivityProvider>
                 <AttendanceProvider>
                   <NotificationsProvider>
@@ -62,8 +62,8 @@ export default function RootLayout({
                   </NotificationsProvider>
                 </AttendanceProvider>
               </ActivityProvider>
-            </AuthProvider>
-          </PaymentProvider>
+            </PaymentProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { usePayment } from "@/hooks/payments/use-payment"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
@@ -37,7 +37,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
   const {
     fetchSinglePayment,
     updatePaymentStatus,
-  } = usePayment()
+  } = usePaymentContext()
 
   useEffect(() => {
     if (!open) return

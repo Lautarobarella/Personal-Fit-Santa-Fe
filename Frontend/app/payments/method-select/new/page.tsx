@@ -2,15 +2,15 @@
 
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
-import { usePayment } from "@/hooks/payments/use-payment"
 import { useToast } from "@/hooks/use-toast"
 import { MethodType, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"
 
 export default function NewPaymentPage() {
   const { toast } = useToast()
-  const { createPayment } = usePayment()
+  const { createPayment } = usePaymentContext()
   const { user } = useAuth()
   const router = useRouter()
 
