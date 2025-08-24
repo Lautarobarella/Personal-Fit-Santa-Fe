@@ -792,7 +792,7 @@ export default function ActivitiesPage() {
                 <div className="text-sm text-muted-foreground">Actividades</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-success">
+                <div className="text-2xl font-bold text-secondary">
                   {weekActivities.reduce((sum: number, a: ActivityType) => sum + a.currentParticipants, 0)}
                 </div>
                 <div className="text-sm text-muted-foreground">Participantes</div>

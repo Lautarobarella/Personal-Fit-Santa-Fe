@@ -116,7 +116,7 @@ export default function NewActivityPage() {
       <MobileHeader title="Nueva Actividad" showBack onBack={() => router.back()} />
 
       <div className="container-centered py-6">
-        <Card>
+        <Card className="mb-24">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />

@@ -159,6 +159,7 @@ export function TimePicker({
               {/* Hora */}
               <div className="flex flex-col items-center">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={incrementHour}
@@ -170,6 +171,7 @@ export function TimePicker({
                   {selectedHour.toString().padStart(2, '0')}
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={decrementHour}
@@ -184,6 +186,7 @@ export function TimePicker({
               {/* Minuto */}
               <div className="flex flex-col items-center">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={incrementMinute}
@@ -195,6 +198,7 @@ export function TimePicker({
                   {selectedMinute.toString().padStart(2, '0')}
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={decrementMinute}
@@ -207,6 +211,7 @@ export function TimePicker({
 
             {/* Botón de confirmar */}
             <Button
+              type="button"
               onClick={() => handleTimeSelect(selectedHour, selectedMinute)}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
