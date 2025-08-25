@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.personalfit.dto.Settings.AllSettingsResponseDTO;
 import com.personalfit.dto.Settings.MonthlyFeeRequestDTO;
 import com.personalfit.dto.Settings.TimeRequestDTO;
 import com.personalfit.services.SettingsService;
@@ -18,6 +19,12 @@ public class SettingsController {
 
     @Autowired
     private SettingsService settingsService;
+
+    @GetMapping("/all")
+    public ResponseEntity<AllSettingsResponseDTO> getAllSettings() {
+        AllSettingsResponseDTO allSettings = settingsService.getAllSettings();
+        return ResponseEntity.ok(allSettings);
+    }
 
     @GetMapping("/monthly-fee")
     public ResponseEntity<Double> getMonthlyFee() {

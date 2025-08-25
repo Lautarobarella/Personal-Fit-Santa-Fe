@@ -3,6 +3,7 @@ package com.personalfit.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.personalfit.dto.Settings.AllSettingsResponseDTO;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.models.Settings;
 import com.personalfit.repository.SettingsRepository;
@@ -19,6 +20,19 @@ public class SettingsService {
     private static final Integer DEFAULT_REGISTRATION_TIME = 24;
     private static final String UNREGISTRATION_TIME_KEY = "unregistration_time_hours";
     private static final Integer DEFAULT_UNREGISTRATION_TIME = 12;
+
+    /**
+     * Obtiene todas las configuraciones en una sola llamada
+     * 
+     * @return AllSettingsResponseDTO - Todas las configuraciones
+     */
+    public AllSettingsResponseDTO getAllSettings() {
+        Double monthlyFee = getMonthlyFee();
+        Integer registrationTimeHours = getRegistrationTimeHours();
+        Integer unregistrationTimeHours = getUnregistrationTimeHours();
+        
+        return new AllSettingsResponseDTO(monthlyFee, registrationTimeHours, unregistrationTimeHours);
+    }
 
     public Double getMonthlyFee() {
         try {

@@ -26,7 +26,7 @@ export function DatePicker({
   const [isOpen, setIsOpen] = React.useState(false)
   const [currentDate, setCurrentDate] = React.useState(new Date())
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(
-    value ? new Date(value) : null
+    value ? new Date(value + 'T00:00:00') : null
   )
 
   const datePickerRef = React.useRef<HTMLDivElement>(null)
@@ -46,7 +46,7 @@ export function DatePicker({
   // Actualizar fecha seleccionada cuando cambia el value
   React.useEffect(() => {
     if (value) {
-      setSelectedDate(new Date(value))
+      setSelectedDate(new Date(value + 'T00:00:00'))
     }
   }, [value])
 
@@ -57,6 +57,13 @@ export function DatePicker({
       month: "2-digit",
       year: "numeric"
     })
+  }
+
+  const formatDateToString = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const handleDateSelect = (day: number) => {
@@ -74,7 +81,7 @@ export function DatePicker({
     }
     
     setSelectedDate(newDate)
-    onChange?.(newDate.toISOString().split('T')[0])
+    onChange?.(formatDateToString(newDate))
     setIsOpen(false)
   }
 
@@ -90,7 +97,7 @@ export function DatePicker({
     const today = new Date()
     setCurrentDate(today)
     setSelectedDate(today)
-    onChange?.(today.toISOString().split('T')[0])
+    onChange?.(formatDateToString(today))
     setIsOpen(false)
   }
 

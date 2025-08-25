@@ -5,7 +5,6 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 
 @Data
 @Builder
@@ -21,5 +20,4 @@ public class ActivityFormTypeDTO {
     
     // Fields for recurring activities
     private Boolean isRecurring;
-    private List<Boolean> weeklySchedule; // [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
 }

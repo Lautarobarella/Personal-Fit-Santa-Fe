@@ -49,94 +49,37 @@ public class ActivityService {
     public void createActivity(ActivityFormTypeDTO activity) {
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
-        // Si hay un horario semanal, crear múltiples actividades
-        if (activity.getWeeklySchedule() != null && !activity.getWeeklySchedule().isEmpty()) {
-            createMultipleActivities(activity, trainer);
-        } else {
-            // Crear una sola actividad usando la fecha proporcionada o la actual como fallback
-            LocalDate activityDate = activity.getDate() != null ? activity.getDate() : LocalDate.now();
-            LocalTime activityTime = activity.getTime() != null ? activity.getTime() : LocalTime.of(9, 0); // Default 9:00 AM
+        // Crear una sola actividad usando la fecha proporcionada o la actual como
+        // fallback
+        LocalDate activityDate = activity.getDate();
+        LocalTime activityTime = activity.getTime(); 
+                                                                                                       // AM
+        Activity newActivity = Activity.builder()
+                .name(activity.getName())
+                .description(activity.getDescription())
+                .location(activity.getLocation())
+                .slots(Integer.parseInt(activity.getMaxParticipants()))
+                .date(LocalDateTime.of(activityDate, activityTime))
+                .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
+                .duration(Integer.parseInt(activity.getDuration()))
+                .status(ActivityStatus.ACTIVE)
+                .trainer(trainer)
+                .createdAt(LocalDateTime.now())
+                .isRecurring(activity.getIsRecurring())
+                .build();
 
-            Activity newActivity = Activity.builder()
-                    .name(activity.getName())
-                    .description(activity.getDescription())
-                    .location(activity.getLocation())
-                    .slots(Integer.parseInt(activity.getMaxParticipants()))
-                    .date(LocalDateTime.of(activityDate, activityTime))
-                    .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
-                    .duration(Integer.parseInt(activity.getDuration()))
-                    .status(ActivityStatus.ACTIVE)
-                    .trainer(trainer)
-                    .createdAt(LocalDateTime.now())
-                    .isRecurring(activity.getIsRecurring())
-                    .build();
-
-            try {
-                activityRepository.save(newActivity);
-            } catch (Exception e) {
-                throw new BusinessRuleException("Error al guardar la actividad: " + e.getMessage(), "Api/Activity/createActivity");
-            }
+        try {
+            activityRepository.save(newActivity);
+        } catch (Exception e) {
+            throw new BusinessRuleException("Error al guardar la actividad: " + e.getMessage(),
+                    "Api/Activity/createActivity");
         }
-    }
-
-    private void createMultipleActivities(ActivityFormTypeDTO activity, User trainer) {
-        LocalDate baseDate = activity.getDate() != null ? activity.getDate() : LocalDate.now(); // Usar fecha proporcionada o actual como fallback
-        LocalTime activityTime = activity.getTime() != null ? activity.getTime() : LocalTime.of(9, 0); // Default 9:00 AM
-
-        // Días de la semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
-        DayOfWeek[] daysOfWeek = {
-            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
-        };
-
-        for (int i = 0; i < activity.getWeeklySchedule().size(); i++) {
-            if (activity.getWeeklySchedule().get(i)) {
-                // Calcular la fecha para este día de la semana
-                LocalDate activityDate = calculateNextDateForDay(baseDate, daysOfWeek[i]);
-
-                Activity newActivity = Activity.builder()
-                        .name(activity.getName())
-                        .description(activity.getDescription())
-                        .location(activity.getLocation())
-                        .slots(Integer.parseInt(activity.getMaxParticipants()))
-                        .date(LocalDateTime.of(activityDate, activityTime))
-                        .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
-                        .duration(Integer.parseInt(activity.getDuration()))
-                        .status(ActivityStatus.ACTIVE)
-                        .trainer(trainer)
-                        .createdAt(LocalDateTime.now())
-                        .isRecurring(activity.getIsRecurring())
-                        .build();
-
-                try {
-                    activityRepository.save(newActivity);
-                } catch (Exception e) {
-                    throw new BusinessRuleException("Error al guardar la actividad para el día " + (i + 1) + ": " + e.getMessage(), "Api/Activity/createActivity");
-                }
-            }
-        }
-    }
-
-    private LocalDate calculateNextDateForDay(LocalDate baseDate, DayOfWeek targetDay) {
-        // Si la fecha base es el día objetivo, usar esa fecha
-        if (baseDate.getDayOfWeek() == targetDay) {
-            return baseDate;
-        }
-
-        // Encontrar el próximo día de la semana objetivo
-        LocalDate nextDate = baseDate.with(TemporalAdjusters.next(targetDay));
-
-        // Si la fecha resultante es más de 7 días en el futuro, usar la fecha actual
-        if (nextDate.isAfter(baseDate.plusDays(7))) {
-            return baseDate.with(TemporalAdjusters.nextOrSame(targetDay));
-        }
-
-        return nextDate;
     }
 
     public void updateActivity(Long id, ActivityFormTypeDTO activity) {
         Activity existingActivity = activityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada", "Api/Activity/updateActivity"));
+                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada",
+                        "Api/Activity/updateActivity"));
 
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
@@ -168,18 +111,21 @@ public class ActivityService {
         try {
             activityRepository.save(existingActivity);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al actualizar la actividad: " + e.getMessage(), "Api/Activity/updateActivity");
+            throw new BusinessRuleException("Error al actualizar la actividad: " + e.getMessage(),
+                    "Api/Activity/updateActivity");
         }
     }
 
     public void deleteActivity(Long id) {
         Activity activity = activityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada", "Api/Activity/deleteActivity"));
+                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada",
+                        "Api/Activity/deleteActivity"));
 
         try {
             activityRepository.delete(activity);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al eliminar la actividad: " + e.getMessage(), "Api/Activity/deleteActivity");
+            throw new BusinessRuleException("Error al eliminar la actividad: " + e.getMessage(),
+                    "Api/Activity/deleteActivity");
         }
     }
 
@@ -193,7 +139,8 @@ public class ActivityService {
     public ActivityDetailInfoDTO getActivityDetailInfo(Long id) {
         Optional<Activity> activity = activityRepository.findById(id);
         if (activity.isEmpty()) {
-            throw new EntityNotFoundException("Actividad con ID: " + id + " no encontrada", "Api/Activity/getActivityDetailInfo");
+            throw new EntityNotFoundException("Actividad con ID: " + id + " no encontrada",
+                    "Api/Activity/getActivityDetailInfo");
         }
 
         Activity act = activity.get();
@@ -243,13 +190,11 @@ public class ActivityService {
                 .collect(Collectors.toList());
     }
 
-    
     public EnrollmentResponseDTO enrollUser(EnrollmentRequestDTO enrollmentRequest) {
         try {
             AttendanceDTO attendance = attendanceService.enrollUser(
-                enrollmentRequest.getUserId(),
-                enrollmentRequest.getActivityId()
-            );
+                    enrollmentRequest.getUserId(),
+                    enrollmentRequest.getActivityId());
 
             return EnrollmentResponseDTO.builder()
                     .success(true)
@@ -264,13 +209,11 @@ public class ActivityService {
         }
     }
 
-    
     public EnrollmentResponseDTO unenrollUser(EnrollmentRequestDTO enrollmentRequest) {
         try {
             attendanceService.unenrollUser(
-                enrollmentRequest.getUserId(),
-                enrollmentRequest.getActivityId()
-            );
+                    enrollmentRequest.getUserId(),
+                    enrollmentRequest.getActivityId());
 
             return EnrollmentResponseDTO.builder()
                     .success(true)
@@ -285,7 +228,6 @@ public class ActivityService {
         }
     }
 
-    
     public boolean isUserEnrolled(Long userId, Long activityId) {
         return attendanceService.isUserEnrolled(userId, activityId);
     }
@@ -299,7 +241,8 @@ public class ActivityService {
                 .trainerName(activity.getTrainer().getFullName())
                 .date(activity.getDate())
                 .duration(activity.getDuration())
-                .participants(activity.getAttendances().stream().map(a -> a.getUser().getId()).collect(Collectors.toList()))
+                .participants(
+                        activity.getAttendances().stream().map(a -> a.getUser().getId()).collect(Collectors.toList()))
                 .maxParticipants(activity.getSlots())
                 .currentParticipants(activity.getAttendances().size())
                 .status(activity.getStatus())
@@ -313,35 +256,36 @@ public class ActivityService {
     @Transactional
     public void createWeeklyRecurringActivities() {
         log.info("Starting weekly recurring activities creation...");
-        
+
         try {
             // Obtener la fecha de inicio de la nueva semana (lunes actual)
             LocalDate currentMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-            
+
             // Buscar todas las actividades recurrentes activas
-            List<Activity> recurringActivities = activityRepository.findByIsRecurringTrueAndStatus(ActivityStatus.ACTIVE);
+            List<Activity> recurringActivities = activityRepository
+                    .findByIsRecurringTrueAndStatus(ActivityStatus.ACTIVE);
             log.info("Found {} recurring activities", recurringActivities.size());
-            
+
             List<Activity> newActivities = new ArrayList<>();
-            
+
             for (Activity activity : recurringActivities) {
                 // Verificar si ya existe una actividad para esta semana
                 LocalDateTime activityDate = activity.getDate();
                 DayOfWeek activityDayOfWeek = activityDate.getDayOfWeek();
                 LocalTime activityTime = activityDate.toLocalTime();
-                
+
                 // Calcular la fecha correspondiente en la nueva semana
                 LocalDate newActivityDate = currentMonday.with(TemporalAdjusters.nextOrSame(activityDayOfWeek));
                 LocalDateTime newDateTime = LocalDateTime.of(newActivityDate, activityTime);
-                
-                // Verificar si ya existe una actividad con el mismo nombre, entrenador y fecha/hora para esta semana
+
+                // Verificar si ya existe una actividad con el mismo nombre, entrenador y
+                // fecha/hora para esta semana
                 boolean alreadyExists = activityRepository.existsByNameAndTrainerAndDateBetween(
-                    activity.getName(),
-                    activity.getTrainer(),
-                    currentMonday.atStartOfDay(),
-                    currentMonday.plusDays(6).atTime(LocalTime.MAX)
-                );
-                
+                        activity.getName(),
+                        activity.getTrainer(),
+                        currentMonday.atStartOfDay(),
+                        currentMonday.plusDays(6).atTime(LocalTime.MAX));
+
                 if (!alreadyExists) {
                     Activity newActivity = Activity.builder()
                             .name(activity.getName())
@@ -356,23 +300,23 @@ public class ActivityService {
                             .createdAt(LocalDateTime.now())
                             .isRecurring(true)
                             .build();
-                    
+
                     newActivities.add(newActivity);
-                    log.info("Created new recurring activity: {} for {} at {}", 
-                        newActivity.getName(), newActivityDate, activityTime);
+                    log.info("Created new recurring activity: {} for {} at {}",
+                            newActivity.getName(), newActivityDate, activityTime);
                 } else {
                     log.info("Activity {} already exists for this week, skipping", activity.getName());
                 }
             }
-            
+
             if (!newActivities.isEmpty()) {
                 activityRepository.saveAll(newActivities);
-                log.info("Successfully created {} new recurring activities for the week starting {}", 
-                    newActivities.size(), currentMonday);
+                log.info("Successfully created {} new recurring activities for the week starting {}",
+                        newActivities.size(), currentMonday);
             } else {
                 log.info("No new recurring activities needed for this week");
             }
-            
+
         } catch (Exception e) {
             log.error("Error creating weekly recurring activities: {}", e.getMessage(), e);
         }
@@ -385,7 +329,8 @@ public class ActivityService {
         log.info("Checking completed activities...");
         LocalDateTime now = LocalDateTime.now();
 
-        // Buscar actividades activas que ya han terminado (fecha + duración < hora actual)
+        // Buscar actividades activas que ya han terminado (fecha + duración < hora
+        // actual)
         List<Activity> activeActivities = activityRepository.findByStatus(ActivityStatus.ACTIVE);
         List<Activity> toUpdate = new ArrayList<>();
         List<Activity> toCreate = new ArrayList<>();
@@ -393,30 +338,31 @@ public class ActivityService {
         for (Activity activity : activeActivities) {
             // Calcular cuándo termina la actividad (fecha de inicio + duración en minutos)
             LocalDateTime activityEndTime = activity.getDate().plusMinutes(activity.getDuration());
-            
+
             // Si la actividad ya terminó, marcarla como completada
             if (activityEndTime.isBefore(now)) {
                 activity.setStatus(ActivityStatus.COMPLETED);
                 toUpdate.add(activity);
-                log.info("Activity with ID {} marked as completed (ended at: {})", 
-                    activity.getId(), activityEndTime);
-                
+                log.info("Activity with ID {} marked as completed (ended at: {})",
+                        activity.getId(), activityEndTime);
+
                 // Marcar como ausentes a todos los participantes que estén en estado PENDING
                 try {
                     attendanceService.markPendingAttendancesAsAbsent(activity.getId());
                     log.info("Marked pending attendances as absent for completed activity ID: {}", activity.getId());
                 } catch (Exception e) {
-                    log.error("Error marking pending attendances as absent for activity ID {}: {}", 
-                        activity.getId(), e.getMessage());
+                    log.error("Error marking pending attendances as absent for activity ID {}: {}",
+                            activity.getId(), e.getMessage());
                 }
-                
-                // Si la actividad tiene activado el repetir semanalmente, crear una nueva para la próxima semana
+
+                // Si la actividad tiene activado el repetir semanalmente, crear una nueva para
+                // la próxima semana
                 if (activity.getRepeatEveryWeek()) {
                     log.info("Creating recurring activity for next week for activity ID: {}", activity.getId());
-                    
+
                     // Calcular la fecha para la próxima semana (mismo día de la semana, misma hora)
                     LocalDateTime nextWeekDate = activity.getDate().plusWeeks(1);
-                    
+
                     Activity newActivity = Activity.builder()
                             .name(activity.getName())
                             .description(activity.getDescription())
@@ -430,10 +376,10 @@ public class ActivityService {
                             .createdAt(LocalDateTime.now())
                             .isRecurring(activity.getIsRecurring())
                             .build();
-                    
+
                     toCreate.add(newActivity);
-                    log.info("New recurring activity created for next week: {} at {}", 
-                        newActivity.getName(), nextWeekDate);
+                    log.info("New recurring activity created for next week: {} at {}",
+                            newActivity.getName(), nextWeekDate);
                 }
             }
         }
@@ -443,14 +389,14 @@ public class ActivityService {
             activityRepository.saveAll(toUpdate);
             log.info("Updated {} completed activities", toUpdate.size());
         }
-        
+
         if (!toCreate.isEmpty()) {
             activityRepository.saveAll(toCreate);
             log.info("Created {} new recurring activities", toCreate.size());
         }
 
-        log.info("Activities check completed successfully. Updated: {}, Created: {}", 
-            toUpdate.size(), toCreate.size());
+        log.info("Activities check completed successfully. Updated: {}, Created: {}",
+                toUpdate.size(), toCreate.size());
     }
 
 }

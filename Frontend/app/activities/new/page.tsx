@@ -86,7 +86,7 @@ export default function NewActivityPage() {
     }
 
     // Validar que la fecha no sea pasada
-    const selectedDate = new Date(form.date)
+    const selectedDate = new Date(form.date + 'T00:00:00')
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     selectedDate.setHours(0, 0, 0, 0)

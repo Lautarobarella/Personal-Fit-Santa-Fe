@@ -79,7 +79,7 @@ export function TimePicker({
     if (!date || !disablePastTimes) return false
     
     const today = new Date()
-    const selectedDateObj = new Date(date)
+    const selectedDateObj = new Date(date + 'T00:00:00')
     
     // Solo validar si es el día de hoy
     if (selectedDateObj.toDateString() !== today.toDateString()) {
