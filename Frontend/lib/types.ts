@@ -49,6 +49,12 @@ export enum NotificationType {
   ERROR = "ERROR"
 }
 
+export interface GlobalSettingsType {
+  monthlyFee: number
+  registrationTimeHours: number
+  unregistrationTimeHours: number
+}
+
 export enum NotificationCategoryType {
   PAYMENT = "PAYMENT",
   CLIENT = "CLIENT",

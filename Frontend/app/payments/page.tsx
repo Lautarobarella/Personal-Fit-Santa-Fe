@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
+import { useSettings } from "@/hooks/settings/use-settings"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
@@ -36,7 +37,7 @@ export default function PaymentsPage() {
     const { user } = useAuth()
     const router = useRouter()
     const [searchTerm, setSearchTerm] = useState("")
-    const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
+    const { monthlyFee } = useSettings()
     const [showRevenue, setShowRevenue] = useState(true)
     const [methodFilter, setMethodFilter] = useState<MethodType | "ALL">("ALL")
     const queryClient = useQueryClient()
@@ -78,21 +79,6 @@ export default function PaymentsPage() {
             }
         }
     }, [user?.id, user?.role, queryClient])
-
-    // Fetch monthly fee
-    useEffect(() => {
-        const fetchMonthlyFee = async () => {
-            try {
-                const { fetchMonthlyFee: fetchFee } = await import('@/api/settings/settingsApi')
-                const fee = await fetchFee()
-                setMonthlyFee(fee)
-            } catch (error) {
-                // Error fetching monthly fee
-            }
-        }
-
-        fetchMonthlyFee()
-    }, [])
 
     // Forzar actualización adicional cuando se detecta que viene de una página de resultado
     useEffect(() => {

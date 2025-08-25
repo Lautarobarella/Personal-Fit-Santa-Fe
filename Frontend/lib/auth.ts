@@ -1,11 +1,51 @@
 import { API_CONFIG } from "../api/JWTAuth/config"
-import type { UserRole, UserType } from "./types"
+import type { UserRole, UserType, GlobalSettingsType } from "./types"
 
 export interface AuthResponse {
   accessToken: string
   refreshToken: string
   tokenType: string
   user: UserType
+  globalSettings?: GlobalSettingsType
+}
+
+// Función para cargar todas las configuraciones globales
+const loadGlobalSettings = async (): Promise<GlobalSettingsType | null> => {
+  try {
+    const { fetchAllSettings } = await import('../api/settings/settingsApi')
+    return await fetchAllSettings()
+  } catch (error) {
+    console.error('Error loading global settings:', error)
+    return null
+  }
+}
+
+// Función para guardar configuraciones en localStorage
+const saveSettingsToLocalStorage = (settings: GlobalSettingsType) => {
+  localStorage.setItem('monthly_fee', settings.monthlyFee.toString())
+  localStorage.setItem('registration_time_hours', settings.registrationTimeHours.toString())
+  localStorage.setItem('unregistration_time_hours', settings.unregistrationTimeHours.toString())
+}
+
+// Función para cargar configuraciones desde localStorage
+export const getSettingsFromLocalStorage = (): GlobalSettingsType | null => {
+  try {
+    const monthlyFee = localStorage.getItem('monthly_fee')
+    const registrationTime = localStorage.getItem('registration_time_hours')
+    const unregistrationTime = localStorage.getItem('unregistration_time_hours')
+
+    if (monthlyFee && registrationTime && unregistrationTime) {
+      return {
+        monthlyFee: parseFloat(monthlyFee),
+        registrationTimeHours: parseInt(registrationTime),
+        unregistrationTimeHours: parseInt(unregistrationTime)
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Error parsing settings from localStorage:', error)
+    return null
+  }
 }
 
 export const authenticate = async (email: string, password: string): Promise<UserType | null> => {
@@ -36,6 +76,18 @@ export const authenticate = async (email: string, password: string): Promise<Use
     localStorage.setItem('refreshToken', authData.refreshToken)
     localStorage.setItem('user', JSON.stringify(authData.user))
 
+    // Cargar configuraciones globales
+    // Si vienen en el JWT, usarlas, sino cargarlas desde las APIs
+    let settings: GlobalSettingsType | null = authData.globalSettings || null
+    
+    if (!settings) {
+      settings = await loadGlobalSettings()
+    }
+    
+    if (settings) {
+      saveSettingsToLocalStorage(settings)
+    }
+
     return authData.user
   } catch (error) {
     console.error('Authentication error:', error)
@@ -47,6 +99,11 @@ export const logout = (): void => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
+  
+  // Limpiar configuraciones globales
+  localStorage.removeItem('monthly_fee')
+  localStorage.removeItem('registration_time_hours')
+  localStorage.removeItem('unregistration_time_hours')
 }
 
 export const getCurrentUser = (): UserType | null => {
@@ -89,6 +146,11 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     localStorage.setItem('accessToken', authData.accessToken)
     localStorage.setItem('refreshToken', authData.refreshToken)
     localStorage.setItem('user', JSON.stringify(authData.user))
+
+    // Actualizar configuraciones si vienen en el refresh
+    if (authData.globalSettings) {
+      saveSettingsToLocalStorage(authData.globalSettings)
+    }
 
     return authData.accessToken
   } catch (error) {

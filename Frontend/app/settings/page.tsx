@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/contexts/auth-provider"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
+import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
+  const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -124,7 +126,7 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start bg-transparent"
-                onClick={() => router.push('/settings/monthly-fee')}
+                onClick={() => setShowMonthlyFeeDialog(true)}
               >
                 <DollarSign className="h-4 w-4 mr-3" />
                 Establecer valor de la cuota
@@ -142,7 +144,7 @@ export default function SettingsPage() {
               <Button 
                 variant="outline" 
                 className="w-full justify-start bg-transparent"
-                onClick={() => router.push('/payments/monthly-revenue')}
+                onClick={() => router.push('/settings/monthly-revenue')}
               >
                 <BarChart3 className="h-4 w-4 mr-3" />
                 Registro de ingresos mensuales
@@ -168,6 +170,12 @@ export default function SettingsPage() {
       <ActivityTimesDialog 
         open={showActivityTimesDialog} 
         onOpenChange={setShowActivityTimesDialog} 
+      />
+
+      {/* Monthly Fee Dialog */}
+      <MonthlyFeeDialog 
+        open={showMonthlyFeeDialog} 
+        onOpenChange={setShowMonthlyFeeDialog} 
       />
     </div>
   )

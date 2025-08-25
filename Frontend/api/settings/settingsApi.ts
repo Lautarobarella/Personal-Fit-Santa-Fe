@@ -1,5 +1,37 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { handleApiError } from "@/lib/error-handler";
+import type { GlobalSettingsType } from "@/lib/types";
+
+/**
+ * Obtiene todas las configuraciones globales en una sola llamada
+ * @returns Promise<GlobalSettingsType> Todas las configuraciones
+ */
+export async function fetchAllSettings(): Promise<GlobalSettingsType> {
+  try {
+    // Intentar obtener todas las configuraciones desde un endpoint unificado
+    // Si no existe, hacer llamadas individuales
+    try {
+      const allSettings = await jwtPermissionsApi.get('/api/settings/all');
+      return allSettings;
+    } catch (unifiedError) {
+      // Fallback: obtener configuraciones individualmente
+      const [monthlyFee, registrationTimeHours, unregistrationTimeHours] = await Promise.all([
+        fetchMonthlyFee(),
+        fetchRegistrationTime(),
+        fetchUnregistrationTime()
+      ]);
+      
+      return {
+        monthlyFee,
+        registrationTimeHours,
+        unregistrationTimeHours
+      };
+    }
+  } catch (error) {
+    handleApiError(error, 'Error al obtener las configuraciones');
+    throw error;
+  }
+}
 
 /**
  * Obtiene la cuota mensual configurada
@@ -7,7 +39,7 @@ import { handleApiError } from "@/lib/error-handler";
  */
 export async function fetchMonthlyFee(): Promise<number> {
   try {
-    const fee = await jwtPermissionsApi.get('/settings/api/monthly-fee');
+    const fee = await jwtPermissionsApi.get('/api/settings/monthly-fee');
     return fee;
   } catch (error) {
     handleApiError(error, 'Error al obtener la cuota mensual');
@@ -22,7 +54,7 @@ export async function fetchMonthlyFee(): Promise<number> {
  */
 export async function updateMonthlyFee(amount: number): Promise<number> {
   try {
-    return await jwtPermissionsApi.post('/settings/api/monthly-fee', { amount });
+    return await jwtPermissionsApi.post('/api/settings/monthly-fee', { amount });
   } catch (error) {
     handleApiError(error, 'Error al actualizar la cuota mensual');
     throw error;
@@ -35,7 +67,7 @@ export async function updateMonthlyFee(amount: number): Promise<number> {
  */
 export async function fetchRegistrationTime(): Promise<number> {
   try {
-    const hours = await jwtPermissionsApi.get('/settings/api/registration-time');
+    const hours = await jwtPermissionsApi.get('/api/settings/registration-time');
     return hours;
   } catch (error) {
     handleApiError(error, 'Error al obtener el tiempo de inscripción');
@@ -50,7 +82,7 @@ export async function fetchRegistrationTime(): Promise<number> {
  */
 export async function updateRegistrationTime(hours: number): Promise<number> {
   try {
-    return await jwtPermissionsApi.post('/settings/api/registration-time', { hours });
+    return await jwtPermissionsApi.post('/api/settings/registration-time', { hours });
   } catch (error) {
     handleApiError(error, 'Error al actualizar el tiempo de inscripción');
     throw error;
@@ -63,7 +95,7 @@ export async function updateRegistrationTime(hours: number): Promise<number> {
  */
 export async function fetchUnregistrationTime(): Promise<number> {
   try {
-    const hours = await jwtPermissionsApi.get('/settings/api/unregistration-time');
+    const hours = await jwtPermissionsApi.get('/api/settings/unregistration-time');
     return hours;
   } catch (error) {
     handleApiError(error, 'Error al obtener el tiempo de desinscripción');
@@ -78,7 +110,7 @@ export async function fetchUnregistrationTime(): Promise<number> {
  */
 export async function updateUnregistrationTime(hours: number): Promise<number> {
   try {
-    return await jwtPermissionsApi.post('/settings/api/unregistration-time', { hours });
+    return await jwtPermissionsApi.post('/api/settings/unregistration-time', { hours });
   } catch (error) {
     handleApiError(error, 'Error al actualizar el tiempo de desinscripción');
     throw error;

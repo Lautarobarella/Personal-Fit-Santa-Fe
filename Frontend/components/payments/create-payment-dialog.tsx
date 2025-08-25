@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePaymentContext } from "@/contexts/payment-provider"
+import { useSettings } from "@/hooks/settings/use-settings"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, formatFileSize, validatePaymentFile } from "@/lib/file-compression"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
@@ -54,7 +55,9 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [dueDate, setDueDate] = useState(dueDateStr)
 
     const [amount, setAmount] = useState("")
-    const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
+    
+    // Hook para obtener configuraciones globales (incluyendo monthly fee)
+    const { monthlyFee } = useSettings()
 
     // Estado para método de pago
     const [paymentMethod, setPaymentMethod] = useState<MethodType>(MethodType.TRANSFER)
@@ -62,24 +65,9 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Hook para obtener pagos del cliente usando el contexto
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
 
-    // Fetch monthly fee when component mounts
-    useEffect(() => {
-        const fetchMonthlyFee = async () => {
-            try {
-                const { fetchMonthlyFee: fetchFee } = await import('@/api/settings/settingsApi')
-                const fee = await fetchFee()
-                setMonthlyFee(fee)
-            } catch (error) {
-                console.error('Error fetching monthly fee:', error)
-            }
-        }
-
-        fetchMonthlyFee()
-    }, [])
-
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
-        if (open && user && monthlyFee !== null) {
+        if (open && user && monthlyFee > 0) {
             setSelectedClient((user.role === UserRole.CLIENT) ? user.dni?.toString() : "")
             setAmount(monthlyFee.toString())
         }
