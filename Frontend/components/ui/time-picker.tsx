@@ -13,6 +13,8 @@ interface TimePickerProps {
   className?: string
   disabled?: boolean
   step?: number // Intervalo en minutos (15, 30, 60)
+  selectedDate?: string // Nueva prop para validar horas pasadas
+  disablePastTimes?: boolean // Nueva prop para deshabilitar horas pasadas
 }
 
 export function TimePicker({ 
@@ -21,7 +23,9 @@ export function TimePicker({
   placeholder = "--:--", 
   className,
   disabled = false,
-  step = 15
+  step = 15,
+  selectedDate,
+  disablePastTimes = false
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [selectedTime, setSelectedTime] = React.useState<string>(value || "")
@@ -57,12 +61,35 @@ export function TimePicker({
   }
 
   const handleTimeSelect = (hour: number, minute: number) => {
+    // Validar si la hora ya pasó (solo para hoy)
+    if (selectedDate && isTimeInPast(hour, minute, selectedDate)) {
+      return // No hacer nada si la hora ya pasó
+    }
+    
     const timeString = formatTime(hour, minute)
     setSelectedTime(timeString)
     setSelectedHour(hour)
     setSelectedMinute(minute)
     onChange?.(timeString)
     setIsOpen(false)
+  }
+
+  // Función para verificar si una hora ya pasó
+  const isTimeInPast = (hour: number, minute: number, date: string): boolean => {
+    if (!date || !disablePastTimes) return false
+    
+    const today = new Date()
+    const selectedDateObj = new Date(date)
+    
+    // Solo validar si es el día de hoy
+    if (selectedDateObj.toDateString() !== today.toDateString()) {
+      return false
+    }
+    
+    const currentHour = today.getHours()
+    const currentMinute = today.getMinutes()
+    
+    return hour < currentHour || (hour === currentHour && minute <= currentMinute)
   }
 
   const incrementHour = () => {
@@ -213,7 +240,8 @@ export function TimePicker({
             <Button
               type="button"
               onClick={() => handleTimeSelect(selectedHour, selectedMinute)}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={isTimeInPast(selectedHour, selectedMinute, selectedDate || "")}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirmar
             </Button>
@@ -232,17 +260,24 @@ export function TimePicker({
                 { hour: 20, minute: 0, label: "20:00" },
                 { hour: 21, minute: 0, label: "21:00" },
                 { hour: 22, minute: 0, label: "22:00" }
-              ].map(({ hour, minute, label }) => (
-                <Button
-                  key={label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTimeSelect(hour, minute)}
-                  className="text-xs hover:bg-accent"
-                >
-                  {label}
-                </Button>
-              ))}
+              ].map(({ hour, minute, label }) => {
+                const isPast = isTimeInPast(hour, minute, selectedDate || "")
+                return (
+                  <Button
+                    key={label}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTimeSelect(hour, minute)}
+                    disabled={isPast}
+                    className={cn(
+                      "text-xs hover:bg-accent",
+                      isPast && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {label}
+                  </Button>
+                )
+              })}
             </div>
           </div>
 

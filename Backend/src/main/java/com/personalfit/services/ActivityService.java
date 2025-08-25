@@ -53,8 +53,8 @@ public class ActivityService {
         if (activity.getWeeklySchedule() != null && !activity.getWeeklySchedule().isEmpty()) {
             createMultipleActivities(activity, trainer);
         } else {
-            // Crear una sola actividad usando la fecha actual
-            LocalDate currentDate = LocalDate.now();
+            // Crear una sola actividad usando la fecha proporcionada o la actual como fallback
+            LocalDate activityDate = activity.getDate() != null ? activity.getDate() : LocalDate.now();
             LocalTime activityTime = activity.getTime() != null ? activity.getTime() : LocalTime.of(9, 0); // Default 9:00 AM
 
             Activity newActivity = Activity.builder()
@@ -62,7 +62,7 @@ public class ActivityService {
                     .description(activity.getDescription())
                     .location(activity.getLocation())
                     .slots(Integer.parseInt(activity.getMaxParticipants()))
-                    .date(LocalDateTime.of(currentDate, activityTime))
+                    .date(LocalDateTime.of(activityDate, activityTime))
                     .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
                     .duration(Integer.parseInt(activity.getDuration()))
                     .status(ActivityStatus.ACTIVE)
@@ -80,7 +80,7 @@ public class ActivityService {
     }
 
     private void createMultipleActivities(ActivityFormTypeDTO activity, User trainer) {
-        LocalDate baseDate = LocalDate.now(); // Usar fecha actual como base
+        LocalDate baseDate = activity.getDate() != null ? activity.getDate() : LocalDate.now(); // Usar fecha proporcionada o actual como fallback
         LocalTime activityTime = activity.getTime() != null ? activity.getTime() : LocalTime.of(9, 0); // Default 9:00 AM
 
         // Días de la semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo

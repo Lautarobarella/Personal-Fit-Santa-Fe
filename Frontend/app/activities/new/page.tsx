@@ -85,6 +85,38 @@ export default function NewActivityPage() {
       return
     }
 
+    // Validar que la fecha no sea pasada
+    const selectedDate = new Date(form.date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    selectedDate.setHours(0, 0, 0, 0)
+
+    if (selectedDate < today) {
+      toast({
+        title: "Error",
+        description: "No puedes crear actividades en fechas pasadas",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validar que la hora no sea pasada para el día de hoy
+    if (selectedDate.getTime() === today.getTime()) {
+      const [hours, minutes] = form.time.split(':').map(Number)
+      const now = new Date()
+      const selectedTime = new Date()
+      selectedTime.setHours(hours, minutes, 0, 0)
+      
+      if (selectedTime <= now) {
+        toast({
+          title: "Error",
+          description: "No puedes crear actividades con horas que ya pasaron",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     setIsLoading(true)
 
     try {
@@ -174,6 +206,7 @@ export default function NewActivityPage() {
                   <DatePicker
                     value={form.date}
                     onChange={(date) => handleInputChange("date", date)}
+                    disablePastDates={true}
                   />
                 </div>
               </div>
@@ -190,6 +223,8 @@ export default function NewActivityPage() {
                   <TimePicker
                     value={form.time}
                     onChange={(time) => handleInputChange("time", time)}
+                    selectedDate={form.date}
+                    disablePastTimes={true}
                   />
                 </div>
 

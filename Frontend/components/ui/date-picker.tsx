@@ -12,6 +12,7 @@ interface DatePickerProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  disablePastDates?: boolean // Nueva prop para controlar validación de fechas pasadas
 }
 
 export function DatePicker({ 
@@ -19,7 +20,8 @@ export function DatePicker({
   onChange, 
   placeholder = "dd/mm/aaaa", 
   className,
-  disabled = false 
+  disabled = false,
+  disablePastDates = false
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [currentDate, setCurrentDate] = React.useState(new Date())
@@ -59,6 +61,18 @@ export function DatePicker({
 
   const handleDateSelect = (day: number) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+    
+    // Verificar si está deshabilitada la selección de fechas pasadas
+    if (disablePastDates) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      newDate.setHours(0, 0, 0, 0)
+      
+      if (newDate < today) {
+        return // No permitir seleccionar fechas pasadas
+      }
+    }
+    
     setSelectedDate(newDate)
     onChange?.(newDate.toISOString().split('T')[0])
     setIsOpen(false)
@@ -84,6 +98,17 @@ export function DatePicker({
     setSelectedDate(null)
     onChange?.("")
     setIsOpen(false)
+  }
+
+  const isPastDate = (day: number) => {
+    if (!disablePastDates) return false
+    
+    const dateToCheck = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    dateToCheck.setHours(0, 0, 0, 0)
+    
+    return dateToCheck < today
   }
 
   const getDaysInMonth = (date: Date) => {
@@ -206,22 +231,26 @@ export function DatePicker({
 
           {/* Calendario */}
           <div className="grid grid-cols-7 gap-1 px-4 pb-4">
-            {getDaysArray().map(({ day, isCurrentMonth }, index) => (
-              <button
-                key={index}
-                onClick={() => isCurrentMonth && handleDateSelect(day)}
-                disabled={!isCurrentMonth}
-                className={cn(
-                  "h-8 w-8 rounded-md text-sm font-medium transition-colors",
-                  !isCurrentMonth && "text-muted-foreground/50 cursor-default",
-                  isCurrentMonth && "hover:bg-accent cursor-pointer",
-                  isToday(day) && "bg-accent text-accent-foreground",
-                  isSelected(day) && "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
-              >
-                {day}
-              </button>
-            ))}
+            {getDaysArray().map(({ day, isCurrentMonth }, index) => {
+              const isDisabled = !isCurrentMonth || isPastDate(day)
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => !isDisabled && handleDateSelect(day)}
+                  disabled={isDisabled}
+                  className={cn(
+                    "h-8 w-8 rounded-md text-sm font-medium transition-colors",
+                    (!isCurrentMonth || isPastDate(day)) && "text-muted-foreground/50 cursor-default",
+                    isCurrentMonth && !isPastDate(day) && "hover:bg-accent cursor-pointer",
+                    isToday(day) && !isPastDate(day) && "bg-accent text-accent-foreground",
+                    isSelected(day) && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                >
+                  {day}
+                </button>
+              )
+            })}
           </div>
 
           {/* Footer */}

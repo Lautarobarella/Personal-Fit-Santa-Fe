@@ -225,6 +225,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                   <DatePicker
                     value={form.date}
                     onChange={(date) => handleInputChange("date", date)}
+                    disablePastDates={true}
                   />
                 </div>
               </div>
@@ -241,6 +242,8 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                   <TimePicker
                     value={form.time}
                     onChange={(time) => handleInputChange("time", time)}
+                    selectedDate={form.date}
+                    disablePastTimes={true}
                   />
                 </div>
 

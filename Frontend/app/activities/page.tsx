@@ -456,8 +456,6 @@ export default function ActivitiesPage() {
       />
 
       <div className="container-centered py-6 space-y-6">
-        {/* Week Navigation - Solo para ADMIN y TRAINER */}
-        {user?.role !== UserRole.CLIENT && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -505,7 +503,6 @@ export default function ActivitiesPage() {
               </div>
             </CardContent>
           </Card>
-        )}
 
         {/* Client Activities Title y botón Hoy - Solo para CLIENT */}
         {user?.role === UserRole.CLIENT && (
