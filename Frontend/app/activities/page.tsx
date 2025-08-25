@@ -4,9 +4,9 @@ import { AttendanceActivityDialog } from "@/components/activities/attendance-act
 import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
-import { WeeklyScheduleDisplay } from "@/components/activities/weekly-schedule-display"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
+import { useSettingsContext } from "@/contexts/settings-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -39,6 +39,7 @@ import { useEffect, useMemo, useState } from "react"
 export default function ActivitiesPage() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const { registrationTime, unregistrationTime } = useSettingsContext()
   const {
     activities: allActivities,
     loading,
@@ -54,8 +55,6 @@ export default function ActivitiesPage() {
     canEnrollBasedOnTime,
     canUnenrollBasedOnTime,
     isActivityPast,
-    getRegistrationTime,
-    getUnregistrationTime,
   } = useActivityContext()
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -234,18 +233,8 @@ export default function ActivitiesPage() {
   }
 
   const navigateWeek = (direction: "prev" | "next") => {
-    // Solo ADMIN y TRAINER pueden navegar por semanas
-    if (user?.role === UserRole.CLIENT) return
-
     const newDate = new Date(currentWeek)
     newDate.setDate(currentWeek.getDate() + (direction === "next" ? 7 : -7))
-
-    // Restringir navegación hacia adelante para ADMIN/TRAINER
-    const today = new Date()
-    const mondayOfThisWeek = new Date(today)
-    const diffToMonday = (mondayOfThisWeek.getDay() + 6) % 7
-    mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
-    mondayOfThisWeek.setHours(0, 0, 0, 0)
 
     setCurrentWeek(newDate)
   }
@@ -378,7 +367,6 @@ export default function ActivitiesPage() {
       if (!isUserEnrolled(activity, user.id)) {
         // Para inscripción
         if (!canEnrollBasedOnTime(activity)) {
-          const registrationTime = getRegistrationTime()
           toast({
             title: "Tiempo insuficiente",
             description: `Debes inscribirte con al menos ${registrationTime} horas de anticipación.`,
@@ -389,7 +377,6 @@ export default function ActivitiesPage() {
       } else {
         // Para desinscripción
         if (!canUnenrollBasedOnTime(activity)) {
-          const unregistrationTime = getUnregistrationTime()
           toast({
             title: "Tiempo insuficiente",
             description: `Debes desinscribirte con al menos ${unregistrationTime} horas de anticipación.`,
@@ -470,29 +457,14 @@ export default function ActivitiesPage() {
                   </p>
                 </div>
 
-                {/* Solo mostrar flecha hacia adelante si no estamos en la semana actual */}
-                {(() => {
-                  const today = new Date()
-                  const mondayOfThisWeek = new Date(today)
-                  const diffToMonday = (mondayOfThisWeek.getDay() + 6) % 7
-                  mondayOfThisWeek.setDate(mondayOfThisWeek.getDate() - diffToMonday)
-                  mondayOfThisWeek.setHours(0, 0, 0, 0)
-
-                  const nextWeek = new Date(currentWeek)
-                  nextWeek.setDate(currentWeek.getDate() + 7)
-
-
-                  return (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigateWeek("next")}
-                      className="bg-transparent"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  )
-                })()}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateWeek("next")}
+                  className="bg-transparent"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
 
               <div className="flex justify-center mt-3">
@@ -504,25 +476,6 @@ export default function ActivitiesPage() {
             </CardContent>
           </Card>
 
-        {/* Client Activities Title y botón Hoy - Solo para CLIENT */}
-        {user?.role === UserRole.CLIENT && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <h2 className="font-semibold text-lg">Todas las Actividades</h2>
-                <p className="text-sm text-muted-foreground">
-                  Actividades disponibles por fecha
-                </p>
-              </div>
-              <div className="flex justify-center mt-3">
-                <Button variant="outline" size="sm" onClick={scrollToToday} className="bg-transparent">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Ir a Hoy
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Filters */}
         <Card>
@@ -558,11 +511,6 @@ export default function ActivitiesPage() {
         {/* Weekly Calendar */}
         <div className="space-y-4">
           {activitiesByDay.map((day, dayIndex) => {
-            // Para CLIENT, calcular el índice del día de la semana correctamente
-            const dayOfWeekIndex = user?.role === UserRole.CLIENT
-              ? (day.date.getDay() + 6) % 7  // Convertir domingo=0 a domingo=6, lunes=1 a lunes=0
-              : dayIndex
-
             return (
               <Card key={dayIndex} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
                 <CardContent className="p-4">
@@ -570,7 +518,7 @@ export default function ActivitiesPage() {
                     <div className="flex items-center gap-3">
                       <div className={`text-center ${isToday(day.date) ? "text-primary" : ""}`}>
                         <div className="text-sm font-medium">
-                          {dayNames[dayOfWeekIndex]}
+                          {dayNames[dayIndex]}
                         </div>
                         <div
                           className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full w-9 h-9 flex items-center justify-center" : ""}`}
@@ -692,7 +640,7 @@ export default function ActivitiesPage() {
                                         activity.status === ActivityStatus.COMPLETED
                                           ? "secondary"
                                           : isUserEnrolled(activity, user.id)
-                                            ? "destructive"
+                                            ? "outline"
                                             : "default"
                                       }
                                     >

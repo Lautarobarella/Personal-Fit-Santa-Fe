@@ -408,9 +408,19 @@ function DashboardContent() {
       <MobileHeader title={`Hola, ${user.firstName}`} />
 
       <div className="container-centered py-6 space-y-6">
-        {/* Welcome Section - Diseño profesional con nueva paleta */}
-        <div className="relative overflow-hidden rounded-3xl gradient-hero p-8 text-white shadow-professional-lg">
-          <div className="relative z-10">
+        {/* Welcome Section - Diseño profesional con imagen de fondo */}
+        <div className="relative overflow-hidden rounded-3xl shadow-professional-lg">
+          {/* Imagen de fondo */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url('/dashboard.png')"
+            }}
+          />
+          {/* Overlay para mejorar legibilidad del texto */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-black/70 rounded-3xl" />
+          
+          <div className="relative z-10 p-12 text-white">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-3 tracking-tight">
@@ -424,7 +434,7 @@ function DashboardContent() {
                   {user.role === UserRole.CLIENT && "Alcanza tus objetivos de fitness"}
                 </p>
               </div>
-              <div className="text-right bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              {/* <div className="text-right bg-white/10 backdrop-blur-sm rounded-2xl p-4">
                 <div className="text-sm text-white/80 mb-1 font-medium">
                   {new Date().toLocaleDateString("es-ES", {
                     weekday: "long",
@@ -438,14 +448,9 @@ function DashboardContent() {
                     minute: "2-digit",
                   })}
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
-          {/* Elementos decorativos modernos */}
-          <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-20 translate-x-20"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-16 -translate-x-16"></div>
-          <div className="absolute top-1/2 right-1/4 w-2 h-2 bg-white/20 rounded-full"></div>
-          <div className="absolute top-1/4 right-1/3 w-1 h-1 bg-white/30 rounded-full"></div>
         </div>
 
         {/* Alerts Section - Diseño profesional */}

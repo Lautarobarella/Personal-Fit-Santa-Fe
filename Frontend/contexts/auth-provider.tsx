@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { authenticate, logout as authLogout, getCurrentUser, isAuthenticated, getSettingsFromLocalStorage } from "@/lib/auth"
+import { authenticate, logout as authLogout, getCurrentUser, isAuthenticated } from "@/lib/auth"
 import type { UserType } from "@/lib/types"
 import { createContext, useContext, useEffect, useState } from "react"
 
@@ -26,23 +26,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = getCurrentUser()
         if (currentUser) {
           setUser(currentUser)
-          
-          // Verificar que las configuraciones estén cargadas en localStorage
-          const settings = getSettingsFromLocalStorage()
-          if (!settings) {
-            // Si no hay configuraciones en localStorage, cargarlas
-            try {
-              const { fetchAllSettings } = await import('@/api/settings/settingsApi')
-              const allSettings = await fetchAllSettings()
-
-              // Guardar en localStorage
-              localStorage.setItem('monthly_fee', allSettings.monthlyFee.toString())
-              localStorage.setItem('registration_time_hours', allSettings.registrationTimeHours.toString())
-              localStorage.setItem('unregistration_time_hours', allSettings.unregistrationTimeHours.toString())
-            } catch (error) {
-              console.warn('Could not load settings on session check:', error)
-            }
-          }
         }
       }
       setLoading(false)

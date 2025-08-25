@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Users, Calendar, Clock, MapPin } from "lucide-react"
 import { ActivityType } from "@/lib/types"
@@ -78,40 +79,44 @@ export function EnrollActivityDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
+          <AlertDialogTitle className="text-center">
             {isEnrolled ? "Desinscribirse de actividad" : "Inscribirse a actividad"}
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4">
-            <div className="space-y-3">
-              <div>
-                <h4 className="font-medium text-foreground">{activity.name}</h4>
-                <p className="text-sm text-muted-foreground">{activity.description}</p>
-              </div>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatDate(activity.date)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatTime(activity.date)} ({activity.duration} min)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{activity.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span>{activity.currentParticipants}/{activity.maxParticipants} participantes</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              {isEnrolled
-                ? `¿Estás seguro de que deseas desinscribirte de "${activity.name}"?`
-                : `Presiona aceptar para inscribirte a "${activity.name}".`}
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-center text-lg">{activity.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">{activity.description}</p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{formatDate(activity.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{formatTime(activity.date)} ({activity.duration} min)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{activity.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>{activity.currentParticipants}/{activity.maxParticipants} participantes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center pt-2 border-t">
+                    {isEnrolled
+                      ? `¿Estás seguro de que deseas desinscribirte de "${activity.name}"?`
+                      : `Presiona aceptar para inscribirte a "${activity.name}".`}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -3,6 +3,7 @@ import { AttendanceProvider } from "@/contexts/attendance-provider"
 import { AuthProvider } from "@/contexts/auth-provider"
 import { NotificationsProvider } from "@/contexts/notifications-provider"
 import { PaymentProvider } from "@/contexts/payment-provider"
+import { SettingsProvider } from "@/contexts/settings-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
@@ -49,20 +50,22 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <AuthProvider>
-            <PaymentProvider>
-              <ActivityProvider>
-                <AttendanceProvider>
-                  <NotificationsProvider>
-                    <div className="min-h-screen flex justify-center bg-background">
-                      <div className="w-full max-w-md mx-auto relative">
-                        {children}
+            <SettingsProvider>
+              <PaymentProvider>
+                <ActivityProvider>
+                  <AttendanceProvider>
+                    <NotificationsProvider>
+                      <div className="min-h-screen flex justify-center bg-background">
+                        <div className="w-full max-w-md mx-auto relative">
+                          {children}
+                        </div>
                       </div>
-                    </div>
-                    <Toaster />
-                  </NotificationsProvider>
-                </AttendanceProvider>
-              </ActivityProvider>
-            </PaymentProvider>
+                      <Toaster />
+                    </NotificationsProvider>
+                  </AttendanceProvider>
+                </ActivityProvider>
+              </PaymentProvider>
+            </SettingsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

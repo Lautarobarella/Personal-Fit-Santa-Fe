@@ -304,22 +304,25 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
 
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+                    <DialogTitle className="text-left flex items-center gap-2">
                         <DollarSign className="h-5 w-5" />
                         Crear Pago Mensual
                     </DialogTitle>
-                    <DialogDescription className="flex">Asigna un pago mensual a un cliente activo</DialogDescription>
+                    <DialogDescription className="text-left">Asigna un pago mensual a un cliente activo</DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <Card className="m-2">
+                    <CardContent className="p-6">
+                        <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="client">DNI del Cliente *</Label>
                         <Input
                             id="client"
                             type="number"
+                            className="border border-orange-600"
                             placeholder="Ej: 30123456"
                             inputMode="numeric"
                             pattern="[0-9]*"
@@ -354,7 +357,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                 type="text"
                                 value="Transferencia"
                                 readOnly
-                                className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
+                                className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                                 onFocus={(e) => e.currentTarget.blur()}
                             />
                         )}
@@ -368,7 +371,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             type="text"
                             value={amount}
                             readOnly
-                            className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
+                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                             onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
                     </div>
@@ -382,7 +385,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             readOnly
                             value={new Date().toISOString().split("T")[0]}
                             placeholder="Fecha de inicio"
-                            className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
+                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                         />
                     </div>
 
@@ -407,16 +410,19 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                 return safeDate.toISOString().split("T")[0]
                             })()}
                             placeholder="Fecha de vencimiento"
-                            className="bg-muted text-foreground cursor-not-allowed border border-orange-300"
+                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                         />
                     </div>
 
                     {/* Subir comprobante */}
-                    <Card className="w-full">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><FileImage className="h-5 w-5" /> Subir Comprobante</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                                <FileImage className="h-4 w-4" /> 
+                                Subir Comprobante
+                            </Label>
+                        </div>
+                        <div className="space-y-4">
                             {!selectedFile ? (
                                 <div className="border-2 border-dashed p-6 text-center rounded-lg">
                                     <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -466,14 +472,16 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
                             <div className="space-y-2">
                                 <Label>Notas (opcional)</Label>
-                                <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                                <Textarea rows={3} className="border border-orange-600" value={notes} onChange={(e) => setNotes(e.target.value)} />
                             </div>
-                        </CardContent>
-                    </Card>
-                </form>
+                        </div>
+                    </div>
+                        </form>
+                    </CardContent>
+                </Card>
 
                 <DialogFooter className="flex gap-3">
-                    <div className="flex gap-2 justify-end mt-4 w-full">
+                    <div className="flex gap-2 justify-end mt-2 w-full">
                         <Button
                             variant="outline"
                             type="button"

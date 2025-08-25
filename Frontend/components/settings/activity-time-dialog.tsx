@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useSettings } from "@/hooks/settings/use-settings"
+import { useSettingsContext } from "@/contexts/settings-provider"
 import { toast } from "sonner"
 
 interface ActivityTimesDialogProps {
@@ -25,9 +25,9 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
         registrationTime,
         unregistrationTime,
         loading,
-        updateRegistrationTime,
-        updateUnregistrationTime
-    } = useSettings()
+        updateRegistrationTimeValue,
+        updateUnregistrationTimeValue
+    } = useSettingsContext()
 
     const [regTime, setRegTime] = useState<string>("")
     const [unregTime, setUnregTime] = useState<string>("")
@@ -58,11 +58,15 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                 return
             }
 
-            updateRegistrationTime(regHours),
-                updateUnregistrationTime(unregHours)
+            const regResult = await updateRegistrationTimeValue(regHours)
+            const unregResult = await updateUnregistrationTimeValue(unregHours)
 
-            toast.success("Configuración guardada correctamente")
-            onOpenChange(false)
+            if (regResult.success && unregResult.success) {
+                toast.success("Configuración guardada correctamente")
+                onOpenChange(false)
+            } else {
+                toast.error("Error al guardar la configuración")
+            }
         } catch (error) {
             toast.error("Error al guardar la configuración")
         } finally {

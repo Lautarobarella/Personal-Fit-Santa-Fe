@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { useSettings } from "@/hooks/settings/use-settings"
+import { useSettingsContext } from "@/contexts/settings-provider"
 import { DollarSign } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -22,7 +22,7 @@ interface MonthlyFeeDialogProps {
 
 export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) {
   const { toast } = useToast()
-  const { monthlyFee, updateMonthlyFee, loading } = useSettings()
+  const { monthlyFee, updateMonthlyFeeValue, loading } = useSettingsContext()
   const [monthlyFeeInput, setMonthlyFeeInput] = useState<string>("")
   const [isSaving, setIsSaving] = useState(false)
 
@@ -46,14 +46,21 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
         return
       }
 
-      await updateMonthlyFee(amount)
+      const result = await updateMonthlyFeeValue(amount)
 
-      toast({
-        title: "Éxito",
-        description: "El valor de la cuota se actualizó correctamente",
-      })
-      
-      onOpenChange(false)
+      if (result.success) {
+        toast({
+          title: "Éxito",
+          description: result.message,
+        })
+        onOpenChange(false)
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       console.error('Error updating monthly fee:', error)
       toast({

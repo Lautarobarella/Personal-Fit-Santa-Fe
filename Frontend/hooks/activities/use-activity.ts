@@ -12,6 +12,7 @@ import {
   markAttendance
 } from "@/api/activities/activitiesApi"
 import { useAuth } from "@/contexts/auth-provider"
+import { useSettingsContext } from "@/contexts/settings-provider"
 import { 
   ActivityType, 
   ActivityDetailInfo, 
@@ -47,6 +48,7 @@ interface ActivityMutationResult {
 export function useActivity() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const { registrationTime, unregistrationTime } = useSettingsContext()
   
   // Estado del formulario
   const [form, setForm] = useState<ActivityFormType>({
@@ -217,25 +219,14 @@ export function useActivity() {
     return activity.currentParticipants < activity.maxParticipants
   }, [isUserEnrolled])
 
-  // Funciones para leer configuraciones del localStorage
-  const getRegistrationTime = (): number => {
-    const stored = localStorage.getItem('registration_time_hours')
-    return stored ? parseInt(stored, 10) : 24 // Default 24 horas
-  }
-
-  const getUnregistrationTime = (): number => {
-    const stored = localStorage.getItem('unregistration_time_hours')
-    return stored ? parseInt(stored, 10) : 3 // Default 3 horas
-  }
-
   // Función para verificar si se puede inscribir basándose en el tiempo límite
   const canEnrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
     const now = new Date()
     const activityDate = new Date(activity.date)
     const timeDifferenceInHours = (activityDate.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    return timeDifferenceInHours >= getRegistrationTime()
-  }, [getRegistrationTime])
+    return timeDifferenceInHours <= registrationTime
+  }, [registrationTime])
 
   // Función para verificar si se puede desinscribir basándose en el tiempo límite
   const canUnenrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
@@ -243,8 +234,8 @@ export function useActivity() {
     const activityDate = new Date(activity.date)
     const timeDifferenceInHours = (activityDate.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    return timeDifferenceInHours >= getUnregistrationTime()
-  }, [getUnregistrationTime])
+    return timeDifferenceInHours >= unregistrationTime
+  }, [unregistrationTime])
 
   // Función para verificar si una actividad ya pasó
   const isActivityPast = useCallback((activity: ActivityType): boolean => {
@@ -505,8 +496,10 @@ export function useActivity() {
     canEnrollBasedOnTime,
     canUnenrollBasedOnTime,
     isActivityPast,
-    getRegistrationTime,
-    getUnregistrationTime,
+    
+    // Settings values from context
+    registrationTime,
+    unregistrationTime,
 
     // Permission checks
     canManageActivities,

@@ -1,117 +1,212 @@
-import { useState, useEffect } from 'react';
+"use client"
+
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { 
-  fetchRegistrationTime, 
-  fetchUnregistrationTime, 
+  fetchAllSettings, 
+  updateMonthlyFee, 
   updateRegistrationTime, 
-  updateUnregistrationTime,
-  fetchMonthlyFee,
-  updateMonthlyFee,
-  fetchAllSettings
-} from '@/api/settings/settingsApi';
-import { getSettingsFromLocalStorage } from '@/lib/auth';
-import type { GlobalSettingsType } from '@/lib/types';
+  updateUnregistrationTime 
+} from '@/api/settings/settingsApi'
+import type { GlobalSettingsType } from '@/lib/types'
 
-const MONTHLY_FEE_KEY = 'monthly_fee';
-const REGISTRATION_TIME_KEY = 'registration_time_hours';
-const UNREGISTRATION_TIME_KEY = 'unregistration_time_hours';
+/**
+ * Tipos para el estado del hook
+ */
+interface SettingsLoadingStates {
+  isUpdatingMonthlyFee: boolean
+  isUpdatingRegistrationTime: boolean
+  isUpdatingUnregistrationTime: boolean
+}
 
+interface SettingsMutationResult {
+  success: boolean
+  message: string
+}
+
+/**
+ * Custom Hook para manejar todo el estado y lógica de configuraciones
+ * Centraliza toda la lógica de negocio y estado en un solo lugar
+ */
 export function useSettings() {
-  const [monthlyFee, setMonthlyFee] = useState<number>(0);
-  const [registrationTime, setRegistrationTime] = useState<number>(24);
-  const [unregistrationTime, setUnregistrationTime] = useState<number>(3);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<GlobalSettingsType | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [loadingStates, setLoadingStates] = useState<SettingsLoadingStates>({
+    isUpdatingMonthlyFee: false,
+    isUpdatingRegistrationTime: false,
+    isUpdatingUnregistrationTime: false,
+  })
 
-  // Cargar configuraciones al iniciar
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  // ===============================
+  // FUNCIONES DE CARGA DE DATOS
+  // ===============================
 
-  const loadSettings = async () => {
+  // Cargar configuraciones desde la base de datos
+  const loadSettings = useCallback(async () => {
     try {
-      setLoading(true);
+      setLoading(true)
+      setError(null)
+      const settingsData = await fetchAllSettings()
+      setSettings(settingsData)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar configuraciones'
+      setError(errorMessage)
+      console.error('Error loading settings:', err)
       
-      // Intentar cargar desde localStorage primero
-      const localSettings = getSettingsFromLocalStorage();
-      
-      if (localSettings) {
-        setMonthlyFee(localSettings.monthlyFee);
-        setRegistrationTime(localSettings.registrationTimeHours);
-        setUnregistrationTime(localSettings.unregistrationTimeHours);
-      }
-
-      // Cargar desde backend y sincronizar (fallback y actualización)
-      try {
-        const allSettings = await fetchAllSettings();
-
-        setMonthlyFee(allSettings.monthlyFee);
-        setRegistrationTime(allSettings.registrationTimeHours);
-        setUnregistrationTime(allSettings.unregistrationTimeHours);
-
-        // Actualizar localStorage
-        localStorage.setItem(MONTHLY_FEE_KEY, allSettings.monthlyFee.toString());
-        localStorage.setItem(REGISTRATION_TIME_KEY, allSettings.registrationTimeHours.toString());
-        localStorage.setItem(UNREGISTRATION_TIME_KEY, allSettings.unregistrationTimeHours.toString());
-      } catch (backendError) {
-        console.warn('Error loading settings from backend, using localStorage values:', backendError);
-        // Si localStorage no tiene valores y backend falla, usar valores por defecto
-        if (!localSettings) {
-          setMonthlyFee(0);
-          setRegistrationTime(24);
-          setUnregistrationTime(3);
-        }
-      }
-
-    } catch (error) {
-      console.error('Error loading settings:', error);
+      // Establecer valores por defecto si falla la carga
+      setSettings({
+        monthlyFee: 0,
+        registrationTimeHours: 24,
+        unregistrationTimeHours: 3
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [])
 
-  const updateMonthlyFeeValue = async (amount: number) => {
-    try {
-      const updated = await updateMonthlyFee(amount);
-      setMonthlyFee(updated);
-      localStorage.setItem(MONTHLY_FEE_KEY, updated.toString());
-      return updated;
-    } catch (error) {
-      console.error('Error updating monthly fee:', error);
-      throw error;
-    }
-  };
+  // Cargar configuraciones al montar el hook
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
-  const updateRegTime = async (hours: number) => {
-    try {
-      const updated = await updateRegistrationTime(hours);
-      setRegistrationTime(updated);
-      localStorage.setItem(REGISTRATION_TIME_KEY, updated.toString());
-      return updated;
-    } catch (error) {
-      console.error('Error updating registration time:', error);
-      throw error;
-    }
-  };
+  // ===============================
+  // FUNCIONES DE ACTUALIZACIÓN
+  // ===============================
 
-  const updateUnregTime = async (hours: number) => {
+  // Actualizar cuota mensual
+  const updateMonthlyFeeValue = useCallback(async (amount: number): Promise<SettingsMutationResult> => {
     try {
-      const updated = await updateUnregistrationTime(hours);
-      setUnregistrationTime(updated);
-      localStorage.setItem(UNREGISTRATION_TIME_KEY, updated.toString());
-      return updated;
-    } catch (error) {
-      console.error('Error updating unregistration time:', error);
-      throw error;
+      setLoadingStates(prev => ({ ...prev, isUpdatingMonthlyFee: true }))
+      setError(null)
+      
+      const updatedAmount = await updateMonthlyFee(amount)
+      setSettings(prev => prev ? { ...prev, monthlyFee: updatedAmount } : null)
+      
+      return {
+        success: true,
+        message: 'Cuota mensual actualizada correctamente'
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar cuota mensual'
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isUpdatingMonthlyFee: false }))
     }
-  };
+  }, [])
+
+  // Actualizar tiempo de inscripción
+  const updateRegistrationTimeValue = useCallback(async (hours: number): Promise<SettingsMutationResult> => {
+    try {
+      setLoadingStates(prev => ({ ...prev, isUpdatingRegistrationTime: true }))
+      setError(null)
+      
+      const updatedHours = await updateRegistrationTime(hours)
+      setSettings(prev => prev ? { ...prev, registrationTimeHours: updatedHours } : null)
+      
+      return {
+        success: true,
+        message: 'Tiempo de inscripción actualizado correctamente'
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar tiempo de inscripción'
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isUpdatingRegistrationTime: false }))
+    }
+  }, [])
+
+  // Actualizar tiempo de desinscripción
+  const updateUnregistrationTimeValue = useCallback(async (hours: number): Promise<SettingsMutationResult> => {
+    try {
+      setLoadingStates(prev => ({ ...prev, isUpdatingUnregistrationTime: true }))
+      setError(null)
+      
+      const updatedHours = await updateUnregistrationTime(hours)
+      setSettings(prev => prev ? { ...prev, unregistrationTimeHours: updatedHours } : null)
+      
+      return {
+        success: true,
+        message: 'Tiempo de desinscripción actualizado correctamente'
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar tiempo de desinscripción'
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isUpdatingUnregistrationTime: false }))
+    }
+  }, [])
+
+  // ===============================
+  // FUNCIONES DE UTILIDAD
+  // ===============================
+
+  // Recargar configuraciones
+  const reloadSettings = useCallback(async (): Promise<void> => {
+    await loadSettings()
+  }, [loadSettings])
+
+  // Resetear errores
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
+  // ===============================
+  // GETTERS COMPUTADOS
+  // ===============================
+
+  // Valores individuales de configuración
+  const monthlyFee = useMemo(() => settings?.monthlyFee ?? 0, [settings])
+  const registrationTime = useMemo(() => settings?.registrationTimeHours ?? 24, [settings])
+  const unregistrationTime = useMemo(() => settings?.unregistrationTimeHours ?? 3, [settings])
+
+  // Estado de carga consolidado
+  const isLoading = useMemo(() => 
+    loading || 
+    loadingStates.isUpdatingMonthlyFee || 
+    loadingStates.isUpdatingRegistrationTime || 
+    loadingStates.isUpdatingUnregistrationTime, 
+    [loading, loadingStates]
+  )
+
+  // ===============================
+  // RETORNO DEL HOOK
+  // ===============================
 
   return {
+    // Data
+    settings,
     monthlyFee,
     registrationTime,
     unregistrationTime,
+    
+    // Loading states
     loading,
-    updateMonthlyFee: updateMonthlyFeeValue,
-    updateRegistrationTime: updateRegTime,
-    updateUnregistrationTime: updateUnregTime,
-    reloadSettings: loadSettings
-  };
+    isLoading,
+    error,
+    ...loadingStates,
+    
+    // Actions
+    updateMonthlyFeeValue,
+    updateRegistrationTimeValue,
+    updateUnregistrationTimeValue,
+    reloadSettings,
+    clearError,
+    
+    // Utility functions
+    loadSettings,
+  }
 }
+
+export type SettingsState = ReturnType<typeof useSettings>
