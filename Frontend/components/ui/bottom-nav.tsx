@@ -17,18 +17,16 @@ export function BottomNav() {
     const baseItems = [
       { icon: Home, label: "Inicio", href: "/dashboard" },
       { icon: Calendar, label: "Actividades", href: "/activities" },
-      { icon: CreditCard, label: "Pagos", href: "/payments" },
     ]
 
-            if (user.role === UserRole.ADMIN) {
-      baseItems.push(
-        { icon: Users, label: "Clientes", href: "/clients" },
-        
-      )
+    if (user.role !== UserRole.TRAINER) {
+      baseItems.push({ icon: CreditCard, label: "Pagos", href: "/payments" })
     }
-            else if (user.role === UserRole.TRAINER) {
+
+    if (user.role === UserRole.ADMIN) {
       baseItems.push(
         { icon: Users, label: "Clientes", href: "/clients" },
+
       )
     }
 
@@ -49,16 +47,16 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 px-4 py-2 text-xs transition-all duration-200 rounded-xl min-w-[60px]",
-                isActive 
-                  ? "text-primary bg-accent/50 font-semibold" 
+                isActive
+                  ? "text-primary bg-accent/50 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/30",
               )}
             >
-              <item.icon 
+              <item.icon
                 className={cn(
-                  "h-5 w-5 transition-all duration-200", 
+                  "h-5 w-5 transition-all duration-200",
                   isActive ? "text-primary scale-110" : "group-hover:scale-105"
-                )} 
+                )}
               />
               <span className={cn(
                 "transition-all duration-200",
