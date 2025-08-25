@@ -49,11 +49,9 @@ public class ActivityService {
     public void createActivity(ActivityFormTypeDTO activity) {
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
-        // Crear una sola actividad usando la fecha proporcionada o la actual como
-        // fallback
         LocalDate activityDate = activity.getDate();
         LocalTime activityTime = activity.getTime(); 
-                                                                                                       // AM
+
         Activity newActivity = Activity.builder()
                 .name(activity.getName())
                 .description(activity.getDescription())
@@ -248,78 +246,6 @@ public class ActivityService {
                 .status(activity.getStatus())
                 .isRecurring(activity.getIsRecurring())
                 .build();
-    }
-
-    // Schedule para crear actividades recurrentes semanalmente - Lunes a las 00:00
-    // Para testing: cada 2 minutos, cambiar a "0 0 0 * * MON" para producción
-    @Scheduled(cron = "0 */2 * * * *")
-    @Transactional
-    public void createWeeklyRecurringActivities() {
-        log.info("Starting weekly recurring activities creation...");
-
-        try {
-            // Obtener la fecha de inicio de la nueva semana (lunes actual)
-            LocalDate currentMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-
-            // Buscar todas las actividades recurrentes activas
-            List<Activity> recurringActivities = activityRepository
-                    .findByIsRecurringTrueAndStatus(ActivityStatus.ACTIVE);
-            log.info("Found {} recurring activities", recurringActivities.size());
-
-            List<Activity> newActivities = new ArrayList<>();
-
-            for (Activity activity : recurringActivities) {
-                // Verificar si ya existe una actividad para esta semana
-                LocalDateTime activityDate = activity.getDate();
-                DayOfWeek activityDayOfWeek = activityDate.getDayOfWeek();
-                LocalTime activityTime = activityDate.toLocalTime();
-
-                // Calcular la fecha correspondiente en la nueva semana
-                LocalDate newActivityDate = currentMonday.with(TemporalAdjusters.nextOrSame(activityDayOfWeek));
-                LocalDateTime newDateTime = LocalDateTime.of(newActivityDate, activityTime);
-
-                // Verificar si ya existe una actividad con el mismo nombre, entrenador y
-                // fecha/hora para esta semana
-                boolean alreadyExists = activityRepository.existsByNameAndTrainerAndDateBetween(
-                        activity.getName(),
-                        activity.getTrainer(),
-                        currentMonday.atStartOfDay(),
-                        currentMonday.plusDays(6).atTime(LocalTime.MAX));
-
-                if (!alreadyExists) {
-                    Activity newActivity = Activity.builder()
-                            .name(activity.getName())
-                            .description(activity.getDescription())
-                            .location(activity.getLocation())
-                            .slots(activity.getSlots())
-                            .date(newDateTime)
-                            .repeatEveryWeek(activity.getRepeatEveryWeek())
-                            .duration(activity.getDuration())
-                            .status(ActivityStatus.ACTIVE)
-                            .trainer(activity.getTrainer())
-                            .createdAt(LocalDateTime.now())
-                            .isRecurring(true)
-                            .build();
-
-                    newActivities.add(newActivity);
-                    log.info("Created new recurring activity: {} for {} at {}",
-                            newActivity.getName(), newActivityDate, activityTime);
-                } else {
-                    log.info("Activity {} already exists for this week, skipping", activity.getName());
-                }
-            }
-
-            if (!newActivities.isEmpty()) {
-                activityRepository.saveAll(newActivities);
-                log.info("Successfully created {} new recurring activities for the week starting {}",
-                        newActivities.size(), currentMonday);
-            } else {
-                log.info("No new recurring activities needed for this week");
-            }
-
-        } catch (Exception e) {
-            log.error("Error creating weekly recurring activities: {}", e.getMessage(), e);
-        }
     }
 
     // @Scheduled(cron = "0 */30 * * * *")
