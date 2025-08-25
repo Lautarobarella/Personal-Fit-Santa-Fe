@@ -38,7 +38,7 @@ export default function ClientsPage() {
     loadClients()
   }, [loadClients])
 
-  if (!user || user.role === UserRole.CLIENT) {
+  if (!user || user.role === UserRole.CLIENT || user.role === UserRole.TRAINER) {
     return <div>No tienes permisos para ver esta página</div>
   }
 

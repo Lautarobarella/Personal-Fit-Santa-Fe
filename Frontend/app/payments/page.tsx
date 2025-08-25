@@ -5,7 +5,7 @@ import { usePaymentContext } from "@/contexts/payment-provider"
 import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
@@ -34,6 +34,7 @@ import {
 
 export default function PaymentsPage() {
     const { user } = useAuth()
+    const router = useRouter()
     const [searchTerm, setSearchTerm] = useState("")
     const [monthlyFee, setMonthlyFee] = useState<number | null>(null)
     const [showRevenue, setShowRevenue] = useState(true)
@@ -124,7 +125,13 @@ export default function PaymentsPage() {
         paymentId: null as number | null,
     })
 
-    if (!user) return null
+    if (!user) {
+        return <div>Debes iniciar sesión para ver esta página</div>
+    }
+
+    if (user.role === UserRole.TRAINER) {
+        return <div>No tienes permisos para ver esta página</div>
+    }
 
     const formatMonth = (date: Date | string | null) => {
         if (!date) return ""
@@ -230,10 +237,10 @@ export default function PaymentsPage() {
     const pendingPayment = pendingPayments.find(p => p.status === PaymentStatus.PENDING)
 
     // Lógica para determinar si el cliente puede crear un nuevo pago
-    const canCreateNewPayment = user.role === UserRole.CLIENT &&
-        !activePayment &&
-        !pendingPayment
-        
+    const canCreateNewPayment = user.role === UserRole.ADMIN || (
+        user.role === UserRole.CLIENT && !activePayment && !pendingPayment
+    )
+
     const handleVerificationClick = (id: number) => {
         setVerificationDialog({ open: true, paymentId: id })
     }
@@ -245,20 +252,22 @@ export default function PaymentsPage() {
                 actions={
                     <div className="flex gap-x-2">
                         {user.role === UserRole.ADMIN ? (
-                            <Link href="/payments/method-select">
-                                <Button size="sm">
+                            <Button 
+                                size="sm"
+                                onClick={() => router.push("/payments/method-select")}
+                            >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Nuevo
+                            </Button>
+                        ) : user.role === UserRole.CLIENT ? (
+                            canCreateNewPayment ? (
+                                <Button 
+                                    size="sm"
+                                    onClick={() => router.push("/payments/method-select")}
+                                >
                                     <Plus className="h-4 w-4 mr-1" />
                                     Nuevo
                                 </Button>
-                            </Link>
-                        ) : user.role === UserRole.CLIENT ? (
-                            canCreateNewPayment ? (
-                                <Link href="/payments/method-select">
-                                    <Button size="sm">
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        Nuevo
-                                    </Button>
-                                </Link>
                             ) : (
                                 <Button
                                     size="sm"
@@ -521,15 +530,14 @@ export default function PaymentsPage() {
 
             {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
             {user.role === UserRole.ADMIN && pendingPayments.length > 0 && (
-                <Link href="/payments/verify" className="fixed bottom-28 left-1/2 transform -translate-x-1/2 z-50">
-                    <Button
-                        className="shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
-                        size="default"
-                    >
-                        <FileCheck className="h-5 w-5" />
-                        Verificar ({pendingPayments.length})
-                    </Button>
-                </Link>
+                <Button
+                    className="fixed bottom-28 left-1/2 transform -translate-x-1/2 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
+                    size="default"
+                    onClick={() => router.push("/payments/verify")}
+                >
+                    <FileCheck className="h-5 w-5" />
+                    Verificar ({pendingPayments.length})
+                </Button>
             )}
         </div>
     )
