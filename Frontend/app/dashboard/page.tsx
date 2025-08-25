@@ -1,33 +1,33 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
-import { useActivityContext } from "@/contexts/activity-provider"
-import { useAuth } from "@/contexts/auth-provider"
-import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { useActivityContext } from "@/contexts/activity-provider"
+import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-    Activity,
-    AlertTriangle,
-    ArrowUpRight,
-    Bell,
-    Calendar,
-    CheckCircle,
-    Clock,
-    CreditCard,
-    Eye,
-    EyeOff,
-    Target,
-    TrendingUp,
-    Users,
-    Zap
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  Bell,
+  Calendar,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Eye,
+  EyeOff,
+  Target,
+  TrendingUp,
+  Users,
+  Zap
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -53,19 +53,19 @@ function DashboardContent() {
   const { clients, loadClients } = useClients()
   const { activities, refreshActivities } = useActivityContext()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
-  
+
   // Usar el contexto unificado de pagos
-  const { 
+  const {
     pendingPayments,
     totalPendingPayments,
-    currentMonthRevenue, 
-    isLoading: isLoadingPayments 
+    currentMonthRevenue,
+    isLoading: isLoadingPayments
   } = usePaymentContext()
   const pendingPaymentsLoading = isLoadingPayments
 
   // Estado para cachear el estado de membresía
   const [membershipStatus, setMembershipStatus] = useState<boolean | null>(null)
-  
+
   // Estado para el dialog de perfil del cliente
   const [showProfileDialog, setShowProfileDialog] = useState(false)
 
@@ -272,7 +272,7 @@ function DashboardContent() {
 
       // Usar el estado de membresía validado por el backend
       const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
-      
+
       // Obtener días restantes del backend directamente
       const diasRestantes = clientStats.remainingDays ?? 0;
 
@@ -389,7 +389,7 @@ function DashboardContent() {
     } else {
       // Usar el estado de membresía validado por el backend
       const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
-      
+
       if (!hasActiveMembership) {
         return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", route: "/payments" }];
       }
@@ -407,22 +407,22 @@ function DashboardContent() {
     <div className="min-h-screen bg-background pb-32">
       <MobileHeader title={`Hola, ${user.firstName}`} />
 
-      <div className="container-centered py-6 space-y-6">
+      <div className="container-centered h-full py-6 space-y-6">
         {/* Welcome Section - Diseño profesional con imagen de fondo */}
         <div className="relative overflow-hidden rounded-3xl shadow-professional-lg">
           {/* Imagen de fondo */}
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
               backgroundImage: "url('/dashboard.png')"
             }}
           />
           {/* Overlay para mejorar legibilidad del texto */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-black/70 rounded-3xl" />
-          
-          <div className="relative z-10 p-12 text-white">
+          <div className="absolute inset-0 bg-black/10 rounded-3xl" />
+
+          <div className="relative z-10 p-24 text-white">
             <div className="flex items-center justify-between">
-              <div className="flex-1">
+              {/* <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-3 tracking-tight">
                   {user.role === UserRole.ADMIN && "Panel de Control"}
                   {user.role === UserRole.TRAINER && "Centro de Entrenador"}
@@ -433,7 +433,7 @@ function DashboardContent() {
                   {user.role === UserRole.TRAINER && "Inspira y guía a tus clientes"}
                   {user.role === UserRole.CLIENT && "Alcanza tus objetivos de fitness"}
                 </p>
-              </div>
+              </div> */}
               {/* <div className="text-right bg-white/10 backdrop-blur-sm rounded-2xl p-4">
                 <div className="text-sm text-white/80 mb-1 font-medium">
                   {new Date().toLocaleDateString("es-ES", {
@@ -474,9 +474,9 @@ function DashboardContent() {
                       {alert.type === "success" && <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />}
                       <span className="text-sm font-semibold text-foreground flex-1">{alert.message}</span>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="text-xs font-medium hover:bg-background/50 rounded-xl"
                       onClick={() => handleNavigation(alert.route, alert.action)}
                     >
@@ -613,7 +613,7 @@ function DashboardContent() {
       </div>
 
       <BottomNav />
-      
+
       {/* Dialog de perfil para clientes */}
       {user?.role === UserRole.CLIENT && user.id && (
         <ClientDetailsDialog
