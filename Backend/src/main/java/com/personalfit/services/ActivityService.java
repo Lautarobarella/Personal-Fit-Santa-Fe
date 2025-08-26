@@ -248,8 +248,7 @@ public class ActivityService {
                 .build();
     }
 
-    // @Scheduled(cron = "0 */30 * * * *")
-    @Scheduled(cron = "0 */1 * * * *")
+    @Scheduled(cron = "0 */30 * * * *")
     @Transactional
     public void checkCompletedActivies() {
         log.info("Checking completed activities...");
@@ -262,8 +261,8 @@ public class ActivityService {
         List<Activity> toCreate = new ArrayList<>();
 
         for (Activity activity : activeActivities) {
-            // Calcular cuándo termina la actividad (fecha de inicio + duración en minutos)
-            LocalDateTime activityEndTime = activity.getDate().plusMinutes(activity.getDuration());
+            // Calcular cuándo termina la actividad (fecha de inicio)
+            LocalDateTime activityEndTime = activity.getDate();
 
             // Si la actividad ya terminó, marcarla como completada
             if (activityEndTime.isBefore(now)) {

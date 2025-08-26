@@ -278,26 +278,11 @@ function DashboardContent() {
 
       // Progreso mensual de actividades (fallback a weeklyActivityCount si no existe)
       const actividadesMes = clientStats.weeklyActivityCount ?? 0;
-      const progresoMensual = actividadesMes;
+      // clientStats.faltasDelMes ?? 
+      const faltasDelMes = 0;
 
-      // Estructura uniforme para stats
+      // Estructura uniforme para stats - Reordenadas según layout solicitado
       return [
-        {
-          title: "Estado del plan",
-          value: diasRestantes > 0 ? "Plan activo" : "Sin plan activo",
-          icon: CheckCircle,
-          description: diasRestantes > 0 ? `Restan ${diasRestantes} días` : "Membresía vencida",
-          color: "primary",
-          dynamicFontSize: "text-2xl"
-        },
-        {
-          title: "Actividades este mes",
-          value: progresoMensual.toString(),
-          icon: Activity,
-          description: "completadas",
-          color: "warning",
-          dynamicFontSize: "text-2xl"
-        },
         {
           title: "Próxima Clase",
           value: nextClassValue,
@@ -307,11 +292,27 @@ function DashboardContent() {
           dynamicFontSize: "text-2xl"
         },
         {
-          title: "Progreso Mensual",
-          value: `${Math.min(100, Math.round((progresoMensual / 20) * 100))}%`,
-          icon: Target,
+          title: "Actividades este mes",
+          value: actividadesMes.toString(),
+          icon: Activity,
           description: "completadas",
+          color: "warning",
+          dynamicFontSize: "text-2xl"
+        },
+        {
+          title: "Faltas del mes",
+          value: `${faltasDelMes}`,
+          icon: Target,
+          description: "actividades perdidas",
           color: "primary",
+          dynamicFontSize: "text-2xl"
+        },
+        {
+          title: "Estado del plan",
+          value: diasRestantes > 0 ? "Plan activo" : "Sin plan activo",
+          icon: CheckCircle,
+          description: diasRestantes > 0 ? `Restan ${diasRestantes} días` : "Membresía vencida",
+          color: diasRestantes > 0 ? "success" : "destructive",
           dynamicFontSize: "text-2xl"
         },
       ];
@@ -492,38 +493,43 @@ function DashboardContent() {
 
         {/* Stats Grid - Diseño profesional moderno */}
         <div className="grid grid-cols-2 gap-4">
-          {stats.map((stat, index) => (
-            <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card min-h-[160px] flex flex-col justify-center`}>
-              <CardContent className="p-5 flex flex-col justify-center h-full">
-                {/* Icono plano en la esquina */}
-                <div className="absolute top-4 right-4 flex items-center gap-1">
-                  <stat.icon className={`h-6 w-6 ${stat.color === "success" ? "text-green-600" : stat.color === "destructive" ? "text-red-600" : "text-foreground"}`} />
-                  {stat.isRevenue && (
-                    <button
-                      onClick={() => setShowRevenue(!showRevenue)}
-                      className="p-1 hover:bg-muted rounded-full transition-colors"
-                      aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
-                    >
-                      {showRevenue ? (
-                        <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      ) : (
-                        <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      )}
-                    </button>
-                  )}
-                </div>
+          {stats.map((stat, index) => {
+            // Determinar el span de columnas: primera y última card ocupan 2 columnas
+            const colSpan = (index === 0 || index === 3) ? "col-span-2" : "col-span-1";
+            
+            return (
+              <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card min-h-[160px] flex flex-col justify-center ${colSpan}`}>
+                <CardContent className="p-5 flex flex-col justify-center h-full">
+                  {/* Icono plano en la esquina */}
+                  <div className="absolute top-4 right-4 flex items-center gap-1">
+                    <stat.icon className={`h-6 w-6 ${stat.color === "success" ? "text-green-600" : stat.color === "destructive" ? "text-red-600" : "text-foreground"}`} />
+                    {stat.isRevenue && (
+                      <button
+                        onClick={() => setShowRevenue(!showRevenue)}
+                        className="p-1 hover:bg-muted rounded-full transition-colors"
+                        aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
+                      >
+                        {showRevenue ? (
+                          <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                        )}
+                      </button>
+                    )}
+                  </div>
 
-                <div className="pr-16">
-                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{stat.title}</p>
-                  <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-foreground"} mb-2 tracking-tight`}>{stat.value}</p>
-                  <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-muted-foreground"}`}>{stat.description}</p>
-                </div>
+                  <div className="pr-16">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{stat.title}</p>
+                    <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-foreground"} mb-2 tracking-tight`}>{stat.value}</p>
+                    <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-muted-foreground"}`}>{stat.description}</p>
+                  </div>
 
-                {/* Elemento decorativo */}
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-primary opacity-20"></div>
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Elemento decorativo */}
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-primary opacity-20"></div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Quick Actions - Diseño profesional */}

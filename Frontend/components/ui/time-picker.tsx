@@ -172,6 +172,7 @@ export function TimePicker({
               <Button
                 variant="ghost"
                 size="sm"
+                type="button"
                 onClick={setCurrentTime}
                 className="text-primary hover:text-primary/90"
               >
