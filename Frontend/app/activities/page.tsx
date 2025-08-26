@@ -591,10 +591,7 @@ export default function ActivitiesPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
-                                        Ver Detalles
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem asChild onClick={() => router.push(`/activities/edit/${activity.id}`)}>
+                                      <DropdownMenuItem onClick={() => router.push(`/activities/edit/${activity.id}`)}>
                                         Editar
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>

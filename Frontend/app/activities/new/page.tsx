@@ -106,7 +106,7 @@ export default function NewActivityPage() {
       const now = new Date()
       const selectedTime = new Date()
       selectedTime.setHours(hours, minutes, 0, 0)
-      
+
       if (selectedTime <= now) {
         toast({
           title: "Error",
@@ -259,7 +259,7 @@ export default function NewActivityPage() {
               </div>
 
               {/* Recurring Schedule */}
-              <div className="space-y-4 pt-6 pb-6">
+              <div className="space-y-4 pt-4 ">
                 <div className="flex items-center justify-between">
                   <h3 className="text-md font-medium flex items-center gap-2">
                     <Repeat className="h-5 w-5" />
@@ -273,7 +273,17 @@ export default function NewActivityPage() {
                     />
                   </div>
                 </div>
+                {/* Leyenda explicativa */}
+                <div className="bg-muted/50 border border-border rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <span className="font-medium text-foreground">¿Cómo funciona?</span>
+                    <br />
+                    Si activas esta opción, una vez que la actividad termine, se creará automáticamente una actividad idéntica para la próxima semana en el mismo día y horario.
+                  </p>
+                </div>
               </div>
+
+
 
               {/* Capacity */}
               <div className="space-y-4">
