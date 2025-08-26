@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
+import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
 import { BarChart3, Bell, Clock, DollarSign, LogOut, Moon, Shield, Smartphone, User } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -18,6 +19,7 @@ import { useState } from "react"
 export default function SettingsPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
@@ -25,6 +27,22 @@ export default function SettingsPage() {
   const handleLogout = () => {
     logout()
     router.push("/")
+  }
+
+  const handleNotificationsToggle = () => {
+    toast({
+      title: "Función en desarrollo",
+      description: "Estamos trabajando en esto",
+      variant: "default"
+    })
+  }
+
+  const handleInstallApp = () => {
+    toast({
+      title: "Función en desarrollo", 
+      description: "Estamos trabajando en esto",
+      variant: "default"
+    })
   }
 
   if (!user) return null
@@ -78,7 +96,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Recibir notificaciones push</p>
                 </div>
               </div>
-              <Switch defaultChecked />
+              <Switch defaultChecked onCheckedChange={handleNotificationsToggle} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -106,7 +124,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Instalar en pantalla de inicio</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleInstallApp}>
                 Instalar
               </Button>
             </div>

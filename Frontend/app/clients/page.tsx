@@ -53,15 +53,23 @@ export default function ClientsPage() {
   if (error) return <div>{error}</div>
   if (!clients) return null
 
+  const normalizeText = (text: string) => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+  }
+
   const filteredClients = clients
-    .filter((c) =>
-      (statusFilter === "all" ? true : c.status === statusFilter) &&
-      (
-        c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    )
+    .filter((c) => {
+      const normalizedSearchTerm = normalizeText(searchTerm)
+      return (statusFilter === "all" ? true : c.status === statusFilter) &&
+        (
+          normalizeText(c.firstName).includes(normalizedSearchTerm) ||
+          normalizeText(c.lastName).includes(normalizedSearchTerm) ||
+          normalizeText(c.email).includes(normalizedSearchTerm)
+        )
+    })
 
 
   const formatDate = (date: Date | string | null) => {
