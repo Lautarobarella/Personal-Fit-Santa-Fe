@@ -56,7 +56,6 @@ function DashboardContent() {
 
   // Usar el contexto unificado de pagos
   const {
-    pendingPayments,
     totalPendingPayments,
     currentMonthRevenue,
     isLoading: isLoadingPayments
@@ -269,10 +268,7 @@ function DashboardContent() {
       };
 
       const nextClassValue = formatNextClass();
-
-      // Usar el estado de membresía validado por el backend
-      const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
-
+      const nextClassName = clientStats.nextClass?.name ?? "Sin clase";
       // Obtener días restantes del backend directamente
       const diasRestantes = clientStats.remainingDays ?? 0;
 
@@ -287,7 +283,7 @@ function DashboardContent() {
           title: "Próxima Clase",
           value: nextClassValue,
           icon: Clock,
-          description: "próxima",
+          description: nextClassName,
           color: "secondary",
           dynamicFontSize: "text-2xl"
         },
@@ -303,7 +299,7 @@ function DashboardContent() {
           title: "Faltas del mes",
           value: `${faltasDelMes}`,
           icon: Target,
-          description: "actividades perdidas",
+          description: "inasistencias",
           color: "primary",
           dynamicFontSize: "text-2xl"
         },

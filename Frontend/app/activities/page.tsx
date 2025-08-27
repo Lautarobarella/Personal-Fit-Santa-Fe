@@ -369,7 +369,7 @@ export default function ActivitiesPage() {
         if (!canEnrollBasedOnTime(activity)) {
           toast({
             title: "Tiempo insuficiente",
-            description: `Debes inscribirte con al menos ${registrationTime} horas de anticipación.`,
+            description: `Las inscripciones abren ${registrationTime} horas antes.`,
             variant: "destructive",
           })
           return
@@ -379,7 +379,7 @@ export default function ActivitiesPage() {
         if (!canUnenrollBasedOnTime(activity)) {
           toast({
             title: "Tiempo insuficiente",
-            description: `Debes desinscribirte con al menos ${unregistrationTime} horas de anticipación.`,
+            description: `No puedes desinscribirte con menos de ${unregistrationTime} horas de anticipación.`,
             variant: "destructive",
           })
           return

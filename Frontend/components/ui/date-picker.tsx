@@ -211,6 +211,7 @@ export function DatePicker({
               <Button
                 variant="ghost"
                 size="sm"
+                type="button"
                 onClick={goToNextMonth}
                 className="h-6 w-6 p-0 hover:bg-accent"
               >
@@ -219,6 +220,7 @@ export function DatePicker({
               <Button
                 variant="ghost"
                 size="sm"
+                type="button"
                 onClick={goToPreviousMonth}
                 className="h-6 w-6 p-0 hover:bg-accent"
               >

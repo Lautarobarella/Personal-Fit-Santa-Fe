@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth-provider"
 import { UserRole } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DatePicker } from "@/components/ui/date-picker"
+import { DatePickerScroll } from "@/components/ui/date-picker-scroll"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -176,7 +176,7 @@ export default function NewClientPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                  <DatePicker
+                  <DatePickerScroll
                     value={form.birthDate}
                     onChange={(date) => handleInputChange("birthDate", date)}
                   />
