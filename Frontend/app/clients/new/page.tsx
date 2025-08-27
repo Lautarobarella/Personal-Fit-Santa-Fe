@@ -96,10 +96,10 @@ export default function NewClientPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background mb-32">
       <MobileHeader title="Nuevo Cliente" showBack onBack={() => router.back()} />
 
-      <div className="container-centered py-6 mb-20">
+      <div className="container-centered py-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
