@@ -18,6 +18,7 @@ import { UserFormType } from "@/lib/types"
 import { Loader2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { BottomNav } from "@/components/ui/bottom-nav"
 
 
 export default function NewClientPage() {
@@ -98,7 +99,7 @@ export default function NewClientPage() {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Nuevo Cliente" showBack onBack={() => router.back()} />
 
-      <div className="container-centered py-6">
+      <div className="container-centered py-6 mb-20">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -223,6 +224,7 @@ export default function NewClientPage() {
           </CardContent>
         </Card>
       </div>
+      <BottomNav />
     </div>
   )
 }

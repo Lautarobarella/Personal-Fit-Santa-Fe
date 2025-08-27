@@ -548,9 +548,33 @@ export default function ActivitiesPage() {
                               : "border-l-primary"
                               }`}
                           >
-                            <CardContent className="p-4">
+                            <CardContent className="p-4 relative">
+                              {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-8 w-8 p-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => router.push(`/activities/edit/${activity.id}`)}>
+                                      Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
+                                      Tomar asistencia
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-error"
+                                      onClick={() => handleDeleteActivity(activity)}
+                                    >
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                              
                               <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
+                                <div className="flex-1 pr-10">
                                   <div className="flex items-center gap-2 mb-1">
                                     <h3 className={`font-semibold text-base ${activity.status === ActivityStatus.COMPLETED ? "text-gray-600" : ""}`}>
                                       {activity.name}
@@ -566,47 +590,16 @@ export default function ActivitiesPage() {
 
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
+                                      <MapPin className="h-4 w-4" />
+                                      <span>{activity.location}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
                                       <Clock className="h-4 w-4" />
                                       <span className="font-medium text-foreground">{formatTime(activity.date)}</span>
                                       <span>({activity.duration}min)</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      <Users className="h-4 w-4" />
-                                      <span>
-                                        {activity.currentParticipants}/{activity.maxParticipants}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4" />
-                                      <span>{activity.location}</span>
-                                    </div>
                                   </div>
                                 </div>
-
-                                {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => router.push(`/activities/edit/${activity.id}`)}>
-                                        Editar
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
-                                        Tomar asistencia
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="text-error"
-                                        onClick={() => handleDeleteActivity(activity)}
-                                      >
-                                        Eliminar
-                                      </DropdownMenuItem>
-
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
                               </div>
 
                               <div className="flex items-center justify-between">
@@ -671,9 +664,10 @@ export default function ActivitiesPage() {
                               <div className="mt-3">
                                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                   <span>Capacidad</span>
-                                  <span>
-                                    {Math.round((activity.currentParticipants / activity.maxParticipants) * 100)}%
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-3 w-3" />
+                                    <span>{activity.currentParticipants}/{activity.maxParticipants}</span>
+                                  </div>
                                 </div>
                                 <div className="w-full bg-muted rounded-full h-2">
                                   <div
