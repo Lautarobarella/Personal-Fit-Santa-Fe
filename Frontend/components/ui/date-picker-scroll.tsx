@@ -242,7 +242,7 @@ export function DatePickerScroll({
       <div className={cn("relative", selectorClassName)}>
         <div
           ref={containerRef}
-          className="h-48 overflow-y-scroll scrollbar-hide"
+          className="h-48 overflow-y-scroll overflow-x-hidden scrollbar-hide"
           style={{ scrollSnapType: 'y mandatory' }}
         >
           <div className="py-20">
@@ -250,14 +250,13 @@ export function DatePickerScroll({
               <div
                 key={item.value}
                 className={cn(
-                  "h-10 flex items-center justify-center cursor-pointer transition-all duration-200",
-                  "text-base font-medium",
+                  "h-10 flex items-center justify-center transition-all duration-200",
+                  "text-base font-medium select-none",
                   item.value === centerValue 
                     ? "text-orange-500 font-bold scale-110" 
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground"
                 )}
                 style={{ scrollSnapAlign: 'center' }}
-                onClick={() => onChange(item.value)}
               >
                 {item.label}
               </div>

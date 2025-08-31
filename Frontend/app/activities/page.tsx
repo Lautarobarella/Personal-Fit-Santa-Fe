@@ -5,7 +5,7 @@ import { DeleteActivityDialog } from "@/components/activities/delete-activity-di
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
 import { useActivityContext } from "@/contexts/activity-provider"
-import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useSettingsContext } from "@/contexts/settings-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -37,7 +37,7 @@ import { useEffect, useMemo, useState } from "react"
 
 
 export default function ActivitiesPage() {
-  const { user } = useAuth()
+  const { user } = useRequireAuth()
   const { toast } = useToast()
   const { registrationTime, unregistrationTime } = useSettingsContext()
   const {
@@ -162,8 +162,6 @@ export default function ActivitiesPage() {
     activity: null,
   })
 
-  if (!user) return null
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -172,7 +170,7 @@ export default function ActivitiesPage() {
     )
   }
 
-  const canManageActivities = user.role === UserRole.ADMIN
+  const canManageActivities = user?.role === UserRole.ADMIN
   const weekDates = getWeekDates(currentWeek)
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
@@ -390,11 +388,13 @@ export default function ActivitiesPage() {
     setEnrollDialog({
       open: true,
       activity,
-      isEnrolled: isUserEnrolled(activity, user.id),
+      isEnrolled: isUserEnrolled(activity, user?.id || -1),
     })
   }
 
   const handleConfirmEnroll = async (activity: ActivityType) => {
+    if (!user) return
+    
     try {
       if (enrollDialog.isEnrolled) {
         const result = await unenrollFromActivity(activity.id, user.id)
@@ -616,20 +616,20 @@ export default function ActivitiesPage() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                  {user.role === UserRole.CLIENT && (
+                                  {user?.role === UserRole.CLIENT && (
                                     <Button
                                       size="sm"
                                       onClick={() => handleEnrollActivity(activity)}
                                       disabled={
                                         activity.status === ActivityStatus.COMPLETED ||
                                         activity.status === ActivityStatus.CANCELLED ||
-                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id))
+                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user?.id || 0))
                                       }
                                       className="text-xs"
                                       variant={
                                         activity.status === ActivityStatus.COMPLETED
                                           ? "secondary"
-                                          : isUserEnrolled(activity, user.id)
+                                          : isUserEnrolled(activity, user?.id || 0)
                                             ? "outline"
                                             : "default"
                                       }
@@ -640,7 +640,7 @@ export default function ActivitiesPage() {
                                           ? "Cancelada"
                                           : isActivityPast(activity)
                                             ? "Expirada"
-                                            : isUserEnrolled(activity, user.id)
+                                            : isUserEnrolled(activity, user?.id || 0)
                                               ? "Desinscribir"
                                               : activity.currentParticipants >= activity.maxParticipants
                                                 ? "Completo"
@@ -702,7 +702,7 @@ export default function ActivitiesPage() {
 
         {/* Weekly Summary */}
 
-        {user.role === UserRole.ADMIN && <Card>
+        {user?.role === UserRole.ADMIN && <Card>
           <CardContent className="p-4">
             <h3 className="font-semibold mb-3">Resumen de la Semana</h3>
             <div className="grid grid-cols-2 gap-4 text-center">

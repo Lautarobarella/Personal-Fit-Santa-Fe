@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MobileHeader } from '@/components/ui/mobile-header';
 import { useAuth } from '@/contexts/auth-provider';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import { UserRole } from '@/lib/types';
 import { ArrowRight, CreditCard, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function PaymentMethodSelectPage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user } = useRequireAuth();
 
+    // Si no hay usuario, el hook useRequireAuth ya manejó la redirección
     if (!user) {
         return null;
     }

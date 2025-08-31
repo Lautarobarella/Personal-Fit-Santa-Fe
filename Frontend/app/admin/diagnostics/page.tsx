@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { AlertCircle, CheckCircle, Info, Loader2, XCircle } from "lucide-react"
 import { useState } from "react"
 
@@ -27,6 +29,11 @@ interface MercadoPagoTestResult {
 }
 
 export default function DiagnosticsPage() {
+    const { user } = useAuth()
+    
+    // Use custom hook to redirect to login if not authenticated
+    useRequireAuth()
+    
     const [endpoints, setEndpoints] = useState<EndpointStatus[]>([]);
     const [mpTestResult, setMpTestResult] = useState<MercadoPagoTestResult | null>(null);
     const [isRunning, setIsRunning] = useState(false);

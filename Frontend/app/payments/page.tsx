@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
 import { useSettings } from "@/hooks/settings/use-settings"
@@ -34,7 +35,7 @@ import {
 } from "lucide-react"
 
 export default function PaymentsPage() {
-    const { user } = useAuth()
+    const { user } = useRequireAuth()
     const router = useRouter()
     const [searchTerm, setSearchTerm] = useState("")
     const { monthlyFee } = useSettings()
@@ -111,11 +112,7 @@ export default function PaymentsPage() {
         paymentId: null as number | null,
     })
 
-    if (!user) {
-        return <div>Debes iniciar sesión para ver esta página</div>
-    }
-
-    if (user.role === UserRole.TRAINER) {
+    if (user?.role === UserRole.TRAINER) {
         return <div>No tienes permisos para ver esta página</div>
     }
 
@@ -223,8 +220,8 @@ export default function PaymentsPage() {
     const pendingPayment = pendingPayments.find(p => p.status === PaymentStatus.PENDING)
 
     // Lógica para determinar si el cliente puede crear un nuevo pago
-    const canCreateNewPayment = user.role === UserRole.ADMIN || (
-        user.role === UserRole.CLIENT && !activePayment && !pendingPayment
+    const canCreateNewPayment = user?.role === UserRole.ADMIN || (
+        user?.role === UserRole.CLIENT && !activePayment && !pendingPayment
     )
 
     const handleVerificationClick = (id: number) => {
@@ -237,7 +234,7 @@ export default function PaymentsPage() {
                 title="Pagos"
                 actions={
                     <div className="flex gap-x-2">
-                        {user.role === UserRole.ADMIN ? (
+                        {user?.role === UserRole.ADMIN ? (
                             <Button 
                                 size="sm"
                                 onClick={() => router.push("/payments/method-select")}
@@ -245,7 +242,7 @@ export default function PaymentsPage() {
                                 <Plus className="h-4 w-4 mr-1" />
                                 Nuevo
                             </Button>
-                        ) : user.role === UserRole.CLIENT ? (
+                        ) : user?.role === UserRole.CLIENT ? (
                             canCreateNewPayment ? (
                                 <Button 
                                     size="sm"
@@ -515,7 +512,7 @@ export default function PaymentsPage() {
             <BottomNav />
 
             {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
-            {user.role === UserRole.ADMIN && pendingPayments.length > 0 && (
+            {user?.role === UserRole.ADMIN && pendingPayments.length > 0 && (
                 <Button
                     className="fixed bottom-28 left-1/2 transform -translate-x-1/2 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
                     size="default"

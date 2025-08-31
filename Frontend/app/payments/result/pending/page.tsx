@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from '@/contexts/auth-provider';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,7 +13,7 @@ function PendingPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user } = useAuth();
+    const { user } = useRequireAuth();
 
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status');

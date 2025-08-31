@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
@@ -16,7 +17,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 export default function PaymentVerificationPage() {
-  const { user } = useAuth()
+  const { user } = useRequireAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isVerifying, setIsVerifying] = useState(false)

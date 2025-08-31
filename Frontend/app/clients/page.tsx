@@ -2,6 +2,7 @@
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -19,6 +20,9 @@ import { useEffect, useState } from "react"
 export default function ClientsPage() {
 
   const { user } = useAuth()
+  
+  // Use custom hook to redirect to login if not authenticated
+  useRequireAuth()
   const {
     clients,
     loading,

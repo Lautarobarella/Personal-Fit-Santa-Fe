@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
@@ -38,6 +39,9 @@ function DashboardContent() {
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  
+  // Use custom hook to redirect to login if not authenticated
+  useRequireAuth()
   const [dashboardStats, setDashboardStats] = useState({
     monthlyRevenue: 0,
     activeClients: 0,

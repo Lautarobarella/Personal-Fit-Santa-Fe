@@ -20,7 +20,7 @@ const loadGlobalSettings = async (): Promise<GlobalSettingsType | null> => {
   }
 }
 
-export const authenticate = async (email: string, password: string): Promise<UserType | null> => {
+export const authenticate = async (email: string, password: string): Promise<UserType> => {
   try {
     const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login`, {
       method: 'POST',

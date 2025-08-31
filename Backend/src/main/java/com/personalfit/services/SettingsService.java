@@ -20,6 +20,8 @@ public class SettingsService {
     private static final Integer DEFAULT_REGISTRATION_TIME = 24;
     private static final String UNREGISTRATION_TIME_KEY = "unregistration_time_hours";
     private static final Integer DEFAULT_UNREGISTRATION_TIME = 12;
+    private static final String MAX_ACTIVITIES_PER_DAY_KEY = "max_activities_per_day";
+    private static final Integer DEFAULT_MAX_ACTIVITIES_PER_DAY = 1;
 
     /**
      * Obtiene todas las configuraciones en una sola llamada
@@ -30,8 +32,9 @@ public class SettingsService {
         Double monthlyFee = getMonthlyFee();
         Integer registrationTimeHours = getRegistrationTimeHours();
         Integer unregistrationTimeHours = getUnregistrationTimeHours();
+        Integer maxActivitiesPerDay = getMaxActivitiesPerDay();
         
-        return new AllSettingsResponseDTO(monthlyFee, registrationTimeHours, unregistrationTimeHours);
+        return new AllSettingsResponseDTO(monthlyFee, registrationTimeHours, unregistrationTimeHours, maxActivitiesPerDay);
     }
 
     public Double getMonthlyFee() {
@@ -102,6 +105,27 @@ public class SettingsService {
         return hours;
     }
 
+    public Integer getMaxActivitiesPerDay() {
+        Settings setting = settingsRepository.findByKey(MAX_ACTIVITIES_PER_DAY_KEY)
+                .orElseGet(() -> createDefaultMaxActivitiesPerDaySetting());
+        return setting != null ? Integer.parseInt(setting.getValue()) : DEFAULT_MAX_ACTIVITIES_PER_DAY;
+    }
+
+    public Integer setMaxActivitiesPerDay(Integer maxActivities) {
+        if (maxActivities == null || maxActivities <= 0) {
+            throw new BusinessRuleException("Max activities per day must be a positive number", 
+                    "Api/Settings/setMaxActivitiesPerDay");
+        }
+        
+        Settings setting = settingsRepository.findByKey(MAX_ACTIVITIES_PER_DAY_KEY)
+                .orElseGet(() -> createDefaultMaxActivitiesPerDaySetting());
+
+        setting.setValue(maxActivities.toString());
+        
+        settingsRepository.save(setting);
+        return maxActivities;
+    }
+
 
     /**
      * Crea la configuración por defecto de la cuota mensual
@@ -139,6 +163,19 @@ public class SettingsService {
                 UNREGISTRATION_TIME_KEY,
                 DEFAULT_UNREGISTRATION_TIME.toString(),
                 "Tiempo mínimo de anticipación para desinscribirse de una actividad (en horas)");
+        return settingsRepository.save(setting);
+    }
+
+    /**
+     * Crea la configuración por defecto del máximo de actividades por día
+     * 
+     * @return Settings - Configuración creada
+     */
+    private Settings createDefaultMaxActivitiesPerDaySetting() {
+        Settings setting = new Settings(
+                MAX_ACTIVITIES_PER_DAY_KEY,
+                DEFAULT_MAX_ACTIVITIES_PER_DAY.toString(),
+                "Máximo número de actividades a las que un cliente puede inscribirse por día");
         return settingsRepository.save(setting);
     }
 }
