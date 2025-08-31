@@ -1,25 +1,27 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
-import { getCurrentUser } from "@/lib/auth";
+import { getUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/error-handler";
 import { Notification, NotificationStatus } from "@/lib/types";
 
-/**
- * API para manejo de notificaciones
- */
 
 /**
- * Obtiene las notificaciones del usuario actual
+ * Obtiene las notificaciones del usuario especificado
+ * @param userId ID del usuario (opcional, si no se proporciona se obtiene desde localStorage)
  */
-export async function fetchNotifications(): Promise<Notification[]> {
+export async function fetchNotifications(userId?: number): Promise<Notification[]> {
     try {
-        const user = getCurrentUser();
+        let targetUserId = userId;
         
-        if (!user) {
-            console.warn('No user found when fetching notifications');
-            return [];
+        if (!targetUserId) {
+            const storedUserId = getUserId();
+            if (!storedUserId) {
+                console.warn('No user ID found when fetching notifications');
+                return [];
+            }
+            targetUserId = storedUserId;
         }
 
-        const notifications = await jwtPermissionsApi.get(`/api/notifications/user/${user.id}`);
+        const notifications = await jwtPermissionsApi.get(`/api/notifications/user/${targetUserId}`);
         
         if (!notifications || !Array.isArray(notifications)) {
             return [];
@@ -100,17 +102,22 @@ export async function deleteNotification(notificationId: number): Promise<boolea
 
 /**
  * Marca todas las notificaciones como leídas
+ * @param userId ID del usuario (opcional, si no se proporciona se obtiene desde localStorage)
  */
-export async function markAllNotificationsAsRead(): Promise<boolean> {
+export async function markAllNotificationsAsRead(userId?: number): Promise<boolean> {
     try {
-        const user = getCurrentUser();
+        let targetUserId = userId;
         
-        if (!user) {
-            console.warn('No user found when marking all as read');
-            return false;
+        if (!targetUserId) {
+            const storedUserId = getUserId();
+            if (!storedUserId) {
+                console.warn('No user ID found when marking all as read');
+                return false;
+            }
+            targetUserId = storedUserId;
         }
 
-        await jwtPermissionsApi.put(`/api/notifications/user/${user.id}/mark-all-read`, {});
+        await jwtPermissionsApi.put(`/api/notifications/user/${targetUserId}/mark-all-read`, {});
         return true;
     } catch (error) {
         handleApiError(error, 'Error al marcar todas como leídas');

@@ -42,11 +42,10 @@ export const authenticate = async (email: string, password: string): Promise<Use
 
     const authData: AuthResponse = await response.json()
     
-    // Store tokens in localStorage
-    // TODO: Implement secure token storage for production
+    // Guardamos los tokens y el ID del usuario (solo el ID, no todos los datos)
     localStorage.setItem('accessToken', authData.accessToken)
     localStorage.setItem('refreshToken', authData.refreshToken)
-    localStorage.setItem('user', JSON.stringify(authData.user))
+    localStorage.setItem('userId', authData.user.id.toString())
 
     // Cargar configuraciones globales
     // Las configuraciones ahora se manejan a través del contexto SettingsProvider
@@ -67,23 +66,16 @@ export const authenticate = async (email: string, password: string): Promise<Use
 export const logout = (): void => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
-  localStorage.removeItem('user')
-}
-
-export const getCurrentUser = (): UserType | null => {
-  const userStr = localStorage.getItem('user')
-  if (!userStr) return null
-  
-  try {
-    return JSON.parse(userStr)
-  } catch (error) {
-    console.error('Error parsing user from localStorage:', error)
-    return null
-  }
+  localStorage.removeItem('userId')
 }
 
 export const getAccessToken = (): string | null => {
   return localStorage.getItem('accessToken')
+}
+
+export const getUserId = (): number | null => {
+  const userIdStr = localStorage.getItem('userId')
+  return userIdStr ? parseInt(userIdStr, 10) : null
 }
 
 export const refreshAccessToken = async (): Promise<string | null> => {
@@ -106,10 +98,10 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     const authData: AuthResponse = await response.json()
     
-    // Update tokens in localStorage
+    // Solo actualizamos los tokens y el ID del usuario
     localStorage.setItem('accessToken', authData.accessToken)
     localStorage.setItem('refreshToken', authData.refreshToken)
-    localStorage.setItem('user', JSON.stringify(authData.user))
+    localStorage.setItem('userId', authData.user.id.toString())
 
     // Las configuraciones ahora se manejan a través del contexto SettingsProvider
     // No necesitamos guardarlas en localStorage

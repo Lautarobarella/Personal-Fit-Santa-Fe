@@ -70,4 +70,4 @@ export async function getProductById(id: string): Promise<Product | null> {
 
     const product = productsDatabase.find(p => p.id === id);
     return product || null;
-} 
+}

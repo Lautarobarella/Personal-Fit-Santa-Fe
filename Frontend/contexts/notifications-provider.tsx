@@ -10,6 +10,7 @@ import {
 } from "@/api/notifications/notificationsApi"
 import { Notification, NotificationStatus } from "@/lib/types"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react"
+import { useAuth } from "./auth-provider"
 
 interface NotificationsContextType {
     notifications: Notification[]
@@ -36,6 +37,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         setLoading(true)
         setError(null)
         try {
+            // fetchNotifications ahora puede obtener el user ID automáticamente desde localStorage
             const data = await fetchNotifications()
             setNotifications(data || [])
         } catch (err) {
@@ -95,6 +97,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
 
     const markAllAsRead = async () => {
+        // markAllNotificationsAsRead ahora puede obtener el user ID automáticamente desde localStorage
         const success = await markAllNotificationsAsRead()
         if (success) {
             setNotifications((prev) =>

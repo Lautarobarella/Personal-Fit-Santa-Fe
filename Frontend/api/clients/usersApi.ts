@@ -20,6 +20,20 @@ export async function fetchUserDetail(id: number) {
   }
 }
 
+/**
+ * Obtiene los datos del usuario actual usando su ID
+ * @param userId ID del usuario
+ * @returns Promise<UserType> los datos del usuario
+ */
+export async function fetchCurrentUserById(userId: number) {
+  try {
+    return await jwtPermissionsApi.get(`/api/users/info/${userId}`);
+  } catch (error) {
+    // No mostrar toasts aquí, dejar que el contexto maneje el error
+    throw error;
+  }
+}
+
 export async function createUser(user: UserFormType) {
   try {
     return await jwtPermissionsApi.post('/api/users/new', user);
