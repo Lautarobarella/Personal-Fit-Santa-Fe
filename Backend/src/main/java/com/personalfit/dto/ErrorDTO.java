@@ -9,12 +9,10 @@ import lombok.Data;
 @Data
 @Builder
 public class ErrorDTO {
-
     private String message;
     private LocalDateTime timestamp;
     private String path;
     private String error;
     private Integer status;
     private Map<String, String> details;
-
 }
