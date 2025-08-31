@@ -39,7 +39,7 @@ import { useEffect, useMemo, useState } from "react"
 export default function ActivitiesPage() {
   const { user } = useRequireAuth()
   const { toast } = useToast()
-  const { registrationTime, unregistrationTime } = useSettingsContext()
+  const { registrationTime, unregistrationTime, maxActivitiesPerDay } = useSettingsContext()
   const {
     activities: allActivities,
     loading,
@@ -210,6 +210,26 @@ export default function ActivitiesPage() {
   // Get unique categories and trainers for filters
   const trainers = [...new Set(activities.map((a: ActivityType) => a.trainerName))]
 
+  // Helper function to count user enrollments for a specific day
+  const getUserEnrollmentsForDay = (activityDate: Date, userId: number) => {
+    const targetDay = new Date(activityDate)
+    targetDay.setHours(0, 0, 0, 0)
+    
+    return allActivities.filter((activity: ActivityType) => {
+      const activityDay = new Date(activity.date)
+      activityDay.setHours(0, 0, 0, 0)
+      
+      return activityDay.getTime() === targetDay.getTime() && 
+             isUserEnrolled(activity, userId)
+    }).length
+  }
+
+  // Helper function to check if user can enroll in more activities for this day
+  const canEnrollInMoreActivitiesForDay = (activityDate: Date, userId: number) => {
+    const currentEnrollments = getUserEnrollmentsForDay(activityDate, userId)
+    return currentEnrollments < maxActivitiesPerDay
+  }
+
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
       hour: "2-digit",
@@ -363,7 +383,17 @@ export default function ActivitiesPage() {
 
       // Verificar límites de tiempo
       if (!isUserEnrolled(activity, user.id)) {
-        // Para inscripción
+        // Para inscripción - verificar máximo de actividades por día
+        const userEnrollmentsForDay = getUserEnrollmentsForDay(activity.date, user.id)
+        if (userEnrollmentsForDay >= maxActivitiesPerDay) {
+          toast({
+            title: "Límite alcanzado",
+            description: `No puedes inscribirte a más de ${maxActivitiesPerDay} ${maxActivitiesPerDay === 1 ? 'actividad' : 'actividades'} por día.`,
+            variant: "destructive",
+          })
+          return
+        }
+        
         if (!canEnrollBasedOnTime(activity)) {
           toast({
             title: "Tiempo insuficiente",
@@ -623,7 +653,8 @@ export default function ActivitiesPage() {
                                       disabled={
                                         activity.status === ActivityStatus.COMPLETED ||
                                         activity.status === ActivityStatus.CANCELLED ||
-                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user?.id || 0))
+                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user?.id || 0)) ||
+                                        (!isUserEnrolled(activity, user?.id || 0) && !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0))
                                       }
                                       className="text-xs"
                                       variant={
@@ -644,7 +675,9 @@ export default function ActivitiesPage() {
                                               ? "Desinscribir"
                                               : activity.currentParticipants >= activity.maxParticipants
                                                 ? "Completo"
-                                                : "Inscribirse"}
+                                                : !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0)
+                                                  ? "Límite diario"
+                                                  : "Inscribirse"}
                                     </Button>
                                   )}
                                   {canManageActivities && (
