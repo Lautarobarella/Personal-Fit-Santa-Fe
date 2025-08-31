@@ -1,4 +1,4 @@
-import { getAccessToken, refreshAccessToken } from '../../lib/auth';
+import { refreshAccessToken } from '../../lib/auth';
 import { API_CONFIG } from './config';
 
 // Custom error class for API errors
@@ -22,15 +22,6 @@ interface ApiOptions {
 }
 
 class JWTPermissionsApi {
-  private async getAuthHeaders(): Promise<Record<string, string>> {
-    const token = getAccessToken()
-    if (!token) {
-      throw new Error('No access token available')
-    }
-    return {
-      'Authorization': `Bearer ${token}`,
-    }
-  }
 
   private async handleResponse(response: Response): Promise<any> {
     if (response.status === 401) {
@@ -39,11 +30,7 @@ class JWTPermissionsApi {
       if (!newToken) {
         throw new Error('Authentication failed')
       }
-      // Retry the request with new token
-      return this.request(response.url, {
-        method: response.url.includes('refresh') ? 'POST' : 'GET',
-        requireAuth: true,
-      })
+      throw new Error('Authentication failed - please try again')
     }
 
     if (!response.ok) {
@@ -99,27 +86,16 @@ class JWTPermissionsApi {
       ...headers,
     }
 
-    // Solo establecer Content-Type si no es FormData
     if (!(body instanceof FormData)) {
       requestHeaders['Content-Type'] = 'application/json'
     }
-
-    if (requireAuth) {
-      try {
-        const authHeaders = await this.getAuthHeaders()
-        Object.assign(requestHeaders, authHeaders)
-      } catch (error) {
-        throw new Error('Authentication required')
-      }
-    }
-
     const config: RequestInit = {
       method,
       headers: requestHeaders,
+      credentials: 'include',
     }
 
     if (body) {
-      // Si es FormData, enviarlo directamente, sino JSON.stringify
       config.body = body instanceof FormData ? body : JSON.stringify(body)
     }
 
