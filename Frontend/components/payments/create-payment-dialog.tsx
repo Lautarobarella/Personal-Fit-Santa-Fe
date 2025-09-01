@@ -46,9 +46,23 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const today = new Date()
     const startDateStr = today.toISOString().split("T")[0]
 
-    const oneMonthLater = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate())
-    const maxDay = new Date(oneMonthLater.getFullYear(), oneMonthLater.getMonth() + 1, 0).getDate()
-    oneMonthLater.setDate(Math.min(today.getDate(), maxDay))
+    // Calcular fecha de vencimiento correctamente
+    const calculateDueDate = (startDate: Date) => {
+        const dueDate = new Date(startDate)
+        
+        // Sumar un mes
+        dueDate.setMonth(dueDate.getMonth() + 1)
+        
+        // Si el día cambió (ej: 31 de enero → marzo porque febrero no tiene 31), 
+        // establecer el último día del mes anterior
+        if (dueDate.getDate() !== startDate.getDate()) {
+            dueDate.setDate(0) // Va al último día del mes anterior
+        }
+        
+        return dueDate
+    }
+
+    const oneMonthLater = calculateDueDate(today)
     const dueDateStr = oneMonthLater.toISOString().split("T")[0]
 
     const [startDate, setStartDate] = useState(startDateStr)
@@ -398,16 +412,17 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             readOnly
                             value={(() => {
                                 const today = new Date()
-                                const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate())
+                                const nextMonth = new Date(today)
+                                
+                                // Sumar un mes
+                                nextMonth.setMonth(nextMonth.getMonth() + 1)
+                                
+                                // Si el día cambió, establecer el último día del mes anterior
+                                if (nextMonth.getDate() !== today.getDate()) {
+                                    nextMonth.setDate(0) // Va al último día del mes anterior
+                                }
 
-                                // Asegura que sea una fecha válida (ej. 31 de enero + 1 mes → 28 o 29 de febrero)
-                                const safeDate = new Date(
-                                    nextMonth.getFullYear(),
-                                    nextMonth.getMonth(),
-                                    Math.min(today.getDate(), new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate())
-                                )
-
-                                return safeDate.toISOString().split("T")[0]
+                                return nextMonth.toISOString().split("T")[0]
                             })()}
                             placeholder="Fecha de vencimiento"
                             className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
