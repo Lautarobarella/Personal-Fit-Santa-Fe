@@ -30,7 +30,6 @@ public class CreateUserDTO {
 
 //    @NotBlank(message = "The password mustn't be empty")
     private String password;
-
     private String phone; // Este es opcional, sin anotaciones de nulidad
 
     @NotNull(message = "The DNI number mustn't be empty")
@@ -38,12 +37,9 @@ public class CreateUserDTO {
 
     @NotBlank(message = "The address mustn't be empty")
     private String address;
-
     private LocalDate joinDate;
-
     private UserStatus status;
-
     private String avatar;
-
     private UserRole role;
+
 }

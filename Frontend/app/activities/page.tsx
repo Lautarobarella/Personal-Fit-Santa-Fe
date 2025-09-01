@@ -5,7 +5,7 @@ import { DeleteActivityDialog } from "@/components/activities/delete-activity-di
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
 import { useActivityContext } from "@/contexts/activity-provider"
-import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useSettingsContext } from "@/contexts/settings-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -37,9 +37,9 @@ import { useEffect, useMemo, useState } from "react"
 
 
 export default function ActivitiesPage() {
-  const { user } = useAuth()
+  const { user } = useRequireAuth()
   const { toast } = useToast()
-  const { registrationTime, unregistrationTime } = useSettingsContext()
+  const { registrationTime, unregistrationTime, maxActivitiesPerDay } = useSettingsContext()
   const {
     activities: allActivities,
     loading,
@@ -162,8 +162,6 @@ export default function ActivitiesPage() {
     activity: null,
   })
 
-  if (!user) return null
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -172,7 +170,7 @@ export default function ActivitiesPage() {
     )
   }
 
-  const canManageActivities = user.role === UserRole.ADMIN
+  const canManageActivities = user?.role === UserRole.ADMIN
   const weekDates = getWeekDates(currentWeek)
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
@@ -211,6 +209,26 @@ export default function ActivitiesPage() {
 
   // Get unique categories and trainers for filters
   const trainers = [...new Set(activities.map((a: ActivityType) => a.trainerName))]
+
+  // Helper function to count user enrollments for a specific day
+  const getUserEnrollmentsForDay = (activityDate: Date, userId: number) => {
+    const targetDay = new Date(activityDate)
+    targetDay.setHours(0, 0, 0, 0)
+    
+    return allActivities.filter((activity: ActivityType) => {
+      const activityDay = new Date(activity.date)
+      activityDay.setHours(0, 0, 0, 0)
+      
+      return activityDay.getTime() === targetDay.getTime() && 
+             isUserEnrolled(activity, userId)
+    }).length
+  }
+
+  // Helper function to check if user can enroll in more activities for this day
+  const canEnrollInMoreActivitiesForDay = (activityDate: Date, userId: number) => {
+    const currentEnrollments = getUserEnrollmentsForDay(activityDate, userId)
+    return currentEnrollments < maxActivitiesPerDay
+  }
 
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -365,11 +383,21 @@ export default function ActivitiesPage() {
 
       // Verificar límites de tiempo
       if (!isUserEnrolled(activity, user.id)) {
-        // Para inscripción
+        // Para inscripción - verificar máximo de actividades por día
+        const userEnrollmentsForDay = getUserEnrollmentsForDay(activity.date, user.id)
+        if (userEnrollmentsForDay >= maxActivitiesPerDay) {
+          toast({
+            title: "Límite alcanzado",
+            description: `No puedes inscribirte a más de ${maxActivitiesPerDay} ${maxActivitiesPerDay === 1 ? 'actividad' : 'actividades'} por día.`,
+            variant: "destructive",
+          })
+          return
+        }
+        
         if (!canEnrollBasedOnTime(activity)) {
           toast({
             title: "Tiempo insuficiente",
-            description: `Debes inscribirte con al menos ${registrationTime} horas de anticipación.`,
+            description: `Las inscripciones abren ${registrationTime} horas antes.`,
             variant: "destructive",
           })
           return
@@ -379,7 +407,7 @@ export default function ActivitiesPage() {
         if (!canUnenrollBasedOnTime(activity)) {
           toast({
             title: "Tiempo insuficiente",
-            description: `Debes desinscribirte con al menos ${unregistrationTime} horas de anticipación.`,
+            description: `No puedes desinscribirte con menos de ${unregistrationTime} horas de anticipación.`,
             variant: "destructive",
           })
           return
@@ -390,11 +418,13 @@ export default function ActivitiesPage() {
     setEnrollDialog({
       open: true,
       activity,
-      isEnrolled: isUserEnrolled(activity, user.id),
+      isEnrolled: isUserEnrolled(activity, user?.id || -1),
     })
   }
 
   const handleConfirmEnroll = async (activity: ActivityType) => {
+    if (!user) return
+    
     try {
       if (enrollDialog.isEnrolled) {
         const result = await unenrollFromActivity(activity.id, user.id)
@@ -548,9 +578,33 @@ export default function ActivitiesPage() {
                               : "border-l-primary"
                               }`}
                           >
-                            <CardContent className="p-4">
+                            <CardContent className="p-4 relative">
+                              {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-8 w-8 p-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => router.push(`/activities/edit/${activity.id}`)}>
+                                      Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
+                                      Tomar asistencia
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-error"
+                                      onClick={() => handleDeleteActivity(activity)}
+                                    >
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                              
                               <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
+                                <div className="flex-1 pr-10">
                                   <div className="flex items-center gap-2 mb-1">
                                     <h3 className={`font-semibold text-base ${activity.status === ActivityStatus.COMPLETED ? "text-gray-600" : ""}`}>
                                       {activity.name}
@@ -566,50 +620,16 @@ export default function ActivitiesPage() {
 
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
+                                      <MapPin className="h-4 w-4" />
+                                      <span>{activity.location}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
                                       <Clock className="h-4 w-4" />
                                       <span className="font-medium text-foreground">{formatTime(activity.date)}</span>
                                       <span>({activity.duration}min)</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      <Users className="h-4 w-4" />
-                                      <span>
-                                        {activity.currentParticipants}/{activity.maxParticipants}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4" />
-                                      <span>{activity.location}</span>
-                                    </div>
                                   </div>
                                 </div>
-
-                                {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
-                                        Ver Detalles
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem asChild onClick={() => router.push(`/activities/edit/${activity.id}`)}>
-                                        Editar
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
-                                        Tomar asistencia
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="text-error"
-                                        onClick={() => handleDeleteActivity(activity)}
-                                      >
-                                        Eliminar
-                                      </DropdownMenuItem>
-
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
                               </div>
 
                               <div className="flex items-center justify-between">
@@ -626,20 +646,21 @@ export default function ActivitiesPage() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                  {user.role === UserRole.CLIENT && (
+                                  {user?.role === UserRole.CLIENT && (
                                     <Button
                                       size="sm"
                                       onClick={() => handleEnrollActivity(activity)}
                                       disabled={
                                         activity.status === ActivityStatus.COMPLETED ||
                                         activity.status === ActivityStatus.CANCELLED ||
-                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user.id))
+                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user?.id || 0)) ||
+                                        (!isUserEnrolled(activity, user?.id || 0) && !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0))
                                       }
                                       className="text-xs"
                                       variant={
                                         activity.status === ActivityStatus.COMPLETED
                                           ? "secondary"
-                                          : isUserEnrolled(activity, user.id)
+                                          : isUserEnrolled(activity, user?.id || 0)
                                             ? "outline"
                                             : "default"
                                       }
@@ -650,11 +671,13 @@ export default function ActivitiesPage() {
                                           ? "Cancelada"
                                           : isActivityPast(activity)
                                             ? "Expirada"
-                                            : isUserEnrolled(activity, user.id)
+                                            : isUserEnrolled(activity, user?.id || 0)
                                               ? "Desinscribir"
                                               : activity.currentParticipants >= activity.maxParticipants
                                                 ? "Completo"
-                                                : "Inscribirse"}
+                                                : !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0)
+                                                  ? "Límite diario"
+                                                  : "Inscribirse"}
                                     </Button>
                                   )}
                                   {canManageActivities && (
@@ -674,9 +697,10 @@ export default function ActivitiesPage() {
                               <div className="mt-3">
                                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                   <span>Capacidad</span>
-                                  <span>
-                                    {Math.round((activity.currentParticipants / activity.maxParticipants) * 100)}%
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-3 w-3" />
+                                    <span>{activity.currentParticipants}/{activity.maxParticipants}</span>
+                                  </div>
                                 </div>
                                 <div className="w-full bg-muted rounded-full h-2">
                                   <div
@@ -711,7 +735,7 @@ export default function ActivitiesPage() {
 
         {/* Weekly Summary */}
 
-        {user.role === UserRole.ADMIN && <Card>
+        {user?.role === UserRole.ADMIN && <Card>
           <CardContent className="p-4">
             <h3 className="font-semibold mb-3">Resumen de la Semana</h3>
             <div className="grid grid-cols-2 gap-4 text-center">

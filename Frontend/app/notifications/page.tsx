@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,8 +30,10 @@ import {
 import { useEffect, useState } from "react"
 
 export default function NotificationsPage() {
-    const { user } = useAuth()
     const { toast } = useToast()
+    
+    // Use custom hook to redirect to login if not authenticated
+    useRequireAuth()
     const {
         notifications,
         loading,
@@ -50,10 +53,6 @@ export default function NotificationsPage() {
     useEffect(() => {
         loadNotifications()
     }, [loadNotifications])
-
-    if (!user) {
-        return null
-    }
 
     if (loading) {
         return (

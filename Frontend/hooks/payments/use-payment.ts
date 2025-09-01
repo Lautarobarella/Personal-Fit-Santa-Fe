@@ -79,7 +79,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     queryKey: finalIsAdmin ? ["payments", "admin"] : ["payments", finalUserId],
     queryFn: () =>
       finalIsAdmin ? fetchAllPayments() : fetchUserPayments(finalUserId ?? 0),
-    enabled: finalIsAdmin || !!finalUserId,
+    enabled: !!(user && (finalIsAdmin || finalUserId)), // Solo ejecutar si hay usuario autenticado
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 1,
   })

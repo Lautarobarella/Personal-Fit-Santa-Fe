@@ -62,4 +62,16 @@ public class SettingsController {
         return ResponseEntity.ok(updatedHours);
     }
 
+    @GetMapping("/max-activities-per-day")
+    public ResponseEntity<Integer> getMaxActivitiesPerDay() {
+        Integer maxActivities = settingsService.getMaxActivitiesPerDay();
+        return ResponseEntity.ok(maxActivities);
+    }
+
+    @PostMapping("/max-activities-per-day")
+    public ResponseEntity<Integer> setMaxActivitiesPerDay(@RequestBody TimeRequestDTO request) {
+        Integer updatedMaxActivities = settingsService.setMaxActivitiesPerDay(request.getHours());
+        return ResponseEntity.ok(updatedMaxActivities);
+    }
+
 } 

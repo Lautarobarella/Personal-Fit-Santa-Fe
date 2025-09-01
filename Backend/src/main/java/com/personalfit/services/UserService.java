@@ -183,7 +183,8 @@ public class UserService {
     public List<UserTypeDTO> getAllTrainers() {
         List<User> users = userRepository.findAll();
         return users.stream()
-                .filter(user -> user.getRole().equals(UserRole.TRAINER))
+                .filter(user -> user.getRole().equals(UserRole.TRAINER) || user.getRole().equals(UserRole.ADMIN))
+                .filter(user -> !user.getDni().equals(99999999)) // Excluir admin con DNI 99999999
                 .map(UserTypeDTO::new)
                 .collect(Collectors.toList());
     }

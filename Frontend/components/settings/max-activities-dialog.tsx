@@ -13,69 +13,78 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { useSettingsContext } from "@/contexts/settings-provider"
-import { DollarSign, Save } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { Users, Save } from "lucide-react"
 
-interface MonthlyFeeDialogProps {
+interface MaxActivitiesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) {
+export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogProps) {
   const { toast } = useToast()
-  const { monthlyFee, updateMonthlyFeeValue, loading } = useSettingsContext()
-  const [monthlyFeeInput, setMonthlyFeeInput] = useState<string>("")
-  const [isSaving, setIsSaving] = useState(false)
+  const { 
+    maxActivitiesPerDay, 
+    updateMaxActivitiesPerDayValue, 
+    loading,
+    isUpdatingMaxActivitiesPerDay 
+  } = useSettingsContext()
+  
+  const [inputValue, setInputValue] = useState<string>("1")
+  const [saving, setSaving] = useState(false)
 
-  // Sincronizar el valor del input con el hook de configuraciones
+  // Sincronizar con el valor del contexto cuando se abre el diálogo
   useEffect(() => {
-    if (open && monthlyFee > 0) {
-      setMonthlyFeeInput(monthlyFee.toString())
+    if (open && maxActivitiesPerDay) {
+      setInputValue(maxActivitiesPerDay.toString())
     }
-  }, [open, monthlyFee])
+  }, [open, maxActivitiesPerDay])
 
   const handleSave = async () => {
     try {
-      setIsSaving(true)
-      const amount = parseFloat(monthlyFeeInput)
-      if (isNaN(amount) || amount <= 0) {
+      setSaving(true)
+      
+      const maxActivities = parseInt(inputValue)
+
+      if (isNaN(maxActivities) || maxActivities <= 0) {
         toast({
           title: "Error",
-          description: "El valor debe ser un número positivo",
-          variant: "destructive",
+          description: "El máximo de actividades debe ser mayor a 0",
+          variant: "destructive"
         })
         return
       }
 
-      const result = await updateMonthlyFeeValue(amount)
-
+      const result = await updateMaxActivitiesPerDayValue(maxActivities)
+      
       if (result.success) {
         toast({
           title: "Éxito",
           description: result.message,
+          variant: "default"
         })
         onOpenChange(false)
       } else {
         toast({
           title: "Error",
           description: result.message,
-          variant: "destructive",
+          variant: "destructive"
         })
       }
     } catch (error) {
-      console.error('Error updating monthly fee:', error)
       toast({
         title: "Error",
-        description: "No se pudo actualizar el valor de la cuota",
-        variant: "destructive",
+        description: "No se pudo actualizar el máximo de actividades por día",
+        variant: "destructive"
       })
     } finally {
-      setIsSaving(false)
+      setSaving(false)
     }
   }
 
   const handleCancel = () => {
-    setMonthlyFeeInput(monthlyFee.toString())
+    // Resetear valor al original
+    setInputValue(maxActivitiesPerDay?.toString() || "1")
     onOpenChange(false)
   }
 
@@ -84,11 +93,11 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
       <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Configurar Cuota Mensual
+            <Users className="h-5 w-5" />
+            Máximo de Actividades por Día
           </DialogTitle>
           <DialogDescription>
-            Establece el valor de la cuota mensual que se cobrará a los clientes.
+            Establece el número máximo de actividades a las que un cliente puede inscribirse por día.
           </DialogDescription>
         </DialogHeader>
 
@@ -99,49 +108,49 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-1 overflow-y-auto space-y-4">
-              {/* Configuración de Cuota */}
+              {/* Configuración de Máximo de Actividades */}
               <Card className="m-2">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Valor de la Cuota Mensual
+                    <Users className="h-5 w-5" />
+                    Límite de Inscripciones Diarias
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="monthlyFee">Valor de la cuota ($)</Label>
+                    <Label htmlFor="maxActivities">
+                      Máximo de actividades por día
+                    </Label>
                     <Input
-                      id="monthlyFee"
+                      id="maxActivities"
                       type="number"
-                      placeholder="Ingresa el valor de la cuota"
-                      min="0"
-                      step="0.01"
-                      value={monthlyFeeInput}
-                      onChange={(e) => setMonthlyFeeInput(e.target.value)}
-                      disabled={loading || isSaving}
+                      min="1"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder="1"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Este será el monto base que se cobrará mensualmente a cada cliente.
+                      Los clientes no podrán inscribirse a más de {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} en el mismo día.
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Información adicional */}
+              {/* Ejemplo explicativo */}
               <Card className="m-2">
                 <CardHeader>
-                  <CardTitle className="text-lg">Información Importante</CardTitle>
+                  <CardTitle className="text-lg">Ejemplo de Funcionamiento</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="bg-muted p-3 rounded-lg">
                     <p className="text-sm text-muted-foreground">
-                      <strong>Consideraciones:</strong>
+                      <strong>Con límite de {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} por día:</strong>
                       <br />
-                      • El valor se aplicará a todos los nuevos pagos generados.
+                      • Un cliente puede inscribirse a máximo {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} en una misma fecha.
                       <br />
-                      • Los pagos pendientes mantendrán su valor original.
+                      • Si intenta inscribirse a más actividades en el mismo día, el sistema lo impedirá.
                       <br />
-                      • Se recomienda notificar a los clientes sobre cambios en la cuota.
+                      • Esta limitación ayuda a distribuir mejor las inscripciones y evitar sobrecargas.
                     </p>
                   </div>
                 </CardContent>
@@ -153,18 +162,18 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
               <Button
                 variant="outline"
                 onClick={handleCancel}
-                disabled={isSaving}
+                disabled={saving || isUpdatingMaxActivitiesPerDay}
                 className="flex-1"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={loading || isSaving || !monthlyFeeInput.trim()}
+                disabled={saving || isUpdatingMaxActivitiesPerDay}
                 className="flex-1"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Guardando..." : "Guardar"}
+                {saving || isUpdatingMaxActivitiesPerDay ? "Guardando..." : "Guardar"}
               </Button>
             </div>
           </div>

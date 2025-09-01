@@ -12,6 +12,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       defaultTheme="light"
       enableSystem={false}
       disableTransitionOnChange
+      storageKey="personal-fit-theme"
       {...props}
     >
       {children}

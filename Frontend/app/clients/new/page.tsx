@@ -3,10 +3,11 @@
 import type React from "react"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { UserRole } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DatePicker } from "@/components/ui/date-picker"
+import { DatePickerScroll } from "@/components/ui/date-picker-scroll"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -18,6 +19,7 @@ import { UserFormType } from "@/lib/types"
 import { Loader2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { BottomNav } from "@/components/ui/bottom-nav"
 
 
 export default function NewClientPage() {
@@ -25,6 +27,9 @@ export default function NewClientPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Use custom hook to redirect to login if not authenticated
+  useRequireAuth()
   const { form, setForm, createClient } = useClients()
 
   const [errors, setErrors] = useState<Partial<UserFormType>>({})
@@ -95,7 +100,7 @@ export default function NewClientPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background mb-32">
       <MobileHeader title="Nuevo Cliente" showBack onBack={() => router.back()} />
 
       <div className="container-centered py-6">
@@ -176,7 +181,7 @@ export default function NewClientPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                  <DatePicker
+                  <DatePickerScroll
                     value={form.birthDate}
                     onChange={(date) => handleInputChange("birthDate", date)}
                   />
@@ -223,6 +228,7 @@ export default function NewClientPage() {
           </CardContent>
         </Card>
       </div>
+      <BottomNav />
     </div>
   )
 }

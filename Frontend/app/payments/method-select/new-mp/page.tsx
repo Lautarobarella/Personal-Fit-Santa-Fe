@@ -2,6 +2,7 @@
 
 import CheckoutForm from '@/components/payments/CheckoutForm';
 import { useAuth } from '@/contexts/auth-provider';
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { MobileHeader } from '@/components/ui/mobile-header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +17,9 @@ export default function NewMercadoPagoPaymentPage() {
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Use custom hook to redirect to login if not authenticated
+    useRequireAuth()
 
     useEffect(() => {
         async function loadProduct() {

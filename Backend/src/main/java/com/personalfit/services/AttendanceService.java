@@ -29,6 +29,9 @@ public class AttendanceService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private SettingsService settingsService;
+
     public AttendanceDTO enrollUser(Long userId, Long activityId) {
         User user = userService.getUserById(userId);
         Activity activity = activityRepository.findById(activityId)
@@ -42,6 +45,16 @@ public class AttendanceService {
         // Check if activity has available slots
         if (activity.getAttendances().size() >= activity.getSlots()) {
             throw new BusinessRuleException("La actividad está completa", "Api/Attendance/enrollUser");
+        }
+
+        // Check maximum activities per day limit
+        Integer maxActivitiesPerDay = settingsService.getMaxActivitiesPerDay();
+        long activitiesOnSameDay = attendanceRepository.countByUserAndActivityDate(user, activity.getDate());
+        
+        if (activitiesOnSameDay >= maxActivitiesPerDay) {
+            throw new BusinessRuleException(
+                String.format("No se puede inscribir a más de %d actividades por día", maxActivitiesPerDay), 
+                "Api/Attendance/enrollUser");
         }
 
         Attendance attendance = new Attendance();

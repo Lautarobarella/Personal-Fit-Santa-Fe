@@ -9,7 +9,6 @@ export interface AuthResponse {
   globalSettings?: GlobalSettingsType
 }
 
-// Función para cargar todas las configuraciones globales
 const loadGlobalSettings = async (): Promise<GlobalSettingsType | null> => {
   try {
     const { fetchAllSettings } = await import('../api/settings/settingsApi')
@@ -20,13 +19,14 @@ const loadGlobalSettings = async (): Promise<GlobalSettingsType | null> => {
   }
 }
 
-export const authenticate = async (email: string, password: string): Promise<UserType | null> => {
+export const authenticate = async (email: string, password: string): Promise<UserType> => {
   try {
     const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // Importante para cookies httpOnly
       body: JSON.stringify({ email, password }),
     })
 
@@ -42,15 +42,7 @@ export const authenticate = async (email: string, password: string): Promise<Use
 
     const authData: AuthResponse = await response.json()
     
-    // Store tokens in localStorage
-    // TODO: Implement secure token storage for production
-    localStorage.setItem('accessToken', authData.accessToken)
-    localStorage.setItem('refreshToken', authData.refreshToken)
-    localStorage.setItem('user', JSON.stringify(authData.user))
-
-    // Cargar configuraciones globales
-    // Las configuraciones ahora se manejan a través del contexto SettingsProvider
-    // No necesitamos guardarlas en localStorage ya que el contexto las cargará desde la DB
+    localStorage.setItem('userId', authData.user.id.toString())
     let settings: GlobalSettingsType | null = authData.globalSettings || null
     
     if (!settings) {
@@ -64,38 +56,33 @@ export const authenticate = async (email: string, password: string): Promise<Use
   }
 }
 
-export const logout = (): void => {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-  localStorage.removeItem('user')
-}
-
-export const getCurrentUser = (): UserType | null => {
-  const userStr = localStorage.getItem('user')
-  if (!userStr) return null
-  
+export const logout = async (): Promise<void> => {
   try {
-    return JSON.parse(userStr)
+
+    await fetch(`${API_CONFIG.BASE_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
   } catch (error) {
-    console.error('Error parsing user from localStorage:', error)
-    return null
+    console.error('Logout error:', error)
+  } finally {
+    localStorage.removeItem('userId')
   }
 }
 
-export const getAccessToken = (): string | null => {
-  return localStorage.getItem('accessToken')
+export const getUserId = (): number | null => {
+  const userIdStr = localStorage.getItem('userId')
+  return userIdStr ? parseInt(userIdStr, 10) : null
 }
 
 export const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    const refreshToken = localStorage.getItem('refreshToken')
-    if (!refreshToken) return null
-
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh?refreshToken=${refreshToken}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -106,13 +93,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     const authData: AuthResponse = await response.json()
     
-    // Update tokens in localStorage
-    localStorage.setItem('accessToken', authData.accessToken)
-    localStorage.setItem('refreshToken', authData.refreshToken)
-    localStorage.setItem('user', JSON.stringify(authData.user))
-
-    // Las configuraciones ahora se manejan a través del contexto SettingsProvider
-    // No necesitamos guardarlas en localStorage
+    localStorage.setItem('userId', authData.user.id.toString())
 
     return authData.accessToken
   } catch (error) {
@@ -133,7 +114,5 @@ export const hasPermission = (userRole: UserRole, requiredRole: UserRole): boole
 }
 
 export const isAuthenticated = (): boolean => {
-  return getAccessToken() !== null
+  return getUserId() !== null
 }
-
-

@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { UserRole } from "@/lib/types"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,6 +25,9 @@ export default function EditClientPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Use custom hook to redirect to login if not authenticated
+  useRequireAuth()
   const { form, setForm, createClient } = useClients()
 
   const [errors, setErrors] = useState<Partial<UserFormType>>({})

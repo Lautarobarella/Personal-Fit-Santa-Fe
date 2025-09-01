@@ -5,9 +5,11 @@ import {
   fetchAllSettings, 
   updateMonthlyFee, 
   updateRegistrationTime, 
-  updateUnregistrationTime 
+  updateUnregistrationTime,
+  updateMaxActivitiesPerDay
 } from '@/api/settings/settingsApi'
 import type { GlobalSettingsType } from '@/lib/types'
+import { useAuth } from '@/contexts/auth-provider'
 
 /**
  * Tipos para el estado del hook
@@ -16,6 +18,7 @@ interface SettingsLoadingStates {
   isUpdatingMonthlyFee: boolean
   isUpdatingRegistrationTime: boolean
   isUpdatingUnregistrationTime: boolean
+  isUpdatingMaxActivitiesPerDay: boolean
 }
 
 interface SettingsMutationResult {
@@ -28,6 +31,7 @@ interface SettingsMutationResult {
  * Centraliza toda la lógica de negocio y estado en un solo lugar
  */
 export function useSettings() {
+  const { user } = useAuth()
   const [settings, setSettings] = useState<GlobalSettingsType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +39,7 @@ export function useSettings() {
     isUpdatingMonthlyFee: false,
     isUpdatingRegistrationTime: false,
     isUpdatingUnregistrationTime: false,
+    isUpdatingMaxActivitiesPerDay: false,
   })
 
   // ===============================
@@ -57,17 +62,35 @@ export function useSettings() {
       setSettings({
         monthlyFee: 0,
         registrationTimeHours: 24,
-        unregistrationTimeHours: 3
+        unregistrationTimeHours: 3,
+        maxActivitiesPerDay: 1
       })
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // Cargar configuraciones al montar el hook
+  // Cargar configuraciones al montar el hook - solo si hay usuario autenticado
   useEffect(() => {
-    loadSettings()
-  }, [loadSettings])
+    // Pequeño delay para asegurar que el AuthProvider se haya inicializado completamente
+    const timer = setTimeout(() => {
+      if (user) {
+        loadSettings()
+      } else {
+        // Si no hay usuario, establecer valores por defecto y parar el loading
+        setSettings({
+          monthlyFee: 0,
+          registrationTimeHours: 24,
+          unregistrationTimeHours: 3,
+          maxActivitiesPerDay: 1
+        })
+        setLoading(false)
+        setError(null)
+      }
+    }, 100) // 100ms delay
+    
+    return () => clearTimeout(timer)
+  }, [loadSettings, user])
 
   // ===============================
   // FUNCIONES DE ACTUALIZACIÓN
@@ -148,6 +171,31 @@ export function useSettings() {
     }
   }, [])
 
+  // Actualizar máximo de actividades por día
+  const updateMaxActivitiesPerDayValue = useCallback(async (maxActivities: number): Promise<SettingsMutationResult> => {
+    try {
+      setLoadingStates(prev => ({ ...prev, isUpdatingMaxActivitiesPerDay: true }))
+      setError(null)
+      
+      const updatedMaxActivities = await updateMaxActivitiesPerDay(maxActivities)
+      setSettings(prev => prev ? { ...prev, maxActivitiesPerDay: updatedMaxActivities } : null)
+      
+      return {
+        success: true,
+        message: 'Máximo de actividades por día actualizado correctamente'
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar máximo de actividades por día'
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isUpdatingMaxActivitiesPerDay: false }))
+    }
+  }, [])
+
   // ===============================
   // FUNCIONES DE UTILIDAD
   // ===============================
@@ -170,13 +218,15 @@ export function useSettings() {
   const monthlyFee = useMemo(() => settings?.monthlyFee ?? 0, [settings])
   const registrationTime = useMemo(() => settings?.registrationTimeHours ?? 24, [settings])
   const unregistrationTime = useMemo(() => settings?.unregistrationTimeHours ?? 3, [settings])
+  const maxActivitiesPerDay = useMemo(() => settings?.maxActivitiesPerDay ?? 1, [settings])
 
   // Estado de carga consolidado
   const isLoading = useMemo(() => 
     loading || 
     loadingStates.isUpdatingMonthlyFee || 
     loadingStates.isUpdatingRegistrationTime || 
-    loadingStates.isUpdatingUnregistrationTime, 
+    loadingStates.isUpdatingUnregistrationTime ||
+    loadingStates.isUpdatingMaxActivitiesPerDay, 
     [loading, loadingStates]
   )
 
@@ -190,6 +240,7 @@ export function useSettings() {
     monthlyFee,
     registrationTime,
     unregistrationTime,
+    maxActivitiesPerDay,
     
     // Loading states
     loading,
@@ -201,6 +252,7 @@ export function useSettings() {
     updateMonthlyFeeValue,
     updateRegistrationTimeValue,
     updateUnregistrationTimeValue,
+    updateMaxActivitiesPerDayValue,
     reloadSettings,
     clearError,
     

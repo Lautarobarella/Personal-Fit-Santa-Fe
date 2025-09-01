@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
@@ -38,6 +39,9 @@ function DashboardContent() {
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  
+  // Use custom hook to redirect to login if not authenticated
+  useRequireAuth()
   const [dashboardStats, setDashboardStats] = useState({
     monthlyRevenue: 0,
     activeClients: 0,
@@ -56,7 +60,6 @@ function DashboardContent() {
 
   // Usar el contexto unificado de pagos
   const {
-    pendingPayments,
     totalPendingPayments,
     currentMonthRevenue,
     isLoading: isLoadingPayments
@@ -269,10 +272,7 @@ function DashboardContent() {
       };
 
       const nextClassValue = formatNextClass();
-
-      // Usar el estado de membresía validado por el backend
-      const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
-
+      const nextClassName = clientStats.nextClass?.name ?? "Sin clase";
       // Obtener días restantes del backend directamente
       const diasRestantes = clientStats.remainingDays ?? 0;
 
@@ -287,7 +287,7 @@ function DashboardContent() {
           title: "Próxima Clase",
           value: nextClassValue,
           icon: Clock,
-          description: "próxima",
+          description: nextClassName,
           color: "secondary",
           dynamicFontSize: "text-2xl"
         },
@@ -303,7 +303,7 @@ function DashboardContent() {
           title: "Faltas del mes",
           value: `${faltasDelMes}`,
           icon: Target,
-          description: "actividades perdidas",
+          description: "inasistencias",
           color: "primary",
           dynamicFontSize: "text-2xl"
         },

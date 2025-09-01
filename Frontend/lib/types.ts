@@ -53,6 +53,7 @@ export interface GlobalSettingsType {
   monthlyFee: number
   registrationTimeHours: number
   unregistrationTimeHours: number
+  maxActivitiesPerDay: number
 }
 
 export enum NotificationCategoryType {

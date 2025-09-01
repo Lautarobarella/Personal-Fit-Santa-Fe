@@ -1,8 +1,10 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
+import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -12,17 +14,19 @@ import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
-import { BarChart3, Bell, Clock, DollarSign, LogOut, Moon, Shield, Smartphone, User } from "lucide-react"
+import { BarChart3, Bell, Clock, DollarSign, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
+  const { user } = useRequireAuth()
   const router = useRouter()
   const { toast } = useToast()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
+  const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -45,7 +49,6 @@ export default function SettingsPage() {
     })
   }
 
-  if (!user) return null
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -58,16 +61,16 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarFallback className="text-lg">
-                  {`${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`}
+                  {`${user?.firstName[0] ?? ""}${user?.lastName[0] ?? ""}`}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-semibold">{user.firstName + " " + user.lastName}</h2>
+                <h2 className="text-xl font-semibold">{user?.firstName + " " + user?.lastName}</h2>
                 {/* <p className="text-muted-foreground">{user.email}</p> */}
                 <p className="text-sm text-primary capitalize">
-                  {user.role === UserRole.ADMIN && "Administrador"}
-                  {user.role === UserRole.TRAINER && "Entrenador"}
-                  {user.role === UserRole.CLIENT && "Cliente"}
+                  {user?.role === UserRole.ADMIN && "Administrador"}
+                  {user?.role === UserRole.TRAINER && "Entrenador"}
+                  {user?.role === UserRole.CLIENT && "Cliente"}
 
                 </p>
               </div>
@@ -132,7 +135,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Admin Settings */}
-        {user.role === UserRole.ADMIN && (
+        {user?.role === UserRole.ADMIN && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -157,6 +160,15 @@ export default function SettingsPage() {
               >
                 <Clock className="h-4 w-4 mr-3" />
                 Configurar tiempos de actividades
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-transparent"
+                onClick={() => setShowMaxActivitiesDialog(true)}
+              >
+                <Users className="h-4 w-4 mr-3" />
+                Máximo de actividades por día
               </Button>
 
               <Button 
@@ -194,6 +206,12 @@ export default function SettingsPage() {
       <MonthlyFeeDialog 
         open={showMonthlyFeeDialog} 
         onOpenChange={setShowMonthlyFeeDialog} 
+      />
+
+      {/* Max Activities Dialog */}
+      <MaxActivitiesDialog 
+        open={showMaxActivitiesDialog} 
+        onOpenChange={setShowMaxActivitiesDialog} 
       />
     </div>
   )

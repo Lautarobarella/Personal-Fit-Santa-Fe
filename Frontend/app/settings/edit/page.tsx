@@ -2,6 +2,7 @@
 
 import { updateUserPassword } from "@/api/clients/usersApi"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,7 +20,7 @@ interface PasswordVisibility {
 }
 
 export default function EditProfilePage() {
-    const { user } = useAuth()
+    const { user } = useRequireAuth()
     const router = useRouter()
     const { toast } = useToast()
 
@@ -143,7 +144,7 @@ export default function EditProfilePage() {
         router.back()
     }
 
-    if (!user) return null
+
 
     return (
         <div className="min-h-screen bg-background">

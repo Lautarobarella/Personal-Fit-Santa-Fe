@@ -15,16 +15,18 @@ export async function fetchAllSettings(): Promise<GlobalSettingsType> {
       return allSettings;
     } catch (unifiedError) {
       // Fallback: obtener configuraciones individualmente
-      const [monthlyFee, registrationTimeHours, unregistrationTimeHours] = await Promise.all([
+      const [monthlyFee, registrationTimeHours, unregistrationTimeHours, maxActivitiesPerDay] = await Promise.all([
         fetchMonthlyFee(),
         fetchRegistrationTime(),
-        fetchUnregistrationTime()
+        fetchUnregistrationTime(),
+        fetchMaxActivitiesPerDay()
       ]);
       
       return {
         monthlyFee,
         registrationTimeHours,
-        unregistrationTimeHours
+        unregistrationTimeHours,
+        maxActivitiesPerDay
       };
     }
   } catch (error) {
@@ -113,6 +115,34 @@ export async function updateUnregistrationTime(hours: number): Promise<number> {
     return await jwtPermissionsApi.post('/api/settings/unregistration-time', { hours });
   } catch (error) {
     handleApiError(error, 'Error al actualizar el tiempo de desinscripción');
+    throw error;
+  }
+}
+
+/**
+ * Obtiene el máximo de actividades por día configurado
+ * @returns Promise<number> Máximo de actividades por día
+ */
+export async function fetchMaxActivitiesPerDay(): Promise<number> {
+  try {
+    const maxActivities = await jwtPermissionsApi.get('/api/settings/max-activities-per-day');
+    return maxActivities;
+  } catch (error) {
+    handleApiError(error, 'Error al obtener el máximo de actividades por día');
+    throw error;
+  }
+}
+
+/**
+ * Actualiza el máximo de actividades por día
+ * @param maxActivities - Máximo número de actividades
+ * @returns Promise<number> Máximo actualizado de actividades por día
+ */
+export async function updateMaxActivitiesPerDay(maxActivities: number): Promise<number> {
+  try {
+    return await jwtPermissionsApi.post('/api/settings/max-activities-per-day', { hours: maxActivities });
+  } catch (error) {
+    handleApiError(error, 'Error al actualizar el máximo de actividades por día');
     throw error;
   }
 }

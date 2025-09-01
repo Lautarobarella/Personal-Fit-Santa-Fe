@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +22,7 @@ import { useActivityContext } from "@/contexts/activity-provider"
 
 
 export default function NewActivityPage() {
-  const { user } = useAuth()
+  const { user } = useRequireAuth()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -38,11 +39,12 @@ export default function NewActivityPage() {
 
   const [isLoading, setIsLoading] = useState(false)
 
+  // Estado para manejar la inicialización
+  const [isInitialized, setIsInitialized] = useState(false)
+
   // Verificar permisos - solo ADMIN puede acceder
   useEffect(() => {
-    if (user && user.role === UserRole.ADMIN) {
-      loadTrainers()
-    } else {
+    if (user?.role !== UserRole.ADMIN) {
       toast({
         title: "Acceso denegado",
         description: "No tienes permisos para crear actividades",
@@ -51,7 +53,13 @@ export default function NewActivityPage() {
       router.push("/activities")
       return
     }
-  }, [user, router, toast, loadTrainers])
+    
+    // Solo cargar trainers una vez que se verificaron los permisos
+    if (!isInitialized) {
+      loadTrainers()
+      setIsInitialized(true)
+    }
+  }, [user, router, toast, loadTrainers, isInitialized])
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -106,7 +114,7 @@ export default function NewActivityPage() {
       const now = new Date()
       const selectedTime = new Date()
       selectedTime.setHours(hours, minutes, 0, 0)
-      
+
       if (selectedTime <= now) {
         toast({
           title: "Error",
@@ -139,8 +147,14 @@ export default function NewActivityPage() {
     }
   }
 
-  if (user?.role !== UserRole.ADMIN) {
-    return null
+  if (!user || user.role !== UserRole.ADMIN || !isInitialized) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p>Verificando permisos...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -156,7 +170,7 @@ export default function NewActivityPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" key="activity-form">
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="text-md font-medium">Información Básica</h3>
@@ -259,7 +273,7 @@ export default function NewActivityPage() {
               </div>
 
               {/* Recurring Schedule */}
-              <div className="space-y-4 pt-6 pb-6">
+              <div className="space-y-4 pt-4 ">
                 <div className="flex items-center justify-between">
                   <h3 className="text-md font-medium flex items-center gap-2">
                     <Repeat className="h-5 w-5" />
@@ -273,7 +287,17 @@ export default function NewActivityPage() {
                     />
                   </div>
                 </div>
+                {/* Leyenda explicativa */}
+                <div className="bg-muted/50 border border-border rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <span className="font-medium text-foreground">¿Cómo funciona?</span>
+                    <br />
+                    Si activas esta opción, una vez que la actividad termine, se creará automáticamente una actividad idéntica para la próxima semana en el mismo día y horario.
+                  </p>
+                </div>
               </div>
+
+
 
               {/* Capacity */}
               <div className="space-y-4">

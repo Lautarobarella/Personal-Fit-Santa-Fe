@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +13,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export default function MonthlyRevenuePage() {
-    const { user } = useAuth()
+    const { user } = useRequireAuth()
     const router = useRouter()
     const [showAmounts, setShowAmounts] = useState(true)
 

@@ -2,6 +2,7 @@
 
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 import { useAuth } from "@/contexts/auth-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { useToast } from "@/hooks/use-toast"
@@ -13,6 +14,9 @@ export default function NewPaymentPage() {
   const { createPayment } = usePaymentContext()
   const { user } = useAuth()
   const router = useRouter()
+
+  // Use custom hook to redirect to login if not authenticated
+  useRequireAuth()
 
   const handleCreatePayment = async (payment: {
     clientDni: number

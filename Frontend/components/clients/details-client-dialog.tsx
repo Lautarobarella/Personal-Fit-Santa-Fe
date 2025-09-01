@@ -62,7 +62,19 @@ export function ClientDetailsDialog({
     try {
       if (!date) return "N/A";
 
-      const parsedDate = typeof date === "string" ? new Date(date) : date;
+      let parsedDate: Date;
+      
+      if (typeof date === "string") {
+        // Si es una fecha en formato YYYY-MM-DD (fecha de nacimiento), parseamos sin zona horaria
+        if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = date.split('-').map(Number);
+          parsedDate = new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
+        } else {
+          parsedDate = new Date(date);
+        }
+      } else {
+        parsedDate = date;
+      }
 
       if (isNaN(parsedDate.getTime())) {
         console.warn("Fecha inválida:", date);

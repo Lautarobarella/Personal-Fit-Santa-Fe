@@ -39,9 +39,14 @@ export function DatePicker({
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isOpen])
 
   // Actualizar fecha seleccionada cuando cambia el value
   React.useEffect(() => {
@@ -211,6 +216,7 @@ export function DatePicker({
               <Button
                 variant="ghost"
                 size="sm"
+                type="button"
                 onClick={goToNextMonth}
                 className="h-6 w-6 p-0 hover:bg-accent"
               >
@@ -219,6 +225,7 @@ export function DatePicker({
               <Button
                 variant="ghost"
                 size="sm"
+                type="button"
                 onClick={goToPreviousMonth}
                 className="h-6 w-6 p-0 hover:bg-accent"
               >
