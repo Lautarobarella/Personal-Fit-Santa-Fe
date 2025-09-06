@@ -71,17 +71,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # URLs para comunicación interna entre servicios Docker
-      # NEXT_PUBLIC_API_URL: http://personalfit-backend:8080  # Comentado para desarrollo local
-      NEXT_PUBLIC_API_URL: http://localhost:8080
-      # URLs de producción (comentadas para desarrollo local)
-      # NEXT_PUBLIC_BASE_URL: https://personalfitsantafe.com
+    
+      # Para produccion
       # NEXT_PUBLIC_FRONTEND_URL: https://personalfitsantafe.com
-      # URLs para desarrollo local
-      NEXT_PUBLIC_BASE_URL: http://localhost:3000
-      NEXT_PUBLIC_FRONTEND_URL: http://localhost:3000
-      # NEXT_PUBLIC_FILES_URL: http://personalfit-backend:8080  # Comentado para desarrollo local
-      NEXT_PUBLIC_FILES_URL: http://localhost:8080
+      #  NEXT_PUBLIC_BACKEND_URL:: http://personalfit-backend:8080
+
+      # Para desarrollo
+      # NEXT_PUBLIC_FRONTEND_URL: http://localhost:3000
+      # NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
+        
       
       # JWT_SECRET: ${JWT_SECRET}
       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
@@ -89,7 +87,6 @@ services:
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
       NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
-      # Entorno de MercadoPago para desarrollo local (sandbox)
       NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
       
       # Configuración de Next.js
@@ -114,6 +111,6 @@ services:
 volumes:
   # Volúmenes persistentes que conservan los datos entre deployments
   pgdata:
-    # Datos de PostgreSQL
+  # Datos de PostgreSQL
   uploads_data:
     # Archivos de comprobantes de pago para desarrollo local

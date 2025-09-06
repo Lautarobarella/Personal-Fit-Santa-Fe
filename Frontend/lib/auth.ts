@@ -1,5 +1,5 @@
 import { API_CONFIG } from "../api/JWTAuth/config"
-import type { UserRole, UserType, GlobalSettingsType } from "./types"
+import type { GlobalSettingsType, UserRole, UserType } from "./types"
 
 export interface AuthResponse {
   accessToken: string
@@ -21,7 +21,7 @@ const loadGlobalSettings = async (): Promise<GlobalSettingsType | null> => {
 
 export const authenticate = async (email: string, password: string): Promise<UserType> => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login`, {
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export const authenticate = async (email: string, password: string): Promise<Use
 export const logout = async (): Promise<void> => {
   try {
 
-    await fetch(`${API_CONFIG.BASE_URL}/api/auth/logout`, {
+    await fetch(`${API_CONFIG.BACKEND_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     })
@@ -77,7 +77,7 @@ export const getUserId = (): number | null => {
 
 export const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh`, {
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
