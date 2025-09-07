@@ -65,11 +65,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # URLs para comunicación interna entre servicios Docker
-      NEXT_PUBLIC_API_URL: http://personalfit-backend:8080
-      NEXT_PUBLIC_BASE_URL: https://personalfitsantafe.com
-      NEXT_PUBLIC_FRONTEND_URL: https://personalfitsantafe.com
-      NEXT_PUBLIC_FILES_URL: http://personalfit-backend:8080
+      # URL del backend - se configura aquí centralmente
+      NEXT_PUBLIC_API_BASE_URL: https://personalfitsantafe.com
+
       JWT_SECRET: ${JWT_SECRET}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
       NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
