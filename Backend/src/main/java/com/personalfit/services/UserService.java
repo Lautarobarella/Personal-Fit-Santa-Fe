@@ -464,6 +464,38 @@ public class UserService {
     }
 
     /**
+     * Actualiza los datos del perfil de un usuario
+     * 
+     * @param updateProfileDTO DTO con los datos a actualizar
+     * @throws EntityNotFoundException Si el usuario no existe
+     */
+    public void updateProfile(com.personalfit.dto.User.UpdateProfileDTO updateProfileDTO) {
+        log.info("Updating profile for user ID: {}", updateProfileDTO.getUserId());
+
+        User user = userRepository.findById(updateProfileDTO.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + updateProfileDTO.getUserId(),
+                        "UserService/updateProfile"));
+
+        // Actualizar solo los campos que no sean nulos o vacíos
+        if (updateProfileDTO.getAddress() != null && !updateProfileDTO.getAddress().trim().isEmpty()) {
+            user.setAddress(updateProfileDTO.getAddress().trim());
+        }
+        
+        if (updateProfileDTO.getPhone() != null && !updateProfileDTO.getPhone().trim().isEmpty()) {
+            user.setPhone(updateProfileDTO.getPhone().trim());
+        }
+        
+        if (updateProfileDTO.getEmergencyPhone() != null) {
+            // Permitir vacío para borrar el teléfono de emergencia
+            user.setEmergencyPhone(updateProfileDTO.getEmergencyPhone().trim().isEmpty() ? 
+                null : updateProfileDTO.getEmergencyPhone().trim());
+        }
+
+        userRepository.save(user);
+        log.info("Profile updated successfully for user ID: {}", updateProfileDTO.getUserId());
+    }
+
+    /**
      * Calcula los días restantes del plan de un cliente basado en su último pago
      * activo
      * 

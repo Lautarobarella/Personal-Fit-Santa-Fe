@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
-import { BarChart3, Bell, Clock, CreditCard, DollarSign, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
+import { BarChart3, Bell, Clock, CreditCard, DollarSign, Key, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -76,10 +76,16 @@ export default function SettingsPage() {
 
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => router.push('/settings/edit')}>
-                <User className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => router.push('/settings/edit')}>
+                  <User className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => router.push('/settings/change-password')}>
+                  <Key className="h-4 w-4 mr-2" />
+                  Contraseña
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

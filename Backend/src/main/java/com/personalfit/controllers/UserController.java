@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.personalfit.dto.User.ClientStatsDTO;
 import com.personalfit.dto.User.CreateUserDTO;
 import com.personalfit.dto.User.UpdatePasswordDTO;
+import com.personalfit.dto.User.UpdateProfileDTO;
 import com.personalfit.dto.User.UserTypeDTO;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
@@ -141,6 +142,40 @@ public class UserController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Contraseña actualizada exitosamente");
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            response.put("success", false);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    @PutMapping("/update-profile")
+    public ResponseEntity<Map<String, Object>> updateProfile(
+            @Valid @RequestBody UpdateProfileDTO updateProfileDTO,
+            Authentication authentication) {
+        try {
+            // Verificar que el usuario solo pueda cambiar su propio perfil (excepto ADMIN)
+            String currentUserEmail = authentication.getName();
+            User currentUser = userService.getUserByEmail(currentUserEmail);
+            
+            // Solo permitir si es ADMIN o si está cambiando su propio perfil
+            if (!currentUser.getRole().equals(UserRole.ADMIN) && 
+                !currentUser.getId().equals(updateProfileDTO.getUserId())) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "No tienes permisos para cambiar el perfil de otro usuario");
+                response.put("success", false);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+            
+            userService.updateProfile(updateProfileDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Perfil actualizado exitosamente");
             response.put("success", true);
             return ResponseEntity.ok(response);
             

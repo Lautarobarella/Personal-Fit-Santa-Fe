@@ -60,6 +60,20 @@ export async function updateUserPassword(data: {
   }
 }
 
+export async function updateUserProfile(data: {
+  userId: number;
+  address?: string;
+  phone?: string;
+  emergencyPhone?: string;
+}) {
+  try {
+    return await jwtPermissionsApi.put('/api/users/update-profile', data);
+  } catch (error) {
+    // No mostrar toasts aquí, dejar que el componente maneje el error
+    throw error;
+  }
+}
+
 /**
  * Verifica si un usuario tiene membresía activa
  * @param userId ID del usuario
