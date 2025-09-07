@@ -37,6 +37,8 @@ public class User {
     private String password;
     @Column(name = "phone")
     private String phone;
+    @Column(name = "emergency_phone")
+    private String emergencyPhone;
     @Column(name = "email")
     private String email;
     private String avatar; // Por ahora son las iniciales del nombre y apellido, ejemplo: Juan Pérez -> JP

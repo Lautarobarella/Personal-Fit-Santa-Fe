@@ -16,6 +16,7 @@ public class UserTypeDTO {
     private String firstName;
     private String lastName;
     private String phone;
+    private String emergencyPhone;
     private String email;
     private String avatar;
     private LocalDate joinDate;
@@ -29,13 +30,14 @@ public class UserTypeDTO {
     private Integer age;
     private Integer activitiesCount; //
 
-    public UserTypeDTO(Long id, String firstName, String lastName, String phoneNumber, String email, String avatarName,
+    public UserTypeDTO(Long id, String firstName, String lastName, String phoneNumber, String emergencyPhone, String email, String avatarName,
             LocalDate joinDate, String address, LocalDate birthDate, Integer dni, UserRole role, String password,
             UserStatus status, LocalDate lastActivity, Integer age, Integer activitiesCount) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phoneNumber;
+        this.emergencyPhone = emergencyPhone;
         this.email = email;
         this.avatar = avatarName;
         this.joinDate = joinDate;
@@ -55,6 +57,7 @@ public class UserTypeDTO {
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.phone = user.getPhone();
+        this.emergencyPhone = user.getEmergencyPhone();
         this.email = user.getEmail();
         this.avatar = user.getAvatar();
         this.joinDate = user.getJoinDate();

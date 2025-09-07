@@ -179,6 +179,19 @@ export default function EditClientPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="emergencyPhone">Teléfono de Emergencia</Label>
+                  <Input
+                    id="emergencyPhone"
+                    type="tel"
+                    value={form.emergencyPhone || ""}
+                    onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
+                    placeholder="324 666 789012"
+                    className={errors.emergencyPhone ? "border-error" : ""}
+                  />
+                  {errors.emergencyPhone && <p className="text-sm text-error">{errors.emergencyPhone}</p>}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
                   <Input
                     id="birthDate"

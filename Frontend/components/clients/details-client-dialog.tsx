@@ -316,6 +316,14 @@ export function ClientDetailsDialog({
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <span>{selectedClient.phone}</span>
                     </div>
+                    {selectedClient.emergencyPhone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-red-500" />
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">Emergencia:</span> {selectedClient.emergencyPhone}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span>{selectedClient.age} años</span>

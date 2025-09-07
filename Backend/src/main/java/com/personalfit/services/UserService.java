@@ -69,6 +69,7 @@ public class UserService {
         userToCreate.setLastName(newUser.getLastName());
         userToCreate.setEmail(newUser.getEmail());
         userToCreate.setPhone(newUser.getPhone());
+        userToCreate.setEmergencyPhone(newUser.getEmergencyPhone());
         userToCreate.setRole(newUser.getRole());
         userToCreate.setAvatar(newUser.getFirstName().substring(0, 1).toUpperCase() +
                 newUser.getLastName().substring(0, 1).toUpperCase()); // Setea las iniciales en mayúsculas

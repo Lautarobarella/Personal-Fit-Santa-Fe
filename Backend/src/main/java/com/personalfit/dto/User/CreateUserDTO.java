@@ -31,6 +31,7 @@ public class CreateUserDTO {
 //    @NotBlank(message = "The password mustn't be empty")
     private String password;
     private String phone; // Este es opcional, sin anotaciones de nulidad
+    private String emergencyPhone; // Teléfono de emergencia, también opcional
 
     @NotNull(message = "The DNI number mustn't be empty")
     private String dni;

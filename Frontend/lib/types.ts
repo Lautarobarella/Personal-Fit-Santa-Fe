@@ -77,6 +77,7 @@ export interface UserDetailInfo {
   lastName: string
   email: string
   phone: string
+  emergencyPhone?: string
   age: number
   birthDate: Date | string | null
   address: string
@@ -106,6 +107,7 @@ export interface UserType {
   lastName: string
   email: string
   phone: string
+  emergencyPhone?: string
   age: number
   birthDate: Date | string | null
   address: string
@@ -125,6 +127,7 @@ export interface UserFormType {
   lastName: string
   email: string
   phone: string
+  emergencyPhone?: string
   birthDate: string
   address: string
   role: UserRole

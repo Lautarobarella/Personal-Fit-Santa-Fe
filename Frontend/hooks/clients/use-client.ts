@@ -12,6 +12,7 @@ export function useClients() {
     lastName: "",
     email: "",
     phone: "",
+    emergencyPhone: "",
     address: "",
     role: UserRole.CLIENT,
     joinDate: "",
