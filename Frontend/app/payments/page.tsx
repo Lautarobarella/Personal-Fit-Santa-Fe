@@ -1,10 +1,9 @@
 "use client"
 
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
 import { useSettings } from "@/hooks/settings/use-settings"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
@@ -193,8 +192,24 @@ export default function PaymentsPage() {
 
         return matchesSearch && matchesMethod
     })
+    
+    // Ordenar todos los pagos: más nuevos primero (descendente)
+    const sortedAllPayments = [...filteredPayments].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime()
+        const dateB = new Date(b.createdAt || 0).getTime()
+        return dateB - dateA // Descendente: más nuevos primero
+    })
+    
     const paidPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PAID)
-    const pendingPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PENDING)
+    
+    // Ordenar pagos pendientes: más viejos primero (ascendente)
+    const pendingPayments = filteredPayments
+        .filter((p) => p.status === PaymentStatus.PENDING)
+        .sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime()
+            const dateB = new Date(b.createdAt || 0).getTime()
+            return dateA - dateB // Ascendente: más viejos primero
+        })
 
     // Calcular ingresos del mes actual de la misma manera que en dashboard
     const currentMonth = new Date().getMonth()
@@ -380,7 +395,7 @@ export default function PaymentsPage() {
                     )}
 
                     <TabsContent value="all" className="space-y-3 mt-4">
-                        {filteredPayments.map((p) => (
+                        {sortedAllPayments.map((p) => (
                             <Card key={p.id}>
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">

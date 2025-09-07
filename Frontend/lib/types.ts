@@ -216,6 +216,14 @@ export interface PaymentType {
   rejectionReason?: string
   receiptId?: number | null
   receiptUrl?: string | null
+  // Para pagos múltiples
+  associatedUsers?: PaymentUserInfo[]
+}
+
+export interface PaymentUserInfo {
+  userId: number
+  userName: string
+  userDni: number
 }
 
 export interface MonthlyRevenue {

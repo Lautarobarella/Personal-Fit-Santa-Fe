@@ -487,12 +487,30 @@ public class PaymentService {
     }
 
     private PaymentTypeDTO convertToPaymentTypeDTO(Payment payment) {
-        // Obtener usuarios asociados al pago
+        // Obtener usuarios asociados al pago, con el creador primero
         List<PaymentTypeDTO.PaymentUserInfo> associatedUsers = new ArrayList<>();
         
         if (payment.getPaymentUsers() != null && !payment.getPaymentUsers().isEmpty()) {
+            // Primero agregar el creador si existe
+            PaymentTypeDTO.PaymentUserInfo creatorInfo = null;
+            if (payment.getCreatedBy() != null) {
+                creatorInfo = PaymentTypeDTO.PaymentUserInfo.builder()
+                        .userId(payment.getCreatedBy().getId())
+                        .userName(payment.getCreatedBy().getFullName())
+                        .userDni(payment.getCreatedBy().getDni())
+                        .build();
+                associatedUsers.add(creatorInfo);
+            }
+            
+            // Luego agregar los demás usuarios (excluyendo el creador si ya fue agregado)
             for (PaymentUser paymentUser : payment.getPaymentUsers()) {
                 User user = paymentUser.getUser();
+                
+                // Omitir el usuario creador si ya fue agregado
+                if (payment.getCreatedBy() != null && user.getId().equals(payment.getCreatedBy().getId())) {
+                    continue;
+                }
+                
                 PaymentTypeDTO.PaymentUserInfo userInfo = PaymentTypeDTO.PaymentUserInfo.builder()
                         .userId(user.getId())
                         .userName(user.getFullName())

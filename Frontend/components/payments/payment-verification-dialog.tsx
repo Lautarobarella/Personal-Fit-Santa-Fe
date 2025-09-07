@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -131,9 +131,9 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl h-[90vh] flex flex-col">
 
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
             Verificar Comprobante de Pago
@@ -141,9 +141,10 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
           <DialogDescription>Revisa el comprobante subido por el cliente y aprueba o rechaza el pago</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[60vh]">
           {/* Payment Info */}
-          <Card className="m-2">
+          <Card>
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
@@ -174,9 +175,32 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
             </CardContent>
           </Card>
 
+          {/* Associated Users card - Solo mostrar si hay múltiples usuarios */}
+          {selectedPayment.associatedUsers && selectedPayment.associatedUsers.length > 1 && (
+            <Card>
+              <CardContent className="p-4">
+                <Label className="text-sm font-medium mb-3 block">Clientes Relacionados ({selectedPayment.associatedUsers.length})</Label>
+                <div className="space-y-2">
+                  {selectedPayment.associatedUsers.map((user: any, index: number) => (
+                    <div key={user.userId} className="flex items-center gap-3 p-2 bg-muted/50 rounded">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <span className="font-medium">{user.userName}</span>
+                        <span className="text-muted-foreground ml-2">({user.userDni})</span>
+                      </div>
+                      {index === 0 && (
+                        <Badge variant="outline" className="text-xs">Creador</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Receipt Display */}
           {selectedPayment.receiptId ? (
-            <Card className="m-2">
+            <Card>
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
                 <PaymentReceiptDisplay
@@ -188,7 +212,7 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
               </CardContent>
             </Card>
           ) : (
-            <Card className="m-2">
+            <Card>
               <CardContent className="py-8 text-center">
                 <FileImage className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">No hay comprobante subido</p>
@@ -208,22 +232,26 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
 
           {/* Rejection Reason Input (for new rejections) */}
           {selectedPayment.status === PaymentStatus.PENDING && (
-            <div className="space-y-2 pl-4 pr-4 pb-4">
-              <Label htmlFor="rejectionReason">
-                Razón del rechazo (opcional para aprobación, requerida para rechazo)
-              </Label>
-              <Textarea
-                id="rejectionReason"
-                placeholder="Explica por qué se rechaza el pago..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={3}
-              />
-            </div>
+            <Card>
+              <CardContent className="p-4">
+                <Label htmlFor="rejectionReason" className="text-sm font-medium">
+                  Razón del rechazo (opcional para aprobación, requerida para rechazo)
+                </Label>
+                <Textarea
+                  id="rejectionReason"
+                  placeholder="Explica por qué se rechaza el pago..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={3}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
           )}
         </div>
 
-        <DialogFooter className="flex gap-3">
+        {/* Fixed footer with action buttons */}
+        <DialogFooter className="flex-shrink-0 flex gap-3 pt-6 border-t mt-4">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
