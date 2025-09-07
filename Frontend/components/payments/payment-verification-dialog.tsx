@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useToast } from "@/hooks/use-toast"
-import { PaymentStatus, PaymentType } from "@/lib/types"
+import { MethodType, PaymentStatus, PaymentType } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -198,26 +198,46 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
             </Card>
           )}
 
-          {/* Receipt Display */}
-          {selectedPayment.receiptId ? (
+          {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
+          {selectedPayment.notes && (
             <Card>
               <CardContent className="p-4">
-                <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
-                <PaymentReceiptDisplay
-                  fileId={selectedPayment.receiptId}
-                  fileName={`comprobante-${selectedPayment.clientName}-${selectedPayment.id}`}
-                  className=""
-                  showActions={true}
-                />
+                <Label className="text-sm font-medium mb-2 block">
+                  {selectedPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
+                </Label>
+                <div className={`p-3 rounded text-sm ${
+                  selectedPayment.method === MethodType.CASH 
+                    ? "bg-amber-50 border border-amber-200 text-amber-800" 
+                    : "bg-muted/50"
+                }`}>
+                  {selectedPayment.notes}
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <FileImage className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No hay comprobante subido</p>
-              </CardContent>
-            </Card>
+          )}
+
+          {/* Receipt Display - Solo para métodos que NO sean efectivo */}
+          {selectedPayment.method !== MethodType.CASH && (
+            selectedPayment.receiptId ? (
+              <Card>
+                <CardContent className="p-4">
+                  <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
+                  <PaymentReceiptDisplay
+                    fileId={selectedPayment.receiptId}
+                    fileName={`comprobante-${selectedPayment.clientName}-${selectedPayment.id}`}
+                    className=""
+                    showActions={true}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <FileImage className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No hay comprobante subido</p>
+                </CardContent>
+              </Card>
+            )
           )}
 
           {/* Rejection Reason */}

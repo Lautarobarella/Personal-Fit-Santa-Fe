@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
-import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
+import { MethodType, PaymentStatus, PaymentType, UserRole } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -294,20 +294,40 @@ export default function PaymentVerificationPage() {
                 </Card>
               )}
 
-              {/* Receipt section */}
-              <Card className="mb-2">
-                <CardContent className="p-2.5">
-                  <Label className="text-sm font-medium mb-1.5 block">Comprobante de Pago</Label>
-                  <PaymentReceiptDisplay
-                    fileId={currentPayment.receiptId}
-                    fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
-                    className=""
-                    showActions={true}
-                    pdfHeight="280px"
-                    imageHeight="280px"
-                  />
-                </CardContent>
-              </Card>
+              {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
+              {currentPayment.notes && (
+                <Card className="mb-2">
+                  <CardContent className="p-2.5">
+                    <Label className="text-sm font-medium mb-1.5 block">
+                      {currentPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
+                    </Label>
+                    <div className={`p-2 rounded text-sm ${
+                      currentPayment.method === MethodType.CASH 
+                        ? "bg-amber-50 border border-amber-200 text-amber-800" 
+                        : "bg-muted/50"
+                    }`}>
+                      {currentPayment.notes}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Receipt section - Solo para métodos que NO sean efectivo */}
+              {currentPayment.method !== MethodType.CASH && (
+                <Card className="mb-2">
+                  <CardContent className="p-2.5">
+                    <Label className="text-sm font-medium mb-1.5 block">Comprobante de Pago</Label>
+                    <PaymentReceiptDisplay
+                      fileId={currentPayment.receiptId}
+                      fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
+                      className=""
+                      showActions={true}
+                      pdfHeight="280px"
+                      imageHeight="280px"
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Rejection reason */}
               <Card className="mb-2">

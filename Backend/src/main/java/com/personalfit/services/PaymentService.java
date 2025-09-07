@@ -398,6 +398,7 @@ public class PaymentService {
                 .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
                 .expiresAt(request.getExpiresAt())
                 .confNumber(request.getConfNumber())
+                .notes(request.getNotes()) // Agregar las notas
                 .build();
     }
 
@@ -550,6 +551,7 @@ public class PaymentService {
                 .updatedAt(payment.getUpdatedAt())
                 .receiptId(payment.getPaymentFile() != null ? payment.getPaymentFile().getId() : null)
                 .receiptUrl(payment.getPaymentFile() != null ? "/api/files/" + payment.getPaymentFile().getId() : null)
+                .notes(payment.getNotes()) // Agregar las notas
                 .build();
     }
 

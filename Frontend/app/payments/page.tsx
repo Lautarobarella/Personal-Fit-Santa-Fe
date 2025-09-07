@@ -468,7 +468,7 @@ export default function PaymentsPage() {
                                                 onClick={() => handleVerificationClick(p.id)}
                                             >
                                                 <Eye className="h-4 w-4 mr-2" />
-                                                Verificar Comprobante
+                                                Verificar Pago
                                             </Button>
                                         )}
                                     </div>

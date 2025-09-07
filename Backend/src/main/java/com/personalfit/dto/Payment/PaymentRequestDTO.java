@@ -37,6 +37,7 @@ public class PaymentRequestDTO {
     private LocalDateTime expiresAt;
     private MethodType methodType;
     private PaymentStatus paymentStatus;
+    private String notes; // Notas adicionales del pago
     
     /**
      * Método helper para determinar si es un pago múltiple

@@ -36,6 +36,7 @@ public class PaymentTypeDTO {
     private LocalDateTime expiresAt;
     private Long receiptId;
     private MethodType method;
+    private String notes; // Notas adicionales del pago
     
     /**
      * Información básica de un usuario asociado al pago

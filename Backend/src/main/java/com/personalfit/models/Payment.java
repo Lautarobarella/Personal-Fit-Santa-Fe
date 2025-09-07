@@ -38,6 +38,7 @@ public class Payment {
     private Long id;
     private Long confNumber;
     private String rejectionReason;
+    private String notes; // Notas adicionales del pago (especialmente para efectivo)
     private Double amount;
     @Enumerated(EnumType.STRING)
     private MethodType methodType;

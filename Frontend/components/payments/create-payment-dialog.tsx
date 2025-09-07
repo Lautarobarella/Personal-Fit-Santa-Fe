@@ -36,6 +36,7 @@ interface CreatePaymentDialogProps {
         createdAt: string
         expiresAt: string
         method: MethodType
+        notes?: string // Notas adicionales del pago
         file?: File
     }) => Promise<void>
 }
@@ -87,8 +88,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Hook para obtener configuraciones globales (incluyendo monthly fee)
     const { monthlyFee } = useSettings()
 
-    // Estado para método de pago
-    const [paymentMethod, setPaymentMethod] = useState<MethodType>(MethodType.TRANSFER)
+    // Estado para método de pago - inicializar vacío para que el usuario deba elegir
+    const [paymentMethod, setPaymentMethod] = useState<MethodType | "">("") 
 
     // Hook para obtener pagos del cliente usando el contexto
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
@@ -352,6 +353,16 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             return
         }
 
+        // Validar que se haya seleccionado un método de pago
+        if (!paymentMethod) {
+            toast({
+                title: "Error",
+                description: "Debe seleccionarse un método de pago",
+                variant: "destructive",
+            })
+            return
+        }
+
         // Validar que todos los DNIs sean válidos
         const validUsers = validatedUsers.filter(user => user.isValid)
         if (validUsers.length === 0 || validUsers.length !== clientDnis.filter(dni => dni.trim()).length) {
@@ -374,13 +385,25 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             return
         }
 
-        if (user?.role === UserRole.CLIENT && !selectedFile) {
-            toast({
-                title: "Error",
-                description: "Debes subir un comprobante para enviar el pago",
-                variant: "destructive",
-            })
-            return
+        // Validar archivo/notas según método de pago para clientes
+        if (user?.role === UserRole.CLIENT) {
+            if (paymentMethod === MethodType.TRANSFER && !selectedFile) {
+                toast({
+                    title: "Error",
+                    description: "Debes subir un comprobante para transferencias",
+                    variant: "destructive",
+                })
+                return
+            }
+            
+            if (paymentMethod === MethodType.CASH && !notes.trim()) {
+                toast({
+                    title: "Error",
+                    description: "Las notas son obligatorias para pagos en efectivo",
+                    variant: "destructive",
+                })
+                return
+            }
         }
 
         const amountNum = Number.parseFloat(amount)
@@ -437,7 +460,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 amount: amountNum,
                 createdAt: startDate,
                 expiresAt: dueDate,
-                method: paymentMethod,
+                method: paymentMethod as MethodType, // Asegurar el tipo ya que validamos que no esté vacío
+                notes: notes.trim() || undefined, // Incluir notas si están presentes
                 file: selectedFile ?? undefined,
             })
 
@@ -494,6 +518,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setSelectedFile(null)
         setPreviewUrl(null)
         setNotes("")
+        setPaymentMethod("") // Reset método de pago
         setPaymentMethod(MethodType.TRANSFER) // Reset payment method
 
         // Mensaje según el rol del usuario
@@ -528,11 +553,11 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 <Card className="m-2">
                     <CardContent className="p-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* DNIs de Clientes */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label>DNI de Clientes *</Label>
-                            <Button 
+                            {/* DNIs de Clientes */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label>DNI de Clientes *</Label>
+                                    <Button 
                                 type="button"
                                 variant="outline" 
                                 size="sm"
@@ -625,9 +650,9 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                     <div className="space-y-2">
                         <Label htmlFor="paymentMethod">Método de Pago *</Label>
                         {user?.role === UserRole.ADMIN ? (
-                            <Select value={paymentMethod} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                            <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
                                 <SelectTrigger id="paymentMethod">
-                                    <SelectValue />
+                                    <SelectValue placeholder="Selecciona método de pago" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
@@ -637,14 +662,15 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                 </SelectContent>
                             </Select>
                         ) : (
-                            <Input
-                                id="paymentMethod"
-                                type="text"
-                                value="Transferencia"
-                                readOnly
-                                className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                onFocus={(e) => e.currentTarget.blur()}
-                            />
+                            <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                <SelectTrigger id="paymentMethod">
+                                    <SelectValue placeholder="Selecciona método de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                </SelectContent>
+                            </Select>
                         )}
                     </div>
 
@@ -742,68 +768,85 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         />
                     </div>
 
-                    {/* Subir comprobante */}
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2">
-                                <FileImage className="h-4 w-4" /> 
-                                Subir Comprobante
-                            </Label>
-                        </div>
-                        <div className="space-y-4">
-                            {!selectedFile ? (
-                                <div className="border-2 border-dashed p-6 text-center rounded-lg">
-                                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
-                                    <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
-                                    <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
-                                </div>
-                            ) : (
-                                <div>
-                                    <div className="relative border rounded-lg overflow-hidden">
-                                        {selectedFile.type.startsWith('image/') ? (
-                                            <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                            {/* Subir comprobante - Solo para transferencias */}
+                            {paymentMethod && paymentMethod === MethodType.TRANSFER && (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center gap-2">
+                                            <FileImage className="h-4 w-4" /> 
+                                            Subir Comprobante *
+                                        </Label>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {!selectedFile ? (
+                                            <div className="border-2 border-dashed p-6 text-center rounded-lg">
+                                                <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                                <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
+                                                <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
+                                                <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
+                                            </div>
                                         ) : (
-                                            <div className="p-8 text-center">
-                                                <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                                                <p className="font-medium">{selectedFile.name}</p>
-                                                <p className="text-sm text-muted-foreground">Archivo PDF</p>
+                                            <div>
+                                                <div className="relative border rounded-lg overflow-hidden">
+                                                    {selectedFile.type.startsWith('image/') ? (
+                                                        <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                                    ) : (
+                                                        <div className="p-8 text-center">
+                                                            <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                                                            <p className="font-medium">{selectedFile.name}</p>
+                                                            <p className="text-sm text-muted-foreground">Archivo PDF</p>
+                                                        </div>
+                                                    )}
+                                                    <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
                                             </div>
                                         )}
-                                        <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
-                                            <X className="h-4 w-4" />
-                                        </Button>
+
+                                        {/* Botones de subida - aparecen siempre */}
+                                        <div className="flex justify-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={isCreating}
+                                            >
+                                                <Upload className="h-4 w-2" /> Archivo
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={handleCameraCapture}
+                                                disabled={isCreating}
+                                            >
+                                                <Camera className="h-4 w-2" /> Cámara
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
                                 </div>
                             )}
 
-                            {/* Botones de subida - aparecen siempre */}
-                            <div className="flex justify-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isCreating}
-                                >
-                                    <Upload className="h-4 w-2" /> Archivo
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={handleCameraCapture}
-                                    disabled={isCreating}
-                                >
-                                    <Camera className="h-4 w-2" /> Cámara
-                                </Button>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Notas (opcional)</Label>
-                                <Textarea rows={3} className="border border-orange-600" value={notes} onChange={(e) => setNotes(e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
+                            {/* Notas - Solo mostrar cuando hay un método seleccionado */}
+                            {paymentMethod && (
+                                <div className="space-y-2">
+                                    <Label>
+                                        {paymentMethod === MethodType.CASH ? "Notas *" : "Notas (opcional)"}
+                                    </Label>
+                                    <Textarea 
+                                        rows={3} 
+                                        className="border border-orange-600" 
+                                        value={notes} 
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder={
+                                            paymentMethod === MethodType.CASH 
+                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo..." 
+                                                : "Notas adicionales sobre el pago..."
+                                        }
+                                    />
+                                </div>
+                            )}
                         </form>
                     </CardContent>
                 </Card>

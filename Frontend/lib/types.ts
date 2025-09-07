@@ -216,6 +216,7 @@ export interface PaymentType {
   rejectionReason?: string
   receiptId?: number | null
   receiptUrl?: string | null
+  notes?: string // Notas adicionales del pago
   // Para pagos múltiples
   associatedUsers?: PaymentUserInfo[]
 }
@@ -261,6 +262,7 @@ export interface NewPaymentInput {
   expiresAt: string
   paymentStatus: "PENDING" | "PAID"
   method: MethodType
+  notes?: string // Notas adicionales del pago
   file?: File
 }
 
