@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useToast } from "@/hooks/use-toast"
-import { Save, User, Shield, Phone } from "lucide-react"
+import { Save, User, Shield, UserRoundPen } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
@@ -153,7 +153,7 @@ export default function EditProfilePage() {
                             <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
                                 <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
                                     <Shield className="h-4 w-4" />
-                                    Información de la cuenta (solo lectura)
+                                    Información de la cuenta
                                 </h3>
                                 <div className="grid grid-cols-1 gap-3">
                                     <div>
@@ -191,8 +191,8 @@ export default function EditProfilePage() {
                             {/* Datos editables */}
                             <div className="space-y-4">
                                 <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                                    <Phone className="h-4 w-4" />
-                                    Datos de contacto (editables)
+                                    <UserRoundPen className="h-4 w-4" />
+                                    Datos de contacto 
                                 </h3>
                                 
                                 {/* Dirección */}

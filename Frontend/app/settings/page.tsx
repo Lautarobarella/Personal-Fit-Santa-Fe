@@ -60,30 +60,32 @@ export default function SettingsPage() {
         {/* Profile Section */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="text-lg">
-                  {`${user?.firstName[0] ?? ""}${user?.lastName[0] ?? ""}`}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold">{user?.firstName + " " + user?.lastName}</h2>
-                {/* <p className="text-muted-foreground">{user.email}</p> */}
-                <p className="text-sm text-primary capitalize">
-                  {user?.role === UserRole.ADMIN && "Administrador"}
-                  {user?.role === UserRole.TRAINER && "Entrenador"}
-                  {user?.role === UserRole.CLIENT && "Cliente"}
-
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="text-lg">
+                    {`${user?.firstName[0] ?? ""}${user?.lastName[0] ?? ""}`}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold">{user?.firstName + " " + user?.lastName}</h2>
+                  {/* <p className="text-muted-foreground">{user.email}</p> */}
+                  <p className="text-sm text-primary capitalize">
+                    {user?.role === UserRole.ADMIN && "Administrador"}
+                    {user?.role === UserRole.TRAINER && "Entrenador"}
+                    {user?.role === UserRole.CLIENT && "Cliente"}
+                  </p>
+                </div>
               </div>
+              
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => router.push('/settings/edit')}>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push('/settings/edit')}>
                   <User className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => router.push('/settings/change-password')}>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push('/settings/change-password')}>
                   <Key className="h-4 w-4 mr-2" />
-                  Contraseña
+                  Cambiar contraseña
                 </Button>
               </div>
             </div>

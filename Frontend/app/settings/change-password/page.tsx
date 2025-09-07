@@ -1,7 +1,6 @@
 "use client"
 
 import { updateUserPassword } from "@/api/clients/usersApi"
-import { useAuth } from "@/contexts/auth-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Eye, EyeOff, Save } from "lucide-react"
+import { Eye, EyeOff, LockKeyhole } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -156,7 +155,7 @@ export default function ChangePasswordPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Save className="h-5 w-5" />
+                            <LockKeyhole className="h-5 w-5" />
                             Cambiar Contraseña
                         </CardTitle>
                     </CardHeader>
@@ -271,7 +270,7 @@ export default function ChangePasswordPage() {
                                     className="flex-1"
                                     disabled={isLoading || !passwords.current || !passwords.new || !passwords.confirm}
                                 >
-                                    <Save className="h-4 w-4 mr-2" />
+                                    <LockKeyhole className="h-4 w-4 mr-2" />
                                     {isLoading ? "Guardando..." : "Guardar"}
                                 </Button>
                             </div>

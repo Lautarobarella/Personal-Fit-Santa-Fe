@@ -25,7 +25,8 @@ import {
   Phone,
   TrendingUp,
   User,
-  UserX
+  UserX,
+  Ambulance
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "../../contexts/auth-provider"
@@ -318,9 +319,9 @@ export function ClientDetailsDialog({
                     </div>
                     {selectedClient.emergencyPhone && (
                       <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-red-500" />
+                        <Ambulance className="h-4 w-4 text-red-500" />
                         <span className="text-sm">
-                          <span className="text-muted-foreground">Emergencia:</span> {selectedClient.emergencyPhone}
+                          <span className="text-muted-foreground"></span> {selectedClient.emergencyPhone}
                         </span>
                       </div>
                     )}
