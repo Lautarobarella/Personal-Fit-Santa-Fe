@@ -56,6 +56,11 @@ services:
     build:
       context: .
       dockerfile: Frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://personalfitsantafe.com
+        NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
+        NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
+        NEXT_PUBLIC_IS_DOCKER: "true"
     container_name: personalfit-frontend
     restart: unless-stopped
     networks:
@@ -65,18 +70,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # URL del backend - se configura aquí centralmente
-      NEXT_PUBLIC_API_BASE_URL: https://personalfitsantafe.com
-
+      # Variables para el runtime (aunque las NEXT_PUBLIC ya están compiladas)
       JWT_SECRET: ${JWT_SECRET}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
-      NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
-      NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
       
       # Configuración de Next.js
       NODE_ENV: production
-      NEXT_PUBLIC_IS_DOCKER: "true"
 
   pgadmin:
     image: dpage/pgadmin4
