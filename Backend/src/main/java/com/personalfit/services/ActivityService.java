@@ -44,6 +44,9 @@ public class ActivityService {
     @Autowired
     private AttendanceService attendanceService;
 
+    @Autowired
+    private PaymentService paymentService;
+
     // private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void createActivity(ActivityFormTypeDTO activity) {
@@ -190,10 +193,22 @@ public class ActivityService {
 
     public EnrollmentResponseDTO enrollUser(EnrollmentRequestDTO enrollmentRequest) {
         try {
+            // Validar que el usuario puede inscribirse basado en su estado de pago
+            Boolean paymentValidation = 
+                paymentService.canUserEnrollBasedOnPayment(enrollmentRequest.getUserId());
+            
+            if (!paymentValidation) {
+                return EnrollmentResponseDTO.builder()
+                        .success(false)
+                        .message("El usuario no puede inscribirse debido a su estado de pago.")
+                        .build();
+            }
+
+            // Si llega aquí, puede inscribirse (proceder con la inscripción normal)
             AttendanceDTO attendance = attendanceService.enrollUser(
                     enrollmentRequest.getUserId(),
                     enrollmentRequest.getActivityId());
-
+            
             return EnrollmentResponseDTO.builder()
                     .success(true)
                     .message("Usuario inscrito exitosamente")

@@ -50,6 +50,7 @@ export default function ActivitiesPage() {
     unenrollFromActivity,
     removeActivity,
     isUserEnrolled,
+    canUserEnrollBasedOnPaymentStatus,
     getActivitiesByWeek,
     getWeekDates,
     canEnrollBasedOnTime,
@@ -364,13 +365,25 @@ export default function ActivitiesPage() {
     // Verificar restricciones para clientes
     if (user?.role === UserRole.CLIENT) {
       try {
-        if (user.status !== "ACTIVE") {
+        // Verificar estado de pago y membresía
+        const paymentStatus = canUserEnrollBasedOnPaymentStatus(user)
+        
+        if (!paymentStatus.canEnroll) {
           toast({
-            title: "Membresía requerida",
-            description: "Necesitas tener una membresía activa para inscribirte a las actividades. Por favor, realiza el pago de tu membresía.",
+            title: "Acceso restringido",
+            description: paymentStatus.reason,
             variant: "destructive",
           })
           return
+        }
+
+        // Si puede inscribirse pero hay un mensaje (ej: días restantes), mostrarlo como info
+        if (paymentStatus.reason) {
+          toast({
+            title: "Información",
+            description: paymentStatus.reason,
+            variant: "default",
+          })
         }
       } catch (error) {
         toast({

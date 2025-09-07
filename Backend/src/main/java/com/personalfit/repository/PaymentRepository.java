@@ -19,4 +19,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     
     // Find all payments by status
     List<Payment> findByStatus(PaymentStatus status);
+    
+    // Find all payments by user and status
+    List<Payment> findByUserAndStatus(User user, PaymentStatus status);
 }

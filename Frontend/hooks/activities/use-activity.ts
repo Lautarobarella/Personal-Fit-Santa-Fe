@@ -12,6 +12,7 @@ import {
   markAttendance
 } from "@/api/activities/activitiesApi"
 import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { useSettingsContext } from "@/contexts/settings-provider"
 import { 
   ActivityType, 
@@ -47,6 +48,7 @@ interface ActivityMutationResult {
  */
 export function useActivity() {
   const { user } = useAuth()
+  const { getUserLastPayment, hasUserPendingPayments } = usePaymentContext()
   const queryClient = useQueryClient()
   const { registrationTime, unregistrationTime } = useSettingsContext()
   
@@ -218,6 +220,63 @@ export function useActivity() {
     }
     return activity.currentParticipants < activity.maxParticipants
   }, [isUserEnrolled])
+
+  // Función para verificar si un usuario puede inscribirse basado en su estado de pago
+  const canUserEnrollBasedOnPaymentStatus = useCallback((user: UserType): { canEnroll: boolean; reason?: string } => {
+    // Si el usuario tiene membresía activa, puede inscribirse sin restricciones
+    if (user.status === "ACTIVE") {
+      return { canEnroll: true }
+    }
+
+    // Si el usuario está inactivo, verificar si tiene pagos pendientes
+    if (user.status === "INACTIVE") {
+      // Verificar si tiene pagos pendientes (en verificación)
+      const hasPendingPayments = hasUserPendingPayments(user.id)
+      
+      if (hasPendingPayments) {
+        // Obtener el último pago para verificar la fecha
+        const lastPayment = getUserLastPayment(user.id)
+        
+        if (!lastPayment) {
+          return { 
+            canEnroll: false, 
+            reason: "No se encontró información de pago. Por favor, contacta al administrador." 
+          }
+        }
+
+        // Calcular días transcurridos desde el último pago
+        const lastPaymentDate = new Date(lastPayment.createdAt || new Date())
+        const currentDate = new Date()
+        const daysDifference = Math.floor((currentDate.getTime() - lastPaymentDate.getTime()) / (1000 * 60 * 60 * 24))
+
+        // Permitir inscripción durante los primeros 10 días
+        if (daysDifference <= 10) {
+          const remainingDays = 10 - daysDifference
+          return { 
+            canEnroll: true, 
+            reason: `Tu pago está en verificación. Tienes ${remainingDays} día${remainingDays !== 1 ? 's' : ''} restante${remainingDays !== 1 ? 's' : ''} para inscribirte.` 
+          }
+        } else {
+          return { 
+            canEnroll: false, 
+            reason: "Tu plazo de gracia ha expirado. Tu pago sigue en verificación, por favor contacta al administrador." 
+          }
+        }
+      } else {
+        // No tiene pagos pendientes y está inactivo
+        return { 
+          canEnroll: false, 
+          reason: "Necesitas una membresía activa para inscribirte. Por favor, realiza el pago de tu membresía." 
+        }
+      }
+    }
+
+    // Para cualquier otro estado
+    return { 
+      canEnroll: false, 
+      reason: "Necesitas una membresía activa para inscribirte. Por favor, realiza el pago de tu membresía." 
+    }
+  }, [hasUserPendingPayments, getUserLastPayment])
 
   // Función para verificar si se puede inscribir basándose en el tiempo límite
   const canEnrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
@@ -490,6 +549,7 @@ export function useActivity() {
     isUserEnrolled,
     getUserEnrollmentStatus,
     canUserEnroll,
+    canUserEnrollBasedOnPaymentStatus,
     getActivitiesByWeek,
     getTodayActivities,
     getWeekDates,

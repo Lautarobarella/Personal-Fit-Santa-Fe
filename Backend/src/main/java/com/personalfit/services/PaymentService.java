@@ -635,4 +635,55 @@ public class PaymentService {
         }
     }
 
+    /**
+     * Verifica si un usuario puede inscribirse a actividades basado en su estado de pago
+     * 
+     * @param userId ID del usuario
+     * @return PaymentEnrollmentValidation con el resultado de la validación
+     */
+    public Boolean canUserEnrollBasedOnPayment(Long userId) {
+        try {
+            User user = userService.getUserById(userId);
+            
+            // Si el usuario tiene membresía activa, puede inscribirse sin restricciones
+            if (user.getStatus() == UserStatus.ACTIVE) {
+                return true;
+            }
+
+            // Si el usuario está inactivo, verificar si tiene pagos pendientes
+            if (user.getStatus() == UserStatus.INACTIVE) {
+                // Buscar pagos pendientes del usuario
+                List<Payment> pendingPayments = paymentRepository.findByUserAndStatus(user, PaymentStatus.PENDING);
+                
+                if (!pendingPayments.isEmpty()) {
+                    // Obtener el pago más reciente
+                    Payment lastPayment = pendingPayments.stream()
+                        .max((p1, p2) -> p1.getCreatedAt().compareTo(p2.getCreatedAt()))
+                        .orElse(null);
+                    
+                    if (lastPayment != null) {
+                        // Calcular días transcurridos desde el último pago
+                        LocalDateTime paymentDate = lastPayment.getCreatedAt();
+                        LocalDateTime currentDate = LocalDateTime.now();
+                        long daysDifference = java.time.temporal.ChronoUnit.DAYS.between(paymentDate, currentDate);
+                        
+                        // Permitir inscripción durante los primeros 10 días
+                        if (daysDifference <= 10) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // Para cualquier otro estado
+            return false;
+                
+        } catch (Exception e) {
+            log.error("Error validating user enrollment eligibility for user {}: {}", userId, e.getMessage());
+            return false;
+        }
+    }
+
 }
