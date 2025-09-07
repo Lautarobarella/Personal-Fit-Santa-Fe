@@ -74,4 +74,16 @@ public class SettingsController {
         return ResponseEntity.ok(updatedMaxActivities);
     }
 
+    @GetMapping("/payment-grace-period")
+    public ResponseEntity<Integer> getPaymentGracePeriodDays() {
+        Integer days = settingsService.getPaymentGracePeriodDays();
+        return ResponseEntity.ok(days);
+    }
+
+    @PostMapping("/payment-grace-period")
+    public ResponseEntity<Integer> setPaymentGracePeriodDays(@RequestBody TimeRequestDTO request) {
+        Integer updatedDays = settingsService.setPaymentGracePeriodDays(request.getHours()); // Reutilizamos el campo hours para días
+        return ResponseEntity.ok(updatedDays);
+    }
+
 } 

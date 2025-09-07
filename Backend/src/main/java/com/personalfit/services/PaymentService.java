@@ -72,6 +72,9 @@ public class PaymentService {
     @Lazy
     private NotificationService notificationService;
 
+    @Autowired
+    private SettingsService settingsService;
+
     /**
      * Crea un nuevo pago con archivo opcional
      * Unifica la lógica de creación manual y automática
@@ -667,8 +670,11 @@ public class PaymentService {
                         LocalDateTime currentDate = LocalDateTime.now();
                         long daysDifference = java.time.temporal.ChronoUnit.DAYS.between(paymentDate, currentDate);
                         
-                        // Permitir inscripción durante los primeros 10 días
-                        if (daysDifference <= 10) {
+                        // Obtener el plazo de gracia desde la configuración
+                        Integer gracePeriodDays = settingsService.getPaymentGracePeriodDays();
+                        
+                        // Permitir inscripción durante el período de gracia configurado
+                        if (daysDifference <= gracePeriodDays) {
                             return true;
                         } else {
                             return false;

@@ -5,6 +5,7 @@ import { useRequireAuth } from "@/hooks/use-require-auth"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
+import { PaymentGracePeriodDialog } from "@/components/settings/payment-grace-period-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
-import { BarChart3, Bell, Clock, DollarSign, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
+import { BarChart3, Bell, Clock, CreditCard, DollarSign, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -27,6 +28,7 @@ export default function SettingsPage() {
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
   const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
+  const [showPaymentGracePeriodDialog, setShowPaymentGracePeriodDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -171,6 +173,15 @@ export default function SettingsPage() {
                 Máximo de actividades por día
               </Button>
 
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-transparent"
+                onClick={() => setShowPaymentGracePeriodDialog(true)}
+              >
+                <CreditCard className="h-4 w-4 mr-3" />
+                Período de gracia de pago
+              </Button>
+
               <Button 
                 variant="outline" 
                 className="w-full justify-start bg-transparent"
@@ -212,6 +223,12 @@ export default function SettingsPage() {
       <MaxActivitiesDialog 
         open={showMaxActivitiesDialog} 
         onOpenChange={setShowMaxActivitiesDialog} 
+      />
+
+      {/* Payment Grace Period Dialog */}
+      <PaymentGracePeriodDialog 
+        open={showPaymentGracePeriodDialog} 
+        onOpenChange={setShowPaymentGracePeriodDialog} 
       />
     </div>
   )

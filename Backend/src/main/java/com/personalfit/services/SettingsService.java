@@ -22,6 +22,8 @@ public class SettingsService {
     private static final Integer DEFAULT_UNREGISTRATION_TIME = 12;
     private static final String MAX_ACTIVITIES_PER_DAY_KEY = "max_activities_per_day";
     private static final Integer DEFAULT_MAX_ACTIVITIES_PER_DAY = 1;
+    private static final String PAYMENT_GRACE_PERIOD_KEY = "payment_grace_period_days";
+    private static final Integer DEFAULT_PAYMENT_GRACE_PERIOD = 10;
 
     /**
      * Obtiene todas las configuraciones en una sola llamada
@@ -33,8 +35,9 @@ public class SettingsService {
         Integer registrationTimeHours = getRegistrationTimeHours();
         Integer unregistrationTimeHours = getUnregistrationTimeHours();
         Integer maxActivitiesPerDay = getMaxActivitiesPerDay();
+        Integer paymentGracePeriodDays = getPaymentGracePeriodDays();
         
-        return new AllSettingsResponseDTO(monthlyFee, registrationTimeHours, unregistrationTimeHours, maxActivitiesPerDay);
+        return new AllSettingsResponseDTO(monthlyFee, registrationTimeHours, unregistrationTimeHours, maxActivitiesPerDay, paymentGracePeriodDays);
     }
 
     public Double getMonthlyFee() {
@@ -126,6 +129,32 @@ public class SettingsService {
         return maxActivities;
     }
 
+    public Integer getPaymentGracePeriodDays() {
+        try {
+            Settings setting = settingsRepository.findByKey(PAYMENT_GRACE_PERIOD_KEY)
+                    .orElseGet(() -> createDefaultPaymentGracePeriodSetting());
+            return Integer.parseInt(setting.getValue());
+        } catch (Exception e) {
+            // En caso de error, retornar el valor por defecto
+            return DEFAULT_PAYMENT_GRACE_PERIOD;
+        }
+    }
+
+    public Integer setPaymentGracePeriodDays(Integer days) {
+        if (days == null || days < 0) {
+            throw new BusinessRuleException("Payment grace period must be a non-negative number", 
+                    "Api/Settings/setPaymentGracePeriodDays");
+        }
+        
+        Settings setting = settingsRepository.findByKey(PAYMENT_GRACE_PERIOD_KEY)
+                .orElseGet(() -> createDefaultPaymentGracePeriodSetting());
+
+        setting.setValue(days.toString());
+        
+        settingsRepository.save(setting);
+        return days;
+    }
+
 
     /**
      * Crea la configuración por defecto de la cuota mensual
@@ -176,6 +205,19 @@ public class SettingsService {
                 MAX_ACTIVITIES_PER_DAY_KEY,
                 DEFAULT_MAX_ACTIVITIES_PER_DAY.toString(),
                 "Máximo número de actividades a las que un cliente puede inscribirse por día");
+        return settingsRepository.save(setting);
+    }
+
+    /**
+     * Crea la configuración por defecto del período de gracia de pago
+     * 
+     * @return Settings - Configuración creada
+     */
+    private Settings createDefaultPaymentGracePeriodSetting() {
+        Settings setting = new Settings(
+                PAYMENT_GRACE_PERIOD_KEY,
+                DEFAULT_PAYMENT_GRACE_PERIOD.toString(),
+                "Período de gracia en días para que usuarios con pago pendiente puedan inscribirse a actividades");
         return settingsRepository.save(setting);
     }
 }

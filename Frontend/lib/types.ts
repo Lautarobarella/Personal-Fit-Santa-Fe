@@ -54,6 +54,7 @@ export interface GlobalSettingsType {
   registrationTimeHours: number
   unregistrationTimeHours: number
   maxActivitiesPerDay: number
+  paymentGracePeriodDays: number
 }
 
 export enum NotificationCategoryType {

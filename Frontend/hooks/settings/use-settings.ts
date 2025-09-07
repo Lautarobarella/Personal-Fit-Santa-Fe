@@ -6,7 +6,8 @@ import {
   updateMonthlyFee, 
   updateRegistrationTime, 
   updateUnregistrationTime,
-  updateMaxActivitiesPerDay
+  updateMaxActivitiesPerDay,
+  updatePaymentGracePeriod
 } from '@/api/settings/settingsApi'
 import type { GlobalSettingsType } from '@/lib/types'
 import { useAuth } from '@/contexts/auth-provider'
@@ -19,6 +20,7 @@ interface SettingsLoadingStates {
   isUpdatingRegistrationTime: boolean
   isUpdatingUnregistrationTime: boolean
   isUpdatingMaxActivitiesPerDay: boolean
+  isUpdatingPaymentGracePeriod: boolean
 }
 
 interface SettingsMutationResult {
@@ -40,6 +42,7 @@ export function useSettings() {
     isUpdatingRegistrationTime: false,
     isUpdatingUnregistrationTime: false,
     isUpdatingMaxActivitiesPerDay: false,
+    isUpdatingPaymentGracePeriod: false,
   })
 
   // ===============================
@@ -63,7 +66,8 @@ export function useSettings() {
         monthlyFee: 0,
         registrationTimeHours: 24,
         unregistrationTimeHours: 3,
-        maxActivitiesPerDay: 1
+        maxActivitiesPerDay: 1,
+        paymentGracePeriodDays: 10
       })
     } finally {
       setLoading(false)
@@ -82,7 +86,8 @@ export function useSettings() {
           monthlyFee: 0,
           registrationTimeHours: 24,
           unregistrationTimeHours: 3,
-          maxActivitiesPerDay: 1
+          maxActivitiesPerDay: 1,
+          paymentGracePeriodDays: 10
         })
         setLoading(false)
         setError(null)
@@ -196,6 +201,31 @@ export function useSettings() {
     }
   }, [])
 
+  // Actualizar período de gracia de pago
+  const updatePaymentGracePeriodValue = useCallback(async (days: number): Promise<SettingsMutationResult> => {
+    try {
+      setLoadingStates(prev => ({ ...prev, isUpdatingPaymentGracePeriod: true }))
+      setError(null)
+      
+      const updatedDays = await updatePaymentGracePeriod(days)
+      setSettings(prev => prev ? { ...prev, paymentGracePeriodDays: updatedDays } : null)
+      
+      return {
+        success: true,
+        message: 'Período de gracia de pago actualizado correctamente'
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar período de gracia de pago'
+      setError(errorMessage)
+      return {
+        success: false,
+        message: errorMessage
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isUpdatingPaymentGracePeriod: false }))
+    }
+  }, [])
+
   // ===============================
   // FUNCIONES DE UTILIDAD
   // ===============================
@@ -219,6 +249,7 @@ export function useSettings() {
   const registrationTime = useMemo(() => settings?.registrationTimeHours ?? 24, [settings])
   const unregistrationTime = useMemo(() => settings?.unregistrationTimeHours ?? 3, [settings])
   const maxActivitiesPerDay = useMemo(() => settings?.maxActivitiesPerDay ?? 1, [settings])
+  const paymentGracePeriodDays = useMemo(() => settings?.paymentGracePeriodDays ?? 10, [settings])
 
   // Estado de carga consolidado
   const isLoading = useMemo(() => 
@@ -226,7 +257,8 @@ export function useSettings() {
     loadingStates.isUpdatingMonthlyFee || 
     loadingStates.isUpdatingRegistrationTime || 
     loadingStates.isUpdatingUnregistrationTime ||
-    loadingStates.isUpdatingMaxActivitiesPerDay, 
+    loadingStates.isUpdatingMaxActivitiesPerDay ||
+    loadingStates.isUpdatingPaymentGracePeriod, 
     [loading, loadingStates]
   )
 
@@ -241,6 +273,7 @@ export function useSettings() {
     registrationTime,
     unregistrationTime,
     maxActivitiesPerDay,
+    paymentGracePeriodDays,
     
     // Loading states
     loading,
@@ -253,6 +286,7 @@ export function useSettings() {
     updateRegistrationTimeValue,
     updateUnregistrationTimeValue,
     updateMaxActivitiesPerDayValue,
+    updatePaymentGracePeriodValue,
     reloadSettings,
     clearError,
     

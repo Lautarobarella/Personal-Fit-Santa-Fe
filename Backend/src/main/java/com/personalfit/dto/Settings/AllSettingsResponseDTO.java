@@ -5,15 +5,17 @@ public class AllSettingsResponseDTO {
     private Integer registrationTimeHours;
     private Integer unregistrationTimeHours;
     private Integer maxActivitiesPerDay;
+    private Integer paymentGracePeriodDays;
 
     public AllSettingsResponseDTO() {
     }
 
-    public AllSettingsResponseDTO(Double monthlyFee, Integer registrationTimeHours, Integer unregistrationTimeHours, Integer maxActivitiesPerDay) {
+    public AllSettingsResponseDTO(Double monthlyFee, Integer registrationTimeHours, Integer unregistrationTimeHours, Integer maxActivitiesPerDay, Integer paymentGracePeriodDays) {
         this.monthlyFee = monthlyFee;
         this.registrationTimeHours = registrationTimeHours;
         this.unregistrationTimeHours = unregistrationTimeHours;
         this.maxActivitiesPerDay = maxActivitiesPerDay;
+        this.paymentGracePeriodDays = paymentGracePeriodDays;
     }
 
     public Double getMonthlyFee() {
@@ -46,5 +48,13 @@ public class AllSettingsResponseDTO {
 
     public void setMaxActivitiesPerDay(Integer maxActivitiesPerDay) {
         this.maxActivitiesPerDay = maxActivitiesPerDay;
+    }
+
+    public Integer getPaymentGracePeriodDays() {
+        return paymentGracePeriodDays;
+    }
+
+    public void setPaymentGracePeriodDays(Integer paymentGracePeriodDays) {
+        this.paymentGracePeriodDays = paymentGracePeriodDays;
     }
 }

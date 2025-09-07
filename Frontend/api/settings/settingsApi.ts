@@ -15,18 +15,20 @@ export async function fetchAllSettings(): Promise<GlobalSettingsType> {
       return allSettings;
     } catch (unifiedError) {
       // Fallback: obtener configuraciones individualmente
-      const [monthlyFee, registrationTimeHours, unregistrationTimeHours, maxActivitiesPerDay] = await Promise.all([
+      const [monthlyFee, registrationTimeHours, unregistrationTimeHours, maxActivitiesPerDay, paymentGracePeriodDays] = await Promise.all([
         fetchMonthlyFee(),
         fetchRegistrationTime(),
         fetchUnregistrationTime(),
-        fetchMaxActivitiesPerDay()
+        fetchMaxActivitiesPerDay(),
+        fetchPaymentGracePeriod()
       ]);
       
       return {
         monthlyFee,
         registrationTimeHours,
         unregistrationTimeHours,
-        maxActivitiesPerDay
+        maxActivitiesPerDay,
+        paymentGracePeriodDays
       };
     }
   } catch (error) {
@@ -143,6 +145,34 @@ export async function updateMaxActivitiesPerDay(maxActivities: number): Promise<
     return await jwtPermissionsApi.post('/api/settings/max-activities-per-day', { hours: maxActivities });
   } catch (error) {
     handleApiError(error, 'Error al actualizar el máximo de actividades por día');
+    throw error;
+  }
+}
+
+/**
+ * Obtiene el período de gracia de pago configurado
+ * @returns Promise<number> Días del período de gracia
+ */
+export async function fetchPaymentGracePeriod(): Promise<number> {
+  try {
+    const days = await jwtPermissionsApi.get('/api/settings/payment-grace-period');
+    return days;
+  } catch (error) {
+    handleApiError(error, 'Error al obtener el período de gracia de pago');
+    throw error;
+  }
+}
+
+/**
+ * Actualiza el período de gracia de pago
+ * @param days - Días del período de gracia
+ * @returns Promise<number> Días actualizados del período de gracia
+ */
+export async function updatePaymentGracePeriod(days: number): Promise<number> {
+  try {
+    return await jwtPermissionsApi.post('/api/settings/payment-grace-period', { hours: days }); // Reutilizamos el campo hours para días
+  } catch (error) {
+    handleApiError(error, 'Error al actualizar el período de gracia de pago');
     throw error;
   }
 }
