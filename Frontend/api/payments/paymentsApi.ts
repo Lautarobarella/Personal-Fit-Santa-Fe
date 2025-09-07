@@ -24,6 +24,18 @@ export async function fetchAllPayments(): Promise<PaymentType[]> {
 }
 
 /**
+ * Obtiene pagos por mes y año específico (para admin)
+ */
+export async function fetchPaymentsByMonthAndYear(year: number, month: number): Promise<PaymentType[]> {
+  try {
+    return await jwtPermissionsApi.get(`/api/payments/getAll/${year}/${month}`);
+  } catch (error) {
+    handleApiError(error, 'Error al cargar los pagos del mes');
+    return [];
+  }
+}
+
+/**
  * Obtiene pagos de un usuario específico
  */
 export async function fetchUserPayments(userId: number): Promise<PaymentType[]> {

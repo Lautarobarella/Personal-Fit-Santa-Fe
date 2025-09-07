@@ -134,6 +134,20 @@ public class PaymentController {
     }
 
     /**
+     * Obtener pagos por mes y año (para admin)
+     */
+    @GetMapping("/getAll/{year}/{month}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PaymentTypeDTO>> getPaymentsByMonthAndYear(
+            @PathVariable Integer year, 
+            @PathVariable Integer month) {
+        
+        log.info("Obteniendo pagos del mes {} del año {}", month, year);
+        List<PaymentTypeDTO> payments = paymentService.getPaymentsByMonthAndYear(year, month);
+        return ResponseEntity.ok(payments);
+    }
+
+    /**
      * Obtener pagos de un usuario específico
      */
     @GetMapping("/{userId}")

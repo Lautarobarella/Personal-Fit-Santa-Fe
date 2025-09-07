@@ -230,7 +230,30 @@ public class PaymentService {
                     // Actualizar estado a EXPIRED si está vencido y era PAID
                     if (payment.getStatus() == PaymentStatus.PAID &&
                             payment.getExpiresAt() != null &&
-                            payment.getExpiresAt().isBefore(now)) {
+                            payment.getExpiresAt().isBefore(LocalDateTime.now())) {
+                        dto.setStatus(PaymentStatus.EXPIRED);
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene pagos de un mes y año específico (para admin)
+     */
+    public List<PaymentTypeDTO> getPaymentsByMonthAndYear(Integer year, Integer month) {
+        // Crear fecha de inicio del mes
+        LocalDateTime startOfMonth = LocalDateTime.of(year, month, 1, 0, 0, 0);
+        // Crear fecha de fin del mes
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+
+        return paymentRepository.findAllPaymentsInMonth(startOfMonth, endOfMonth).stream()
+                .map(payment -> {
+                    PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
+                    // Actualizar estado a EXPIRED si está vencido y era PAID
+                    if (payment.getStatus() == PaymentStatus.PAID &&
+                            payment.getExpiresAt() != null &&
+                            payment.getExpiresAt().isBefore(LocalDateTime.now())) {
                         dto.setStatus(PaymentStatus.EXPIRED);
                     }
                     return dto;
