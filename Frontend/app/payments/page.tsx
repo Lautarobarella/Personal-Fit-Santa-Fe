@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import { PaymentDetailsDialog } from "@/components/payments/payment-details-dialog"
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -107,6 +108,11 @@ export default function PaymentsPage() {
     }, [user?.id, user?.role, queryClient]);
 
     const [verificationDialog, setVerificationDialog] = useState({
+        open: false,
+        paymentId: null as number | null,
+    })
+
+    const [detailsDialog, setDetailsDialog] = useState({
         open: false,
         paymentId: null as number | null,
     })
@@ -241,6 +247,10 @@ export default function PaymentsPage() {
 
     const handleVerificationClick = (id: number) => {
         setVerificationDialog({ open: true, paymentId: id })
+    }
+
+    const handleDetailsClick = (id: number) => {
+        setDetailsDialog({ open: true, paymentId: id })
     }
 
     return (
@@ -396,7 +406,7 @@ export default function PaymentsPage() {
 
                     <TabsContent value="all" className="space-y-3 mt-4">
                         {sortedAllPayments.map((p) => (
-                            <Card key={p.id}>
+                            <Card key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleDetailsClick(p.id)}>
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
@@ -434,7 +444,7 @@ export default function PaymentsPage() {
 
                     <TabsContent value="pending" className="space-y-3 mt-4">
                         {pendingPayments.map((p) => (
-                            <Card key={p.id}>
+                            <Card key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleDetailsClick(p.id)}>
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
@@ -444,7 +454,7 @@ export default function PaymentsPage() {
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                 <Calendar className="h-3 w-3" />
-                                                <span>{formatMonth(p.createdAt)}</span>
+                                                <span>{formatDate(p.createdAt)}</span>
                                                 <span>•</span>
                                                 <span>Vence: {formatDate(p.expiresAt)}</span>
                                             </div>
@@ -465,7 +475,10 @@ export default function PaymentsPage() {
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 bg-transparent"
-                                                onClick={() => handleVerificationClick(p.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleVerificationClick(p.id)
+                                                }}
                                             >
                                                 <Eye className="h-4 w-4 mr-2" />
                                                 Verificar Pago
@@ -513,6 +526,16 @@ export default function PaymentsPage() {
                     </Card>
                 )}
             </div>
+
+            {detailsDialog.paymentId !== null && (
+                <PaymentDetailsDialog
+                    open={detailsDialog.open}
+                    onOpenChange={(open) =>
+                        setDetailsDialog({ open, paymentId: null })
+                    }
+                    paymentId={detailsDialog.paymentId}
+                />
+            )}
 
             {verificationDialog.paymentId !== null && (
                 <PaymentVerificationDialog

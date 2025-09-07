@@ -724,7 +724,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         />
                         {validatedUsers.filter(u => u.isValid).length > 1 && (
                             <p className="text-sm text-gray-600">
-                                {validatedUsers.filter(u => u.isValid).length} usuarios × ${baseAmount || "0"} = ${amount || "0"}
+                                {validatedUsers.filter(u => u.isValid).length} personas × ${baseAmount || "0"} = ${amount || "0"}
                             </p>
                         )}
                     </div>
