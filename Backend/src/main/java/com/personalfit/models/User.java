@@ -55,8 +55,8 @@ public class User {
     private UserStatus status;
     @OneToMany(mappedBy = "user")
     private List<Attendance> attendances;
-    @OneToMany(mappedBy = "user")
-    private List<Payment> payments;
+    // @OneToMany(mappedBy = "user")
+    // private List<Payment> payments; // Removido - ahora se usa PaymentUser
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 

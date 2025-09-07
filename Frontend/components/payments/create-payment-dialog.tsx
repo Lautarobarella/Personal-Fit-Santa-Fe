@@ -19,18 +19,19 @@ import { useSettings } from "@/hooks/settings/use-settings"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, formatFileSize, validatePaymentFile } from "@/lib/file-compression"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
-import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
+import { AlertCircle, Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../../contexts/auth-provider"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import { Card, CardContent } from "../ui/card"
 import { Textarea } from "../ui/textarea"
 
 interface CreatePaymentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     onCreatePayment: (payment: {
-        clientDni: number
+        clientDnis: number[]  // Cambiado de clientDni a clientDnis (array)
+        createdByDni: number  // DNI del usuario que crea el pago
         amount: number
         createdAt: string
         expiresAt: string
@@ -42,7 +43,20 @@ interface CreatePaymentDialogProps {
 export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: CreatePaymentDialogProps) {
     const { user } = useAuth()
     const [isCreating, setIsCreating] = useState(false)
-    const [selectedClient, setSelectedClient] = useState("")
+    
+    // Estados para manejar múltiples DNIs
+    const [clientDnis, setClientDnis] = useState<string[]>([""]) // Array de DNIs como strings
+    const [validatedUsers, setValidatedUsers] = useState<Array<{ 
+        dni: number; 
+        name: string; 
+        isValid: boolean; 
+        isValidating: boolean; 
+        errorMessage?: string;
+        hasActivePlan?: boolean;
+    }>>([])
+    const [debounceTimers, setDebounceTimers] = useState<Array<NodeJS.Timeout | null>>([])
+    const [baseAmount, setBaseAmount] = useState("") // Monto base individual
+    
     const today = new Date()
     const startDateStr = today.toISOString().split("T")[0]
 
@@ -82,10 +96,150 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
         if (open && user && monthlyFee > 0) {
-            setSelectedClient((user.role === UserRole.CLIENT) ? user.dni?.toString() : "")
-            setAmount(monthlyFee.toString())
+            // Si es cliente, pre-llenar con su DNI
+            if (user.role === UserRole.CLIENT && user.dni) {
+                setClientDnis([user.dni.toString()])
+                // Validar automáticamente el DNI del cliente
+                setTimeout(() => {
+                    validateDni(0, user.dni.toString())
+                }, 100)
+            } else {
+                setClientDnis([""])
+            }
+            setBaseAmount(monthlyFee.toString())
         }
     }, [open, user, monthlyFee])
+
+    // Actualizar amount cuando cambie baseAmount o validatedUsers
+    useEffect(() => {
+        const validUsersCount = validatedUsers.filter(user => user.isValid).length
+        if (validUsersCount > 0 && baseAmount) {
+            const base = parseFloat(baseAmount) || 0
+            const total = base * validUsersCount
+            setAmount(total.toString())
+        } else if (baseAmount) {
+            setAmount(baseAmount)
+        }
+    }, [baseAmount, validatedUsers])
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            debounceTimers.forEach(timer => {
+                if (timer) clearTimeout(timer)
+            })
+        }
+    }, [debounceTimers])
+
+    // Funciones para manejar múltiples DNIs
+    const addDniField = () => {
+        setClientDnis([...clientDnis, ""])
+    }
+
+    const removeDniField = (index: number) => {
+        if (clientDnis.length > 1) {
+            const newDnis = clientDnis.filter((_, i) => i !== index)
+            setClientDnis(newDnis)
+            // También remover la validación correspondiente
+            const newValidatedUsers = validatedUsers.filter((_, i) => i !== index)
+            setValidatedUsers(newValidatedUsers)
+            // Limpiar el timer correspondiente
+            const newTimers = debounceTimers.filter((_, i) => i !== index)
+            setDebounceTimers(newTimers)
+        }
+    }
+
+    const updateDni = (index: number, value: string) => {
+        const newDnis = [...clientDnis]
+        newDnis[index] = value
+        setClientDnis(newDnis)
+        
+        // Limpiar el timer anterior para este índice
+        if (debounceTimers[index]) {
+            clearTimeout(debounceTimers[index]!)
+        }
+        
+        // Si el campo está vacío, limpiar la validación inmediatamente
+        if (!value.trim()) {
+            const newValidatedUsers = [...validatedUsers]
+            newValidatedUsers[index] = { dni: 0, name: "", isValid: false, isValidating: false }
+            setValidatedUsers(newValidatedUsers)
+            return
+        }
+
+        // Establecer estado de validación en progreso
+        const newValidatedUsers = [...validatedUsers]
+        newValidatedUsers[index] = { 
+            dni: 0, 
+            name: "", 
+            isValid: false, 
+            isValidating: true 
+        }
+        setValidatedUsers(newValidatedUsers)
+        
+        // Configurar nuevo timer con debounce de 800ms
+        const newTimer = setTimeout(() => {
+            validateDni(index, value.trim())
+        }, 800)
+        
+        const newTimers = [...debounceTimers]
+        newTimers[index] = newTimer
+        setDebounceTimers(newTimers)
+    }
+
+    const validateDni = async (index: number, dniString: string) => {
+        try {
+            const dni = parseInt(dniString, 10)
+            if (isNaN(dni)) {
+                throw new Error("DNI debe ser un número válido")
+            }
+
+            // Importar la función para obtener usuario por DNI
+            const { fetchUserByDni } = await import('@/api/clients/usersApi')
+            const user = await fetchUserByDni(dni)
+            
+            // Verificar si el usuario tiene un plan activo
+            const hasActivePlan = user.status === 'ACTIVE'
+            
+            const newValidatedUsers = [...validatedUsers]
+            
+            if (hasActivePlan) {
+                // Usuario válido pero con plan activo
+                newValidatedUsers[index] = { 
+                    dni, 
+                    name: user.name,
+                    isValid: false, // No es válido para crear pago
+                    isValidating: false,
+                    hasActivePlan: true,
+                    errorMessage: `${user.name} ya tiene un plan activo`
+                }
+            } else {
+                // Usuario válido y sin plan activo
+                newValidatedUsers[index] = { 
+                    dni, 
+                    name: user.name,
+                    isValid: true,
+                    isValidating: false,
+                    hasActivePlan: false
+                }
+            }
+            
+            setValidatedUsers(newValidatedUsers)
+            
+        } catch (error) {
+            const newValidatedUsers = [...validatedUsers]
+            const errorMessage = error instanceof Error ? error.message : `El DNI ${dniString} no existe`
+            newValidatedUsers[index] = { 
+                dni: 0, 
+                name: "", 
+                isValid: false, 
+                isValidating: false,
+                hasActivePlan: false,
+                errorMessage
+            }
+            setValidatedUsers(newValidatedUsers)
+        }
+    }
 
     const [isUploading, setIsUploading] = useState(false)
     const { toast } = useToast()
@@ -179,10 +333,42 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!selectedClient.trim() || !startDate || !amount || !dueDate) {
+        // Validar que todos los DNIs estén completos y validados
+        if (clientDnis.some(dni => !dni.trim())) {
+            toast({
+                title: "Error",
+                description: "Todos los campos de DNI son requeridos",
+                variant: "destructive",
+            })
+            return
+        }
+
+        if (!startDate || !amount || !dueDate) {
             toast({
                 title: "Error",
                 description: "Todos los campos son requeridos",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Validar que todos los DNIs sean válidos
+        const validUsers = validatedUsers.filter(user => user.isValid)
+        if (validUsers.length === 0 || validUsers.length !== clientDnis.filter(dni => dni.trim()).length) {
+            toast({
+                title: "Error",
+                description: "Todos los DNIs deben ser válidos y no contar con planes activos",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Validar que no haya usuarios con errores (planes activos u otros errores)
+        const usersWithErrors = validatedUsers.filter(user => user.errorMessage)
+        if (usersWithErrors.length > 0) {
+            toast({
+                title: "Error",
+                description: "Corregir los errores marcados",
                 variant: "destructive",
             })
             return
@@ -197,30 +383,17 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             return
         }
 
-        const clientIdParsed = parseInt(selectedClient, 10)
-        if (
-            isNaN(clientIdParsed) ||
-            clientIdParsed < 0
-        ) {
-            toast({
-                title: "Error",
-                description: "El DNI debe ser un número válido y no puede ser negativo",
-                variant: "destructive",
-            })
-            return
-        }
-
         const amountNum = Number.parseFloat(amount)
         if (isNaN(amountNum) || amountNum <= 0) {
             toast({
                 title: "Error",
-                description: "El monto debe ser un número válido mayor a 0",
+                description: "El monto base debe ser un número válido mayor a 0",
                 variant: "destructive",
             })
             return
         }
 
-        // Validar si el cliente ya tiene un pago activo o pendiente
+        // Validar si el cliente ya tiene un pago activo o pendiente (solo para clientes)
         if (user?.role === UserRole.CLIENT) {
             if (isLoadingPayments) {
                 toast({
@@ -243,8 +416,24 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setIsCreating(true)
 
         try {
+            // Obtener array de DNIs validados
+            const validDnis = validUsers.map(user => user.dni)
+            
+            // Determinar el creador del pago según el rol
+            let createdByDni: number
+            if (user?.role === UserRole.CLIENT) {
+                // Para clientes, el creador siempre es el usuario autenticado
+                createdByDni = user.dni
+            } else if (user?.role === UserRole.ADMIN) {
+                // Para admin, el creador es el primer DNI ingresado
+                createdByDni = validDnis[0]
+            } else {
+                throw new Error("Rol de usuario no válido")
+            }
+            
             await onCreatePayment({
-                clientDni: clientIdParsed,
+                clientDnis: validDnis,
+                createdByDni: createdByDni,
                 amount: amountNum,
                 createdAt: startDate,
                 expiresAt: dueDate,
@@ -289,8 +478,16 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     }
 
     const handleSuccessfulPayment = () => {
+        // Clear all debounce timers
+        debounceTimers.forEach(timer => {
+            if (timer) clearTimeout(timer)
+        })
+        
         // Reset form
-        setSelectedClient("")
+        setClientDnis([""])
+        setValidatedUsers([])
+        setDebounceTimers([])
+        setBaseAmount("")
         setStartDate("")
         setAmount("")
         setDueDate("")
@@ -331,23 +528,97 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 <Card className="m-2">
                     <CardContent className="p-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* DNIs de Clientes */}
                     <div className="space-y-2">
-                        <Label htmlFor="client">DNI del Cliente *</Label>
-                        <Input
-                            id="client"
-                            type="number"
-                            className="border border-orange-600"
-                            placeholder="Ej: 30123456"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={selectedClient}
-                            onChange={(e) => {
-                                const value = e.target.value
-                                if (/^\d*$/.test(value)) {
-                                    setSelectedClient(value)
-                                }
-                            }}
-                        />
+                        <div className="flex items-center justify-between">
+                            <Label>DNI de Clientes *</Label>
+                            <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm"
+                                onClick={addDniField}
+                                className="flex items-center gap-1"
+                            >
+                                <span className="text-lg">+</span>
+                                Agregar DNI
+                            </Button>
+                        </div>
+                        
+                        {clientDnis.map((dni, index) => (
+                            <div key={index} className="space-y-2">
+                                {/* Fila del input DNI y botón eliminar */}
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 relative">
+                                        <Input
+                                            type="number"
+                                            className={`border ${
+                                                validatedUsers[index]?.isValid 
+                                                    ? 'border-green-500 focus:ring-green-500' 
+                                                    : validatedUsers[index]?.errorMessage 
+                                                        ? 'border-red-500 focus:ring-red-500'
+                                                        : validatedUsers[index]?.isValidating
+                                                            ? 'border-blue-500 focus:ring-blue-500'
+                                                            : 'border-gray-300'
+                                            }`}
+                                            placeholder="Ej: 30123456"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={dni}
+                                            onChange={(e) => {
+                                                const value = e.target.value
+                                                if (/^\d*$/.test(value)) {
+                                                    updateDni(index, value)
+                                                }
+                                            }}
+                                        />
+                                        {validatedUsers[index]?.isValidating && (
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {clientDnis.length > 1 && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => removeDniField(index)}
+                                            className="text-red-600 hover:text-red-700 h-10 w-10 p-0 flex-shrink-0"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                                
+                                {/* Fila completa para mensajes de validación */}
+                                <div className="w-full">
+                                    {/* Validación positiva */}
+                                    {validatedUsers[index]?.isValid && (
+                                        <div className="flex items-center gap-1 text-sm text-green-600">
+                                            <Check className="h-3 w-3" />
+                                            <span>{validatedUsers[index].name}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Validación negativa */}
+                                    {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
+                                        <div className="flex items-center gap-1 text-sm text-red-600">
+                                            <AlertCircle className="h-3 w-3" />
+                                            <span>{validatedUsers[index].errorMessage}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Estado de validación en progreso */}
+                                    {validatedUsers[index]?.isValidating && (
+                                        <div className="flex items-center gap-1 text-sm text-blue-600">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            <span>Verificando DNI...</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Método de Pago */}
@@ -377,17 +648,59 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         )}
                     </div>
 
-                    {/* Monto */}
+                    {/* Monto Base Individual - Solo para múltiples usuarios */}
+                    {validatedUsers.filter(user => user.isValid).length > 1 && (
+                        <div className="space-y-2">
+                            <Label htmlFor="baseAmount">Monto por Usuario ($) *</Label>
+                            <Input
+                                id="baseAmount"
+                                type="text"
+                                value={baseAmount}
+                                onChange={(e) => {
+                                    const value = e.target.value
+                                    if (/^\d*\.?\d*$/.test(value)) {
+                                        setBaseAmount(value)
+                                    }
+                                }}
+                                placeholder="Ej: 30000"
+                                inputMode="numeric"
+                            />
+                        </div>
+                    )}
+
+                    {/* Monto Total Calculado */}
                     <div className="space-y-2">
-                        <Label htmlFor="amount">Monto ($) *</Label>
+                        <Label htmlFor="amount">
+                            {validatedUsers.filter(user => user.isValid).length > 1 
+                                ? "Monto Total ($) *" 
+                                : "Monto ($) *"
+                            }
+                        </Label>
                         <Input
                             id="amount"
                             type="text"
                             value={amount}
-                            readOnly
-                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                            readOnly={validatedUsers.filter(user => user.isValid).length > 1}
+                            onChange={validatedUsers.filter(user => user.isValid).length === 1 
+                                ? (e) => {
+                                    const value = e.target.value
+                                    if (/^\d*\.?\d*$/.test(value)) {
+                                        setAmount(value)
+                                        setBaseAmount(value)
+                                    }
+                                } : undefined
+                            }
+                            className={validatedUsers.filter(user => user.isValid).length > 1 
+                                ? "bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                                : "border border-gray-300"
+                            }
                             onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
+                        {validatedUsers.filter(u => u.isValid).length > 1 && (
+                            <p className="text-sm text-gray-600">
+                                {validatedUsers.filter(u => u.isValid).length} usuarios × ${baseAmount || "0"} = ${amount || "0"}
+                            </p>
+                        )}
                     </div>
 
                     {/* Fecha de inicio */}

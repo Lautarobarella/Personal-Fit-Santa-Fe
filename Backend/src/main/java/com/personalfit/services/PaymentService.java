@@ -8,9 +8,11 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,7 @@ import com.personalfit.exceptions.FileException;
 import com.personalfit.models.MonthlyRevenue;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
+import com.personalfit.models.PaymentUser;
 import com.personalfit.models.User;
 import com.personalfit.repository.MonthlyRevenueRepository;
 import com.personalfit.repository.PaymentFileRepository;
@@ -74,18 +77,31 @@ public class PaymentService {
 
     /**
      * Crea un nuevo pago con archivo opcional
-     * Unifica la lógica de creación manual y automática
+     * Soporta tanto pagos individuales como múltiples usuarios
      */
     @Transactional
     public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file) {
-        // Validar usuario
-        User user = getUserForPayment(paymentRequest);
+        // Obtener lista de usuarios para el pago
+        List<User> users = getUsersForPayment(paymentRequest);
 
-        // Validar reglas de negocio
-        validatePaymentCreation(user);
+        // Validar reglas de negocio para todos los usuarios
+        for (User user : users) {
+            validatePaymentCreation(user);
+        }
+
+        // Obtener el usuario creador del pago
+        User createdByUser = null;
+        if (paymentRequest.getCreatedByDni() != null) {
+            createdByUser = userService.getUserByDni(paymentRequest.getCreatedByDni());
+        }
 
         // Crear el pago
-        Payment payment = buildPayment(paymentRequest, user);
+        Payment payment = buildPayment(paymentRequest);
+        
+        // Establecer el creador del pago
+        if (createdByUser != null) {
+            payment.setCreatedBy(createdByUser);
+        }
 
         // Procesar archivo si existe
         if (file != null && !file.isEmpty()) {
@@ -93,12 +109,28 @@ public class PaymentService {
             payment.setPaymentFile(paymentFile);
         }
 
-        // Guardar y actualizar estado del usuario si es necesario
-        Payment savedPayment = paymentRepository.save(payment);
-        updateUserStatusIfPaid(user, savedPayment);
+        // Crear relaciones con los usuarios
+        Set<PaymentUser> paymentUsers = new HashSet<>();
+        for (User user : users) {
+            PaymentUser paymentUser = PaymentUser.builder()
+                    .payment(payment)
+                    .user(user)
+                    .build();
+            paymentUsers.add(paymentUser);
+            
+            // Actualizar estado del usuario si es necesario
+            updateUserStatusIfPaid(user, payment);
+        }
+        
+        // Asignar las relaciones al pago antes de guardar
+        payment.setPaymentUsers(paymentUsers);
 
-        log.info("Pago creado exitosamente: ID={}, Cliente={}, Monto={}",
-                savedPayment.getId(), user.getFullName(), savedPayment.getAmount());
+        // Guardar el pago (la cascada guardará automáticamente las relaciones PaymentUser)
+        Payment savedPayment = paymentRepository.save(payment);
+
+        log.info("Pago creado exitosamente: ID={}, Usuarios={}, Monto={}, CreatedBy={}",
+                savedPayment.getId(), users.size(), savedPayment.getAmount(), 
+                createdByUser != null ? createdByUser.getFullName() : "N/A");
 
         return savedPayment;
     }
@@ -123,8 +155,17 @@ public class PaymentService {
 
         for (PaymentRequestDTO paymentRequest : paymentRequests) {
             try {
-                // Validar usuario
-                User user = getUserForPayment(paymentRequest);
+                // Obtener usuarios para el pago (usando método unificado)
+                List<User> users = getUsersForPayment(paymentRequest);
+                
+                // Los pagos en lote solo deberían ser para un usuario
+                if (users.size() != 1) {
+                    log.warn("Saltando pago en lote con múltiples usuarios: DNIs={}",
+                            paymentRequest.getAllDnis());
+                    continue;
+                }
+                
+                User user = users.get(0);
 
                 // Validar que el usuario sea CLIENT
                 if (!user.getRole().equals(UserRole.CLIENT)) {
@@ -146,7 +187,15 @@ public class PaymentService {
                         .confNumber(paymentRequest.getConfNumber())
                         .build();
 
-                Payment payment = buildPayment(batchRequest, user);
+                Payment payment = buildPayment(batchRequest);
+                
+                // Crear la relación con el usuario para pagos en lote
+                PaymentUser paymentUser = PaymentUser.builder()
+                        .payment(payment)
+                        .user(user)
+                        .build();
+                
+                payment.setPaymentUsers(Set.of(paymentUser));
                 paymentsToSave.add(payment);
 
             } catch (Exception e) {
@@ -173,11 +222,9 @@ public class PaymentService {
     public List<PaymentTypeDTO> getAllPayments() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
-        return paymentRepository.findAll().stream()
-                .filter(payment -> payment.getCreatedAt().isAfter(startOfMonth) &&
-                        payment.getCreatedAt().isBefore(endOfMonth))
+        return paymentRepository.findAllPaymentsInMonth(startOfMonth, endOfMonth).stream()
                 .map(payment -> {
                     PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
                     // Actualizar estado a EXPIRED si está vencido y era PAID
@@ -196,10 +243,12 @@ public class PaymentService {
      * Para clientes, muestra todos los pagos históricos con estados actualizados
      */
     public List<PaymentTypeDTO> getUserPayments(Long userId) {
-        User user = userService.getUserById(userId);
         LocalDateTime now = LocalDateTime.now();
 
-        return user.getPayments().stream()
+        // Obtener pagos del usuario usando la consulta optimizada
+        List<Payment> userPayments = paymentRepository.findAllByUserIdWithDetails(userId);
+        
+        return userPayments.stream()
                 .map(payment -> {
                     PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
                     // Actualizar estado a EXPIRED si está vencido y era PAID
@@ -245,8 +294,12 @@ public class PaymentService {
 
         if (newStatus == PaymentStatus.PAID) {
             payment.setVerifiedAt(LocalDateTime.now());
-            // Activar usuario si el pago es aprobado
-            updateUserStatusIfPaid(payment.getUser(), payment);
+            // Activar usuarios si el pago es aprobado
+            if (payment.getPaymentUsers() != null) {
+                for (PaymentUser paymentUser : payment.getPaymentUsers()) {
+                    updateUserStatusIfPaid(paymentUser.getUser(), payment);
+                }
+            }
             // Actualizar ingresos mensuales
             updateMonthlyRevenue(payment.getAmount());
         }
@@ -283,27 +336,36 @@ public class PaymentService {
 
     // ===== MÉTODOS PRIVADOS =====
 
-    private User getUserForPayment(PaymentRequestDTO paymentRequest) {
-        if (paymentRequest.getClientId() != null) {
-            return userService.getUserById(paymentRequest.getClientId());
-        } else if (paymentRequest.getClientDni() != null) {
-            return userService.getUserByDni(paymentRequest.getClientDni());
+    /**
+     * Obtiene la lista de usuarios para un pago (soporte para múltiples usuarios)
+     */
+    private List<User> getUsersForPayment(PaymentRequestDTO paymentRequest) {
+        List<User> users = new ArrayList<>();
+        
+        // Si es un pago múltiple, procesar lista de DNIs
+        if (paymentRequest.isMultipleUsersPayment()) {
+            for (Integer dni : paymentRequest.getClientDnis()) {
+                User user = userService.getUserByDni(dni);
+                users.add(user);
+            }
         } else {
-            throw new BusinessRuleException("Se debe proporcionar clientId o clientDni",
-                    "/api/payments/new");
+            // Pago individual (compatibilidad con MercadoPago)
+            if (paymentRequest.getClientId() != null) {
+                User user = userService.getUserById(paymentRequest.getClientId());
+                users.add(user);
+            } else if (paymentRequest.getClientDni() != null) {
+                User user = userService.getUserByDni(paymentRequest.getClientDni());
+                users.add(user);
+            } else {
+                throw new BusinessRuleException("Se debe proporcionar clientId, clientDni o clientDnis",
+                        "/api/payments/new");
+            }
         }
+        
+        return users;
     }
 
     private void validatePaymentCreation(User user) {
-        validatePaymentCreation(user, false);
-    }
-
-    private void validatePaymentCreation(User user, boolean skipBusinessRules) {
-        // Si se especifica saltar reglas de negocio, no validar duplicados
-        if (skipBusinessRules) {
-            return;
-        }
-
         // Solo validar para clientes (no para pagos desde webhook)
         if (user.getRole().name().equals("CLIENT")) {
             Optional<Payment> lastPayment = paymentRepository.findTopByUserOrderByCreatedAtDesc(user);
@@ -328,9 +390,8 @@ public class PaymentService {
         }
     }
 
-    private Payment buildPayment(PaymentRequestDTO request, User user) {
+    private Payment buildPayment(PaymentRequestDTO request) {
         return Payment.builder()
-                .user(user)
                 .amount(request.getAmount())
                 .methodType(request.getMethodType())
                 .status(request.getPaymentStatus())
@@ -426,10 +487,40 @@ public class PaymentService {
     }
 
     private PaymentTypeDTO convertToPaymentTypeDTO(Payment payment) {
+        // Obtener usuarios asociados al pago
+        List<PaymentTypeDTO.PaymentUserInfo> associatedUsers = new ArrayList<>();
+        
+        if (payment.getPaymentUsers() != null && !payment.getPaymentUsers().isEmpty()) {
+            for (PaymentUser paymentUser : payment.getPaymentUsers()) {
+                User user = paymentUser.getUser();
+                PaymentTypeDTO.PaymentUserInfo userInfo = PaymentTypeDTO.PaymentUserInfo.builder()
+                        .userId(user.getId())
+                        .userName(user.getFullName())
+                        .userDni(user.getDni())
+                        .build();
+                associatedUsers.add(userInfo);
+            }
+        }
+        
+        // Usar el createdBy como cliente principal si está disponible
+        Long primaryClientId = null;
+        String primaryClientName = null;
+        
+        if (payment.getCreatedBy() != null) {
+            primaryClientId = payment.getCreatedBy().getId();
+            primaryClientName = payment.getCreatedBy().getFullName();
+        } else if (!associatedUsers.isEmpty()) {
+            // Fallback: usar el primer usuario asociado si no hay createdBy
+            PaymentTypeDTO.PaymentUserInfo firstUser = associatedUsers.get(0);
+            primaryClientId = firstUser.getUserId();
+            primaryClientName = firstUser.getUserName();
+        }
+        
         return PaymentTypeDTO.builder()
                 .id(payment.getId())
-                .clientId(payment.getUser().getId())
-                .clientName(payment.getUser().getFullName())
+                .clientId(primaryClientId)
+                .clientName(primaryClientName)
+                .associatedUsers(associatedUsers)
                 .amount(payment.getAmount())
                 .status(payment.getStatus())
                 .method(payment.getMethodType())
@@ -454,44 +545,47 @@ public class PaymentService {
         log.info("Starting daily payment expiration process at 01:00 AM...");
 
         try {
-            List<Payment> paidPayments = paymentRepository.findByStatus(PaymentStatus.PAID);
+            // Calcular el rango de fechas para el día actual
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+            LocalDateTime endOfDay = startOfDay.plusDays(1);
+            
+            // Usar la consulta optimizada que ya filtra por fecha de vencimiento de hoy
+            List<Payment> expiredPayments = paymentRepository.findPaidPaymentsExpiringToday(startOfDay, endOfDay);
 
-            if (paidPayments.isEmpty()) {
-                log.info("No PAID payments found");
+            if (expiredPayments.isEmpty()) {
+                log.info("No payments expiring today");
                 return;
             }
 
-            final var today = java.time.LocalDate.now();
-            int expiredCount = 0;
             List<User> usersWithExpiredPayments = new ArrayList<>();
 
-            for (Payment payment : paidPayments) {
-                if (payment.getExpiresAt() == null) {
-                    continue;
-                }
-
-                if (payment.getExpiresAt().toLocalDate().isEqual(today)) {
-                    payment.setStatus(PaymentStatus.EXPIRED);
-                    payment.setUpdatedAt(LocalDateTime.now());
-                    userService.updateUserStatus(payment.getUser(), UserStatus.INACTIVE);
-                    usersWithExpiredPayments.add(payment.getUser());
-                    expiredCount++;
-                }
-            }
-
-            if (expiredCount > 0) {
-                paymentRepository.saveAll(paidPayments);
-
-                // Enviar notificaciones de pago vencido a los usuarios afectados
-                try {
-                    notificationService.createPaymentExpiredNotification(usersWithExpiredPayments, new ArrayList<>());
-                    log.info("Payment expiration notifications sent to {} users", usersWithExpiredPayments.size());
-                } catch (Exception notifEx) {
-                    log.error("Error sending payment expiration notifications: {}", notifEx.getMessage(), notifEx);
+            for (Payment payment : expiredPayments) {
+                payment.setStatus(PaymentStatus.EXPIRED);
+                payment.setUpdatedAt(LocalDateTime.now());
+                
+                // Actualizar estado de todos los usuarios asociados al pago
+                if (payment.getPaymentUsers() != null) {
+                    for (PaymentUser paymentUser : payment.getPaymentUsers()) {
+                        User user = paymentUser.getUser();
+                        userService.updateUserStatus(user, UserStatus.INACTIVE);
+                        usersWithExpiredPayments.add(user);
+                    }
                 }
             }
 
-            log.info("Daily expiration completed. Payments expired today: {}", expiredCount);
+            // Guardar todos los cambios
+            paymentRepository.saveAll(expiredPayments);
+
+            // Enviar notificaciones de pago vencido a los usuarios afectados
+            try {
+                notificationService.createPaymentExpiredNotification(usersWithExpiredPayments, new ArrayList<>());
+                log.info("Payment expiration notifications sent to {} users", usersWithExpiredPayments.size());
+            } catch (Exception notifEx) {
+                log.error("Error sending payment expiration notifications: {}", notifEx.getMessage(), notifEx);
+            }
+
+            log.info("Daily expiration completed. Payments expired today: {}", expiredPayments.size());
 
         } catch (Exception e) {
             log.error("Error during daily payment expiration process: {}", e.getMessage(), e);
@@ -537,21 +631,17 @@ public class PaymentService {
         Integer year = now.getYear();
         Integer month = now.getMonthValue();
 
-        // Calcular ingresos en tiempo real desde los pagos PAID del mes actual
+        // Calcular ingresos en tiempo real usando la consulta optimizada
         LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
-        List<Payment> paidPaymentsThisMonth = paymentRepository.findAll().stream()
+        Double totalRevenue = paymentRepository.calculateConfirmedRevenueInPeriod(startOfMonth, endOfMonth);
+        
+        // Obtener todos los pagos del mes para contar
+        List<Payment> paymentsThisMonth = paymentRepository.findAllPaymentsInMonth(startOfMonth, endOfMonth);
+        Integer totalPayments = (int) paymentsThisMonth.stream()
                 .filter(p -> p.getStatus() == PaymentStatus.PAID)
-                .filter(p -> p.getCreatedAt() != null)
-                .filter(p -> !p.getCreatedAt().isBefore(startOfMonth) && !p.getCreatedAt().isAfter(endOfMonth))
-                .collect(Collectors.toList());
-
-        Double totalRevenue = paidPaymentsThisMonth.stream()
-                .mapToDouble(Payment::getAmount)
-                .sum();
-
-        Integer totalPayments = paidPaymentsThisMonth.size();
+                .count();
 
         String monthName = now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
 

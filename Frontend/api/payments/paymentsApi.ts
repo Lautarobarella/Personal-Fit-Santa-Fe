@@ -66,7 +66,10 @@ export async function createPayment(
   const formData = new FormData();
 
   const payment = {
-    clientDni: paymentData.clientDni,
+    // Para pagos múltiples, enviar clientDnis; para pagos únicos, clientDni
+    ...(paymentData.clientDnis ? { clientDnis: paymentData.clientDnis } : { clientDni: paymentData.clientDni }),
+    // DNI del usuario que crea el pago
+    createdByDni: paymentData.createdByDni,
     amount: paymentData.amount,
     createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
     expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),

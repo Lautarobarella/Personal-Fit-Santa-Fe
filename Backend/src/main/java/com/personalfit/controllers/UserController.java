@@ -79,6 +79,13 @@ public class UserController {
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
+    @GetMapping("/by-dni/{dni}")
+    public ResponseEntity<UserTypeDTO> getUserByDni(@PathVariable Integer dni) {
+        User user = userService.getUserByDni(dni);
+        UserTypeDTO userDto = userService.createUserDetailInfoDTO(user);
+        return new ResponseEntity<>(userDto, HttpStatus.OK);
+    }
+
     @GetMapping("/getAll")
     public ResponseEntity<List<UserTypeDTO>> getAllUsers() {
         return new ResponseEntity<>(userService.getAllUsers(), HttpStatus.OK);

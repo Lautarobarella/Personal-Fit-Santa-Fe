@@ -242,7 +242,12 @@ export interface Notification {
 }
 
 export interface NewPaymentInput {
-  clientDni: number
+  // Para compatibilidad con pagos de MercadoPago (único DNI)
+  clientDni?: number
+  // Para pagos manuales múltiples (lista de DNIs)
+  clientDnis?: number[]
+  // DNI del usuario que crea el pago
+  createdByDni?: number
   amount: number
   createdAt: string
   expiresAt: string
