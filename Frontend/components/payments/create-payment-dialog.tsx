@@ -94,6 +94,38 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Hook para obtener pagos del cliente usando el contexto
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
 
+    // Función para resetear todos los estados
+    const resetFormState = () => {
+        setClientDnis([""])
+        setValidatedUsers([{ 
+            dni: 0, 
+            name: "", 
+            isValid: false, 
+            isValidating: false,
+            hasActivePlan: false
+        }])
+        
+        // Limpiar todos los timers
+        debounceTimers.forEach(timer => {
+            if (timer) clearTimeout(timer)
+        })
+        setDebounceTimers([null])
+        
+        setBaseAmount("")
+        setAmount("")
+        setPaymentMethod("")
+        setNotes("")
+        setSelectedFile(null)
+        setPreviewUrl(null)
+        setIsCreating(false)
+        setIsUploading(false)
+        
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""
+        }
+    }
+
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
         if (open && user && monthlyFee > 0) {
@@ -123,30 +155,44 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         }
     }, [baseAmount, validatedUsers])
 
-    // Cleanup timers on unmount
+    // Cleanup timers on unmount y cuando cambie el estado del diálogo
     useEffect(() => {
         return () => {
-            debounceTimers.forEach(timer => {
-                if (timer) clearTimeout(timer)
-            })
+            resetFormState()
         }
-    }, [debounceTimers])
+    }, [])
+
+    // Limpiar timers cuando se cierre el diálogo
+    useEffect(() => {
+        if (!open) {
+            resetFormState()
+        }
+    }, [open])
 
     // Funciones para manejar múltiples DNIs
     const addDniField = () => {
-        setClientDnis([...clientDnis, ""])
+        setClientDnis(prev => [...prev, ""])
+        setValidatedUsers(prev => [...prev, { 
+            dni: 0, 
+            name: "", 
+            isValid: false, 
+            isValidating: false,
+            hasActivePlan: false
+        }])
+        setDebounceTimers(prev => [...prev, null])
     }
 
     const removeDniField = (index: number) => {
         if (clientDnis.length > 1) {
-            const newDnis = clientDnis.filter((_, i) => i !== index)
-            setClientDnis(newDnis)
-            // También remover la validación correspondiente
-            const newValidatedUsers = validatedUsers.filter((_, i) => i !== index)
-            setValidatedUsers(newValidatedUsers)
-            // Limpiar el timer correspondiente
-            const newTimers = debounceTimers.filter((_, i) => i !== index)
-            setDebounceTimers(newTimers)
+            // Limpiar el timer del índice a eliminar
+            if (debounceTimers[index]) {
+                clearTimeout(debounceTimers[index]!)
+            }
+            
+            // Actualizar todos los estados removiendo el índice correspondiente
+            setClientDnis(prev => prev.filter((_, i) => i !== index))
+            setValidatedUsers(prev => prev.filter((_, i) => i !== index))
+            setDebounceTimers(prev => prev.filter((_, i) => i !== index))
         }
     }
 
@@ -163,7 +209,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         // Si el campo está vacío, limpiar la validación inmediatamente
         if (!value.trim()) {
             const newValidatedUsers = [...validatedUsers]
-            newValidatedUsers[index] = { dni: 0, name: "", isValid: false, isValidating: false }
+            newValidatedUsers[index] = { 
+                dni: 0, 
+                name: "", 
+                isValid: false, 
+                isValidating: false,
+                hasActivePlan: false
+            }
             setValidatedUsers(newValidatedUsers)
             return
         }
@@ -174,14 +226,15 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             dni: 0, 
             name: "", 
             isValid: false, 
-            isValidating: true 
+            isValidating: true,
+            hasActivePlan: false
         }
         setValidatedUsers(newValidatedUsers)
         
-        // Configurar nuevo timer con debounce de 800ms
+        // Configurar nuevo timer con debounce de 1000ms (1 segundo)
         const newTimer = setTimeout(() => {
             validateDni(index, value.trim())
-        }, 800)
+        }, 1000)
         
         const newTimers = [...debounceTimers]
         newTimers[index] = newTimer
@@ -190,12 +243,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const validateDni = async (index: number, dniString: string) => {
         try {
+            // Validar formato de DNI
             const dni = parseInt(dniString, 10)
-            if (isNaN(dni)) {
-                throw new Error("DNI debe ser un número válido")
+            if (isNaN(dni) || dniString.length < 7 || dniString.length > 8) {
+                throw new Error("DNI debe tener entre 7 y 8 dígitos")
             }
 
-            // Importar la función para obtener usuario por DNI
+            // Buscar usuario por DNI
             const { fetchUserByDni } = await import('@/api/clients/usersApi')
             const user = await fetchUserByDni(dni)
             
@@ -227,9 +281,21 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             
             setValidatedUsers(newValidatedUsers)
             
-        } catch (error) {
+        } catch (error: any) {
             const newValidatedUsers = [...validatedUsers]
-            const errorMessage = error instanceof Error ? error.message : `El DNI ${dniString} no existe`
+            let errorMessage = "Error inesperado"
+            
+            // Manejo específico de errores
+            if (error?.response?.status === 404) {
+                errorMessage = "DNI no encontrado"
+            } else if (error?.message === "DNI debe tener entre 7 y 8 dígitos") {
+                errorMessage = error.message
+            } else if (error?.message?.includes("Network Error")) {
+                errorMessage = "Error de conexión"
+            } else if (error?.message) {
+                errorMessage = error.message
+            }
+            
             newValidatedUsers[index] = { 
                 dni: 0, 
                 name: "", 
