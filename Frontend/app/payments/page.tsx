@@ -227,7 +227,7 @@ export default function PaymentsPage() {
 
     const totalRevenue = user?.role === UserRole.ADMIN
         ? adminPayments
-            .filter((p: any) => p.status !== PaymentStatus.PENDING)
+            .filter((p: any) => p.status === PaymentStatus.EXPIRED || p.status === PaymentStatus.PAID)
             .reduce((sum: number, p: any) => sum + p.amount, 0)
         : paidPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
 
