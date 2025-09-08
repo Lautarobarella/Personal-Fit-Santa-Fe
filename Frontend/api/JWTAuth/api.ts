@@ -81,7 +81,7 @@ class JWTPermissionsApi {
       requireAuth = true,
     } = options
 
-    const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BACKEND_URL}${endpoint}`
+    const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BASE_URL}${endpoint}`
     const requestHeaders: Record<string, string> = {
       ...headers,
     }

@@ -55,6 +55,15 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findAllByUserIdWithDetails(@Param("userId") Long userId);
 
     /**
+     * Obtiene todos los pagos de un usuario con un estado específico
+     */
+    @Query("SELECT DISTINCT p FROM Payment p " +
+            "JOIN p.users u " +
+            "WHERE u = :user AND p.status = :status " +
+            "ORDER BY p.createdAt DESC")
+    List<Payment> findByUserAndStatus(@Param("user") User user, @Param("status") PaymentStatus status);
+
+    /**
      * Verifica si existe un pago para un usuario específico
      */
     @Query("SELECT COUNT(p) > 0 FROM Payment p " +
