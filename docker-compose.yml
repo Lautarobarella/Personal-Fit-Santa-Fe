@@ -33,7 +33,8 @@ services:
     depends_on:
       - postgres
     environment:
-      SPRING_DATASOURCE_FILES_PATH: /opt/backups/comprobantes
+      # SPRING_DATASOURCE_FILES_PATH: /opt/backups/comprobantes  # Comentado para desarrollo local
+      SPRING_DATASOURCE_FILES_PATH: /app/uploads/comprobantes
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
       SPRING_DATASOURCE_USERNAME: personalfit_user
       SPRING_DATASOURCE_PASSWORD: secret123
@@ -41,16 +42,21 @@ services:
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
       # Configuración de Spring Boot
-      SPRING_PROFILES_ACTIVE: production
+      # SPRING_PROFILES_ACTIVE: production  # Comentado para desarrollo local
+      SPRING_PROFILES_ACTIVE: development
       # Secretos para el backend
-      JWT_SECRET: ${JWT_SECRET}
+      # JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
     ports:
       - "8080:8080"
     volumes:
-      # Mapeo directo al directorio local de la máquina host
-      - /opt/backups/comprobantes:/opt/backups/comprobantes
+      # Mapeo directo al directorio local de la máquina host (comentado para desarrollo local)
+      # - /opt/backups/comprobantes:/opt/backups/comprobantes
+      # Volumen local para desarrollo
+      - uploads_data:/app/uploads/comprobantes
 
   personalfit-frontend:
     build:
@@ -95,4 +101,6 @@ services:
 volumes:
   # Volúmenes persistentes que conservan los datos entre deployments
   pgdata:
-    # Datos de PostgreSQL
+  # Datos de PostgreSQL
+  uploads_data:
+    # Archivos de comprobantes de pago para desarrollo local

@@ -19,22 +19,24 @@ import { useSettings } from "@/hooks/settings/use-settings"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, formatFileSize, validatePaymentFile } from "@/lib/file-compression"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
-import { Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
+import { AlertCircle, Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
 import { useRouter } from "next/navigation"; // <- en App Router (carpeta `app/`)
 import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../../contexts/auth-provider"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import { Card, CardContent } from "../ui/card"
 import { Textarea } from "../ui/textarea"
 
 interface CreatePaymentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     onCreatePayment: (payment: {
-        clientDni: number
+        clientDnis: number[]  // Cambiado de clientDni a clientDnis (array)
+        createdByDni: number  // DNI del usuario que crea el pago
         amount: number
         createdAt: string
         expiresAt: string
         method: MethodType
+        notes?: string // Notas adicionales del pago
         file?: File
     }) => Promise<void>
 }
@@ -42,7 +44,20 @@ interface CreatePaymentDialogProps {
 export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: CreatePaymentDialogProps) {
     const { user } = useAuth()
     const [isCreating, setIsCreating] = useState(false)
-    const [selectedClient, setSelectedClient] = useState("")
+    
+    // Estados para manejar múltiples DNIs
+    const [clientDnis, setClientDnis] = useState<string[]>([""]) // Array de DNIs como strings
+    const [validatedUsers, setValidatedUsers] = useState<Array<{ 
+        dni: number; 
+        name: string; 
+        isValid: boolean; 
+        isValidating: boolean; 
+        errorMessage?: string;
+        hasActivePlan?: boolean;
+    }>>([])
+    const [debounceTimers, setDebounceTimers] = useState<Array<NodeJS.Timeout | null>>([])
+    const [baseAmount, setBaseAmount] = useState("") // Monto base individual
+    
     const today = new Date()
     const startDateStr = today.toISOString().split("T")[0]
 
@@ -73,8 +88,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Hook para obtener configuraciones globales (incluyendo monthly fee)
     const { monthlyFee } = useSettings()
 
-    // Estado para método de pago
-    const [paymentMethod, setPaymentMethod] = useState<MethodType>(MethodType.TRANSFER)
+    // Estado para método de pago - inicializar vacío para que el usuario deba elegir
+    const [paymentMethod, setPaymentMethod] = useState<MethodType | "">("") 
 
     // Hook para obtener pagos del cliente usando el contexto
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
@@ -82,10 +97,150 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Auto-populate fields when dialog opens for client role
     useEffect(() => {
         if (open && user && monthlyFee > 0) {
-            setSelectedClient((user.role === UserRole.CLIENT) ? user.dni?.toString() : "")
-            setAmount(monthlyFee.toString())
+            // Si es cliente, pre-llenar con su DNI
+            if (user.role === UserRole.CLIENT && user.dni) {
+                setClientDnis([user.dni.toString()])
+                // Validar automáticamente el DNI del cliente
+                setTimeout(() => {
+                    validateDni(0, user.dni.toString())
+                }, 100)
+            } else {
+                setClientDnis([""])
+            }
+            setBaseAmount(monthlyFee.toString())
         }
     }, [open, user, monthlyFee])
+
+    // Actualizar amount cuando cambie baseAmount o validatedUsers
+    useEffect(() => {
+        const validUsersCount = validatedUsers.filter(user => user.isValid).length
+        if (validUsersCount > 0 && baseAmount) {
+            const base = parseFloat(baseAmount) || 0
+            const total = base * validUsersCount
+            setAmount(total.toString())
+        } else if (baseAmount) {
+            setAmount(baseAmount)
+        }
+    }, [baseAmount, validatedUsers])
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            debounceTimers.forEach(timer => {
+                if (timer) clearTimeout(timer)
+            })
+        }
+    }, [debounceTimers])
+
+    // Funciones para manejar múltiples DNIs
+    const addDniField = () => {
+        setClientDnis([...clientDnis, ""])
+    }
+
+    const removeDniField = (index: number) => {
+        if (clientDnis.length > 1) {
+            const newDnis = clientDnis.filter((_, i) => i !== index)
+            setClientDnis(newDnis)
+            // También remover la validación correspondiente
+            const newValidatedUsers = validatedUsers.filter((_, i) => i !== index)
+            setValidatedUsers(newValidatedUsers)
+            // Limpiar el timer correspondiente
+            const newTimers = debounceTimers.filter((_, i) => i !== index)
+            setDebounceTimers(newTimers)
+        }
+    }
+
+    const updateDni = (index: number, value: string) => {
+        const newDnis = [...clientDnis]
+        newDnis[index] = value
+        setClientDnis(newDnis)
+        
+        // Limpiar el timer anterior para este índice
+        if (debounceTimers[index]) {
+            clearTimeout(debounceTimers[index]!)
+        }
+        
+        // Si el campo está vacío, limpiar la validación inmediatamente
+        if (!value.trim()) {
+            const newValidatedUsers = [...validatedUsers]
+            newValidatedUsers[index] = { dni: 0, name: "", isValid: false, isValidating: false }
+            setValidatedUsers(newValidatedUsers)
+            return
+        }
+
+        // Establecer estado de validación en progreso
+        const newValidatedUsers = [...validatedUsers]
+        newValidatedUsers[index] = { 
+            dni: 0, 
+            name: "", 
+            isValid: false, 
+            isValidating: true 
+        }
+        setValidatedUsers(newValidatedUsers)
+        
+        // Configurar nuevo timer con debounce de 800ms
+        const newTimer = setTimeout(() => {
+            validateDni(index, value.trim())
+        }, 800)
+        
+        const newTimers = [...debounceTimers]
+        newTimers[index] = newTimer
+        setDebounceTimers(newTimers)
+    }
+
+    const validateDni = async (index: number, dniString: string) => {
+        try {
+            const dni = parseInt(dniString, 10)
+            if (isNaN(dni)) {
+                throw new Error("DNI debe ser un número válido")
+            }
+
+            // Importar la función para obtener usuario por DNI
+            const { fetchUserByDni } = await import('@/api/clients/usersApi')
+            const user = await fetchUserByDni(dni)
+            
+            // Verificar si el usuario tiene un plan activo
+            const hasActivePlan = user.status === 'ACTIVE'
+            
+            const newValidatedUsers = [...validatedUsers]
+            
+            if (hasActivePlan) {
+                // Usuario válido pero con plan activo
+                newValidatedUsers[index] = { 
+                    dni, 
+                    name: user.name,
+                    isValid: false, // No es válido para crear pago
+                    isValidating: false,
+                    hasActivePlan: true,
+                    errorMessage: `${user.name} ya tiene un plan activo`
+                }
+            } else {
+                // Usuario válido y sin plan activo
+                newValidatedUsers[index] = { 
+                    dni, 
+                    name: user.name,
+                    isValid: true,
+                    isValidating: false,
+                    hasActivePlan: false
+                }
+            }
+            
+            setValidatedUsers(newValidatedUsers)
+            
+        } catch (error) {
+            const newValidatedUsers = [...validatedUsers]
+            const errorMessage = error instanceof Error ? error.message : `El DNI ${dniString} no existe`
+            newValidatedUsers[index] = { 
+                dni: 0, 
+                name: "", 
+                isValid: false, 
+                isValidating: false,
+                hasActivePlan: false,
+                errorMessage
+            }
+            setValidatedUsers(newValidatedUsers)
+        }
+    }
 
     const [isUploading, setIsUploading] = useState(false)
     const { toast } = useToast()
@@ -179,7 +334,17 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!selectedClient.trim() || !startDate || !amount || !dueDate) {
+        // Validar que todos los DNIs estén completos y validados
+        if (clientDnis.some(dni => !dni.trim())) {
+            toast({
+                title: "Error",
+                description: "Todos los campos de DNI son requeridos",
+                variant: "destructive",
+            })
+            return
+        }
+
+        if (!startDate || !amount || !dueDate) {
             toast({
                 title: "Error",
                 description: "Todos los campos son requeridos",
@@ -188,39 +353,70 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             return
         }
 
-        if (user?.role === UserRole.CLIENT && !selectedFile) {
+        // Validar que se haya seleccionado un método de pago
+        if (!paymentMethod) {
             toast({
                 title: "Error",
-                description: "Debes subir un comprobante para enviar el pago",
+                description: "Debe seleccionarse un método de pago",
                 variant: "destructive",
             })
             return
         }
 
-        const clientIdParsed = parseInt(selectedClient, 10)
-        if (
-            isNaN(clientIdParsed) ||
-            clientIdParsed < 0
-        ) {
+        // Validar que todos los DNIs sean válidos
+        const validUsers = validatedUsers.filter(user => user.isValid)
+        if (validUsers.length === 0 || validUsers.length !== clientDnis.filter(dni => dni.trim()).length) {
             toast({
                 title: "Error",
-                description: "El DNI debe ser un número válido y no puede ser negativo",
+                description: "Todos los DNIs deben ser válidos y no contar con planes activos",
                 variant: "destructive",
             })
             return
+        }
+
+        // Validar que no haya usuarios con errores (planes activos u otros errores)
+        const usersWithErrors = validatedUsers.filter(user => user.errorMessage)
+        if (usersWithErrors.length > 0) {
+            toast({
+                title: "Error",
+                description: "Corregir los errores marcados",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Validar archivo/notas según método de pago para clientes
+        if (user?.role === UserRole.CLIENT) {
+            if (paymentMethod === MethodType.TRANSFER && !selectedFile) {
+                toast({
+                    title: "Error",
+                    description: "Debes subir un comprobante para transferencias",
+                    variant: "destructive",
+                })
+                return
+            }
+            
+            if (paymentMethod === MethodType.CASH && !notes.trim()) {
+                toast({
+                    title: "Error",
+                    description: "Las notas son obligatorias para pagos en efectivo",
+                    variant: "destructive",
+                })
+                return
+            }
         }
 
         const amountNum = Number.parseFloat(amount)
         if (isNaN(amountNum) || amountNum <= 0) {
             toast({
                 title: "Error",
-                description: "El monto debe ser un número válido mayor a 0",
+                description: "El monto base debe ser un número válido mayor a 0",
                 variant: "destructive",
             })
             return
         }
 
-        // Validar si el cliente ya tiene un pago activo o pendiente
+        // Validar si el cliente ya tiene un pago activo o pendiente (solo para clientes)
         if (user?.role === UserRole.CLIENT) {
             if (isLoadingPayments) {
                 toast({
@@ -243,12 +439,29 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setIsCreating(true)
 
         try {
+            // Obtener array de DNIs validados
+            const validDnis = validUsers.map(user => user.dni)
+            
+            // Determinar el creador del pago según el rol
+            let createdByDni: number
+            if (user?.role === UserRole.CLIENT) {
+                // Para clientes, el creador siempre es el usuario autenticado
+                createdByDni = user.dni
+            } else if (user?.role === UserRole.ADMIN) {
+                // Para admin, el creador es el primer DNI ingresado
+                createdByDni = validDnis[0]
+            } else {
+                throw new Error("Rol de usuario no válido")
+            }
+            
             await onCreatePayment({
-                clientDni: clientIdParsed,
+                clientDnis: validDnis,
+                createdByDni: createdByDni,
                 amount: amountNum,
                 createdAt: startDate,
                 expiresAt: dueDate,
-                method: paymentMethod,
+                method: paymentMethod as MethodType, // Asegurar el tipo ya que validamos que no esté vacío
+                notes: notes.trim() || undefined, // Incluir notas si están presentes
                 file: selectedFile ?? undefined,
             })
 
@@ -289,14 +502,23 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     }
 
     const handleSuccessfulPayment = () => {
+        // Clear all debounce timers
+        debounceTimers.forEach(timer => {
+            if (timer) clearTimeout(timer)
+        })
+        
         // Reset form
-        setSelectedClient("")
+        setClientDnis([""])
+        setValidatedUsers([])
+        setDebounceTimers([])
+        setBaseAmount("")
         setStartDate("")
         setAmount("")
         setDueDate("")
         setSelectedFile(null)
         setPreviewUrl(null)
         setNotes("")
+        setPaymentMethod("") // Reset método de pago
         setPaymentMethod(MethodType.TRANSFER) // Reset payment method
 
         // Mensaje según el rol del usuario
@@ -331,32 +553,106 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 <Card className="m-2">
                     <CardContent className="p-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="client">DNI del Cliente *</Label>
-                        <Input
-                            id="client"
-                            type="number"
-                            className="border border-orange-600"
-                            placeholder="Ej: 30123456"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={selectedClient}
-                            onChange={(e) => {
-                                const value = e.target.value
-                                if (/^\d*$/.test(value)) {
-                                    setSelectedClient(value)
-                                }
-                            }}
-                        />
+                            {/* DNIs de Clientes */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label>DNI de Clientes *</Label>
+                                    <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm"
+                                onClick={addDniField}
+                                className="flex items-center gap-1"
+                            >
+                                <span className="text-lg">+</span>
+                                Agregar DNI
+                            </Button>
+                        </div>
+                        
+                        {clientDnis.map((dni, index) => (
+                            <div key={index} className="space-y-2">
+                                {/* Fila del input DNI y botón eliminar */}
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 relative">
+                                        <Input
+                                            type="number"
+                                            className={`border ${
+                                                validatedUsers[index]?.isValid 
+                                                    ? 'border-green-500 focus:ring-green-500' 
+                                                    : validatedUsers[index]?.errorMessage 
+                                                        ? 'border-red-500 focus:ring-red-500'
+                                                        : validatedUsers[index]?.isValidating
+                                                            ? 'border-blue-500 focus:ring-blue-500'
+                                                            : 'border-gray-300'
+                                            }`}
+                                            placeholder="Ej: 30123456"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={dni}
+                                            onChange={(e) => {
+                                                const value = e.target.value
+                                                if (/^\d*$/.test(value)) {
+                                                    updateDni(index, value)
+                                                }
+                                            }}
+                                        />
+                                        {validatedUsers[index]?.isValidating && (
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {clientDnis.length > 1 && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => removeDniField(index)}
+                                            className="text-red-600 hover:text-red-700 h-10 w-10 p-0 flex-shrink-0"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                                
+                                {/* Fila completa para mensajes de validación */}
+                                <div className="w-full">
+                                    {/* Validación positiva */}
+                                    {validatedUsers[index]?.isValid && (
+                                        <div className="flex items-center gap-1 text-sm text-green-600">
+                                            <Check className="h-3 w-3" />
+                                            <span>{validatedUsers[index].name}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Validación negativa */}
+                                    {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
+                                        <div className="flex items-center gap-1 text-sm text-red-600">
+                                            <AlertCircle className="h-3 w-3" />
+                                            <span>{validatedUsers[index].errorMessage}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Estado de validación en progreso */}
+                                    {validatedUsers[index]?.isValidating && (
+                                        <div className="flex items-center gap-1 text-sm text-blue-600">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            <span>Verificando DNI...</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Método de Pago */}
                     <div className="space-y-2">
                         <Label htmlFor="paymentMethod">Método de Pago *</Label>
                         {user?.role === UserRole.ADMIN ? (
-                            <Select value={paymentMethod} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                            <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
                                 <SelectTrigger id="paymentMethod">
-                                    <SelectValue />
+                                    <SelectValue placeholder="Selecciona método de pago" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
@@ -366,28 +662,71 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                 </SelectContent>
                             </Select>
                         ) : (
-                            <Input
-                                id="paymentMethod"
-                                type="text"
-                                value="Transferencia"
-                                readOnly
-                                className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                onFocus={(e) => e.currentTarget.blur()}
-                            />
+                            <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                <SelectTrigger id="paymentMethod">
+                                    <SelectValue placeholder="Selecciona método de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                </SelectContent>
+                            </Select>
                         )}
                     </div>
 
-                    {/* Monto */}
+                    {/* Monto Base Individual - Solo para múltiples usuarios */}
+                    {validatedUsers.filter(user => user.isValid).length > 1 && (
+                        <div className="space-y-2">
+                            <Label htmlFor="baseAmount">Monto por Usuario ($) *</Label>
+                            <Input
+                                id="baseAmount"
+                                type="text"
+                                value={baseAmount}
+                                onChange={(e) => {
+                                    const value = e.target.value
+                                    if (/^\d*\.?\d*$/.test(value)) {
+                                        setBaseAmount(value)
+                                    }
+                                }}
+                                placeholder="Ej: 30000"
+                                inputMode="numeric"
+                            />
+                        </div>
+                    )}
+
+                    {/* Monto Total Calculado */}
                     <div className="space-y-2">
-                        <Label htmlFor="amount">Monto ($) *</Label>
+                        <Label htmlFor="amount">
+                            {validatedUsers.filter(user => user.isValid).length > 1 
+                                ? "Monto Total ($) *" 
+                                : "Monto ($) *"
+                            }
+                        </Label>
                         <Input
                             id="amount"
                             type="text"
                             value={amount}
-                            readOnly
-                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                            readOnly={validatedUsers.filter(user => user.isValid).length > 1}
+                            onChange={validatedUsers.filter(user => user.isValid).length === 1 
+                                ? (e) => {
+                                    const value = e.target.value
+                                    if (/^\d*\.?\d*$/.test(value)) {
+                                        setAmount(value)
+                                        setBaseAmount(value)
+                                    }
+                                } : undefined
+                            }
+                            className={validatedUsers.filter(user => user.isValid).length > 1 
+                                ? "bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                                : "border border-gray-300"
+                            }
                             onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
                         />
+                        {validatedUsers.filter(u => u.isValid).length > 1 && (
+                            <p className="text-sm text-gray-600">
+                                {validatedUsers.filter(u => u.isValid).length} personas × ${baseAmount || "0"} = ${amount || "0"}
+                            </p>
+                        )}
                     </div>
 
                     {/* Fecha de inicio */}
@@ -429,68 +768,85 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         />
                     </div>
 
-                    {/* Subir comprobante */}
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2">
-                                <FileImage className="h-4 w-4" /> 
-                                Subir Comprobante
-                            </Label>
-                        </div>
-                        <div className="space-y-4">
-                            {!selectedFile ? (
-                                <div className="border-2 border-dashed p-6 text-center rounded-lg">
-                                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
-                                    <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
-                                    <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
-                                </div>
-                            ) : (
-                                <div>
-                                    <div className="relative border rounded-lg overflow-hidden">
-                                        {selectedFile.type.startsWith('image/') ? (
-                                            <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                            {/* Subir comprobante - Solo para transferencias */}
+                            {paymentMethod && paymentMethod === MethodType.TRANSFER && (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center gap-2">
+                                            <FileImage className="h-4 w-4" /> 
+                                            Subir Comprobante *
+                                        </Label>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {!selectedFile ? (
+                                            <div className="border-2 border-dashed p-6 text-center rounded-lg">
+                                                <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                                <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
+                                                <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
+                                                <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
+                                            </div>
                                         ) : (
-                                            <div className="p-8 text-center">
-                                                <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                                                <p className="font-medium">{selectedFile.name}</p>
-                                                <p className="text-sm text-muted-foreground">Archivo PDF</p>
+                                            <div>
+                                                <div className="relative border rounded-lg overflow-hidden">
+                                                    {selectedFile.type.startsWith('image/') ? (
+                                                        <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                                    ) : (
+                                                        <div className="p-8 text-center">
+                                                            <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                                                            <p className="font-medium">{selectedFile.name}</p>
+                                                            <p className="text-sm text-muted-foreground">Archivo PDF</p>
+                                                        </div>
+                                                    )}
+                                                    <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
                                             </div>
                                         )}
-                                        <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
-                                            <X className="h-4 w-4" />
-                                        </Button>
+
+                                        {/* Botones de subida - aparecen siempre */}
+                                        <div className="flex justify-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={isCreating}
+                                            >
+                                                <Upload className="h-4 w-2" /> Archivo
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={handleCameraCapture}
+                                                disabled={isCreating}
+                                            >
+                                                <Camera className="h-4 w-2" /> Cámara
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
                                 </div>
                             )}
 
-                            {/* Botones de subida - aparecen siempre */}
-                            <div className="flex justify-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isCreating}
-                                >
-                                    <Upload className="h-4 w-2" /> Archivo
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={handleCameraCapture}
-                                    disabled={isCreating}
-                                >
-                                    <Camera className="h-4 w-2" /> Cámara
-                                </Button>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Notas (opcional)</Label>
-                                <Textarea rows={3} className="border border-orange-600" value={notes} onChange={(e) => setNotes(e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
+                            {/* Notas - Solo mostrar cuando hay un método seleccionado */}
+                            {paymentMethod && (
+                                <div className="space-y-2">
+                                    <Label>
+                                        {paymentMethod === MethodType.CASH ? "Notas *" : "Notas (opcional)"}
+                                    </Label>
+                                    <Textarea 
+                                        rows={3} 
+                                        className="border border-orange-600" 
+                                        value={notes} 
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder={
+                                            paymentMethod === MethodType.CASH 
+                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo..." 
+                                                : "Notas adicionales sobre el pago..."
+                                        }
+                                    />
+                                </div>
+                            )}
                         </form>
                     </CardContent>
                 </Card>

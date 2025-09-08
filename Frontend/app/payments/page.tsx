@@ -1,15 +1,14 @@
 "use client"
 
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
+import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
 import { usePaymentContext } from "@/contexts/payment-provider"
-import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
-import { useSettings } from "@/hooks/settings/use-settings"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import { PaymentDetailsDialog } from "@/components/payments/payment-details-dialog"
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -37,11 +36,19 @@ import {
 export default function PaymentsPage() {
     const { user } = useRequireAuth()
     const router = useRouter()
+    const queryClient = useQueryClient()
+
+    // Estados básicos
     const [searchTerm, setSearchTerm] = useState("")
-    const { monthlyFee } = useSettings()
     const [showRevenue, setShowRevenue] = useState(true)
     const [methodFilter, setMethodFilter] = useState<MethodType | "ALL">("ALL")
-    const queryClient = useQueryClient()
+
+    // Estados para admin
+    const currentDate = new Date()
+    const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+    const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
+    const [adminPayments, setAdminPayments] = useState<any[]>([])
+    const [isLoadingAdminPayments, setIsLoadingAdminPayments] = useState(false)
 
     const {
         payments,
@@ -49,79 +56,84 @@ export default function PaymentsPage() {
         isLoading,
     } = usePaymentContext()
 
-    // Hook para ingresos mensuales archivados (solo para admin y solo para historial)
-    const {
-        archivedRevenues,
-        isLoading: isLoadingRevenue
-    } = useMonthlyRevenue(user?.role === UserRole.ADMIN)
 
-    // Forzar actualización de datos cuando se monta el componente
+    // useEffect 1: Refrescar datos al montar y detectar cambios de usuario/MercadoPago
     useEffect(() => {
-        if (user?.id || user?.role === UserRole.ADMIN) {
-            const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
-            queryClient.invalidateQueries({ queryKey })
+        if (!user?.id && user?.role !== UserRole.ADMIN) return
 
-            // También invalidar monthly revenue si es admin
+        const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
+
+        const refreshData = () => {
+            queryClient.invalidateQueries({ queryKey })
             if (user?.role === UserRole.ADMIN) {
                 queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
             }
+        }
 
-            // Verificar si hay un flag de actualización desde un pago nuevo
-            const shouldRefresh = localStorage.getItem('refreshPayments')
-            if (shouldRefresh) {
-                localStorage.removeItem('refreshPayments')
-                // Forzar actualización adicional después de un breve delay
-                setTimeout(() => {
-                    queryClient.invalidateQueries({ queryKey })
-                    if (user?.role === UserRole.ADMIN) {
-                        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-                    }
-                }, 1000)
-            }
+        // Actualización inicial
+        refreshData()
+
+        // Verificar flag de actualización desde pago nuevo
+        const shouldRefresh = localStorage.getItem('refreshPayments')
+        if (shouldRefresh) {
+            localStorage.removeItem('refreshPayments')
+            setTimeout(refreshData, 1000)
+        }
+
+        // Verificar si viene de resultado MercadoPago
+        const referrer = document.referrer
+        if (referrer && (
+            referrer.includes('/payments/result/success') ||
+            referrer.includes('/payments/result/pending') ||
+            referrer.includes('/payments/result/failure')
+        )) {
+            setTimeout(refreshData, 100)
         }
     }, [user?.id, user?.role, queryClient])
 
-    // Forzar actualización adicional cuando se detecta que viene de una página de resultado
+    // useEffect 2: Cargar pagos por mes/año para admin
     useEffect(() => {
-        const checkIfFromPaymentResult = () => {
-            // Verificar si viene de una página de resultado de MercadoPago
-            const referrer = document.referrer;
-            if (referrer && (
-                referrer.includes('/payments/result/success') ||
-                referrer.includes('/payments/result/pending') ||
-                referrer.includes('/payments/result/failure')
-            )) {
-                if (user?.id || user?.role === UserRole.ADMIN) {
-                    const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
-                    queryClient.invalidateQueries({ queryKey });
-                    // También invalidar monthly revenue para mantener consistencia
-                    if (user?.role === UserRole.ADMIN) {
-                        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] });
-                    }
-                }
-            }
-        };
+        if (user?.role !== UserRole.ADMIN) return
 
-        // Ejecutar después de un pequeño delay para asegurar que el componente esté montado
-        const timer = setTimeout(checkIfFromPaymentResult, 100);
-        return () => clearTimeout(timer);
-    }, [user?.id, user?.role, queryClient]);
+        setIsLoadingAdminPayments(true)
+        fetchPaymentsByMonthAndYear(selectedYear, selectedMonth)
+            .then(paymentsData => setAdminPayments(paymentsData))
+            .catch(error => {
+                console.error('Error cargando pagos por mes:', error)
+                setAdminPayments([])
+            })
+            .finally(() => setIsLoadingAdminPayments(false))
+    }, [user?.role, selectedYear, selectedMonth])
+
+    // useEffect 3: Validar fechas para evitar fechas futuras
+    useEffect(() => {
+        const currentDate = new Date()
+        const currentYear = currentDate.getFullYear()
+        const currentMonth = currentDate.getMonth() + 1
+
+        if (selectedYear > currentYear) {
+            setSelectedYear(currentYear)
+            setSelectedMonth(currentMonth)
+            return
+        }
+
+        if (selectedYear === currentYear && selectedMonth > currentMonth) {
+            setSelectedMonth(currentMonth)
+        }
+    }, [selectedYear, selectedMonth])
 
     const [verificationDialog, setVerificationDialog] = useState({
         open: false,
         paymentId: null as number | null,
     })
 
+    const [detailsDialog, setDetailsDialog] = useState({
+        open: false,
+        paymentId: null as number | null,
+    })
+
     if (user?.role === UserRole.TRAINER) {
         return <div>No tienes permisos para ver esta página</div>
-    }
-
-    const formatMonth = (date: Date | string | null) => {
-        if (!date) return ""
-        return new Intl.DateTimeFormat("es-ES", {
-            month: "long",
-            year: "numeric",
-        }).format(new Date(date))
     }
 
     const formatDate = (date: Date | string | null) => {
@@ -185,47 +197,87 @@ export default function PaymentsPage() {
         }
     }
 
-    const filteredPayments = payments.filter((p) => {
+    // Cálculos simples y directos (sin useMemo innecesario)
+    const sourcePayments = user?.role === UserRole.ADMIN ? adminPayments : payments
+
+    const filteredPayments = sourcePayments.filter((p: any) => {
         const matchesSearch = p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase())
 
-        const matchesMethod = methodFilter === "ALL" || p.method === methodFilter
+        const matchesMethod = user?.role === UserRole.ADMIN ? true : (methodFilter === "ALL" || p.method === methodFilter)
 
         return matchesSearch && matchesMethod
     })
-    const paidPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PAID)
-    const pendingPayments = filteredPayments.filter((p) => p.status === PaymentStatus.PENDING)
 
-    // Calcular ingresos del mes actual de la misma manera que en dashboard
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
+    const sortedAllPayments = [...filteredPayments].sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt || 0).getTime()
+        const dateB = new Date(b.createdAt || 0).getTime()
+        return dateB - dateA // Descendente: más nuevos primero
+    })
+
+    const paidPayments = filteredPayments.filter((p: any) => p.status === PaymentStatus.PAID)
+
+    const pendingPayments = filteredPayments
+        .filter((p: any) => p.status === PaymentStatus.PENDING)
+        .sort((a: any, b: any) => {
+            const dateA = new Date(a.createdAt || 0).getTime()
+            const dateB = new Date(b.createdAt || 0).getTime()
+            return dateA - dateB // Ascendente: más viejos primero
+        })
+
     const totalRevenue = user?.role === UserRole.ADMIN
-        ? payments
-            .filter(p => {
-                const paymentDate = p.createdAt ? new Date(p.createdAt) : null
-                return p.status === PaymentStatus.PAID &&
-                    paymentDate &&
-                    paymentDate.getMonth() === currentMonth &&
-                    paymentDate.getFullYear() === currentYear
-            })
-            .reduce((sum, p) => sum + p.amount, 0)
-        : paidPayments.reduce((sum, p) => sum + p.amount, 0)
+        ? adminPayments
+            .filter((p: any) => p.status !== PaymentStatus.PENDING)
+            .reduce((sum: number, p: any) => sum + p.amount, 0)
+        : paidPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
 
-    // Obtener información del plan activo y pendiente
-    const activePayment = paidPayments.find(p => {
+    const activePayment = paidPayments.find((p: any) => {
         const now = new Date()
         const expiresAt = p.expiresAt ? new Date(p.expiresAt) : null
         return p.status === PaymentStatus.PAID && expiresAt && expiresAt > now
     })
-    const pendingPayment = pendingPayments.find(p => p.status === PaymentStatus.PENDING)
+
+    const pendingPayment = pendingPayments.find((p: any) => p.status === PaymentStatus.PENDING)
 
     // Lógica para determinar si el cliente puede crear un nuevo pago
     const canCreateNewPayment = user?.role === UserRole.ADMIN || (
         user?.role === UserRole.CLIENT && !activePayment && !pendingPayment
     )
 
+    // Handlers simples para diálogos
     const handleVerificationClick = (id: number) => {
         setVerificationDialog({ open: true, paymentId: id })
+    }
+
+    const handleDetailsClick = (id: number) => {
+        setDetailsDialog({ open: true, paymentId: id })
+    }
+
+    // Handlers simples para selectores
+    const handleMonthChange = (value: string) => {
+        setSelectedMonth(parseInt(value))
+    }
+
+    const handleYearChange = (value: string) => {
+        const newYear = parseInt(value)
+        setSelectedYear(newYear)
+
+        const currentDate = new Date()
+        const currentYear = currentDate.getFullYear()
+        const currentMonth = currentDate.getMonth() + 1
+
+        if (newYear === currentYear && selectedMonth > currentMonth) {
+            setSelectedMonth(currentMonth)
+        }
+    }
+
+    // Datos simples para selectores (calculados en línea)
+    const getCurrentDateInfo = () => {
+        const currentDate = new Date()
+        return {
+            currentYear: currentDate.getFullYear(),
+            currentMonth: currentDate.getMonth() + 1
+        }
     }
 
     return (
@@ -235,7 +287,7 @@ export default function PaymentsPage() {
                 actions={
                     <div className="flex gap-x-2">
                         {user?.role === UserRole.ADMIN ? (
-                            <Button 
+                            <Button
                                 size="sm"
                                 onClick={() => router.push("/payments/method-select")}
                             >
@@ -244,7 +296,7 @@ export default function PaymentsPage() {
                             </Button>
                         ) : user?.role === UserRole.CLIENT ? (
                             canCreateNewPayment ? (
-                                <Button 
+                                <Button
                                     size="sm"
                                     onClick={() => router.push("/payments/method-select")}
                                 >
@@ -267,17 +319,84 @@ export default function PaymentsPage() {
             />
 
             <div className="container-centered py-6 space-y-6">
-                {/* Search - Solo para admin */}
-                {user?.role === UserRole.ADMIN && <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Buscar por cliente o mes..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
-                }
+                {/* Search y filtros */}
+                {user?.role === UserRole.ADMIN && (
+                    <div className="space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por cliente..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+
+                        {/* Filtro por mes y año */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <Select
+                                value={selectedMonth.toString()}
+                                onValueChange={handleMonthChange}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue>
+                                        {new Intl.DateTimeFormat("es-ES", { month: "long" }).format(new Date(2024, selectedMonth - 1))}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(() => {
+                                        const { currentYear, currentMonth } = getCurrentDateInfo()
+                                        const maxMonth = selectedYear === currentYear ? currentMonth : 12
+
+                                        return Array.from({ length: maxMonth }, (_, i) => (
+                                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                                {new Intl.DateTimeFormat("es-ES", { month: "long" }).format(new Date(2024, i))}
+                                            </SelectItem>
+                                        ))
+                                    })()}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={selectedYear.toString()}
+                                onValueChange={handleYearChange}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue>{selectedYear}</SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(() => {
+                                        const { currentYear } = getCurrentDateInfo()
+                                        const years = []
+
+                                        for (let year = currentYear - 3; year <= currentYear; year++) {
+                                            years.push(year)
+                                        }
+
+                                        return years.map(year => (
+                                            <SelectItem key={year} value={year.toString()}>
+                                                {year}
+                                            </SelectItem>
+                                        ))
+                                    })()}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                )}
+
+                {/* Search solo para clientes */}
+                {user?.role === UserRole.CLIENT && (
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar por cliente o fecha..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                )}
 
                 {/* Card informativa para clientes */}
                 {user?.role === UserRole.CLIENT && (
@@ -327,9 +446,11 @@ export default function PaymentsPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground  font-bold">Ingresos del Mes</p>
+                                    <p className="text-sm text-muted-foreground font-bold">
+                                        Ingresos de {new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date(selectedYear, selectedMonth - 1))}
+                                    </p>
                                     <p className="text-2xl font-bold text-foreground">
-                                        {showRevenue ? formatCurrency(totalRevenue) : "••••••"}
+                                        {isLoadingAdminPayments ? "..." : (showRevenue ? formatCurrency(totalRevenue) : "••••••")}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -358,30 +479,9 @@ export default function PaymentsPage() {
                         <TabsTrigger value="all">Todos</TabsTrigger>
                     </TabsList>
 
-                    {/* Filtro por método de pago - Solo para admin */}
-                    {user?.role === UserRole.ADMIN && (
-                        <div className="mt-4">
-                            <Select
-                                value={methodFilter}
-                                onValueChange={(value: "ALL" | MethodType) => setMethodFilter(value)}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Filtrar por método de pago" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ALL">Todos los métodos</SelectItem>
-                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
-                                    <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
-                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
-                                    <SelectItem value={MethodType.MERCADOPAGO}>MercadoPago</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
                     <TabsContent value="all" className="space-y-3 mt-4">
-                        {filteredPayments.map((p) => (
-                            <Card key={p.id}>
+                        {sortedAllPayments.map((p) => (
+                            <Card key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleDetailsClick(p.id)}>
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
@@ -419,7 +519,7 @@ export default function PaymentsPage() {
 
                     <TabsContent value="pending" className="space-y-3 mt-4">
                         {pendingPayments.map((p) => (
-                            <Card key={p.id}>
+                            <Card key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleDetailsClick(p.id)}>
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
@@ -429,7 +529,7 @@ export default function PaymentsPage() {
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                 <Calendar className="h-3 w-3" />
-                                                <span>{formatMonth(p.createdAt)}</span>
+                                                <span>{formatDate(p.createdAt)}</span>
                                                 <span>•</span>
                                                 <span>Vence: {formatDate(p.expiresAt)}</span>
                                             </div>
@@ -450,10 +550,13 @@ export default function PaymentsPage() {
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 bg-transparent"
-                                                onClick={() => handleVerificationClick(p.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleVerificationClick(p.id)
+                                                }}
                                             >
                                                 <Eye className="h-4 w-4 mr-2" />
-                                                Verificar Comprobante
+                                                Verificar Pago
                                             </Button>
                                         )}
                                     </div>
@@ -463,41 +566,17 @@ export default function PaymentsPage() {
                     </TabsContent>
                 </Tabs>
 
-                {/* Historial de Ingresos Mensuales - Solo para admin */}
-                {user?.role === UserRole.ADMIN && archivedRevenues.length > 0 && (
-                    <Card className="mt-6">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2 mb-4">
-                                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                <h3 className="font-semibold">Historial de Ingresos Mensuales</h3>
-                            </div>
-                            <div className="space-y-3">
-                                {archivedRevenues.slice(0, 6).map((revenue) => (
-                                    <div key={revenue.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                                        <div>
-                                            <p className="font-medium capitalize">{revenue.monthName} {revenue.year}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {revenue.totalPayments} pago{revenue.totalPayments !== 1 ? 's' : ''}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-bold">
-                                                {showRevenue ? formatCurrency(revenue.totalRevenue) : "••••••"}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {new Intl.DateTimeFormat("es-ES", {
-                                                    day: "numeric",
-                                                    month: "short"
-                                                }).format(new Date(revenue.archivedAt || revenue.updatedAt || ''))}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
+
+            {detailsDialog.paymentId !== null && (
+                <PaymentDetailsDialog
+                    open={detailsDialog.open}
+                    onOpenChange={(open) =>
+                        setDetailsDialog({ open, paymentId: null })
+                    }
+                    paymentId={detailsDialog.paymentId}
+                />
+            )}
 
             {verificationDialog.paymentId !== null && (
                 <PaymentVerificationDialog

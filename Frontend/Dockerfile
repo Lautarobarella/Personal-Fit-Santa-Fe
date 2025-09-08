@@ -15,6 +15,7 @@ ENV NEXT_PUBLIC_MP_ENVIRONMENT=$NEXT_PUBLIC_MP_ENVIRONMENT
 ENV NEXT_PUBLIC_IS_DOCKER=$NEXT_PUBLIC_IS_DOCKER
 
 COPY Frontend/package*.json ./
+
 RUN npm install
 COPY Frontend/ ./
 RUN npm run build
@@ -45,4 +46,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"] 
+CMD ["node", "server.js"]

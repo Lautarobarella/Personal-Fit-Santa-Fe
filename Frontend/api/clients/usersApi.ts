@@ -21,6 +21,26 @@ export async function fetchUserDetail(id: number) {
 }
 
 /**
+ * Busca un usuario por DNI para validación en pagos
+ * @param dni DNI del usuario a buscar
+ * @returns Promise<{id: number, name: string, dni: number, status: string}> datos básicos del usuario
+ */
+export async function fetchUserByDni(dni: number) {
+  try {
+    const response = await jwtPermissionsApi.get(`/api/users/by-dni/${dni}`);
+    return {
+      id: response.id,
+      name: response.firstName + ' ' + response.lastName,
+      dni: response.dni,
+      status: response.status
+    };
+  } catch (error) {
+    // No mostrar toasts aquí para la validación, solo lanzar el error
+    throw error;
+  }
+}
+
+/**
  * Obtiene los datos del usuario actual usando su ID
  * @param userId ID del usuario
  * @returns Promise<UserType> los datos del usuario

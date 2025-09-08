@@ -1,19 +1,19 @@
 "use client"
 
 import {
-    createPayment,
-    fetchAllPayments,
-    fetchPaymentDetails,
-    fetchUserPayments,
-    updatePaymentStatus,
-    buildReceiptUrl
+  buildReceiptUrl,
+  createPayment,
+  fetchAllPayments,
+  fetchPaymentDetails,
+  fetchUserPayments,
+  updatePaymentStatus
 } from "@/api/payments/paymentsApi"
 import { useAuth } from "@/contexts/auth-provider"
-import { NewPaymentInput, PaymentStatus, PaymentType, MethodType } from "@/lib/types"
+import { MethodType, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types"
 import {
-    useMutation,
-    useQuery,
-    useQueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
 } from "@tanstack/react-query"
 import { useCallback, useMemo } from "react"
 

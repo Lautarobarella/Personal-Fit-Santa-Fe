@@ -1,10 +1,10 @@
 "use client"
 
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { usePaymentContext } from "@/contexts/payment-provider"
 import { BottomNav } from "@/components/ui/bottom-nav"
+import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
 import { MethodType, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"
@@ -19,7 +19,7 @@ export default function NewPaymentPage() {
   useRequireAuth()
 
   const handleCreatePayment = async (payment: {
-    clientDni: number
+    clientDnis: number[]
     amount: number
     createdAt: string
     expiresAt: string

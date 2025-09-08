@@ -220,6 +220,15 @@ export interface PaymentType {
   rejectionReason?: string
   receiptId?: number | null
   receiptUrl?: string | null
+  notes?: string // Notas adicionales del pago
+  // Para pagos múltiples
+  associatedUsers?: PaymentUserInfo[]
+}
+
+export interface PaymentUserInfo {
+  userId: number
+  userName: string
+  userDni: number
 }
 
 export interface MonthlyRevenue {
@@ -246,12 +255,18 @@ export interface Notification {
 }
 
 export interface NewPaymentInput {
-  clientDni: number
+  // Para compatibilidad con pagos de MercadoPago (único DNI)
+  clientDni?: number
+  // Para pagos manuales múltiples (lista de DNIs)
+  clientDnis?: number[]
+  // DNI del usuario que crea el pago
+  createdByDni?: number
   amount: number
   createdAt: string
   expiresAt: string
   paymentStatus: "PENDING" | "PAID"
   method: MethodType
+  notes?: string // Notas adicionales del pago
   file?: File
 }
 

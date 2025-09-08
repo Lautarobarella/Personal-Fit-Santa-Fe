@@ -7,11 +7,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
-import { PaymentStatus, PaymentType, UserRole } from "@/lib/types"
+import { MethodType, PaymentStatus, PaymentType, UserRole } from "@/lib/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -222,8 +221,8 @@ export default function PaymentVerificationPage() {
         onBack={() => router.replace("/payments")}
       />
 
-      <div className="flex-1 overflow-hidden px-3 py-2">
-        {/* Progress section */}
+      {/* Progress section - Fixed */}
+      <div className="flex-shrink-0 px-3 py-2">
         <div className="flex items-center justify-between text-sm mb-1.5">
           <span className="font-medium">Progreso</span>
           <span className="text-muted-foreground">
@@ -240,8 +239,11 @@ export default function PaymentVerificationPage() {
             }}
           />
         </div>
+      </div>
 
-        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} space-y-2`}>
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto px-3">
+        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} space-y-2 pb-12`}>
           {/* Renderiza solo si hay currentPayment */}
           {currentPayment && (
             <>
@@ -271,62 +273,103 @@ export default function PaymentVerificationPage() {
                 </CardContent>
               </Card>
 
-              {/* Receipt section */}
+              {/* Associated Users card - Solo mostrar si hay múltiples usuarios */}
+              {currentPayment.associatedUsers && currentPayment.associatedUsers.length > 1 && (
+                <Card className="mb-2">
+                  <CardContent className="p-2.5">
+                    <Label className="text-sm font-medium mb-1.5 block">Clientes Relacionados ({currentPayment.associatedUsers.length})</Label>
+                    <div className="space-y-1">
+                      {currentPayment.associatedUsers.map((user: any, index: number) => (
+                        <div key={user.userId} className="flex items-center gap-2 text-sm py-1 px-2 bg-muted/50 rounded">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">{user.userName}</span>
+                          <span className="text-muted-foreground">({user.userDni})</span>
+                          {index === 0 && (
+                            <Badge variant="outline" className="text-xs ml-auto">Creador</Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
+              {currentPayment.notes && (
+                <Card className="mb-2">
+                  <CardContent className="p-2.5">
+                    <Label className="text-sm font-medium mb-1.5 block">
+                      {currentPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
+                    </Label>
+                    <div className={`p-2 rounded text-sm ${
+                      currentPayment.method === MethodType.CASH 
+                        ? "bg-amber-50 border border-amber-200 text-amber-800" 
+                        : "bg-muted/50"
+                    }`}>
+                      {currentPayment.notes}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Receipt section - Solo para métodos que NO sean efectivo */}
+              {currentPayment.method !== MethodType.CASH && (
+                <Card className="mb-2">
+                  <CardContent className="p-2.5">
+                    <Label className="text-sm font-medium mb-1.5 block">Comprobante de Pago</Label>
+                    <PaymentReceiptDisplay
+                      fileId={currentPayment.receiptId}
+                      fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
+                      className=""
+                      showActions={true}
+                      pdfHeight="280px"
+                      imageHeight="280px"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Rejection reason */}
               <Card className="mb-2">
                 <CardContent className="p-2.5">
-                  <Label className="text-sm font-medium mb-1.5 block">Comprobante de Pago</Label>
-                  <PaymentReceiptDisplay
-                    fileId={currentPayment.receiptId}
-                    fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
-                    className=""
-                    showActions={true}
-                    pdfHeight="280px"
-                    imageHeight="280px"
+                  <Label htmlFor="rejectionReason" className="text-sm font-medium">Razón del rechazo</Label>
+                  <Textarea
+                    id="rejectionReason"
+                    placeholder="Explica por qué se rechaza el pago..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={2}
+                    className="resize-none text-sm mt-1.5"
+                    disabled={!currentPayment}
                   />
                 </CardContent>
               </Card>
+
+              {/* Action buttons - now in normal flow */}
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => handleStatusUpdate("rejected")}
+                  disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
+                  className="w-1/2 py-2 text-sm font-semibold h-9"
+                >
+                  {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {!isVerifying && <X className="mr-2 h-4 w-4" />}
+                  {isOnCooldown ? "Espera..." : "Rechazar"}
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => handleStatusUpdate("paid")}
+                  disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
+                  className="w-1/2 py-2 text-sm font-semibold h-9"
+                >
+                  {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {!isVerifying && !isOnCooldown && <Check className="mr-2 h-4 w-4" />}
+                  {isVerifying ? "Procesando..." : isOnCooldown ? "Espera..." : "Aprobar"}
+                </Button>
+              </div>
             </>
           )}
-
-          {/* Rejection reason */}
-          <Card className="mb-2">
-            <CardContent className="p-2.5">
-              <Label htmlFor="rejectionReason" className="text-sm font-medium">Razón del rechazo</Label>
-              <Textarea
-                id="rejectionReason"
-                placeholder="Explica por qué se rechaza el pago..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={2}
-                className="resize-none text-sm mt-1.5"
-                disabled={!currentPayment}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Action buttons */}
-          <div className="flex gap-2 mt-2 mb-3">
-            <Button
-              variant="secondary"
-              onClick={() => handleStatusUpdate("rejected")}
-              disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-2 text-sm font-semibold h-9"
-            >
-              {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {!isVerifying && <X className="mr-2 h-4 w-4" />}
-              {isOnCooldown ? "Espera..." : "Rechazar"}
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => handleStatusUpdate("paid")}
-              disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
-              className="w-1/2 py-2 text-sm font-semibold h-9"
-            >
-              {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {!isVerifying && !isOnCooldown && <Check className="mr-2 h-4 w-4" />}
-              {isVerifying ? "Procesando..." : isOnCooldown ? "Espera..." : "Aprobar"}
-            </Button>
-          </div>
         </div>
       </div>
     </div>

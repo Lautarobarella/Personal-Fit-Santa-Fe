@@ -24,6 +24,18 @@ export async function fetchAllPayments(): Promise<PaymentType[]> {
 }
 
 /**
+ * Obtiene pagos por mes y año específico (para admin)
+ */
+export async function fetchPaymentsByMonthAndYear(year: number, month: number): Promise<PaymentType[]> {
+  try {
+    return await jwtPermissionsApi.get(`/api/payments/getAll/${year}/${month}`);
+  } catch (error) {
+    handleApiError(error, 'Error al cargar los pagos del mes');
+    return [];
+  }
+}
+
+/**
  * Obtiene pagos de un usuario específico
  */
 export async function fetchUserPayments(userId: number): Promise<PaymentType[]> {
@@ -66,12 +78,16 @@ export async function createPayment(
   const formData = new FormData();
 
   const payment = {
-    clientDni: paymentData.clientDni,
+    // Para pagos múltiples, enviar clientDnis; para pagos únicos, clientDni
+    ...(paymentData.clientDnis ? { clientDnis: paymentData.clientDnis } : { clientDni: paymentData.clientDni }),
+    // DNI del usuario que crea el pago
+    createdByDni: paymentData.createdByDni,
     amount: paymentData.amount,
     createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
     expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
     paymentStatus,
     methodType: paymentData.method,
+    notes: paymentData.notes, // Agregar las notas del pago
   };
 
   formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }));

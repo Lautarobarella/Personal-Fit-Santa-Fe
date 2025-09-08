@@ -5,46 +5,34 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { usePaymentContext } from "@/contexts/payment-provider"
-import { useToast } from "@/hooks/use-toast"
 import { MethodType, PaymentStatus, PaymentType } from "@/lib/types"
-import { Calendar, Check, Clock, DollarSign, FileImage, Loader2, User, X } from "lucide-react"
+import { Calendar, Clock, DollarSign, FileImage, User } from "lucide-react"
 import { useEffect, useState } from "react"
 
-interface PaymentVerificationDialogProps {
+interface PaymentDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   paymentId: number
 }
 
-export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: PaymentVerificationDialogProps) {
-
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [rejectionReason, setRejectionReason] = useState("")
+export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentDetailsDialogProps) {
   const [selectedPayment, setSelectedPayment] = useState<PaymentType | null>(null)
-
-  const { toast } = useToast()
-
-  const {
-    fetchSinglePayment,
-    updatePaymentStatus,
-  } = usePaymentContext()
+  const { fetchSinglePayment } = usePaymentContext()
 
   useEffect(() => {
     if (!open) return
 
     fetchSinglePayment(paymentId).then(setSelectedPayment)
   }, [open, paymentId, fetchSinglePayment])
-
 
   const formatDateTime = (date: Date) => {
     return new Intl.DateTimeFormat("es-ES", {
@@ -54,49 +42,6 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
       hour: "2-digit",
       minute: "2-digit",
     }).format(new Date(date))
-  }
-
-  const handleStatusUpdate = async (status: "paid" | "rejected") => {
-
-    if (selectedPayment?.id === undefined) return null
-
-    if (status === "rejected" && !rejectionReason.trim()) {
-      toast({
-        title: "Error",
-        description: "Debes proporcionar una razón para rechazar el pago",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsVerifying(true)
-
-    try {
-      await updatePaymentStatus({
-        id: selectedPayment.id,
-        status,
-        rejectionReason: status === "rejected" ? rejectionReason : undefined,
-      })
-
-
-      toast({
-        title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
-        description: `El pago de ${selectedPayment?.clientName} ha sido ${status === "paid" ? "aprobado" : "rechazado"}`,
-      })
-
-
-      onOpenChange(false)
-      setRejectionReason("")
-      // clearSelectedPayment()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo procesar la verificación",
-        variant: "destructive",
-      })
-    } finally {
-      setIsVerifying(false)
-    }
   }
 
   const getStatusColor = (status: string) => {
@@ -132,13 +77,14 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[90vh] flex flex-col">
-
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
-            Verificar Comprobante de Pago
+            Detalles del Pago
           </DialogTitle>
-          <DialogDescription>Revisa el comprobante subido por el cliente y aprueba o rechaza el pago</DialogDescription>
+          <DialogDescription>
+            Información completa del pago y comprobante asociado
+          </DialogDescription>
         </DialogHeader>
 
         {/* Scrollable content area */}
@@ -249,55 +195,19 @@ export function PaymentVerificationDialog({ open, onOpenChange, paymentId }: Pay
               </CardContent>
             </Card>
           )}
-
-          {/* Rejection Reason Input (for new rejections) */}
-          {selectedPayment.status === PaymentStatus.PENDING && (
-            <Card>
-              <CardContent className="p-4">
-                <Label htmlFor="rejectionReason" className="text-sm font-medium">
-                  Razón del rechazo (opcional para aprobación, requerida para rechazo)
-                </Label>
-                <Textarea
-                  id="rejectionReason"
-                  placeholder="Explica por qué se rechaza el pago..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={3}
-                  className="mt-2"
-                />
-              </CardContent>
-            </Card>
-          )}
         </div>
 
-        {/* Fixed footer with action buttons */}
-        <DialogFooter className="flex-shrink-0 flex gap-3 pt-6 border-t mt-4">
+        {/* Fixed footer with close button only */}
+        <DialogFooter className="flex-shrink-0 pt-6 border-t mt-4">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isVerifying}
             className="bg-transparent"
           >
-            Cancelar
+            Cerrar
           </Button>
-
-          {selectedPayment.status === PaymentStatus.PENDING && (
-            <>
-              <Button variant="secondary" onClick={() => handleStatusUpdate("rejected")} disabled={isVerifying}>
-                {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <X className="mr-2 h-4 w-4" />
-                Rechazar
-              </Button>
-              <Button onClick={() => handleStatusUpdate("paid")} disabled={isVerifying}>
-                {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Check className="mr-2 h-4 w-4" />
-                Aprobar
-              </Button>
-            </>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
   )
 }
