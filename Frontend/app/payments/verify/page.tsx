@@ -214,7 +214,7 @@ export default function PaymentVerificationPage() {
 
   // Render principal
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col">
       <MobileHeader
         title="Verificar Pagos"
         showBack
@@ -242,8 +242,8 @@ export default function PaymentVerificationPage() {
       </div>
 
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto px-3">
-        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} space-y-2 pb-12`}>
+      <div className="flex-1 px-3 pb-safe">
+        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} space-y-2 pb-24`}>
           {/* Renderiza solo si hay currentPayment */}
           {currentPayment && (
             <>

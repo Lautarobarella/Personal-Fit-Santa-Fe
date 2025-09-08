@@ -53,7 +53,7 @@ public class ActivityService {
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
         LocalDate activityDate = activity.getDate();
-        LocalTime activityTime = activity.getTime(); 
+        LocalTime activityTime = activity.getTime();
 
         Activity newActivity = Activity.builder()
                 .name(activity.getName())
@@ -194,9 +194,8 @@ public class ActivityService {
     public EnrollmentResponseDTO enrollUser(EnrollmentRequestDTO enrollmentRequest) {
         try {
             // Validar que el usuario puede inscribirse basado en su estado de pago
-            Boolean paymentValidation = 
-                paymentService.canUserEnrollBasedOnPayment(enrollmentRequest.getUserId());
-            
+            Boolean paymentValidation = paymentService.canUserEnrollBasedOnPayment(enrollmentRequest.getUserId());
+
             if (!paymentValidation) {
                 return EnrollmentResponseDTO.builder()
                         .success(false)
@@ -208,7 +207,7 @@ public class ActivityService {
             AttendanceDTO attendance = attendanceService.enrollUser(
                     enrollmentRequest.getUserId(),
                     enrollmentRequest.getActivityId());
-            
+
             return EnrollmentResponseDTO.builder()
                     .success(true)
                     .message("Usuario inscrito exitosamente")
@@ -337,6 +336,70 @@ public class ActivityService {
 
         log.info("Activities check completed successfully. Updated: {}, Created: {}",
                 toUpdate.size(), toCreate.size());
+    }
+
+    /**
+     * Crea múltiples actividades de forma masiva
+     * 
+     * @param activities Lista de DTOs de actividades a crear
+     * @return Número de actividades creadas exitosamente
+     */
+    public Integer createBatchActivities(List<ActivityFormTypeDTO> activities) {
+        log.info("Starting batch creation of {} activities", activities.size());
+
+        List<Activity> activitiesToCreate = new ArrayList<>();
+        int successCount = 0;
+        int errorCount = 0;
+
+        for (ActivityFormTypeDTO activityDTO : activities) {
+            try {
+                User trainer = userService.getUserById(Long.parseLong(activityDTO.getTrainerId()));
+
+                LocalDate activityDate = activityDTO.getDate();
+                LocalTime activityTime = activityDTO.getTime();
+
+                Activity newActivity = Activity.builder()
+                        .name(activityDTO.getName())
+                        .description(activityDTO.getDescription())
+                        .location(activityDTO.getLocation())
+                        .slots(Integer.parseInt(activityDTO.getMaxParticipants()))
+                        .date(LocalDateTime.of(activityDate, activityTime))
+                        .repeatEveryWeek(activityDTO.getIsRecurring() != null ? activityDTO.getIsRecurring() : false)
+                        .duration(Integer.parseInt(activityDTO.getDuration()))
+                        .status(ActivityStatus.ACTIVE)
+                        .trainer(trainer)
+                        .createdAt(LocalDateTime.now())
+                        .isRecurring(activityDTO.getIsRecurring())
+                        .build();
+
+                activitiesToCreate.add(newActivity);
+                successCount++;
+
+            } catch (Exception e) {
+                errorCount++;
+                log.error("Error creating activity '{}' at {} {}: {}",
+                        activityDTO.getName(), activityDTO.getDate(), activityDTO.getTime(), e.getMessage());
+            }
+        }
+
+        // Guardar todas las actividades válidas en una sola transacción
+        if (!activitiesToCreate.isEmpty()) {
+            try {
+                activityRepository.saveAll(activitiesToCreate);
+                log.info("Successfully created {} activities in batch", successCount);
+            } catch (Exception e) {
+                log.error("Error saving batch activities: {}", e.getMessage());
+                throw new BusinessRuleException("Error al guardar las actividades en lote: " + e.getMessage(),
+                        "Api/Activity/createBatchActivities");
+            }
+        }
+
+        if (errorCount > 0) {
+            log.warn("Batch creation completed with {} errors out of {} total activities",
+                    errorCount, activities.size());
+        }
+
+        return successCount;
     }
 
 }

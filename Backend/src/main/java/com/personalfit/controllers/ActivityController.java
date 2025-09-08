@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,8 @@ import com.personalfit.dto.Attendance.EnrollmentRequestDTO;
 import com.personalfit.dto.Attendance.EnrollmentResponseDTO;
 import com.personalfit.services.ActivityService;
 
+import jakarta.transaction.Transactional;
+
 @RestController
 @RequestMapping("/api/activities")
 public class ActivityController {
@@ -39,9 +42,10 @@ public class ActivityController {
         response.put("success", true);
         return ResponseEntity.ok(response);
     }
-    
+
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateActivity(@PathVariable Long id, @RequestBody ActivityFormTypeDTO activity) {
+    public ResponseEntity<Map<String, Object>> updateActivity(@PathVariable Long id,
+            @RequestBody ActivityFormTypeDTO activity) {
         activityService.updateActivity(id, activity);
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Actividad actualizada exitosamente");
@@ -49,7 +53,7 @@ public class ActivityController {
         response.put("activityId", id);
         return ResponseEntity.ok(response);
     }
-    
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteActivity(@PathVariable Long id) {
         activityService.deleteActivity(id);
@@ -67,7 +71,8 @@ public class ActivityController {
     }
 
     @GetMapping("/getAllByWeek/{date}")
-    public ResponseEntity<List<ActivityTypeDTO>> getAllActivitiesAtWeek(@PathVariable("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    public ResponseEntity<List<ActivityTypeDTO>> getAllActivitiesAtWeek(
+            @PathVariable("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         List<ActivityTypeDTO> activities = activityService.getAllActivitiesTypeDtoAtWeek(date);
         return ResponseEntity.ok(activities);
     }
@@ -77,24 +82,36 @@ public class ActivityController {
         ActivityDetailInfoDTO activityInfo = activityService.getActivityDetailInfo(id);
         return ResponseEntity.ok(activityInfo);
     }
-    
+
     // Enrollment endpoints
     @PostMapping("/enroll")
     public ResponseEntity<EnrollmentResponseDTO> enrollUser(@RequestBody EnrollmentRequestDTO enrollmentRequest) {
         EnrollmentResponseDTO response = activityService.enrollUser(enrollmentRequest);
         return ResponseEntity.ok(response);
     }
-    
+
     @PostMapping("/unenroll")
     public ResponseEntity<EnrollmentResponseDTO> unenrollUser(@RequestBody EnrollmentRequestDTO enrollmentRequest) {
         EnrollmentResponseDTO response = activityService.unenrollUser(enrollmentRequest);
         return ResponseEntity.ok(response);
     }
-    
+
     @GetMapping("/{activityId}/enrolled/{userId}")
     public ResponseEntity<Boolean> isUserEnrolled(@PathVariable Long activityId, @PathVariable Long userId) {
         boolean isEnrolled = activityService.isUserEnrolled(userId, activityId);
         return ResponseEntity.ok(isEnrolled);
+    }
+
+    @Transactional
+    @PostMapping("/batch")
+    public ResponseEntity<Map<String, Object>> createBatchActivities(
+            @RequestBody List<ActivityFormTypeDTO> activities) {
+        Integer createdCount = activityService.createBatchActivities(activities);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Actividades creadas exitosamente");
+        response.put("success", true);
+        response.put("createdCount", createdCount);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 }
