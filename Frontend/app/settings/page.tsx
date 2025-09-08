@@ -1,10 +1,9 @@
 "use client"
 
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
+import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
-import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
+import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { PaymentGracePeriodDialog } from "@/components/settings/payment-grace-period-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -12,10 +11,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
+import { useAuth } from "@/contexts/auth-provider"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
-import { BarChart3, Bell, Clock, CreditCard, DollarSign, Key, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
+import { BarChart3, Bell, Clock, CreditCard, DollarSign, FileText, Key, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
   const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
   const [showPaymentGracePeriodDialog, setShowPaymentGracePeriodDialog] = useState(false)
+  const [showTermsDialog, setShowTermsDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -45,10 +47,14 @@ export default function SettingsPage() {
 
   const handleInstallApp = () => {
     toast({
-      title: "Función en desarrollo", 
+      title: "Función en desarrollo",
       description: "Estamos trabajando en esto",
       variant: "default"
     })
+  }
+
+  const handleShowTerms = () => {
+    setShowTermsDialog(true)
   }
 
 
@@ -77,7 +83,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push('/settings/edit')}>
                   <User className="h-4 w-4 mr-2" />
@@ -144,6 +150,31 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+
+        {/* Resources Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              Recursos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Términos y Condiciones</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleShowTerms}>
+                Ver
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Admin Settings */}
         {user?.role === UserRole.ADMIN && (
           <Card>
@@ -190,8 +221,8 @@ export default function SettingsPage() {
                 Período de gracia de pago
               </Button>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start bg-transparent"
                 onClick={() => router.push('/settings/monthly-revenue')}
               >
@@ -216,27 +247,35 @@ export default function SettingsPage() {
       <BottomNav />
 
       {/* Activity Times Dialog */}
-      <ActivityTimesDialog 
-        open={showActivityTimesDialog} 
-        onOpenChange={setShowActivityTimesDialog} 
+      <ActivityTimesDialog
+        open={showActivityTimesDialog}
+        onOpenChange={setShowActivityTimesDialog}
       />
 
       {/* Monthly Fee Dialog */}
-      <MonthlyFeeDialog 
-        open={showMonthlyFeeDialog} 
-        onOpenChange={setShowMonthlyFeeDialog} 
+      <MonthlyFeeDialog
+        open={showMonthlyFeeDialog}
+        onOpenChange={setShowMonthlyFeeDialog}
       />
 
       {/* Max Activities Dialog */}
-      <MaxActivitiesDialog 
-        open={showMaxActivitiesDialog} 
-        onOpenChange={setShowMaxActivitiesDialog} 
+      <MaxActivitiesDialog
+        open={showMaxActivitiesDialog}
+        onOpenChange={setShowMaxActivitiesDialog}
       />
 
       {/* Payment Grace Period Dialog */}
-      <PaymentGracePeriodDialog 
-        open={showPaymentGracePeriodDialog} 
-        onOpenChange={setShowPaymentGracePeriodDialog} 
+      <PaymentGracePeriodDialog
+        open={showPaymentGracePeriodDialog}
+        onOpenChange={setShowPaymentGracePeriodDialog}
+      />
+
+      {/* Terms and Conditions Dialog */}
+      <TermsAndConditionsDialog
+        open={showTermsDialog}
+        onAccept={() => setShowTermsDialog(false)}
+        onReject={() => setShowTermsDialog(false)}
+        viewMode="readonly"
       />
     </div>
   )
