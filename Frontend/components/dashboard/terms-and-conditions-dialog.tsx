@@ -75,14 +75,17 @@ export function TermsAndConditionsDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={(openState) => !openState && handleReject()}>
       <DialogContent className="w-[90vw] h-[90vh] max-w-none flex flex-col p-0">
         <DialogHeader className="flex-shrink-0 p-6 pb-4">
           <DialogTitle className="text-xl font-bold text-center">
             Términos y Condiciones
           </DialogTitle>
           <p className="text-sm text-muted-foreground text-center">
-            Por favor, lea detenidamente y desplácese hasta el final para aceptar
+            {!hasScrolledToBottom ? 
+              'Por favor, lea detenidamente y desplácese hasta el final para aceptar' : 
+              'Ha leído completamente los términos y condiciones'
+            }
           </p>
         </DialogHeader>
 
@@ -118,7 +121,7 @@ export function TermsAndConditionsDialog({
               disabled={!hasScrolledToBottom || !user}
               className="flex-1"
             >
-              {!user ? 'Cargando...' : hasScrolledToBottom ? 'Aceptar' : 'Desplácese hasta el final'}
+              Aceptar
             </Button>
           </div>
         </div>
