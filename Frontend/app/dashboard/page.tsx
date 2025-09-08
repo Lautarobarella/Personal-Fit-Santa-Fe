@@ -77,15 +77,15 @@ function DashboardContent() {
   // Estado para términos y condiciones
   const [showTermsDialog, setShowTermsDialog] = useState(false)
 
-  // Verificar términos y condiciones al montar
+  // Verificar términos y condiciones al montar (solo para usuarios no ADMIN)
   useEffect(() => {
-    if (user?.id && mounted) {
+    if (user?.id && mounted && user?.role !== UserRole.ADMIN) {
       const hasAccepted = hasAcceptedTerms(user.id)
       if (!hasAccepted) {
         setShowTermsDialog(true)
       }
     }
-  }, [user?.id, mounted])
+  }, [user?.id, user?.role, mounted])
 
   // Handlers para términos y condiciones
   const handleAcceptTerms = () => {
