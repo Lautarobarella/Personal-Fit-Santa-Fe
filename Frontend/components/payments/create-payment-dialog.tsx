@@ -243,10 +243,10 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const validateDni = async (index: number, dniString: string) => {
         try {
-            // Validar formato de DNI
+            // Validar que sea un número válido
             const dni = parseInt(dniString, 10)
-            if (isNaN(dni) || dniString.length < 7 || dniString.length > 8) {
-                throw new Error("DNI debe tener entre 7 y 8 dígitos")
+            if (isNaN(dni)) {
+                throw new Error("El DNI debe ser un número válido")
             }
 
             // Buscar usuario por DNI
@@ -282,18 +282,29 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             setValidatedUsers(newValidatedUsers)
             
         } catch (error: any) {
+            console.error('Error validando DNI:', error)
             const newValidatedUsers = [...validatedUsers]
             let errorMessage = "Error inesperado"
             
-            // Manejo específico de errores
-            if (error?.response?.status === 404) {
+            // Verificar diferentes tipos de error 404
+            if (error?.response?.status === 404 || 
+                error?.status === 404 || 
+                error?.code === 404 ||
+                (error?.message && error.message.includes('404'))) {
                 errorMessage = "DNI no encontrado"
-            } else if (error?.message === "DNI debe tener entre 7 y 8 dígitos") {
-                errorMessage = error.message
-            } else if (error?.message?.includes("Network Error")) {
+            } else if (error?.message?.includes("Network Error") || 
+                       error?.message?.includes("ERR_NETWORK") ||
+                       error?.code === 'NETWORK_ERROR') {
                 errorMessage = "Error de conexión"
-            } else if (error?.message) {
+            } else if (error?.message === "El DNI debe ser un número válido") {
                 errorMessage = error.message
+            } else if (error?.message) {
+                // Si el mensaje contiene información útil, usarlo
+                if (error.message.includes("DNI") || error.message.includes("usuario")) {
+                    errorMessage = error.message
+                } else {
+                    errorMessage = "DNI no encontrado" // Asumir 404 por defecto
+                }
             }
             
             newValidatedUsers[index] = { 
@@ -642,6 +653,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                     <div className="flex-1 relative">
                                         <Input
                                             type="number"
+                                            maxLength={11}
                                             className={`border ${
                                                 validatedUsers[index]?.isValid 
                                                     ? 'border-green-500 focus:ring-green-500' 
@@ -657,7 +669,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                             value={dni}
                                             onChange={(e) => {
                                                 const value = e.target.value
-                                                if (/^\d*$/.test(value)) {
+                                                if (/^\d*$/.test(value) && value.length <= 11) {
                                                     updateDni(index, value)
                                                 }
                                             }}
