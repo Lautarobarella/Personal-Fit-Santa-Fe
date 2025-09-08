@@ -1,17 +1,19 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
+import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
+import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
+import { hasAcceptedTerms } from "@/lib/terms-and-conditions-storage"
 import { ActivityStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -35,7 +37,7 @@ import { useEffect, useState } from "react"
 
 // Componente que se renderiza solo en el cliente
 function DashboardContent() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -71,6 +73,40 @@ function DashboardContent() {
 
   // Estado para el dialog de perfil del cliente
   const [showProfileDialog, setShowProfileDialog] = useState(false)
+
+  // Estado para términos y condiciones
+  const [showTermsDialog, setShowTermsDialog] = useState(false)
+
+  // Verificar términos y condiciones al montar
+  useEffect(() => {
+    if (user?.id && mounted) {
+      const hasAccepted = hasAcceptedTerms(user.id)
+      if (!hasAccepted) {
+        setShowTermsDialog(true)
+      }
+    }
+  }, [user?.id, mounted])
+
+  // Handlers para términos y condiciones
+  const handleAcceptTerms = () => {
+    setShowTermsDialog(false)
+    toast({
+      title: "Términos aceptados",
+      description: "Bienvenido a Personal Fit Santa Fe",
+    })
+  }
+
+  const handleRejectTerms = () => {
+    setShowTermsDialog(false)
+    toast({
+      title: "Términos rechazados",
+      description: "Has sido desconectado de la aplicación",
+      variant: "destructive"
+    })
+    // Usar el método logout del contexto de autenticación
+    logout()
+    router.push('/login')
+  }
 
   // Marcar como montado para evitar SSR e invalidar queries para datos frescos
   useEffect(() => {
@@ -628,6 +664,13 @@ function DashboardContent() {
           userId={user.id}
         />
       )}
+
+      {/* Dialog de términos y condiciones */}
+      <TermsAndConditionsDialog
+        open={showTermsDialog}
+        onAccept={handleAcceptTerms}
+        onReject={handleRejectTerms}
+      />
     </div>
   )
 }
