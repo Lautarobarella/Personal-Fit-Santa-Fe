@@ -132,7 +132,7 @@ export default function EditProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background mb-32">
             <MobileHeader
                 title="Editar Perfil"
                 showBack

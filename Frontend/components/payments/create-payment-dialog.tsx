@@ -44,36 +44,36 @@ interface CreatePaymentDialogProps {
 export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: CreatePaymentDialogProps) {
     const { user } = useAuth()
     const [isCreating, setIsCreating] = useState(false)
-    
+
     // Estados para manejar múltiples DNIs
     const [clientDnis, setClientDnis] = useState<string[]>([""]) // Array de DNIs como strings
-    const [validatedUsers, setValidatedUsers] = useState<Array<{ 
-        dni: number; 
-        name: string; 
-        isValid: boolean; 
-        isValidating: boolean; 
+    const [validatedUsers, setValidatedUsers] = useState<Array<{
+        dni: number;
+        name: string;
+        isValid: boolean;
+        isValidating: boolean;
         errorMessage?: string;
         hasActivePlan?: boolean;
     }>>([])
     const [debounceTimers, setDebounceTimers] = useState<Array<NodeJS.Timeout | null>>([])
     const [baseAmount, setBaseAmount] = useState("") // Monto base individual
-    
+
     const today = new Date()
     const startDateStr = today.toISOString().split("T")[0]
 
     // Calcular fecha de vencimiento correctamente
     const calculateDueDate = (startDate: Date) => {
         const dueDate = new Date(startDate)
-        
+
         // Sumar un mes
         dueDate.setMonth(dueDate.getMonth() + 1)
-        
+
         // Si el día cambió (ej: 31 de enero → marzo porque febrero no tiene 31), 
         // establecer el último día del mes anterior
         if (dueDate.getDate() !== startDate.getDate()) {
             dueDate.setDate(0) // Va al último día del mes anterior
         }
-        
+
         return dueDate
     }
 
@@ -84,12 +84,12 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     const [dueDate, setDueDate] = useState(dueDateStr)
 
     const [amount, setAmount] = useState("")
-    
+
     // Hook para obtener configuraciones globales (incluyendo monthly fee)
     const { monthlyFee } = useSettings()
 
     // Estado para método de pago - inicializar vacío para que el usuario deba elegir
-    const [paymentMethod, setPaymentMethod] = useState<MethodType | "">("") 
+    const [paymentMethod, setPaymentMethod] = useState<MethodType | "">("")
 
     // Hook para obtener pagos del cliente usando el contexto
     const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
@@ -97,20 +97,20 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Función para resetear todos los estados
     const resetFormState = () => {
         setClientDnis([""])
-        setValidatedUsers([{ 
-            dni: 0, 
-            name: "", 
-            isValid: false, 
+        setValidatedUsers([{
+            dni: 0,
+            name: "",
+            isValid: false,
             isValidating: false,
             hasActivePlan: false
         }])
-        
+
         // Limpiar todos los timers
         debounceTimers.forEach(timer => {
             if (timer) clearTimeout(timer)
         })
         setDebounceTimers([null])
-        
+
         setBaseAmount("")
         setAmount("")
         setPaymentMethod("")
@@ -119,7 +119,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setPreviewUrl(null)
         setIsCreating(false)
         setIsUploading(false)
-        
+
         // Reset file input
         if (fileInputRef.current) {
             fileInputRef.current.value = ""
@@ -172,10 +172,10 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
     // Funciones para manejar múltiples DNIs
     const addDniField = () => {
         setClientDnis(prev => [...prev, ""])
-        setValidatedUsers(prev => [...prev, { 
-            dni: 0, 
-            name: "", 
-            isValid: false, 
+        setValidatedUsers(prev => [...prev, {
+            dni: 0,
+            name: "",
+            isValid: false,
             isValidating: false,
             hasActivePlan: false
         }])
@@ -188,7 +188,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             if (debounceTimers[index]) {
                 clearTimeout(debounceTimers[index]!)
             }
-            
+
             // Actualizar todos los estados removiendo el índice correspondiente
             setClientDnis(prev => prev.filter((_, i) => i !== index))
             setValidatedUsers(prev => prev.filter((_, i) => i !== index))
@@ -200,19 +200,19 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         const newDnis = [...clientDnis]
         newDnis[index] = value
         setClientDnis(newDnis)
-        
+
         // Limpiar el timer anterior para este índice
         if (debounceTimers[index]) {
             clearTimeout(debounceTimers[index]!)
         }
-        
+
         // Si el campo está vacío, limpiar la validación inmediatamente
         if (!value.trim()) {
             const newValidatedUsers = [...validatedUsers]
-            newValidatedUsers[index] = { 
-                dni: 0, 
-                name: "", 
-                isValid: false, 
+            newValidatedUsers[index] = {
+                dni: 0,
+                name: "",
+                isValid: false,
                 isValidating: false,
                 hasActivePlan: false
             }
@@ -222,20 +222,20 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
         // Establecer estado de validación en progreso
         const newValidatedUsers = [...validatedUsers]
-        newValidatedUsers[index] = { 
-            dni: 0, 
-            name: "", 
-            isValid: false, 
+        newValidatedUsers[index] = {
+            dni: 0,
+            name: "",
+            isValid: false,
             isValidating: true,
             hasActivePlan: false
         }
         setValidatedUsers(newValidatedUsers)
-        
+
         // Configurar nuevo timer con debounce de 1000ms (1 segundo)
         const newTimer = setTimeout(() => {
             validateDni(index, value.trim())
         }, 1000)
-        
+
         const newTimers = [...debounceTimers]
         newTimers[index] = newTimer
         setDebounceTimers(newTimers)
@@ -252,16 +252,16 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             // Buscar usuario por DNI
             const { fetchUserByDni } = await import('@/api/clients/usersApi')
             const user = await fetchUserByDni(dni)
-            
+
             // Verificar si el usuario tiene un plan activo
             const hasActivePlan = user.status === 'ACTIVE'
-            
+
             const newValidatedUsers = [...validatedUsers]
-            
+
             if (hasActivePlan) {
                 // Usuario válido pero con plan activo
-                newValidatedUsers[index] = { 
-                    dni, 
+                newValidatedUsers[index] = {
+                    dni,
                     name: user.name,
                     isValid: false, // No es válido para crear pago
                     isValidating: false,
@@ -270,31 +270,31 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 }
             } else {
                 // Usuario válido y sin plan activo
-                newValidatedUsers[index] = { 
-                    dni, 
+                newValidatedUsers[index] = {
+                    dni,
                     name: user.name,
                     isValid: true,
                     isValidating: false,
                     hasActivePlan: false
                 }
             }
-            
+
             setValidatedUsers(newValidatedUsers)
-            
+
         } catch (error: any) {
             console.error('Error validando DNI:', error)
             const newValidatedUsers = [...validatedUsers]
             let errorMessage = "Error inesperado"
-            
+
             // Verificar diferentes tipos de error 404
-            if (error?.response?.status === 404 || 
-                error?.status === 404 || 
+            if (error?.response?.status === 404 ||
+                error?.status === 404 ||
                 error?.code === 404 ||
                 (error?.message && error.message.includes('404'))) {
                 errorMessage = "DNI no encontrado"
-            } else if (error?.message?.includes("Network Error") || 
-                       error?.message?.includes("ERR_NETWORK") ||
-                       error?.code === 'NETWORK_ERROR') {
+            } else if (error?.message?.includes("Network Error") ||
+                error?.message?.includes("ERR_NETWORK") ||
+                error?.code === 'NETWORK_ERROR') {
                 errorMessage = "Error de conexión"
             } else if (error?.message === "El DNI debe ser un número válido") {
                 errorMessage = error.message
@@ -306,11 +306,11 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                     errorMessage = "DNI no encontrado" // Asumir 404 por defecto
                 }
             }
-            
-            newValidatedUsers[index] = { 
-                dni: 0, 
-                name: "", 
-                isValid: false, 
+
+            newValidatedUsers[index] = {
+                dni: 0,
+                name: "",
+                isValid: false,
                 isValidating: false,
                 hasActivePlan: false,
                 errorMessage
@@ -472,7 +472,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                 })
                 return
             }
-            
+
             if (paymentMethod === MethodType.CASH && !notes.trim()) {
                 toast({
                     title: "Error",
@@ -518,7 +518,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         try {
             // Obtener array de DNIs validados
             const validDnis = validUsers.map(user => user.dni)
-            
+
             // Determinar el creador del pago según el rol
             let createdByDni: number
             if (user?.role === UserRole.CLIENT) {
@@ -530,7 +530,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
             } else {
                 throw new Error("Rol de usuario no válido")
             }
-            
+
             await onCreatePayment({
                 clientDnis: validDnis,
                 createdByDni: createdByDni,
@@ -583,7 +583,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         debounceTimers.forEach(timer => {
             if (timer) clearTimeout(timer)
         })
-        
+
         // Reset form
         setClientDnis([""])
         setValidatedUsers([])
@@ -634,224 +634,223 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label>DNI de Clientes *</Label>
-                                    <Button 
-                                type="button"
-                                variant="outline" 
-                                size="sm"
-                                onClick={addDniField}
-                                className="flex items-center gap-1"
-                            >
-                                <span className="text-lg">+</span>
-                                Agregar DNI
-                            </Button>
-                        </div>
-                        
-                        {clientDnis.map((dni, index) => (
-                            <div key={index} className="space-y-2">
-                                {/* Fila del input DNI y botón eliminar */}
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 relative">
-                                        <Input
-                                            type="number"
-                                            maxLength={11}
-                                            className={`border ${
-                                                validatedUsers[index]?.isValid 
-                                                    ? 'border-green-500 focus:ring-green-500' 
-                                                    : validatedUsers[index]?.errorMessage 
-                                                        ? 'border-red-500 focus:ring-red-500'
-                                                        : validatedUsers[index]?.isValidating
-                                                            ? 'border-blue-500 focus:ring-blue-500'
-                                                            : 'border-gray-300'
-                                            }`}
-                                            placeholder="Ej: 30123456"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            value={dni}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                if (/^\d*$/.test(value) && value.length <= 11) {
-                                                    updateDni(index, value)
-                                                }
-                                            }}
-                                        />
-                                        {validatedUsers[index]?.isValidating && (
-                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addDniField}
+                                        className="flex items-center gap-1"
+                                    >
+                                        <span className="text-lg">+</span>
+                                        Agregar DNI
+                                    </Button>
+                                </div>
+
+                                {clientDnis.map((dni, index) => (
+                                    <div key={index} className="space-y-2">
+                                        {/* Fila del input DNI y botón eliminar */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 relative">
+                                                <Input
+                                                    type="number"
+                                                    maxLength={11}
+                                                    className={`border ${validatedUsers[index]?.isValid
+                                                            ? 'border-green-500 focus:ring-green-500'
+                                                            : validatedUsers[index]?.errorMessage
+                                                                ? 'border-red-500 focus:ring-red-500'
+                                                                : validatedUsers[index]?.isValidating
+                                                                    ? 'border-blue-500 focus:ring-blue-500'
+                                                                    : 'border-gray-300'
+                                                        }`}
+                                                    placeholder="Ej: 30123456"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    value={dni}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value
+                                                        if (/^\d*$/.test(value) && value.length <= 11) {
+                                                            updateDni(index, value)
+                                                        }
+                                                    }}
+                                                />
+                                                {validatedUsers[index]?.isValidating && (
+                                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+
+                                            {clientDnis.length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => removeDniField(index)}
+                                                    className="text-red-600 hover:text-red-700 h-10 w-10 p-0 flex-shrink-0"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        {/* Fila completa para mensajes de validación */}
+                                        <div className="w-full">
+                                            {/* Validación positiva */}
+                                            {validatedUsers[index]?.isValid && (
+                                                <div className="flex items-center gap-1 text-sm text-green-600">
+                                                    <Check className="h-3 w-3" />
+                                                    <span>{validatedUsers[index].name}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Validación negativa */}
+                                            {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
+                                                <div className="flex items-center gap-1 text-sm text-red-600">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    <span>{validatedUsers[index].errorMessage}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Estado de validación en progreso */}
+                                            {validatedUsers[index]?.isValidating && (
+                                                <div className="flex items-center gap-1 text-sm text-blue-600">
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    <span>Verificando DNI...</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    
-                                    {clientDnis.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => removeDniField(index)}
-                                            className="text-red-600 hover:text-red-700 h-10 w-10 p-0 flex-shrink-0"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                                
-                                {/* Fila completa para mensajes de validación */}
-                                <div className="w-full">
-                                    {/* Validación positiva */}
-                                    {validatedUsers[index]?.isValid && (
-                                        <div className="flex items-center gap-1 text-sm text-green-600">
-                                            <Check className="h-3 w-3" />
-                                            <span>{validatedUsers[index].name}</span>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Validación negativa */}
-                                    {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
-                                        <div className="flex items-center gap-1 text-sm text-red-600">
-                                            <AlertCircle className="h-3 w-3" />
-                                            <span>{validatedUsers[index].errorMessage}</span>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Estado de validación en progreso */}
-                                    {validatedUsers[index]?.isValidating && (
-                                        <div className="flex items-center gap-1 text-sm text-blue-600">
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                            <span>Verificando DNI...</span>
-                                        </div>
-                                    )}
-                                </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
 
-                    {/* Método de Pago */}
-                    <div className="space-y-2">
-                        <Label htmlFor="paymentMethod">Método de Pago *</Label>
-                        {user?.role === UserRole.ADMIN ? (
-                            <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
-                                <SelectTrigger id="paymentMethod">
-                                    <SelectValue placeholder="Selecciona método de pago" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
-                                    <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
-                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
-                                    <SelectItem value={MethodType.MERCADOPAGO}>MercadoPago</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        ) : (
-                            <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
-                                <SelectTrigger id="paymentMethod">
-                                    <SelectValue placeholder="Selecciona método de pago" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
-                                    <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
+                            {/* Método de Pago */}
+                            <div className="space-y-2">
+                                <Label htmlFor="paymentMethod">Método de Pago *</Label>
+                                {user?.role === UserRole.ADMIN ? (
+                                    <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                        <SelectTrigger id="paymentMethod">
+                                            <SelectValue placeholder="Selecciona método de pago" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                            <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
+                                            <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                            <SelectItem value={MethodType.MERCADOPAGO}>MercadoPago</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                        <SelectTrigger id="paymentMethod">
+                                            <SelectValue placeholder="Selecciona método de pago" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                            <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
 
-                    {/* Monto Base Individual - Solo para múltiples usuarios */}
-                    {validatedUsers.filter(user => user.isValid).length > 1 && (
-                        <div className="space-y-2">
-                            <Label htmlFor="baseAmount">Monto por Usuario ($) *</Label>
-                            <Input
-                                id="baseAmount"
-                                type="text"
-                                value={baseAmount}
-                                onChange={(e) => {
-                                    const value = e.target.value
-                                    if (/^\d*\.?\d*$/.test(value)) {
-                                        setBaseAmount(value)
+                            {/* Monto Base Individual - Solo para múltiples usuarios */}
+                            {validatedUsers.filter(user => user.isValid).length > 1 && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="baseAmount">Monto por Usuario ($) *</Label>
+                                    <Input
+                                        id="baseAmount"
+                                        type="text"
+                                        value={baseAmount}
+                                        onChange={(e) => {
+                                            const value = e.target.value
+                                            if (/^\d*\.?\d*$/.test(value)) {
+                                                setBaseAmount(value)
+                                            }
+                                        }}
+                                        placeholder="Ej: 30000"
+                                        inputMode="numeric"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Monto Total Calculado */}
+                            <div className="space-y-2">
+                                <Label htmlFor="amount">
+                                    {validatedUsers.filter(user => user.isValid).length > 1
+                                        ? "Monto Total ($) *"
+                                        : "Monto ($) *"
                                     }
-                                }}
-                                placeholder="Ej: 30000"
-                                inputMode="numeric"
-                            />
-                        </div>
-                    )}
-
-                    {/* Monto Total Calculado */}
-                    <div className="space-y-2">
-                        <Label htmlFor="amount">
-                            {validatedUsers.filter(user => user.isValid).length > 1 
-                                ? "Monto Total ($) *" 
-                                : "Monto ($) *"
-                            }
-                        </Label>
-                        <Input
-                            id="amount"
-                            type="text"
-                            value={amount}
-                            readOnly={validatedUsers.filter(user => user.isValid).length > 1}
-                            onChange={validatedUsers.filter(user => user.isValid).length === 1 
-                                ? (e) => {
-                                    const value = e.target.value
-                                    if (/^\d*\.?\d*$/.test(value)) {
-                                        setAmount(value)
-                                        setBaseAmount(value)
+                                </Label>
+                                <Input
+                                    id="amount"
+                                    type="text"
+                                    value={amount}
+                                    readOnly={validatedUsers.filter(user => user.isValid).length > 1}
+                                    onChange={validatedUsers.filter(user => user.isValid).length === 1
+                                        ? (e) => {
+                                            const value = e.target.value
+                                            if (/^\d*\.?\d*$/.test(value)) {
+                                                setAmount(value)
+                                                setBaseAmount(value)
+                                            }
+                                        } : undefined
                                     }
-                                } : undefined
-                            }
-                            className={validatedUsers.filter(user => user.isValid).length > 1 
-                                ? "bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                : "border border-gray-300"
-                            }
-                            onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
-                        />
-                        {validatedUsers.filter(u => u.isValid).length > 1 && (
-                            <p className="text-sm text-gray-600">
-                                {validatedUsers.filter(u => u.isValid).length} personas × ${baseAmount || "0"} = ${amount || "0"}
-                            </p>
-                        )}
-                    </div>
+                                    className={validatedUsers.filter(user => user.isValid).length > 1
+                                        ? "bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                                        : "border border-gray-300"
+                                    }
+                                    onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
+                                />
+                                {validatedUsers.filter(u => u.isValid).length > 1 && (
+                                    <p className="text-sm text-gray-600">
+                                        {validatedUsers.filter(u => u.isValid).length} personas × ${baseAmount || "0"} = ${amount || "0"}
+                                    </p>
+                                )}
+                            </div>
 
-                    {/* Fecha de inicio */}
-                    <div className="space-y-2">
-                        <Label htmlFor="startDate">Fecha de inicio *</Label>
-                        <Input
-                            id="startDate"
-                            type="text"
-                            readOnly
-                            value={new Date().toISOString().split("T")[0]}
-                            placeholder="Fecha de inicio"
-                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                        />
-                    </div>
+                            {/* Fecha de inicio */}
+                            <div className="space-y-2">
+                                <Label htmlFor="startDate">Fecha de inicio *</Label>
+                                <Input
+                                    id="startDate"
+                                    type="text"
+                                    readOnly
+                                    value={new Date().toISOString().split("T")[0]}
+                                    placeholder="Fecha de inicio"
+                                    className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                                />
+                            </div>
 
-                    {/* Fecha de vencimiento */}
-                    <div className="space-y-2">
-                        <Label htmlFor="dueDate">Fecha de vencimiento *</Label>
-                        <Input
-                            id="dueDate"
-                            type="text"
-                            readOnly
-                            value={(() => {
-                                const today = new Date()
-                                const nextMonth = new Date(today)
-                                
-                                // Sumar un mes
-                                nextMonth.setMonth(nextMonth.getMonth() + 1)
-                                
-                                // Si el día cambió, establecer el último día del mes anterior
-                                if (nextMonth.getDate() !== today.getDate()) {
-                                    nextMonth.setDate(0) // Va al último día del mes anterior
-                                }
+                            {/* Fecha de vencimiento */}
+                            <div className="space-y-2">
+                                <Label htmlFor="dueDate">Fecha de vencimiento *</Label>
+                                <Input
+                                    id="dueDate"
+                                    type="text"
+                                    readOnly
+                                    value={(() => {
+                                        const today = new Date()
+                                        const nextMonth = new Date(today)
 
-                                return nextMonth.toISOString().split("T")[0]
-                            })()}
-                            placeholder="Fecha de vencimiento"
-                            className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                        />
-                    </div>
+                                        // Sumar un mes
+                                        nextMonth.setMonth(nextMonth.getMonth() + 1)
+
+                                        // Si el día cambió, establecer el último día del mes anterior
+                                        if (nextMonth.getDate() !== today.getDate()) {
+                                            nextMonth.setDate(0) // Va al último día del mes anterior
+                                        }
+
+                                        return nextMonth.toISOString().split("T")[0]
+                                    })()}
+                                    placeholder="Fecha de vencimiento"
+                                    className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                                />
+                            </div>
 
                             {/* Subir comprobante - Solo para transferencias */}
                             {paymentMethod && paymentMethod === MethodType.TRANSFER && (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label className="flex items-center gap-2">
-                                            <FileImage className="h-4 w-4" /> 
+                                            <FileImage className="h-4 w-4" />
                                             Subir Comprobante *
                                         </Label>
                                     </div>
@@ -912,14 +911,14 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                     <Label>
                                         {paymentMethod === MethodType.CASH ? "Notas *" : "Notas (opcional)"}
                                     </Label>
-                                    <Textarea 
-                                        rows={3} 
-                                        className="border border-orange-600" 
-                                        value={notes} 
+                                    <Textarea
+                                        rows={3}
+                                        className="border border-orange-600"
+                                        value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder={
-                                            paymentMethod === MethodType.CASH 
-                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo..." 
+                                            paymentMethod === MethodType.CASH
+                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo..."
                                                 : "Notas adicionales sobre el pago..."
                                         }
                                     />
