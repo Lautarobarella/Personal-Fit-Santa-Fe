@@ -1,11 +1,12 @@
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 import { ActivityProvider } from "@/contexts/activity-provider"
 import { AttendanceProvider } from "@/contexts/attendance-provider"
 import { AuthProvider } from "@/contexts/auth-provider"
 import { NotificationsProvider } from "@/contexts/notifications-provider"
 import { PaymentProvider } from "@/contexts/payment-provider"
 import { SettingsProvider } from "@/contexts/settings-provider"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
@@ -60,6 +61,7 @@ export default function RootLayout({
                           {children}
                         </div>
                       </div>
+                      <ServiceWorkerRegistration />
                       <Toaster />
                     </NotificationsProvider>
                   </AttendanceProvider>
