@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
+import java.util.Set;
 
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
@@ -15,6 +16,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -55,8 +57,10 @@ public class User {
     private UserStatus status;
     @OneToMany(mappedBy = "user")
     private List<Attendance> attendances;
-    // @OneToMany(mappedBy = "user")
-    // private List<Payment> payments; // Removido - ahora se usa PaymentUser
+    
+    @ManyToMany(mappedBy = "users")
+    private Set<Payment> payments;
+    
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 

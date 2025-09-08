@@ -14,8 +14,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,8 +30,8 @@ import lombok.ToString;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"paymentUsers"})
-@ToString(exclude = {"paymentUsers"})
+@EqualsAndHashCode(exclude = {"users"})
+@ToString(exclude = {"users"})
 public class Payment {
 
     @Id
@@ -58,9 +59,14 @@ public class Payment {
     @JoinColumn(name = "payment_file_id")
     private PaymentFile paymentFile; // Comprobante de pago asociado
 
-    // Nueva relación many-to-many con usuarios
-    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<PaymentUser> paymentUsers;
+    // Relación many-to-many directa con usuarios
+    @ManyToMany
+    @JoinTable(
+        name = "payment_users",
+        joinColumns = @JoinColumn(name = "payment_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> users;
 
 
 }

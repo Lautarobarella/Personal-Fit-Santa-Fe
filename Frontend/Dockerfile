@@ -1,7 +1,20 @@
 # Etapa 1: Build con Node.js
 FROM node:18-alpine AS builder
 WORKDIR /app
+
+# Declarar argumentos de build para variables de entorno de Next.js
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_MP_PUBLIC_KEY
+ARG NEXT_PUBLIC_MP_ENVIRONMENT
+ARG NEXT_PUBLIC_IS_DOCKER
+
+# Establecer las variables de entorno para el build
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_MP_PUBLIC_KEY=$NEXT_PUBLIC_MP_PUBLIC_KEY
+ENV NEXT_PUBLIC_MP_ENVIRONMENT=$NEXT_PUBLIC_MP_ENVIRONMENT
+ENV NEXT_PUBLIC_IS_DOCKER=$NEXT_PUBLIC_IS_DOCKER
 COPY Frontend/package*.json ./
+
 RUN npm install
 COPY Frontend/ ./
 RUN npm run build
@@ -32,4 +45,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"] 
+CMD ["node", "server.js"]

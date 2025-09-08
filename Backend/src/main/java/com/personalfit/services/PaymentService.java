@@ -36,7 +36,6 @@ import com.personalfit.exceptions.FileException;
 import com.personalfit.models.MonthlyRevenue;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
-import com.personalfit.models.PaymentUser;
 import com.personalfit.models.User;
 import com.personalfit.repository.MonthlyRevenueRepository;
 import com.personalfit.repository.PaymentFileRepository;
@@ -110,22 +109,18 @@ public class PaymentService {
         }
 
         // Crear relaciones con los usuarios
-        Set<PaymentUser> paymentUsers = new HashSet<>();
+        Set<User> paymentUsers = new HashSet<>();
         for (User user : users) {
-            PaymentUser paymentUser = PaymentUser.builder()
-                    .payment(payment)
-                    .user(user)
-                    .build();
-            paymentUsers.add(paymentUser);
+            paymentUsers.add(user);
             
             // Actualizar estado del usuario si es necesario
             updateUserStatusIfPaid(user, payment);
         }
         
         // Asignar las relaciones al pago antes de guardar
-        payment.setPaymentUsers(paymentUsers);
+        payment.setUsers(paymentUsers);
 
-        // Guardar el pago (la cascada guardará automáticamente las relaciones PaymentUser)
+        // Guardar el pago (la cascada guardará automáticamente las relaciones)
         Payment savedPayment = paymentRepository.save(payment);
 
         log.info("Pago creado exitosamente: ID={}, Usuarios={}, Monto={}, CreatedBy={}",
@@ -190,12 +185,7 @@ public class PaymentService {
                 Payment payment = buildPayment(batchRequest);
                 
                 // Crear la relación con el usuario para pagos en lote
-                PaymentUser paymentUser = PaymentUser.builder()
-                        .payment(payment)
-                        .user(user)
-                        .build();
-                
-                payment.setPaymentUsers(Set.of(paymentUser));
+                payment.setUsers(Set.of(user));
                 paymentsToSave.add(payment);
 
             } catch (Exception e) {
@@ -318,9 +308,9 @@ public class PaymentService {
         if (newStatus == PaymentStatus.PAID) {
             payment.setVerifiedAt(LocalDateTime.now());
             // Activar usuarios si el pago es aprobado
-            if (payment.getPaymentUsers() != null) {
-                for (PaymentUser paymentUser : payment.getPaymentUsers()) {
-                    updateUserStatusIfPaid(paymentUser.getUser(), payment);
+            if (payment.getUsers() != null) {
+                for (User user : payment.getUsers()) {
+                    updateUserStatusIfPaid(user, payment);
                 }
             }
             // Actualizar ingresos mensuales
@@ -514,7 +504,7 @@ public class PaymentService {
         // Obtener usuarios asociados al pago, con el creador primero
         List<PaymentTypeDTO.PaymentUserInfo> associatedUsers = new ArrayList<>();
         
-        if (payment.getPaymentUsers() != null && !payment.getPaymentUsers().isEmpty()) {
+        if (payment.getUsers() != null && !payment.getUsers().isEmpty()) {
             // Primero agregar el creador si existe
             PaymentTypeDTO.PaymentUserInfo creatorInfo = null;
             if (payment.getCreatedBy() != null) {
@@ -527,9 +517,7 @@ public class PaymentService {
             }
             
             // Luego agregar los demás usuarios (excluyendo el creador si ya fue agregado)
-            for (PaymentUser paymentUser : payment.getPaymentUsers()) {
-                User user = paymentUser.getUser();
-                
+            for (User user : payment.getUsers()) {
                 // Omitir el usuario creador si ya fue agregado
                 if (payment.getCreatedBy() != null && user.getId().equals(payment.getCreatedBy().getId())) {
                     continue;
@@ -608,9 +596,8 @@ public class PaymentService {
                 payment.setUpdatedAt(LocalDateTime.now());
                 
                 // Actualizar estado de todos los usuarios asociados al pago
-                if (payment.getPaymentUsers() != null) {
-                    for (PaymentUser paymentUser : payment.getPaymentUsers()) {
-                        User user = paymentUser.getUser();
+                if (payment.getUsers() != null) {
+                    for (User user : payment.getUsers()) {
                         userService.updateUserStatus(user, UserStatus.INACTIVE);
                         usersWithExpiredPayments.add(user);
                     }
