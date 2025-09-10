@@ -10,16 +10,20 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#454545",
     theme_color: "#FF6000",
     orientation: "portrait",
+    scope: "/",
+    lang: "es",
     icons: [
       {
         src: "/icon-192x192.png",
         sizes: "192x192",
         type: "image/png",
+        purpose: "any",
       },
       {
         src: "/icon-512x512.png",
         sizes: "512x512",
         type: "image/png",
+        purpose: "any",
       },
     ],
     categories: ["fitness", "health", "productivity"],
@@ -31,22 +35,8 @@ export default function manifest(): MetadataRoute.Manifest {
         form_factor: "narrow",
       },
     ],
+    // Configuraciones adicionales para prevenir zoom en apps empaquetadas
+    prefer_related_applications: false,
+    display_override: ["standalone", "minimal-ui"],
   }
 }
-
-
-{/* EST0 IBA ARRIBA, AVERIGUAR PARA QUE SIRVE!!! TIRABA WARNINGS !!!!
-      icons: [
-      {
-        src: "/icon-192x192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        src: "/icon-512x512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
-    ],
-  
-  */}
