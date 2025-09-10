@@ -30,8 +30,14 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> authenticate(@Valid @RequestBody AuthRequestDTO request) {
-        AuthResponseDTO response = authService.authenticate(request);
-        log.info("User authenticated successfully: {}", request.getEmail());
+        // Normalizar email a lowercase para hacer case insensitive
+        AuthRequestDTO normalizedRequest = AuthRequestDTO.builder()
+                .email(request.getEmail().toLowerCase().trim())
+                .password(request.getPassword())
+                .build();
+                
+        AuthResponseDTO response = authService.authenticate(normalizedRequest);
+        log.info("User authenticated successfully: {}", normalizedRequest.getEmail());
         
         // Crear cookies httpOnly y secure para los tokens
         ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", response.getAccessToken())

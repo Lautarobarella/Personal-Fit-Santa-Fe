@@ -1,16 +1,16 @@
 "use client"
 
-import type React from "react"
 import Image from "next/image"
+import type React from "react"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
+import { useState } from "react"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -24,7 +24,9 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      const success = await login(email, password)
+      // Normalizar email a lowercase para hacer case insensitive
+      const normalizedEmail = email.toLowerCase().trim()
+      const success = await login(normalizedEmail, password)
       if (!success) {
         toast({
           title: "Error de autenticación",
