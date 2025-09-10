@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import { initializeZoomPrevention } from "@/lib/prevent-zoom";
+import { useEffect } from "react";
 
 export function ZoomPrevention() {
   useEffect(() => {
