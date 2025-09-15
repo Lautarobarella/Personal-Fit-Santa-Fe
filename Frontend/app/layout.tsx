@@ -54,6 +54,16 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
+        
+        {/* Meta tags para comportamiento nativo en PWA empaquetada */}
+        <meta name="application-name" content="PERSONAL FIT" />
+        <meta name="msapplication-TileColor" content="#FF6000" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <meta name="theme-color" content="#FF6000" />
+        
+        {/* Prevenir que el sistema fuerce estilos */}
+        <meta name="color-scheme" content="light" />
+        <meta name="supported-color-schemes" content="light" />
       </head>
       <body className={inter.className}>
         <ThemeProvider>

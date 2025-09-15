@@ -15,6 +15,27 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* Prevenir que el sistema fuerce modo oscuro */
+html {
+  color-scheme: light !important;
+  background-color: white !important;
+}
+
+/* Asegurar que los colores se mantengan en PWA empaquetada */
+* {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Bloquear filtros de modo oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  html {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+}
+
 @layer base {
   :root {
     /* Nueva paleta profesional basada en la imagen */
