@@ -12,6 +12,22 @@ const nextConfig = {
   output: 'standalone',
   // Configuración para archivos estáticos en Docker
   trailingSlash: false,
+  
+  // Configuración para servir archivos .well-known correctamente
+  async headers() {
+    return [
+      {
+        source: '/.well-known/assetlinks.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/json',
+          },
+        ],
+      },
+    ]
+  },
+  
   // Configuración para evitar warnings
   webpack: (config, { isServer }) => {
     // Suprimir warnings de webpack
