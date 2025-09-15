@@ -64,6 +64,14 @@ export default function RootLayout({
         {/* Prevenir que el sistema fuerce estilos */}
         <meta name="color-scheme" content="light" />
         <meta name="supported-color-schemes" content="light" />
+        
+        {/* Configuraciones específicas para TWA (Trusted Web Activity) */}
+        <link rel="manifest" href="/twa-manifest.json" />
+        <meta name="mobile-web-app-title" content="PERSONAL FIT" />
+        <meta name="application-url" content="https://personalfitsantafe.com" />
+        <meta name="msapplication-starturl" content="/" />
+        <meta name="full-screen" content="yes" />
+        <meta name="browsermode" content="application" />
       </head>
       <body className={inter.className}>
         <ThemeProvider>

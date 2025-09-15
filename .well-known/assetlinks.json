@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.personalfitsantafe.twa",
+            "sha256_cert_fingerprints": [
+                "19:16:CA:0D:44:E9:04:A5:0D:98:8D:49:C4:EF:D2:66:1D:70:20:5B:F8:85:EF:9F:C0:D9:B7:17:68:8D:85:67"
+            ]
+        }
+    }
+]

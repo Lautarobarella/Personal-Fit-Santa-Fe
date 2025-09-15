@@ -1,0 +1,35 @@
+{
+  "twa_generator": {
+    "packageId": "com.personalfitsantafe.twa",
+    "host": "personalfitsantafe.com",
+    "name": "PERSONAL FIT Santa Fe",
+    "launcherName": "PERSONAL FIT",
+    "display": "standalone",
+    "orientation": "portrait",
+    "themeColor": "#FF6000",
+    "navigationColor": "#454545",
+    "backgroundColor": "#454545",
+    "enableNotifications": true,
+    "startUrl": "/",
+    "iconUrl": "https://personalfitsantafe.com/icon-512x512.png",
+    "maskableIconUrl": "https://personalfitsantafe.com/icon-512x512.png",
+    "monochromeIconUrl": "https://personalfitsantafe.com/icon-512x512.png",
+    "splashColor": "#454545",
+    "enableSiteSettingsShortcut": false,
+    "isChromeOSOnly": false,
+    "isMetaQuestCompatible": false,
+    "appVersion": "1.0.0",
+    "appVersionCode": 1,
+    "shortcuts": [],
+    "additionalTrustedOrigins": [
+      "https://personalfitsantabe.com"
+    ],
+    "retainedBundles": [],
+    "enableLocationDelegation": false,
+    "enableGooglePlayBilling": false,
+    "minSdkVersion": 24,
+    "targetSdkVersion": 34,
+    "signingMode": "new",
+    "generateSourceBundle": false
+  }
+}
