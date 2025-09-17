@@ -10,7 +10,6 @@ import {
 } from "@/api/notifications/notificationsApi"
 import { Notification, NotificationStatus } from "@/lib/types"
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react"
-import { useAuth } from "./auth-provider"
 
 interface NotificationsContextType {
     notifications: Notification[]
@@ -32,6 +31,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Helper function to sort notifications by date (newest first)
+    const sortNotifications = (notifications: Notification[]) => {
+        return [...notifications].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    }
 
     const loadNotifications = useCallback(async () => {
         setLoading(true)
@@ -57,7 +61,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const success = await markNotificationAsRead(id)
         if (success) {
             setNotifications((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.READ } : n))
+                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.READ } : n)))
             )
         }
     }
@@ -66,7 +70,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const success = await markNotificationAsUnread(id)
         if (success) {
             setNotifications((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.UNREAD } : n))
+                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.UNREAD } : n)))
             )
         }
     }
@@ -75,7 +79,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const success = await archiveNotificationApi(id)
         if (success) {
             setNotifications((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.ARCHIVED } : n))
+                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.ARCHIVED } : n)))
             )
         }
     }
@@ -84,7 +88,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const success = await markNotificationAsRead(id) // Desarchivar = marcar como leído
         if (success) {
             setNotifications((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.READ } : n))
+                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.READ } : n)))
             )
         }
     }
@@ -92,7 +96,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const deleteNotification = async (id: number) => {
         const success = await deleteNotificationApi(id)
         if (success) {
-            setNotifications((prev) => prev.filter((n) => n.id !== id))
+            setNotifications((prev) => sortNotifications(prev.filter((n) => n.id !== id)))
         }
     }
 
@@ -101,7 +105,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const success = await markAllNotificationsAsRead()
         if (success) {
             setNotifications((prev) =>
-                prev.map((n) => (n.status === NotificationStatus.UNREAD ? { ...n, status: NotificationStatus.READ } : n))
+                sortNotifications(prev.map((n) => (n.status === NotificationStatus.UNREAD ? { ...n, status: NotificationStatus.READ } : n)))
             )
         }
     }

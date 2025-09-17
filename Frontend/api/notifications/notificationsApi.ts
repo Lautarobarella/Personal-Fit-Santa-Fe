@@ -28,7 +28,7 @@ export async function fetchNotifications(userId?: number): Promise<Notification[
         }
 
         // Mapear las notificaciones del backend al formato del frontend
-        return notifications.map((notification: any) => ({
+        const mappedNotifications = notifications.map((notification: any) => ({
             id: notification.id,
             title: notification.title,
             message: notification.message,
@@ -37,6 +37,9 @@ export async function fetchNotifications(userId?: number): Promise<Notification[
             createdAt: new Date(notification.date || new Date()),
             notificationCategory: notification.notificationCategory || 'CLIENT'
         }));
+
+        // Ordenar las notificaciones de más nuevas a más viejas
+        return mappedNotifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         
     } catch (error) {
         if (error instanceof Error && error.message.includes('404')) {
