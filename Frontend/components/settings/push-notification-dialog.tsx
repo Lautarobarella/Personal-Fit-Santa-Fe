@@ -98,7 +98,7 @@ export function PushNotificationDialog({ open, onOpenChange }: PushNotificationD
                         Generar Notificación Push
                     </DialogTitle>
                     <DialogDescription>
-                        Envía una notificación push a todos los usuarios que tengan habilitadas las notificaciones.
+                        Envía una notificación push a todos los usuarios.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -133,7 +133,7 @@ export function PushNotificationDialog({ open, onOpenChange }: PushNotificationD
                                     <Label htmlFor="message">Mensaje</Label>
                                     <Textarea
                                         id="message"
-                                        placeholder="Ej: Se ha añadido una nueva clase de yoga para mañana a las 18:00. ¡No te la pierdas!"
+                                        placeholder="Ej: Se ha añadido una nueva clase para mañana a las 18:00. ¡No te la pierdas!"
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
                                         disabled={isSending}
@@ -153,27 +153,6 @@ export function PushNotificationDialog({ open, onOpenChange }: PushNotificationD
                             </CardContent>
                         </Card>
 
-                        {/* Información adicional */}
-                        <Card className="m-2">
-                            <CardHeader>
-                                <CardTitle className="text-lg">Información Importante</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="bg-muted p-3 rounded-lg">
-                                    <p className="text-sm text-muted-foreground">
-                                        <strong>Consideraciones:</strong>
-                                        <br />
-                                        • La notificación se enviará a todos los usuarios con notificaciones habilitadas.
-                                        <br />
-                                        • El título debe ser claro y conciso para captar la atención.
-                                        <br />
-                                        • El mensaje puede incluir detalles adicionales como horarios o instrucciones.
-                                        <br />
-                                        • Una vez enviada, la notificación no se puede cancelar.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
                     </div>
 
                     {/* Botones */}
@@ -192,7 +171,7 @@ export function PushNotificationDialog({ open, onOpenChange }: PushNotificationD
                             className="flex-1"
                         >
                             <Send className="h-4 w-4 mr-2" />
-                            {isSending ? "Enviando..." : "Enviar Notificación"}
+                            {isSending ? "Enviando..." : "Enviar"}
                         </Button>
                     </div>
                 </div>

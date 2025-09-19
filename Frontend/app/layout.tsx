@@ -1,5 +1,4 @@
 import { ZoomPrevention } from "@/components/providers/zoom-prevention"
-import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { ActivityProvider } from "@/contexts/activity-provider"
@@ -85,7 +84,6 @@ export default function RootLayout({
                           {children}
                         </div>
                       </div>
-                      <ServiceWorkerRegistration />
                       <ZoomPrevention />
                       <Toaster />
                     </NotificationsProvider>
