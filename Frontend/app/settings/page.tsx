@@ -5,6 +5,7 @@ import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
 import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { PaymentGracePeriodDialog } from "@/components/settings/payment-grace-period-dialog"
+import { PushNotificationDialog } from "@/components/settings/push-notification-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
   const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
   const [showPaymentGracePeriodDialog, setShowPaymentGracePeriodDialog] = useState(false)
+  const [showPushNotificationDialog, setShowPushNotificationDialog] = useState(false)
   const [showTermsDialog, setShowTermsDialog] = useState(false)
 
   const handleLogout = () => {
@@ -229,6 +231,15 @@ export default function SettingsPage() {
                 <BarChart3 className="h-4 w-4 mr-3" />
                 Registro de ingresos mensuales
               </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-transparent"
+                onClick={() => setShowPushNotificationDialog(true)}
+              >
+                <Bell className="h-4 w-4 mr-3" />
+                Generar notificación
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -268,6 +279,12 @@ export default function SettingsPage() {
       <PaymentGracePeriodDialog
         open={showPaymentGracePeriodDialog}
         onOpenChange={setShowPaymentGracePeriodDialog}
+      />
+
+      {/* Push Notification Dialog */}
+      <PushNotificationDialog
+        open={showPushNotificationDialog}
+        onOpenChange={setShowPushNotificationDialog}
       />
 
       {/* Terms and Conditions Dialog */}
