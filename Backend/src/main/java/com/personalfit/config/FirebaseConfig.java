@@ -5,8 +5,9 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -19,14 +20,8 @@ public class FirebaseConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);
 
-    @Value("${firebase.service-account-key:}")
-    private String serviceAccountKey;
-
-    @Value("${firebase.project-id:}")
-    private String projectId;
-
-    @Value("${firebase.database-url:}")
-    private String databaseUrl;
+    @Autowired
+    private Environment environment;
 
     @PostConstruct
     public void initialize() {
@@ -36,6 +31,11 @@ public class FirebaseConfig {
                 logger.info("Firebase App already initialized");
                 return;
             }
+
+            // Leer configuración directamente desde environment para evitar problemas de placeholders circulares
+            String serviceAccountKey = environment.getProperty("FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT", "");
+            String projectId = environment.getProperty("FIREBASE_PROJECT_ID", "");
+            String databaseUrl = environment.getProperty("FIREBASE_DATABASE_URL", "");
 
             // Verificar que tenemos la configuración necesaria
             if (serviceAccountKey == null || serviceAccountKey.trim().isEmpty()) {
