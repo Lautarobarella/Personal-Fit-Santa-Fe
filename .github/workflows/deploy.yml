@@ -49,7 +49,7 @@ jobs:
       NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
       FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT }}
       FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      
+      FIREBASE_ENABLED: ${{ secrets.FIREBASE_ENABLED }}
       
     steps:
       - name: Checkout repo (opcional para tests)
@@ -131,7 +131,7 @@ jobs:
             export NEXT_PUBLIC_FIREBASE_VAPID_KEY="'"${NEXT_PUBLIC_FIREBASE_VAPID_KEY}"'"
             export FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT="'"${FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT}"'"
             export FIREBASE_PROJECT_ID="'"${FIREBASE_PROJECT_ID}"'"
-            
+            export FIREBASE_ENABLED="'"${FIREBASE_ENABLED}"'"
             
             docker-compose up -d --build
 
