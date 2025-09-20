@@ -23,7 +23,6 @@ import com.personalfit.dto.Notification.NotificationPreferencesDTO;
 import com.personalfit.dto.Notification.RegisterDeviceTokenRequest;
 import com.personalfit.dto.Notification.SendNotificationRequest;
 import com.personalfit.enums.NotificationStatus;
-import com.personalfit.models.NotificationPreferences;
 import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
 import com.personalfit.services.NotificationService;
@@ -247,20 +246,13 @@ public class NotificationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
             
-            NotificationPreferences preferences = pushNotificationService.getNotificationPreferences(user.get().getId());
-            
-            NotificationPreferencesDTO dto = NotificationPreferencesDTO.builder()
-                .classReminders(preferences.getClassReminders())
-                .paymentDue(preferences.getPaymentDue())
-                .newClasses(preferences.getNewClasses())
-                .promotions(preferences.getPromotions())
-                .classCancellations(preferences.getClassCancellations())
-                .generalAnnouncements(preferences.getGeneralAnnouncements())
-                .build();
+            // Usar getUserPreferences que maneja null correctamente y devuelve DTO directamente
+            NotificationPreferencesDTO dto = pushNotificationService.getUserPreferences(user.get().getId());
             
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             System.err.println("Error getting notification preferences: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
