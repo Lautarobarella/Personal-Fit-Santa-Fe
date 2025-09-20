@@ -180,18 +180,8 @@ export async function unregisterDeviceToken(token: string): Promise<boolean> {
  */
 export async function getNotificationPreferences(userId?: number): Promise<NotificationPreferences | null> {
     try {
-        let targetUserId = userId;
-        
-        if (!targetUserId) {
-            const storedUserId = getUserId();
-            if (!storedUserId) {
-                console.warn('No user ID found when fetching notification preferences');
-                return null;
-            }
-            targetUserId = storedUserId;
-        }
-
-        const preferences = await jwtPermissionsApi.get(`/api/notifications/preferences/${targetUserId}`);
+        // El endpoint no necesita userId porque se obtiene desde la autenticación
+        const preferences = await jwtPermissionsApi.get(`/api/notifications/pwa/preferences`);
         return preferences as NotificationPreferences;
     } catch (error) {
         handleApiError(error, 'Error al obtener preferencias de notificaciones');
@@ -207,18 +197,8 @@ export async function updateNotificationPreferences(
     userId?: number
 ): Promise<boolean> {
     try {
-        let targetUserId = userId;
-        
-        if (!targetUserId) {
-            const storedUserId = getUserId();
-            if (!storedUserId) {
-                console.warn('No user ID found when updating notification preferences');
-                return false;
-            }
-            targetUserId = storedUserId;
-        }
-
-        await jwtPermissionsApi.put(`/api/notifications/preferences/${targetUserId}`, preferences);
+        // El endpoint no necesita userId porque se obtiene desde la autenticación
+        await jwtPermissionsApi.put(`/api/notifications/pwa/preferences`, preferences);
         console.log('Notification preferences updated successfully');
         return true;
     } catch (error) {
