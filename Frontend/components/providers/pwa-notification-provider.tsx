@@ -10,6 +10,7 @@ interface PWANotificationContextType extends PWANotificationState {
   requestPermission: () => Promise<boolean>;
   disableNotifications: () => Promise<boolean>;
   updatePreferences: (preferences: any) => Promise<boolean>;
+  loadPreferences: () => Promise<void>;
 }
 
 const PWANotificationContext = createContext<PWANotificationContextType | undefined>(undefined);
@@ -21,6 +22,13 @@ interface PWANotificationProviderProps {
 export function PWANotificationProvider({ children }: PWANotificationProviderProps) {
   const { user } = useAuth();
   const notificationHook = usePWANotifications();
+
+  // Load preferences only when user is authenticated
+  useEffect(() => {
+    if (user && notificationHook.isSupported && notificationHook.loadPreferences) {
+      notificationHook.loadPreferences();
+    }
+  }, [user, notificationHook.isSupported, notificationHook.loadPreferences]);
 
   // Auto-request permission for logged-in users (optional)
   useEffect(() => {

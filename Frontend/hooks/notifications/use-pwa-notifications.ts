@@ -25,39 +25,51 @@ export const usePWANotifications = () => {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Check if notifications are supported
+  // Check if notifications are supported (without loading preferences)
   useEffect(() => {
     const checkSupport = async () => {
       if (typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator) {
         setState(prev => ({
           ...prev,
           isSupported: true,
-          permission: Notification.permission
+          permission: Notification.permission,
+          isLoading: false
         }));
-
-        // Load user preferences
-        try {
-          const preferences = await getNotificationPreferences();
-          setState(prev => ({
-            ...prev,
-            preferences: preferences || {
-              classReminders: true,
-              paymentDue: true,
-              newClasses: true,
-              promotions: false,
-              classCancellations: true
-            }
-          }));
-        } catch (error) {
-          console.error('Error loading notification preferences:', error);
-        }
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
       }
-      
-      setState(prev => ({ ...prev, isLoading: false }));
     };
 
     checkSupport();
   }, []);
+
+  // Load user preferences - this should only be called when user is authenticated
+  const loadPreferences = useCallback(async () => {
+    if (!state.isSupported) return;
+    
+    setState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const preferences = await getNotificationPreferences();
+      setState(prev => ({
+        ...prev,
+        preferences: preferences || {
+          classReminders: true,
+          paymentDue: true,
+          newClasses: true,
+          promotions: false,
+          classCancellations: true
+        },
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+    }
+  }, [state.isSupported]);
 
   // Request notification permission and register device
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -292,6 +304,7 @@ export const usePWANotifications = () => {
     isActive: state.permission === 'granted' && !!state.token,
     requestPermission,
     disableNotifications,
-    updatePreferences
+    updatePreferences,
+    loadPreferences
   };
 };

@@ -180,6 +180,13 @@ export async function unregisterDeviceToken(token: string): Promise<boolean> {
  */
 export async function getNotificationPreferences(userId?: number): Promise<NotificationPreferences | null> {
     try {
+        // Check if user is authenticated before making the request
+        const storedUserId = getUserId();
+        if (!storedUserId) {
+            console.warn('No user ID found when getting notification preferences');
+            return null;
+        }
+
         // El endpoint no necesita userId porque se obtiene desde la autenticación
         const preferences = await jwtPermissionsApi.get(`/api/notifications/pwa/preferences`);
         return preferences as NotificationPreferences;
@@ -197,6 +204,13 @@ export async function updateNotificationPreferences(
     userId?: number
 ): Promise<boolean> {
     try {
+        // Check if user is authenticated before making the request
+        const storedUserId = getUserId();
+        if (!storedUserId) {
+            console.warn('No user ID found when updating notification preferences');
+            return false;
+        }
+
         // El endpoint no necesita userId porque se obtiene desde la autenticación
         await jwtPermissionsApi.put(`/api/notifications/pwa/preferences`, preferences);
         console.log('Notification preferences updated successfully');
