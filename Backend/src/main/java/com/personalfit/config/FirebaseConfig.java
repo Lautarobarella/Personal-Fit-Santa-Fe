@@ -25,6 +25,12 @@ public class FirebaseConfig {
 
     @PostConstruct
     public void initialize() {
+        // Declarar variables fuera del try para que estén disponibles en el catch
+        String serviceAccountKey = "";
+        String projectId = "";
+        String databaseUrl = "";
+        String firebaseEnabled = "";
+        
         try {
             // Verificar si Firebase ya está inicializado
             if (!FirebaseApp.getApps().isEmpty()) {
@@ -32,19 +38,57 @@ public class FirebaseConfig {
                 return;
             }
 
+            // Log de diagnóstico de variables de entorno
+            logger.info("🔍 FIREBASE CONFIG DIAGNOSIS - Reading environment variables:");
+            
+            // Log de todas las propiedades del sistema para debug
+            logger.info("💾 System Environment Check:");
+            logger.info("  • Available environment variables starting with FIREBASE:");
+            System.getenv().entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("FIREBASE"))
+                .forEach(entry -> logger.info("    - {}: {} (length: {})", 
+                    entry.getKey(), 
+                    entry.getValue().isEmpty() ? "❌ EMPTY" : "✅ SET",
+                    entry.getValue().length()));
+            
             // Leer configuración directamente desde environment para evitar problemas de placeholders circulares
-            String serviceAccountKey = environment.getProperty("FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT", "");
-            String projectId = environment.getProperty("FIREBASE_PROJECT_ID", "");
-            String databaseUrl = environment.getProperty("FIREBASE_DATABASE_URL", "");
+            serviceAccountKey = environment.getProperty("FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT", "");
+            projectId = environment.getProperty("FIREBASE_PROJECT_ID", "");
+            databaseUrl = environment.getProperty("FIREBASE_DATABASE_URL", "");
+            firebaseEnabled = environment.getProperty("FIREBASE_ENABLED", "");
+
+            // Log detallado de cada variable
+            logger.info("📋 Environment Variables Status:");
+            logger.info("  • FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT: {} (length: {})", 
+                serviceAccountKey.isEmpty() ? "❌ NOT SET" : "✅ SET", 
+                serviceAccountKey.length());
+            
+            if (!serviceAccountKey.isEmpty() && serviceAccountKey.length() > 50) {
+                logger.info("  • Service Account Key Preview: {}...{}", 
+                    serviceAccountKey.substring(0, 20), 
+                    serviceAccountKey.substring(serviceAccountKey.length() - 20));
+            }
+            
+            logger.info("  • FIREBASE_PROJECT_ID: {} {}", 
+                projectId.isEmpty() ? "❌ NOT SET" : "✅ " + projectId, 
+                projectId.isEmpty() ? "" : "(length: " + projectId.length() + ")");
+            
+            logger.info("  • FIREBASE_DATABASE_URL: {} {}", 
+                databaseUrl.isEmpty() ? "❌ NOT SET" : "✅ " + databaseUrl, 
+                databaseUrl.isEmpty() ? "" : "(length: " + databaseUrl.length() + ")");
+            
+            logger.info("  • FIREBASE_ENABLED: {} {}", 
+                firebaseEnabled.isEmpty() ? "❌ NOT SET" : "✅ " + firebaseEnabled, 
+                firebaseEnabled.isEmpty() ? "" : "(length: " + firebaseEnabled.length() + ")");
 
             // Verificar que tenemos la configuración necesaria
             if (serviceAccountKey == null || serviceAccountKey.trim().isEmpty()) {
-                logger.warn("Firebase service account key not configured. Push notifications will be disabled.");
+                logger.warn("❌ Firebase service account key not configured. Push notifications will be disabled.");
                 return;
             }
 
             if (projectId == null || projectId.trim().isEmpty()) {
-                logger.warn("Firebase project ID not configured. Push notifications will be disabled.");
+                logger.warn("❌ Firebase project ID not configured. Push notifications will be disabled.");
                 return;
             }
 
@@ -62,12 +106,21 @@ public class FirebaseConfig {
             // Inicializar Firebase
             FirebaseApp.initializeApp(options);
             
-            logger.info("Firebase Admin SDK initialized successfully for project: {}", projectId);
+            logger.info("✅ Firebase Admin SDK initialized successfully!");
+            logger.info("📊 Firebase Configuration Summary:");
+            logger.info("  • Project ID: {}", projectId);
+            logger.info("  • Database URL: {}", databaseUrl.isEmpty() ? "Not configured" : databaseUrl);
+            logger.info("  • Service Account: Configured with {} characters", serviceAccountKey.length());
+            logger.info("  • Firebase Apps Count: {}", FirebaseApp.getApps().size());
             
         } catch (IOException e) {
-            logger.error("Error initializing Firebase Admin SDK: Invalid service account key format", e);
+            logger.error("❌ Error initializing Firebase Admin SDK: Invalid service account key format", e);
+            logger.error("🔍 Service account key starts with: {}", 
+                serviceAccountKey != null && serviceAccountKey.length() > 10 ? 
+                serviceAccountKey.substring(0, 10) : "N/A");
         } catch (Exception e) {
-            logger.error("Error initializing Firebase Admin SDK", e);
+            logger.error("❌ Error initializing Firebase Admin SDK", e);
+            logger.error("🔍 Exception details: {} - {}", e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
