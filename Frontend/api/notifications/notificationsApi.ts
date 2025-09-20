@@ -1,7 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { getUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/error-handler";
-import { Notification, NotificationStatus } from "@/lib/types";
+import { BulkNotificationRequest, Notification, NotificationPreferences, NotificationStatus, RegisterDeviceRequest, SendNotificationRequest } from "@/lib/types";
 
 
 /**
@@ -132,36 +132,6 @@ export async function markAllNotificationsAsRead(userId?: number): Promise<boole
 // PWA Push Notifications API
 // ===============================
 
-export interface RegisterDeviceRequest {
-    token: string;
-    deviceType: 'PWA' | 'ANDROID' | 'IOS' | 'WEB';
-    userId?: number;
-}
-
-export interface SendNotificationRequest {
-    userId: number;
-    title: string;
-    body: string;
-    type?: string;
-    data?: Record<string, string>;
-}
-
-export interface BulkNotificationRequest {
-    title: string;
-    body: string;
-    type?: string;
-    data?: Record<string, string>;
-    saveToDatabase?: boolean;
-}
-
-export interface NotificationPreferences {
-    classReminders: boolean;
-    paymentDue: boolean;
-    newClasses: boolean;
-    promotions: boolean;
-    classCancellations: boolean;
-}
-
 /**
  * Registra un token de dispositivo para notificaciones push
  */
@@ -178,7 +148,7 @@ export async function registerDeviceToken(request: RegisterDeviceRequest): Promi
             targetUserId = storedUserId;
         }
 
-        await jwtPermissionsApi.post('/api/notifications/register-device', {
+        await jwtPermissionsApi.post('/api/notifications/pwa/register-device', {
             ...request,
             userId: targetUserId
         });
@@ -196,7 +166,7 @@ export async function registerDeviceToken(request: RegisterDeviceRequest): Promi
  */
 export async function unregisterDeviceToken(token: string): Promise<boolean> {
     try {
-        await jwtPermissionsApi.delete(`/api/notifications/unregister-device/${token}`);
+        await jwtPermissionsApi.delete(`/api/notifications/pwa/unregister-device/${token}`);
         console.log('Device token unregistered successfully');
         return true;
     } catch (error) {

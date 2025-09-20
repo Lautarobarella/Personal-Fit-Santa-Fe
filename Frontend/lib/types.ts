@@ -292,3 +292,33 @@ export interface WeeklySchedule {
   saturday: boolean
   sunday: boolean
 }
+
+export interface RegisterDeviceRequest {
+    token: string;
+    deviceType: 'PWA' | 'ANDROID' | 'IOS' | 'WEB';
+    userId?: number;
+}
+
+export interface SendNotificationRequest {
+    userId: number;
+    title: string;
+    body: string;
+    type?: string;
+    data?: Record<string, string>;
+}
+
+export interface BulkNotificationRequest {
+    title: string;
+    body: string;
+    type?: string;
+    data?: Record<string, string>;
+    saveToDatabase?: boolean;
+}
+
+export interface NotificationPreferences {
+    classReminders: boolean;
+    paymentDue: boolean;
+    newClasses: boolean;
+    promotions: boolean;
+    classCancellations: boolean;
+}

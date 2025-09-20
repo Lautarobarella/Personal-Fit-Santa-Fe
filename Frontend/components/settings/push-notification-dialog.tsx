@@ -1,5 +1,7 @@
 "use client"
 
+import { sendBulkNotification } from "@/api/notifications/notificationsApi";
+import { BulkNotificationRequest } from "@/lib/types";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -16,7 +18,6 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-provider"
-import { sendBulkNotification, BulkNotificationRequest } from "@/api/notifications/notificationsApi"
 import { UserRole } from "@/lib/types"
 import { Bell, Send, AlertTriangle, CheckCircle } from "lucide-react"
 import { useState } from "react"
