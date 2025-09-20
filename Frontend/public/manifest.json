@@ -1,7 +1,7 @@
 {
   "name": "PERSONAL FIT Santa Fe",
   "short_name": "PERSONAL FIT",
-  "description": "Professional personal training management platform with role-based access",
+  "description": "Professional personal training management platform with role-based access and push notifications",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -38,6 +38,60 @@
   ],
   "categories": ["fitness", "health", "productivity"],
   "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Ver Clases",
+      "short_name": "Clases",
+      "description": "Ver todas las actividades disponibles",
+      "url": "/activities",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pagos",
+      "short_name": "Pagos",
+      "description": "Gestionar pagos y cuotas",
+      "url": "/payments",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Panel principal de la aplicación",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Notificaciones",
+      "short_name": "Notifs",
+      "description": "Configurar notificaciones push",
+      "url": "/notifications",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "screenshots": [
     {
       "src": "/screenshot-mobile.png",
@@ -45,5 +99,18 @@
       "type": "image/png",
       "form_factor": "narrow"
     }
-  ]
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+personalfit",
+      "url": "/?action=%s"
+    }
+  ],
+  "related_applications": [],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
 }

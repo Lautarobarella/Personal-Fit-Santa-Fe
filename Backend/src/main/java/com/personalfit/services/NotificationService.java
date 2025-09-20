@@ -124,6 +124,31 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Crea y guarda una notificación individual
+     * Método genérico para ser usado por otros servicios como PushNotificationService
+     */
+    @Transactional
+    public Notification createNotification(Notification notification) {
+        try {
+            // Establecer valores por defecto si no están definidos
+            if (notification.getDate() == null) {
+                notification.setDate(LocalDateTime.now());
+            }
+            if (notification.getStatus() == null) {
+                notification.setStatus(NotificationStatus.UNREAD);
+            }
+            if (notification.getTargetRole() == null && notification.getUser() != null) {
+                notification.setTargetRole(notification.getUser().getRole());
+            }
+
+            return notificationRepository.save(notification);
+        } catch (Exception e) {
+            log.error("Error creating notification: {}", e.getMessage(), e);
+            throw new RuntimeException("Error creating notification", e);
+        }
+    }
+
     @Transactional
     public void createPaymentExpiredNotification(List<User> users, List<User> admins) {
         List<Notification> notifications = new ArrayList<>();

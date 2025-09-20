@@ -47,6 +47,11 @@ services:
       # Secretos para el backend
       JWT_SECRET: ${JWT_SECRET}
       
+      # Firebase Configuration for Push Notifications
+      FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT: ${FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_ENABLED: ${FIREBASE_ENABLED}
+      
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
     ports:

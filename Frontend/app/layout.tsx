@@ -1,5 +1,6 @@
 import { ZoomPrevention } from "@/components/providers/zoom-prevention"
 import { ThemeProvider } from "@/components/theme-provider"
+import { PWANotificationProvider } from "@/components/providers/pwa-notification-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { ActivityProvider } from "@/contexts/activity-provider"
 import { AttendanceProvider } from "@/contexts/attendance-provider"
@@ -74,23 +75,25 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <AuthProvider>
-            <SettingsProvider>
-              <PaymentProvider>
-                <ActivityProvider>
-                  <AttendanceProvider>
-                    <NotificationsProvider>
-                      <div className="min-h-screen flex justify-center bg-background">
-                        <div className="w-full max-w-md mx-auto relative">
-                          {children}
+            <PWANotificationProvider>
+              <SettingsProvider>
+                <PaymentProvider>
+                  <ActivityProvider>
+                    <AttendanceProvider>
+                      <NotificationsProvider>
+                        <div className="min-h-screen flex justify-center bg-background">
+                          <div className="w-full max-w-md mx-auto relative">
+                            {children}
+                          </div>
                         </div>
-                      </div>
-                      <ZoomPrevention />
-                      <Toaster />
-                    </NotificationsProvider>
-                  </AttendanceProvider>
-                </ActivityProvider>
-              </PaymentProvider>
-            </SettingsProvider>
+                        <ZoomPrevention />
+                        <Toaster />
+                      </NotificationsProvider>
+                    </AttendanceProvider>
+                  </ActivityProvider>
+                </PaymentProvider>
+              </SettingsProvider>
+            </PWANotificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

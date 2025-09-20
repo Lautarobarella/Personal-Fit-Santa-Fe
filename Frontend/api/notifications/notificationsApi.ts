@@ -128,3 +128,139 @@ export async function markAllNotificationsAsRead(userId?: number): Promise<boole
     }
 }
 
+// ===============================
+// PWA Push Notifications API
+// ===============================
+
+export interface RegisterDeviceRequest {
+    token: string;
+    deviceType: 'PWA' | 'ANDROID' | 'IOS' | 'WEB';
+    userId?: number;
+}
+
+export interface SendNotificationRequest {
+    userId: number;
+    title: string;
+    body: string;
+    type?: string;
+    data?: Record<string, string>;
+}
+
+export interface NotificationPreferences {
+    classReminders: boolean;
+    paymentDue: boolean;
+    newClasses: boolean;
+    promotions: boolean;
+    classCancellations: boolean;
+}
+
+/**
+ * Registra un token de dispositivo para notificaciones push
+ */
+export async function registerDeviceToken(request: RegisterDeviceRequest): Promise<boolean> {
+    try {
+        let targetUserId = request.userId;
+        
+        if (!targetUserId) {
+            const storedUserId = getUserId();
+            if (!storedUserId) {
+                console.warn('No user ID found when registering device token');
+                return false;
+            }
+            targetUserId = storedUserId;
+        }
+
+        await jwtPermissionsApi.post('/api/notifications/register-device', {
+            ...request,
+            userId: targetUserId
+        });
+        
+        console.log('Device token registered successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al registrar token de dispositivo');
+        return false;
+    }
+}
+
+/**
+ * Elimina un token de dispositivo
+ */
+export async function unregisterDeviceToken(token: string): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.delete(`/api/notifications/unregister-device/${token}`);
+        console.log('Device token unregistered successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al eliminar token de dispositivo');
+        return false;
+    }
+}
+
+/**
+ * Obtiene las preferencias de notificaciones del usuario
+ */
+export async function getNotificationPreferences(userId?: number): Promise<NotificationPreferences | null> {
+    try {
+        let targetUserId = userId;
+        
+        if (!targetUserId) {
+            const storedUserId = getUserId();
+            if (!storedUserId) {
+                console.warn('No user ID found when fetching notification preferences');
+                return null;
+            }
+            targetUserId = storedUserId;
+        }
+
+        const preferences = await jwtPermissionsApi.get(`/api/notifications/preferences/${targetUserId}`);
+        return preferences as NotificationPreferences;
+    } catch (error) {
+        handleApiError(error, 'Error al obtener preferencias de notificaciones');
+        return null;
+    }
+}
+
+/**
+ * Actualiza las preferencias de notificaciones del usuario
+ */
+export async function updateNotificationPreferences(
+    preferences: NotificationPreferences, 
+    userId?: number
+): Promise<boolean> {
+    try {
+        let targetUserId = userId;
+        
+        if (!targetUserId) {
+            const storedUserId = getUserId();
+            if (!storedUserId) {
+                console.warn('No user ID found when updating notification preferences');
+                return false;
+            }
+            targetUserId = storedUserId;
+        }
+
+        await jwtPermissionsApi.put(`/api/notifications/preferences/${targetUserId}`, preferences);
+        console.log('Notification preferences updated successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al actualizar preferencias de notificaciones');
+        return false;
+    }
+}
+
+/**
+ * Envía una notificación de prueba (solo para testing)
+ */
+export async function sendTestNotification(request: SendNotificationRequest): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/send-test', request);
+        console.log('Test notification sent successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al enviar notificación de prueba');
+        return false;
+    }
+}
+
+
