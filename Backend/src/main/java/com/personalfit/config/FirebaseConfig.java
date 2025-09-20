@@ -19,7 +19,7 @@ public class FirebaseConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);
 
-    @Value("${firebase.service-account.json:}")
+    @Value("${firebase.service-account-key:}")
     private String serviceAccountKey;
 
     @Value("${firebase.project-id:}")
