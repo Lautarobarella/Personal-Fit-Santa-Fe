@@ -146,6 +146,14 @@ export interface SendNotificationRequest {
     data?: Record<string, string>;
 }
 
+export interface BulkNotificationRequest {
+    title: string;
+    body: string;
+    type?: string;
+    data?: Record<string, string>;
+    saveToDatabase?: boolean;
+}
+
 export interface NotificationPreferences {
     classReminders: boolean;
     paymentDue: boolean;
@@ -259,6 +267,20 @@ export async function sendTestNotification(request: SendNotificationRequest): Pr
         return true;
     } catch (error) {
         handleApiError(error, 'Error al enviar notificación de prueba');
+        return false;
+    }
+}
+
+/**
+ * Envía una notificación push a todos los usuarios (solo ADMIN)
+ */
+export async function sendBulkNotification(request: BulkNotificationRequest): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/pwa/send-bulk', request);
+        console.log('Bulk notification sent successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al enviar notificación masiva');
         return false;
     }
 }
