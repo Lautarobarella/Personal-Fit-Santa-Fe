@@ -47,7 +47,9 @@ export const usePWANotifications = () => {
 
   // Load user preferences - this should only be called when user is authenticated
   const loadPreferences = useCallback(async () => {
-    if (!state.isSupported) return;
+    // Check support again to avoid dependency on state
+    const isSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
+    if (!isSupported) return;
     
     setState(prev => ({ ...prev, isLoading: true }));
     
@@ -71,11 +73,13 @@ export const usePWANotifications = () => {
         isLoading: false
       }));
     }
-  }, [state.isSupported]);
+  }, []); // Remove state.isSupported dependency
 
   // Request notification permission and register device
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!state.isSupported) {
+    // Check support without depending on state
+    const isSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
+    if (!isSupported) {
       console.warn('Notifications not supported');
       return false;
     }
@@ -129,7 +133,7 @@ export const usePWANotifications = () => {
       
       return false;
     }
-  }, [state.isSupported, toast]);
+  }, [toast]); // Remove state.isSupported dependency
 
   // Disable notifications
   const disableNotifications = useCallback(async (): Promise<boolean> => {
