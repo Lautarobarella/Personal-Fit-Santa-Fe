@@ -75,7 +75,8 @@ public class PushNotificationService {
                 token.setDeviceInfo(request.getDeviceInfo());
                 token.setIsActive(true);
                 deviceTokenRepository.save(token);
-                logger.info("Updated existing device token for user: {}", user.getId());
+                logger.info("✅ Updated existing device token for user: {} | Token: {}...", 
+                          user.getId(), request.getToken().substring(0, 20));
             } else {
                 // Crear nuevo token
                 UserDeviceToken newToken = UserDeviceToken.builder()
@@ -86,8 +87,13 @@ public class PushNotificationService {
                     .isActive(true)
                     .build();
                 deviceTokenRepository.save(newToken);
-                logger.info("Registered new device token for user: {}", user.getId());
+                logger.info("🆕 Registered new device token for user: {} | Token: {}...", 
+                          user.getId(), request.getToken().substring(0, 20));
             }
+
+            // Verificar que el token se guardó correctamente
+            long totalTokensForUser = deviceTokenRepository.countByUserIdAndIsActiveTrue(user.getId());
+            logger.info("📱 User {} now has {} active device tokens", user.getId(), totalTokensForUser);
 
             // Crear preferencias por defecto si no existen
             createDefaultPreferencesIfNotExists(user.getId());
@@ -175,13 +181,26 @@ public class PushNotificationService {
                 return false;
             }
 
-            // Obtener todos los tokens activos de los usuarios especificados
-            List<String> allTokens = deviceTokenRepository.findActiveTokensByUserIds(request.getUserIds());
+            // Determinar usuarios objetivo
+            List<Long> targetUserIds = request.getUserIds();
+            if (targetUserIds == null || targetUserIds.isEmpty()) {
+                // Si no se especifican usuarios, enviar a todos los usuarios activos
+                targetUserIds = userRepository.findAll().stream()
+                    .map(User::getId)
+                    .toList();
+                logger.info("No specific users provided, sending to all {} active users", targetUserIds.size());
+            }
+
+            // Obtener todos los tokens activos de los usuarios objetivo
+            List<String> allTokens = deviceTokenRepository.findActiveTokensByUserIds(targetUserIds);
             
             if (allTokens.isEmpty()) {
                 logger.info("No active tokens found for bulk notification");
                 return true;
             }
+
+            logger.info("Sending bulk notification to {} users with {} active tokens", 
+                       targetUserIds.size(), allTokens.size());
 
             // Crear mensaje genérico
             SendNotificationRequest genericRequest = SendNotificationRequest.builder()
@@ -207,8 +226,8 @@ public class PushNotificationService {
 
             // Guardar en base de datos si se solicita
             if (Boolean.TRUE.equals(request.getSaveToDatabase())) {
-                // Guardar notificación para cada usuario
-                for (Long userId : request.getUserIds()) {
+                // Guardar notificación para cada usuario objetivo
+                for (Long userId : targetUserIds) {
                     SendNotificationRequest userRequest = SendNotificationRequest.builder()
                         .userId(userId)
                         .title(request.getTitle())
@@ -220,7 +239,7 @@ public class PushNotificationService {
             }
 
             logger.info("Sent bulk notification to {} users with {} total tokens", 
-                       request.getUserIds().size(), allTokens.size());
+                       targetUserIds.size(), allTokens.size());
             return true;
 
         } catch (Exception e) {

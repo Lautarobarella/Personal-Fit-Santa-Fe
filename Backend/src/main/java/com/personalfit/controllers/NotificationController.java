@@ -313,15 +313,25 @@ public class NotificationController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> sendBulkPushNotifications(@RequestBody BulkNotificationRequest request) {
         try {
+            System.out.println("🔥 Bulk notification request received:");
+            System.out.println("  Title: " + request.getTitle());
+            System.out.println("  Body: " + request.getBody());
+            System.out.println("  Type: " + request.getType());
+            System.out.println("  User IDs: " + (request.getUserIds() != null ? request.getUserIds().size() + " users" : "null (all users)"));
+            System.out.println("  Save to DB: " + request.getSaveToDatabase());
+            
             boolean sent = pushNotificationService.sendBulkNotifications(request);
             
             if (sent) {
+                System.out.println("✅ Bulk notifications sent successfully");
                 return ResponseEntity.ok("Bulk notifications sent successfully");
             } else {
+                System.out.println("❌ Failed to send bulk notifications");
                 return ResponseEntity.badRequest().body("Failed to send bulk notifications");
             }
         } catch (Exception e) {
-            System.err.println("Error sending bulk push notifications: " + e.getMessage());
+            System.err.println("❌ Error sending bulk push notifications: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error sending bulk notifications");
         }
     }

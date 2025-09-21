@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BulkNotificationRequest {
 
-    @NotEmpty(message = "User IDs list cannot be empty")
+    // Optional: If empty or null, send to all users
     private List<Long> userIds;
 
     @NotBlank(message = "Title is required")
