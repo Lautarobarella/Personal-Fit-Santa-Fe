@@ -42,8 +42,8 @@ services:
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
       # Configuración de Spring Boot
-      # SPRING_PROFILES_ACTIVE: production  # Comentado para desarrollo local
-      SPRING_PROFILES_ACTIVE: development
+      SPRING_PROFILES_ACTIVE: production  # Comentado para desarrollo local
+      #SPRING_PROFILES_ACTIVE: development
       # Secretos para el backend
       JWT_SECRET: ${JWT_SECRET}
       
