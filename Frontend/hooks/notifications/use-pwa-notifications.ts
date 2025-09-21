@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
-import { MessagePayload } from 'firebase/messaging';
-import { requestNotificationPermission, setupForegroundNotifications } from '@/lib/firebase-messaging';
-import { registerDeviceToken, unregisterDeviceToken, getNotificationPreferences, updateNotificationPreferences } from '@/api/notifications/notificationsApi';
-import { useRouter } from 'next/navigation';
+import { getNotificationPreferences, registerDeviceToken, unregisterDeviceToken, updateNotificationPreferences } from '@/api/notifications/notificationsApi';
 import { useToast } from '@/hooks/use-toast';
+import { requestNotificationPermission, setupForegroundNotifications } from '@/lib/firebase-messaging';
 import { NotificationPreferences } from '@/lib/types';
+import { MessagePayload } from 'firebase/messaging';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 
 export interface PWANotificationState {

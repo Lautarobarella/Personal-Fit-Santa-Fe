@@ -1,5 +1,5 @@
-import { getToken, onMessage, MessagePayload } from 'firebase/messaging';
 import { messaging } from '@/lib/firebase-config';
+import { getToken, MessagePayload, onMessage } from 'firebase/messaging';
 
 export interface CustomNotificationPayload {
   notification?: {
@@ -65,6 +65,13 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 
       console.log('🔑 Using VAPID key:', vapidKey.substring(0, 20) + '...');
 
+      // Log Firebase configuration for debugging
+      console.log('🔧 Firebase client config:', {
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.substring(0, 20) + '...'
+      });
+
       const currentToken = await getToken(messaging, {
         vapidKey: vapidKey
       });
@@ -74,9 +81,10 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
         return currentToken;
       } else {
         console.log('⚠️ No registration token available - possible causes:');
-        console.log('  - Service worker not properly registered');
-        console.log('  - VAPID key mismatch');
+        console.log('  - Service worker Firebase config mismatch');
+        console.log('  - VAPID key not associated with this project');
         console.log('  - Firebase project configuration issue');
+        console.log('  - Network/firewall blocking Firebase services');
         throw new Error('No registration token available');
       }
     } else {
@@ -85,16 +93,27 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
     }
   } catch (error) {
     console.error('❌ Error in requestNotificationPermission:', error);
-    // Provide more specific error messages
+    
+    // Provide more specific error messages based on error type
     if (error instanceof Error) {
-      if (error.message.includes('Registration failed')) {
-        throw new Error('Error de registro del Service Worker. Verifica la configuración de Firebase.');
-      } else if (error.message.includes('VAPID')) {
-        throw new Error('Error de configuración VAPID. Contacta al administrador.');
-      } else if (error.message.includes('denied')) {
+      const errorMessage = error.message.toLowerCase();
+      
+      if (error.name === 'AbortError' || errorMessage.includes('registration failed')) {
+        console.error('🔍 AbortError details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack?.split('\n').slice(0, 3)
+        });
+        throw new Error('Error de configuración de Firebase. Es posible que las claves VAPID no coincidan entre el cliente y el Service Worker.');
+      } else if (errorMessage.includes('vapid')) {
+        throw new Error('Error de configuración VAPID. Verifica que la clave VAPID esté correctamente configurada.');
+      } else if (errorMessage.includes('denied')) {
         throw new Error('Permisos de notificación denegados. Puedes habilitarlos en la configuración del navegador.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        throw new Error('Error de red. Verifica tu conexión a internet.');
       }
     }
+    
     throw new Error(`Error al configurar notificaciones: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
 };

@@ -2,16 +2,25 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Initialize the Firebase app in the service worker
-// NOTE: Replace these values with your actual Firebase config
-firebase.initializeApp({
+// Get Firebase config from build-time environment variables
+// These should match the client-side configuration exactly
+const firebaseConfig = {
   apiKey: "AIzaSyDGdX-7s_MDOmBWlz8I4Q10ezLrpZIf1cA",
   authDomain: "personal-fit-santa-fe.firebaseapp.com",
   projectId: "personal-fit-santa-fe",
   storageBucket: "personal-fit-santa-fe.firebasestorage.app",
   messagingSenderId: "152130733157",
   appId: "1:152130733157:web:33c48e3e46ba413667f28c",
+  measurementId: "G-6YSYFJ4C5R"
+};
+
+console.log('[firebase-messaging-sw.js] Initializing Firebase with config:', {
+  projectId: firebaseConfig.projectId,
+  messagingSenderId: firebaseConfig.messagingSenderId
 });
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 
 // Retrieve Firebase Messaging object
 const messaging = firebase.messaging();
