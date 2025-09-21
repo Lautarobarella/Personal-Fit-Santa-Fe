@@ -564,7 +564,13 @@ public class NotificationService {
                 return false;
             }
 
-            // Verificar preferencias del usuario
+            // IMPORTANTE: Verificar que el usuario tenga habilitadas las notificaciones push (permiso lógico)
+            if (!isUserSubscribedToNotifications(request.getUserId())) {
+                log.info("User {} has disabled push notifications or has no active tokens", request.getUserId());
+                return true; // No es un error, el usuario no quiere notificaciones push
+            }
+
+            // Verificar preferencias específicas del usuario por tipo
             if (!shouldSendNotification(request.getUserId(), request.getType())) {
                 log.info("User has disabled notifications of type: {}", request.getType());
                 return true; // No es un error, el usuario simplemente no quiere este tipo
@@ -610,6 +616,13 @@ public class NotificationService {
      * Envía notificaciones masivas a múltiples usuarios
      */
     public boolean sendBulkNotifications(BulkNotificationRequest request) {
+        return sendBulkNotifications(request, null);
+    }
+
+    /**
+     * Envía notificaciones masivas a múltiples usuarios excluyendo al remitente
+     */
+    public boolean sendBulkNotifications(BulkNotificationRequest request, Long excludeUserId) {
         try {
             if (!firebaseConfig.isFirebaseConfigured()) {
                 log.warn("Firebase is not configured. Bulk notification not sent.");
@@ -626,23 +639,36 @@ public class NotificationService {
                 log.info("No specific users provided, sending to all {} active users", targetUserIds.size());
             }
 
-            // Obtener solo el token más reciente de cada usuario para evitar duplicados
-            List<String> allTokens;
-            if (targetUserIds.size() == userRepository.count()) {
-                // Si es para todos los usuarios, usar el método optimizado
-                allTokens = deviceTokenRepository.findLatestActiveTokensForAllUsers();
-            } else {
-                // Si es para usuarios específicos
-                allTokens = deviceTokenRepository.findLatestActiveTokensByUserIds(targetUserIds);
+            // Excluir al usuario remitente si se especifica
+            if (excludeUserId != null) {
+                targetUserIds = targetUserIds.stream()
+                    .filter(userId -> !userId.equals(excludeUserId))
+                    .toList();
+                log.info("Excluded sender user {} from bulk notification. Remaining users: {}", excludeUserId, targetUserIds.size());
             }
+
+            // IMPORTANTE: Filtrar usuarios que tengan habilitadas las notificaciones push lógicamente
+            List<Long> subscribedUserIds = targetUserIds.stream()
+                .filter(this::isUserSubscribedToNotifications)
+                .toList();
+            
+            log.info("Filtered users: {} total -> {} subscribed and enabled", targetUserIds.size(), subscribedUserIds.size());
+
+            if (subscribedUserIds.isEmpty()) {
+                log.info("No users with push notifications enabled found");
+                return true;
+            }
+
+            // Obtener solo el token más reciente de cada usuario suscrito para evitar duplicados
+            List<String> allTokens = deviceTokenRepository.findLatestActiveTokensByUserIds(subscribedUserIds);
             
             if (allTokens.isEmpty()) {
                 log.info("No active tokens found for bulk notification");
                 return true;
             }
 
-            log.info("Sending bulk notification to {} users with {} unique tokens (avoiding duplicates)", 
-                       targetUserIds.size(), allTokens.size());
+            log.info("Sending bulk notification to {} subscribed users with {} unique tokens (avoiding duplicates)", 
+                       subscribedUserIds.size(), allTokens.size());
 
             // Crear mensaje genérico
             SendNotificationRequest genericRequest = SendNotificationRequest.builder()
@@ -666,14 +692,24 @@ public class NotificationService {
                 handleBatchResponse(response, batchTokens, null);
             }
 
-            // Guardar en base de datos si se solicita
+            // Guardar en base de datos si se solicita (también excluyendo al remitente)
             if (Boolean.TRUE.equals(request.getSaveToDatabase())) {
-                // Usar método unificado para crear notificaciones en batch
-                createBulkNotificationsFromRequest(request);
+                // Actualizar el request con los usuarios filtrados
+                BulkNotificationRequest filteredRequest = BulkNotificationRequest.builder()
+                    .title(request.getTitle())
+                    .body(request.getBody())
+                    .type(request.getType())
+                    .image(request.getImage())
+                    .data(request.getData())
+                    .userIds(subscribedUserIds)
+                    .saveToDatabase(request.getSaveToDatabase())
+                    .build();
+                
+                createBulkNotificationsFromRequest(filteredRequest);
             }
 
-            log.info("Sent bulk notification to {} users with {} total tokens", 
-                       targetUserIds.size(), allTokens.size());
+            log.info("Sent bulk notification to {} subscribed users with {} total tokens", 
+                       subscribedUserIds.size(), allTokens.size());
             return true;
 
         } catch (Exception e) {
