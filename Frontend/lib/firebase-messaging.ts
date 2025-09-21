@@ -83,6 +83,7 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
       }
 
       console.log('🔑 Using VAPID key:', vapidKey.substring(0, 20) + '...');
+      console.log('🔑 Full VAPID key for debugging:', vapidKey);
 
       // Log Firebase configuration for debugging
       console.log('🔧 Firebase client config:', {
@@ -91,6 +92,7 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
         appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.substring(0, 20) + '...'
       });
 
+      console.log('🔧 About to call getToken with VAPID key...');
       const currentToken = await getToken(messaging, {
         vapidKey: vapidKey
       });
