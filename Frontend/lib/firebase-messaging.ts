@@ -34,17 +34,36 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
       return null;
     }
 
-    // Verify service worker is registered
+    // Force service worker update and registration
     try {
-      const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-      if (!registration) {
-        console.warn('🚫 Firebase service worker not registered');
-        // Try to register it
-        await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-          scope: '/'
-        });
-        console.log('✅ Firebase service worker registered');
+      // First, try to unregister any existing service worker
+      const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of existingRegistrations) {
+        if (registration.active?.scriptURL.includes('firebase-messaging-sw.js')) {
+          console.log('� Unregistering old service worker...');
+          await registration.unregister();
+        }
       }
+
+      // Register fresh service worker with cache-busting
+      const timestamp = Date.now();
+      const registration = await navigator.serviceWorker.register(
+        `/firebase-messaging-sw.js?t=${timestamp}`, 
+        {
+          scope: '/',
+          updateViaCache: 'none' // Prevent caching of the service worker script
+        }
+      );
+
+      // Wait for the service worker to be ready
+      await navigator.serviceWorker.ready;
+      console.log('✅ Firebase service worker registered and ready');
+
+      // Force update if there's a waiting service worker
+      if (registration.waiting) {
+        registration.waiting.postMessage({ action: 'skipWaiting' });
+      }
+
     } catch (swError) {
       console.error('❌ Service worker registration error:', swError);
       throw new Error('Service Worker registration failed');

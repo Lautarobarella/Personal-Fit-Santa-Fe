@@ -1,6 +1,8 @@
-// firebase-messaging-sw.js
+// firebase-messaging-sw.js - Version: 2025-09-21T15:30:00Z
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+
+console.log('[firebase-messaging-sw.js] Service Worker version: 2025-09-21T15:30:00Z');
 
 // Get Firebase config from build-time environment variables
 // These should match the client-side configuration exactly
@@ -15,8 +17,13 @@ const firebaseConfig = {
 };
 
 console.log('[firebase-messaging-sw.js] Initializing Firebase with config:', {
+  apiKey: firebaseConfig.apiKey?.substring(0, 20) + '...',
+  authDomain: firebaseConfig.authDomain,
   projectId: firebaseConfig.projectId,
-  messagingSenderId: firebaseConfig.messagingSenderId
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId?.substring(0, 20) + '...',
+  measurementId: firebaseConfig.measurementId
 });
 
 // Initialize Firebase
@@ -24,6 +31,20 @@ firebase.initializeApp(firebaseConfig);
 
 // Retrieve Firebase Messaging object
 const messaging = firebase.messaging();
+
+// Handle skipWaiting message for immediate update
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    console.log('[firebase-messaging-sw.js] Skipping waiting and activating new service worker');
+    self.skipWaiting();
+  }
+});
+
+// Ensure the service worker takes control immediately
+self.addEventListener('activate', (event) => {
+  console.log('[firebase-messaging-sw.js] Service worker activated');
+  event.waitUntil(self.clients.claim());
+});
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
