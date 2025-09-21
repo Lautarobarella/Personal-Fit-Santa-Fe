@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .requestMatchers("/payments/mercadopago/**").permitAll() // Permitir endpoints de MercadoPago sin autenticación
                 .requestMatchers("/payments/files/**").permitAll() // Permitir acceso a archivos de pagos
                 .requestMatchers("/api/files/**").permitAll() // Permitir acceso directo a archivos del backend
+                .requestMatchers("/api/attendance/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30").permitAll() // Permitir endpoint NFC sin autenticación
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()

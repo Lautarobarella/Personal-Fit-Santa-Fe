@@ -1,5 +1,6 @@
 package com.personalfit.services;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -170,5 +171,13 @@ public class AttendanceService {
                 .createdAt(attendance.getCreatedAt())
                 .updatedAt(attendance.getUpdatedAt())
                 .build();
+    }
+    
+    public List<Attendance> getUserAttendancesForDate(Long userId, LocalDate date) {
+        User user = userService.getUserById(userId);
+        
+        return attendanceRepository.findByUser(user).stream()
+                .filter(attendance -> attendance.getActivity().getDate().toLocalDate().equals(date))
+                .collect(Collectors.toList());
     }
 }
