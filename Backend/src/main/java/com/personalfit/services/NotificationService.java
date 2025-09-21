@@ -158,7 +158,8 @@ public class NotificationService {
 
     /**
      * Crea y guarda una notificación individual
-     * Método genérico para ser usado por otros servicios como PushNotificationService
+     * Método genérico para ser usado por otros servicios como
+     * PushNotificationService
      */
     @Transactional
     public Notification createNotification(Notification notification) {
@@ -187,10 +188,10 @@ public class NotificationService {
 
         // Solo crear notificaciones para usuarios suscritos
         List<User> subscribedUsers = users.stream()
-            .filter(user -> isUserSubscribedToNotifications(user.getId()))
-            .collect(Collectors.toList());
+                .filter(user -> isUserSubscribedToNotifications(user.getId()))
+                .collect(Collectors.toList());
 
-        log.info("Creating payment expired notifications for {} subscribed users out of {} total users", 
+        log.info("Creating payment expired notifications for {} subscribed users out of {} total users",
                 subscribedUsers.size(), users.size());
 
         for (User user : subscribedUsers) {
@@ -293,7 +294,7 @@ public class NotificationService {
         }
     }
 
-     /**
+    /**
      * Limpia tokens de dispositivos inactivos cada semana (domingos a las 2:00 AM)
      */
     @Scheduled(cron = "0 0 2 * * SUN")
@@ -301,21 +302,21 @@ public class NotificationService {
     public void cleanupInactiveTokens() {
         try {
             log.info("Starting inactive tokens cleanup job");
-            
+
             // Buscar tokens que no se han usado en 30 días
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
             List<UserDeviceToken> inactiveTokens = deviceTokenRepository.findInactiveTokens(cutoffDate);
-            
+
             if (inactiveTokens.isEmpty()) {
                 log.info("No inactive tokens found for cleanup");
                 return;
             }
-            
+
             // Eliminar tokens inactivos
             for (UserDeviceToken token : inactiveTokens) {
                 deviceTokenRepository.delete(token);
             }
-            
+
             log.info("Cleanup completed. Removed {} inactive tokens", inactiveTokens.size());
         } catch (Exception e) {
             log.error("Error in inactive tokens cleanup job", e);
@@ -324,23 +325,28 @@ public class NotificationService {
 
     /**
      * Método manual para enviar notificación de meta alcanzada
-     * NOTA: Este método se movió a NotificationTriggerService para evitar dependencia circular
-     * Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente
+     * NOTA: Este método se movió a NotificationTriggerService para evitar
+     * dependencia circular
+     * Use NotificationTriggerService.scheduleGoalAchievementNotification()
+     * directamente
      */
     @Deprecated
     public void scheduleGoalAchievementNotification(User user, String goalType, String achievement) {
-        log.warn("Este método está deprecado. Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente");
+        log.warn(
+                "Este método está deprecado. Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente");
         // Método deprecado para evitar dependencia circular
         // triggerService.sendGoalAchievement(user, goalType, achievement);
     }
 
     /**
      * Crea una notificación desde un SendNotificationRequest
-     * Este método es usado por PushNotificationService para guardar notificaciones en BD
+     * Este método es usado por PushNotificationService para guardar notificaciones
+     * en BD
      * Solo crea la notificación si el usuario está suscrito
      */
     @Transactional
-    public Notification createNotificationFromRequest(com.personalfit.dto.Notification.SendNotificationRequest request) {
+    public Notification createNotificationFromRequest(
+            com.personalfit.dto.Notification.SendNotificationRequest request) {
         try {
             if (request.getUserId() == null) {
                 log.warn("Cannot create notification: userId is null");
@@ -349,7 +355,7 @@ public class NotificationService {
 
             // Verificar si el usuario está suscrito a notificaciones
             if (!isUserSubscribedToNotifications(request.getUserId())) {
-                log.info("User {} is not subscribed to notifications, skipping notification creation", 
+                log.info("User {} is not subscribed to notifications, skipping notification creation",
                         request.getUserId());
                 return null;
             }
@@ -361,13 +367,13 @@ public class NotificationService {
             }
 
             Notification notification = Notification.builder()
-                .title(request.getTitle())
-                .message(request.getBody())
-                .date(LocalDateTime.now())
-                .status(NotificationStatus.UNREAD)
-                .user(userOpt.get())
-                .targetRole(userOpt.get().getRole())
-                .build();
+                    .title(request.getTitle())
+                    .message(request.getBody())
+                    .date(LocalDateTime.now())
+                    .status(NotificationStatus.UNREAD)
+                    .user(userOpt.get())
+                    .targetRole(userOpt.get().getRole())
+                    .build();
 
             return createNotification(notification);
         } catch (Exception e) {
@@ -381,28 +387,31 @@ public class NotificationService {
      * Solo crea notificaciones para usuarios suscritos
      */
     @Transactional
-    public List<Notification> createBulkNotificationsFromRequest(com.personalfit.dto.Notification.BulkNotificationRequest request) {
+    public List<Notification> createBulkNotificationsFromRequest(
+            com.personalfit.dto.Notification.BulkNotificationRequest request) {
         try {
             List<Notification> createdNotifications = new ArrayList<>();
 
             // Determinar usuarios objetivo
             List<Long> targetUserIds = request.getUserIds();
             if (targetUserIds == null || targetUserIds.isEmpty()) {
-                // Si no se especifican usuarios, crear para todos los usuarios con tokens activos
+                // Si no se especifican usuarios, crear para todos los usuarios con tokens
+                // activos
                 targetUserIds = deviceTokenRepository.findAll().stream()
-                    .filter(token -> token.getIsActive())
-                    .map(token -> token.getUser().getId())
-                    .distinct()
-                    .collect(Collectors.toList());
-                log.info("No specific users provided, creating notifications for {} subscribed users", targetUserIds.size());
+                        .filter(token -> token.getIsActive())
+                        .map(token -> token.getUser().getId())
+                        .distinct()
+                        .collect(Collectors.toList());
+                log.info("No specific users provided, creating notifications for {} subscribed users",
+                        targetUserIds.size());
             }
 
             // Filtrar solo usuarios que están suscritos
             List<Long> subscribedUserIds = targetUserIds.stream()
-                .filter(this::isUserSubscribedToNotifications)
-                .collect(Collectors.toList());
+                    .filter(this::isUserSubscribedToNotifications)
+                    .collect(Collectors.toList());
 
-            log.info("Creating bulk notifications for {} subscribed users out of {} target users", 
+            log.info("Creating bulk notifications for {} subscribed users out of {} target users",
                     subscribedUserIds.size(), targetUserIds.size());
 
             // Crear notificación para cada usuario suscrito
@@ -410,13 +419,13 @@ public class NotificationService {
                 Optional<User> userOpt = userRepository.findById(userId);
                 if (userOpt.isPresent()) {
                     Notification notification = Notification.builder()
-                        .title(request.getTitle())
-                        .message(request.getBody())
-                        .date(LocalDateTime.now())
-                        .status(NotificationStatus.UNREAD)
-                        .user(userOpt.get())
-                        .targetRole(userOpt.get().getRole())
-                        .build();
+                            .title(request.getTitle())
+                            .message(request.getBody())
+                            .date(LocalDateTime.now())
+                            .status(NotificationStatus.UNREAD)
+                            .user(userOpt.get())
+                            .targetRole(userOpt.get().getRole())
+                            .build();
 
                     Notification saved = createNotification(notification);
                     if (saved != null) {
@@ -462,32 +471,33 @@ public class NotificationService {
                 token.setDeviceInfo(request.getDeviceInfo());
                 token.setIsActive(true);
                 deviceTokenRepository.save(token);
-                log.info("✅ Updated existing device token for user: {} | Token: {}...", 
-                          user.getId(), request.getToken().substring(0, 20));
+                log.info("✅ Updated existing device token for user: {} | Token: {}...",
+                        user.getId(), request.getToken().substring(0, 20));
             } else {
-                // Limpiar tokens antiguos del mismo usuario si hay demasiados (mantener solo los 2 más recientes)
+                // Limpiar tokens antiguos del mismo usuario si hay demasiados (mantener solo
+                // los 2 más recientes)
                 List<UserDeviceToken> userTokens = deviceTokenRepository.findByUserIdOrderByCreatedAtAsc(user.getId());
                 if (userTokens.size() >= 2) {
                     // Eliminar los tokens más antiguos, manteniendo solo el más reciente
                     for (int i = 0; i < userTokens.size() - 1; i++) {
                         UserDeviceToken oldToken = userTokens.get(i);
                         deviceTokenRepository.delete(oldToken);
-                        log.info("🧹 Cleaned up old token for user: {} | Token: {}...", 
-                                 user.getId(), oldToken.getToken().substring(0, 20));
+                        log.info("🧹 Cleaned up old token for user: {} | Token: {}...",
+                                user.getId(), oldToken.getToken().substring(0, 20));
                     }
                 }
-                
+
                 // Crear nuevo token
                 UserDeviceToken newToken = UserDeviceToken.builder()
-                    .user(user)
-                    .token(request.getToken())
-                    .deviceType(request.getDeviceType())
-                    .deviceInfo(request.getDeviceInfo())
-                    .isActive(true)
-                    .build();
+                        .user(user)
+                        .token(request.getToken())
+                        .deviceType(request.getDeviceType())
+                        .deviceInfo(request.getDeviceInfo())
+                        .isActive(true)
+                        .build();
                 deviceTokenRepository.save(newToken);
-                log.info("🆕 Registered new device token for user: {} | Token: {}...", 
-                          user.getId(), request.getToken().substring(0, 20));
+                log.info("🆕 Registered new device token for user: {} | Token: {}...",
+                        user.getId(), request.getToken().substring(0, 20));
             }
 
             // Verificar que el token se guardó correctamente
@@ -510,11 +520,11 @@ public class NotificationService {
      */
     public boolean registerDeviceToken(Long userId, String token, String deviceInfo) {
         RegisterDeviceTokenRequest request = RegisterDeviceTokenRequest.builder()
-            .userId(userId)
-            .token(token)
-            .deviceType(DeviceType.PWA)
-            .deviceInfo(deviceInfo)
-            .build();
+                .userId(userId)
+                .token(token)
+                .deviceType(DeviceType.PWA)
+                .deviceInfo(deviceInfo)
+                .build();
         return registerDeviceToken(request);
     }
 
@@ -564,7 +574,8 @@ public class NotificationService {
                 return false;
             }
 
-            // IMPORTANTE: Verificar que el usuario tenga habilitadas las notificaciones push (permiso lógico)
+            // IMPORTANTE: Verificar que el usuario tenga habilitadas las notificaciones
+            // push (permiso lógico)
             if (!isUserSubscribedToNotifications(request.getUserId())) {
                 log.info("User {} has disabled push notifications or has no active tokens", request.getUserId());
                 return true; // No es un error, el usuario no quiere notificaciones push
@@ -578,23 +589,22 @@ public class NotificationService {
 
             // Obtener solo el token más reciente del usuario para evitar duplicados
             List<String> tokenStrings = deviceTokenRepository.findLatestActiveTokensByUserIds(
-                List.of(request.getUserId())
-            );
-            
+                    List.of(request.getUserId()));
+
             if (tokenStrings.isEmpty()) {
                 log.info("No active tokens found for user: {}", request.getUserId());
                 return true; // No es un error, simplemente no hay tokens
             }
 
-            log.debug("Sending notification to user {} using {} unique token(s)", 
-                      request.getUserId(), tokenStrings.size());
+            log.debug("Sending notification to user {} using {} unique token(s)",
+                    request.getUserId(), tokenStrings.size());
 
             // Crear el mensaje
             MulticastMessage message = createMulticastMessage(request, tokenStrings);
 
             // Enviar notificación
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-            
+
             // Procesar respuesta
             handleBatchResponse(response, tokenStrings, request.getUserId());
 
@@ -616,13 +626,6 @@ public class NotificationService {
      * Envía notificaciones masivas a múltiples usuarios
      */
     public boolean sendBulkNotifications(BulkNotificationRequest request) {
-        return sendBulkNotifications(request, null);
-    }
-
-    /**
-     * Envía notificaciones masivas a múltiples usuarios excluyendo al remitente
-     */
-    public boolean sendBulkNotifications(BulkNotificationRequest request, Long excludeUserId) {
         try {
             if (!firebaseConfig.isFirebaseConfigured()) {
                 log.warn("Firebase is not configured. Bulk notification not sent.");
@@ -633,83 +636,84 @@ public class NotificationService {
             List<Long> targetUserIds = request.getUserIds();
             if (targetUserIds == null || targetUserIds.isEmpty()) {
                 // Si no se especifican usuarios, enviar a todos los usuarios activos
+                // EXCEPTO los administradores (solo para notificaciones generales desde "Generar notificación")
                 targetUserIds = userRepository.findAll().stream()
-                    .map(User::getId)
-                    .toList();
-                log.info("No specific users provided, sending to all {} active users", targetUserIds.size());
-            }
-
-            // Excluir al usuario remitente si se especifica
-            if (excludeUserId != null) {
-                targetUserIds = targetUserIds.stream()
-                    .filter(userId -> !userId.equals(excludeUserId))
-                    .toList();
-                log.info("Excluded sender user {} from bulk notification. Remaining users: {}", excludeUserId, targetUserIds.size());
+                        .filter(user -> {
+                            Integer dni = user.getDni();
+                            return !(36265798 == dni || 99999999 == dni);
+                        })
+                        .map(User::getId)
+                        .toList();
+                log.info("General notification: sending to all users except admins, {} target users", targetUserIds.size());
+            } else {
+                log.info("Specific notification: sending to {} specified users (including admins if specified)", targetUserIds.size());
             }
 
             // IMPORTANTE: Filtrar usuarios que tengan habilitadas las notificaciones push lógicamente
             List<Long> subscribedUserIds = targetUserIds.stream()
-                .filter(this::isUserSubscribedToNotifications)
-                .toList();
-            
-            log.info("Filtered users: {} total -> {} subscribed and enabled", targetUserIds.size(), subscribedUserIds.size());
+                    .filter(this::isUserSubscribedToNotifications)
+                    .toList();
+
+            log.info("Filtered users: {} total -> {} subscribed and enabled", targetUserIds.size(),
+                    subscribedUserIds.size());
 
             if (subscribedUserIds.isEmpty()) {
                 log.info("No users with push notifications enabled found");
                 return true;
             }
 
-            // Obtener solo el token más reciente de cada usuario suscrito para evitar duplicados
+            // Obtener solo el token más reciente de cada usuario suscrito para evitar
+            // duplicados
             List<String> allTokens = deviceTokenRepository.findLatestActiveTokensByUserIds(subscribedUserIds);
-            
+
             if (allTokens.isEmpty()) {
                 log.info("No active tokens found for bulk notification");
                 return true;
             }
 
-            log.info("Sending bulk notification to {} subscribed users with {} unique tokens (avoiding duplicates)", 
-                       subscribedUserIds.size(), allTokens.size());
+            log.info("Sending bulk notification to {} subscribed users with {} unique tokens (avoiding duplicates)",
+                    subscribedUserIds.size(), allTokens.size());
 
             // Crear mensaje genérico
             SendNotificationRequest genericRequest = SendNotificationRequest.builder()
-                .title(request.getTitle())
-                .body(request.getBody())
-                .type(request.getType())
-                .image(request.getImage())
-                .data(request.getData())
-                .build();
+                    .title(request.getTitle())
+                    .body(request.getBody())
+                    .type(request.getType())
+                    .image(request.getImage())
+                    .data(request.getData())
+                    .build();
 
             // Dividir en batches (FCM tiene límite de 500 tokens por batch)
             int batchSize = 500;
             for (int i = 0; i < allTokens.size(); i += batchSize) {
                 int endIndex = Math.min(i + batchSize, allTokens.size());
                 List<String> batchTokens = allTokens.subList(i, endIndex);
-                
+
                 MulticastMessage message = createMulticastMessage(genericRequest, batchTokens);
                 BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-                
+
                 // Procesar respuesta del batch
                 handleBatchResponse(response, batchTokens, null);
             }
 
-            // Guardar en base de datos si se solicita (también excluyendo al remitente)
+            // Guardar en base de datos si se solicita
             if (Boolean.TRUE.equals(request.getSaveToDatabase())) {
                 // Actualizar el request con los usuarios filtrados
                 BulkNotificationRequest filteredRequest = BulkNotificationRequest.builder()
-                    .title(request.getTitle())
-                    .body(request.getBody())
-                    .type(request.getType())
-                    .image(request.getImage())
-                    .data(request.getData())
-                    .userIds(subscribedUserIds)
-                    .saveToDatabase(request.getSaveToDatabase())
-                    .build();
-                
+                        .title(request.getTitle())
+                        .body(request.getBody())
+                        .type(request.getType())
+                        .image(request.getImage())
+                        .data(request.getData())
+                        .userIds(subscribedUserIds)
+                        .saveToDatabase(request.getSaveToDatabase())
+                        .build();
+
                 createBulkNotificationsFromRequest(filteredRequest);
             }
 
-            log.info("Sent bulk notification to {} subscribed users with {} total tokens", 
-                       subscribedUserIds.size(), allTokens.size());
+            log.info("Sent bulk notification to {} subscribed users with {} total tokens",
+                    subscribedUserIds.size(), allTokens.size());
             return true;
 
         } catch (Exception e) {
@@ -723,20 +727,20 @@ public class NotificationService {
      */
     public NotificationPreferencesDTO getUserPreferences(Long userId) {
         Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
-        
+
         if (prefsOpt.isPresent()) {
             NotificationPreferences prefs = prefsOpt.get();
             return NotificationPreferencesDTO.builder()
-                .classReminders(prefs.getClassReminders())
-                .paymentDue(prefs.getPaymentDue())
-                .newClasses(prefs.getNewClasses())
-                .promotions(prefs.getPromotions())
-                .classCancellations(prefs.getClassCancellations())
-                .generalAnnouncements(prefs.getGeneralAnnouncements())
-                .pushNotificationsEnabled(prefs.getPushNotificationsEnabled())
-                .build();
+                    .classReminders(prefs.getClassReminders())
+                    .paymentDue(prefs.getPaymentDue())
+                    .newClasses(prefs.getNewClasses())
+                    .promotions(prefs.getPromotions())
+                    .classCancellations(prefs.getClassCancellations())
+                    .generalAnnouncements(prefs.getGeneralAnnouncements())
+                    .pushNotificationsEnabled(prefs.getPushNotificationsEnabled())
+                    .build();
         }
-        
+
         // Crear preferencias por defecto
         createDefaultPreferencesIfNotExists(userId);
         return createDefaultPreferencesDTO();
@@ -749,7 +753,7 @@ public class NotificationService {
         try {
             Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
             NotificationPreferences prefs;
-            
+
             if (prefsOpt.isPresent()) {
                 prefs = prefsOpt.get();
             } else {
@@ -760,10 +764,10 @@ public class NotificationService {
                     return false;
                 }
                 prefs = NotificationPreferences.builder()
-                    .user(userOpt.get())
-                    .build();
+                        .user(userOpt.get())
+                        .build();
             }
-            
+
             // Actualizar las preferencias
             prefs.setClassReminders(preferencesDTO.getClassReminders());
             prefs.setPaymentDue(preferencesDTO.getPaymentDue());
@@ -774,7 +778,7 @@ public class NotificationService {
             if (preferencesDTO.getPushNotificationsEnabled() != null) {
                 prefs.setPushNotificationsEnabled(preferencesDTO.getPushNotificationsEnabled());
             }
-            
+
             preferencesRepository.save(prefs);
             log.info("Updated notification preferences for user: {}", userId);
             return true;
@@ -792,7 +796,7 @@ public class NotificationService {
         if (prefsOpt.isPresent()) {
             return prefsOpt.get();
         }
-        
+
         // Si no existen, crear preferencias por defecto
         createDefaultPreferencesIfNotExists(userId);
         return preferencesRepository.findByUserId(userId).orElse(null);
@@ -806,11 +810,11 @@ public class NotificationService {
             // Obtener tokens que no han sido usados en los últimos 30 días
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
             List<UserDeviceToken> inactiveTokens = deviceTokenRepository.findInactiveTokens(cutoffDate);
-            
+
             for (UserDeviceToken token : inactiveTokens) {
                 deviceTokenRepository.deactivateByToken(token.getToken());
             }
-            
+
             if (!inactiveTokens.isEmpty()) {
                 log.info("Deactivated {} inactive tokens", inactiveTokens.size());
             }
@@ -820,7 +824,8 @@ public class NotificationService {
     }
 
     /**
-     * Habilita las notificaciones push para un usuario (solo cambia el estado lógico)
+     * Habilita las notificaciones push para un usuario (solo cambia el estado
+     * lógico)
      */
     public boolean enablePushNotifications(Long userId) {
         try {
@@ -829,7 +834,7 @@ public class NotificationService {
                 createDefaultPreferencesIfNotExists(userId);
                 prefsOpt = preferencesRepository.findByUserId(userId);
             }
-            
+
             if (prefsOpt.isPresent()) {
                 NotificationPreferences prefs = prefsOpt.get();
                 prefs.setPushNotificationsEnabled(true);
@@ -845,7 +850,8 @@ public class NotificationService {
     }
 
     /**
-     * Deshabilita las notificaciones push para un usuario (solo cambia el estado lógico)
+     * Deshabilita las notificaciones push para un usuario (solo cambia el estado
+     * lógico)
      * NO elimina los tokens de dispositivo
      */
     public boolean disablePushNotifications(Long userId) {
@@ -897,17 +903,17 @@ public class NotificationService {
     // MÉTODOS PRIVADOS PARA PUSH NOTIFICATIONS
     // ===============================
 
-
     /**
      * Verifica si un usuario está suscrito a notificaciones (tiene tokens activos)
      */
     private boolean isUserSubscribedToNotifications(Long userId) {
         try {
-            // Verificar que el usuario tenga tokens activos Y tenga habilitadas las notificaciones push
+            // Verificar que el usuario tenga tokens activos Y tenga habilitadas las
+            // notificaciones push
             long activeTokens = deviceTokenRepository.countByUserIdAndIsActiveTrue(userId);
             boolean hasTokens = activeTokens > 0;
             boolean pushEnabled = isPushNotificationsEnabled(userId);
-            
+
             log.debug("User {} subscription check: hasTokens={}, pushEnabled={}", userId, hasTokens, pushEnabled);
             return hasTokens && pushEnabled;
         } catch (Exception e) {
@@ -930,9 +936,10 @@ public class NotificationService {
         }
 
         // Crear notificación
-        com.google.firebase.messaging.Notification.Builder notificationBuilder = com.google.firebase.messaging.Notification.builder()
-            .setTitle(request.getTitle())
-            .setBody(request.getBody());
+        com.google.firebase.messaging.Notification.Builder notificationBuilder = com.google.firebase.messaging.Notification
+                .builder()
+                .setTitle(request.getTitle())
+                .setBody(request.getBody());
 
         if (request.getImage() != null && !request.getImage().trim().isEmpty()) {
             notificationBuilder.setImage(request.getImage());
@@ -940,29 +947,29 @@ public class NotificationService {
 
         // Construir mensaje
         return MulticastMessage.builder()
-            .setNotification(notificationBuilder.build())
-            .putAllData(data)
-            .addAllTokens(tokens)
-            .build();
+                .setNotification(notificationBuilder.build())
+                .putAllData(data)
+                .addAllTokens(tokens)
+                .build();
     }
 
     private void handleBatchResponse(BatchResponse response, List<String> tokens, Long userId) {
         for (int i = 0; i < response.getResponses().size(); i++) {
             SendResponse sendResponse = response.getResponses().get(i);
             String token = tokens.get(i);
-            
+
             if (!sendResponse.isSuccessful()) {
                 FirebaseMessagingException exception = sendResponse.getException();
                 String errorCode = exception != null ? exception.getErrorCode().toString() : "unknown";
-                
+
                 // Manejar tokens inválidos
-                if ("UNREGISTERED".equals(errorCode) || 
-                    "INVALID_ARGUMENT".equals(errorCode)) {
+                if ("UNREGISTERED".equals(errorCode) ||
+                        "INVALID_ARGUMENT".equals(errorCode)) {
                     deviceTokenRepository.deactivateByToken(token);
                     log.warn("Deactivated invalid token: {}", token.substring(0, 10) + "...");
                 } else {
-                    log.warn("Failed to send notification to token: {} - Error: {}", 
-                               token.substring(0, 10) + "...", errorCode);
+                    log.warn("Failed to send notification to token: {} - Error: {}",
+                            token.substring(0, 10) + "...", errorCode);
                 }
             } else {
                 // Actualizar último uso del token
@@ -974,13 +981,15 @@ public class NotificationService {
     }
 
     private boolean shouldSendNotification(Long userId, String type) {
-        if (type == null) return true;
-        
+        if (type == null)
+            return true;
+
         Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
-        if (prefsOpt.isEmpty()) return true;
-        
+        if (prefsOpt.isEmpty())
+            return true;
+
         NotificationPreferences prefs = prefsOpt.get();
-        
+
         return switch (type) {
             case "class_reminder" -> Boolean.TRUE.equals(prefs.getClassReminders());
             case "payment_due" -> Boolean.TRUE.equals(prefs.getPaymentDue());
@@ -997,8 +1006,8 @@ public class NotificationService {
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isPresent()) {
                 NotificationPreferences defaultPrefs = NotificationPreferences.builder()
-                    .user(userOpt.get())
-                    .build();
+                        .user(userOpt.get())
+                        .build();
                 preferencesRepository.save(defaultPrefs);
                 log.info("Created default notification preferences for user: {}", userId);
             }
@@ -1007,14 +1016,14 @@ public class NotificationService {
 
     private NotificationPreferencesDTO createDefaultPreferencesDTO() {
         return NotificationPreferencesDTO.builder()
-            .classReminders(true)
-            .paymentDue(true)
-            .newClasses(true)
-            .promotions(false)
-            .classCancellations(true)
-            .generalAnnouncements(true)
-            .pushNotificationsEnabled(false)
-            .build();
+                .classReminders(true)
+                .paymentDue(true)
+                .newClasses(true)
+                .promotions(false)
+                .classCancellations(true)
+                .generalAnnouncements(true)
+                .pushNotificationsEnabled(false)
+                .build();
     }
 
 }

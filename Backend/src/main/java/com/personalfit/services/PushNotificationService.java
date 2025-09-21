@@ -185,10 +185,12 @@ public class PushNotificationService {
             List<Long> targetUserIds = request.getUserIds();
             if (targetUserIds == null || targetUserIds.isEmpty()) {
                 // Si no se especifican usuarios, enviar a todos los usuarios activos
+                // EXCEPTO los administradores (solo para notificaciones generales)
                 targetUserIds = userRepository.findAll().stream()
+                    .filter(user -> !user.getDni().equals(99999999) && !user.getDni().equals(36265798))
                     .map(User::getId)
                     .toList();
-                logger.info("No specific users provided, sending to all {} active users", targetUserIds.size());
+                logger.info("No specific users provided, sending to all {} active users (excluding admins)", targetUserIds.size());
             }
 
             // Obtener todos los tokens activos de los usuarios objetivo
