@@ -53,6 +53,28 @@ public class FirebaseConfig {
             logger.info("🔍 Loading Firebase configuration from: {}", FIREBASE_CONFIG_PATH);
             logger.info("📊 Config file size: {} bytes", Files.size(configPath));
 
+            // Leer y mostrar el contenido del archivo JSON para debugging
+            try {
+                String jsonContent = Files.readString(configPath);
+                logger.info("🔧 JSON file content preview: {}", jsonContent.substring(0, Math.min(200, jsonContent.length())) + "...");
+                
+                // Verificar campos específicos importantes
+                if (jsonContent.contains("project_id")) {
+                    String projectId = extractJsonField(jsonContent, "project_id");
+                    logger.info("🆔 Project ID from JSON: {}", projectId);
+                }
+                if (jsonContent.contains("client_email")) {
+                    String clientEmail = extractJsonField(jsonContent, "client_email");
+                    logger.info("📧 Client email from JSON: {}", clientEmail);
+                }
+                if (jsonContent.contains("private_key_id")) {
+                    String privateKeyId = extractJsonField(jsonContent, "private_key_id");
+                    logger.info("🔑 Private key ID from JSON: {}", privateKeyId);
+                }
+            } catch (Exception e) {
+                logger.warn("⚠️ Could not read JSON content for debugging: {}", e.getMessage());
+            }
+
             // Crear credenciales desde el archivo JSON
             GoogleCredentials credentials = GoogleCredentials.fromStream(
                 new FileInputStream(FIREBASE_CONFIG_PATH)
@@ -67,7 +89,19 @@ public class FirebaseConfig {
             FirebaseApp.initializeApp(options);
             
             logger.info("✅ Firebase Admin SDK initialized successfully");
-            logger.info("🚀 Project ID: {}", FirebaseApp.getInstance().getOptions().getProjectId());
+            
+            // Verificar la configuración después de la inicialización
+            FirebaseApp app = FirebaseApp.getInstance();
+            FirebaseOptions finalOptions = app.getOptions();
+            
+            logger.info("🚀 Project ID: {}", finalOptions.getProjectId());
+            logger.info("🔑 Service Account ID: {}", finalOptions.getServiceAccountId());
+            logger.info("🌐 Database URL: {}", finalOptions.getDatabaseUrl());
+            logger.info("📱 Storage Bucket: {}", finalOptions.getStorageBucket());
+            
+            // Verificar que Firebase está completamente configurado
+            logger.info("✅ Firebase App name: {}", app.getName());
+            logger.info("🔥 Total Firebase apps initialized: {}", FirebaseApp.getApps().size());
             
         } catch (IOException e) {
             logger.error("❌ Error reading Firebase service account file: {}", FIREBASE_CONFIG_PATH, e);
@@ -109,5 +143,29 @@ public class FirebaseConfig {
             throw new IllegalStateException("Firebase is not initialized. Check your configuration at: " + FIREBASE_CONFIG_PATH);
         }
         return FirebaseApp.getInstance();
+    }
+
+    /**
+     * Helper method para extraer un campo del JSON
+     */
+    private String extractJsonField(String jsonContent, String fieldName) {
+        try {
+            String searchPattern = "\"" + fieldName + "\"";
+            int fieldIndex = jsonContent.indexOf(searchPattern);
+            if (fieldIndex == -1) return "NOT_FOUND";
+            
+            int colonIndex = jsonContent.indexOf(":", fieldIndex);
+            if (colonIndex == -1) return "INVALID_FORMAT";
+            
+            int startQuote = jsonContent.indexOf("\"", colonIndex);
+            if (startQuote == -1) return "NO_VALUE";
+            
+            int endQuote = jsonContent.indexOf("\"", startQuote + 1);
+            if (endQuote == -1) return "INCOMPLETE_VALUE";
+            
+            return jsonContent.substring(startQuote + 1, endQuote);
+        } catch (Exception e) {
+            return "PARSE_ERROR: " + e.getMessage();
+        }
     }
 }
