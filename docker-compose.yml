@@ -48,9 +48,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       
       # Firebase Configuration for Push Notifications
-      FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT: ${FIREBASE_SERVICE_ACCOUNT_KEY_CONTENT}
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
-      FIREBASE_ENABLED: ${FIREBASE_ENABLED}
+      # Firebase config is now read from mounted file at /opt/firebase/firebase-service-account.json
       
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
@@ -59,6 +57,8 @@ services:
     volumes:
       # Mapeo directo al directorio local de la máquina host (comentado para desarrollo local)
       - /opt/backups/comprobantes:/opt/backups/comprobantes
+      # Directorio Firebase para la configuración de service account
+      - /opt/firebase:/opt/firebase:ro
       # Volumen local para desarrollo
       
       # - uploads_data:/app/uploads/comprobantes

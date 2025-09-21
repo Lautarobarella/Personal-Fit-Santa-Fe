@@ -80,12 +80,14 @@ public class FirebaseConfig {
 
     /**
      * Bean para FirebaseAuth - se crea solo si Firebase está correctamente inicializado
+     * Si Firebase no está disponible, retorna null para no romper la aplicación
      */
     @Bean
     public FirebaseAuth firebaseAuth() {
         if (FirebaseApp.getApps().isEmpty()) {
             logger.warn("⚠️ Firebase not initialized - FirebaseAuth bean will not be available");
-            throw new IllegalStateException("Firebase is not initialized. Check your configuration at: " + FIREBASE_CONFIG_PATH);
+            logger.warn("🔧 Application will continue without push notifications");
+            return null; // Retornar null en lugar de lanzar excepción
         }
         
         logger.info("✅ Creating FirebaseAuth bean");
