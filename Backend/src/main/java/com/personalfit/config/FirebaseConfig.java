@@ -80,9 +80,11 @@ public class FirebaseConfig {
                 new FileInputStream(FIREBASE_CONFIG_PATH)
             );
 
-            // Configurar Firebase Options
+            // Configurar Firebase Options con configuración completa del proyecto
             FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(credentials)
+                .setProjectId("personal-fit-santa-fe")
+                .setStorageBucket("personal-fit-santa-fe.firebasestorage.app")
                 .build();
 
             // Inicializar Firebase
