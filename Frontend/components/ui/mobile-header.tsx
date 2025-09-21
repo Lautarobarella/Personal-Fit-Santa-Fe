@@ -5,7 +5,7 @@ import type React from "react"
 import { useAuth } from "@/contexts/auth-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useNotifications } from "@/hooks/notifications/use-notifications"
+import { useNotification } from "@/hooks/notifications/use-notification"
 import { ArrowLeft, Bell, Menu } from "lucide-react"
 import Link from "next/link"
 
@@ -27,7 +27,7 @@ export function MobileHeader({
   actions,
 }: MobileHeaderProps) {
   const { user } = useAuth()
-  const { unreadCount } = useNotifications()
+  const { unreadCount } = useNotification()
   
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-professional transition-all duration-200">
