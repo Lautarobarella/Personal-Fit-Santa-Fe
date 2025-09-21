@@ -77,6 +77,9 @@ public class PaymentService {
     @Autowired
     private SettingsService settingsService;
 
+    @Autowired
+    private NotificationTriggerService triggerService;
+
     /**
      * Crea un nuevo pago con archivo opcional
      * Soporta tanto pagos individuales como múltiples usuarios
@@ -622,6 +625,50 @@ public class PaymentService {
 
         } catch (Exception e) {
             log.error("Error during daily payment expiration process: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Ejecuta diariamente a la 01:00 AM para enviar recordatorios de pagos próximos a vencer
+     */
+    @Scheduled(cron = "0 0 1 * * ?")
+    public void sendPaymentReminders() {
+        try {
+            log.info("Starting payment reminders job");
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime threeDaysFromNow = now.plusDays(3);
+            
+            // Obtener pagos que expiran en los próximos 3 días
+            LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
+            LocalDateTime endOfTargetDay = threeDaysFromNow.toLocalDate().atStartOfDay().plusDays(1);
+            
+            // Buscar pagos pagados que vencen en los próximos días
+            List<Payment> upcomingPayments = paymentRepository.findAll()
+                    .stream()
+                    .filter(payment -> payment.getStatus() == PaymentStatus.PAID)
+                    .filter(payment -> payment.getExpiresAt() != null)
+                    .filter(payment -> payment.getExpiresAt().isAfter(startOfToday) 
+                            && payment.getExpiresAt().isBefore(endOfTargetDay))
+                    .collect(Collectors.toList());
+
+            if (upcomingPayments.isEmpty()) {
+                log.info("No payments due in the next 3 days");
+                return;
+            }
+            
+            for (Payment payment : upcomingPayments) {
+                // Enviar recordatorio a cada usuario asociado al pago
+                for (User user : payment.getUsers()) {
+                    triggerService.sendPaymentDueReminder(user, payment.getAmount(), 
+                            payment.getExpiresAt());
+                }
+                log.info("Payment reminder sent for payment ID: {} to {} users", 
+                        payment.getId(), payment.getUsers().size());
+            }
+            
+            log.info("Payment reminders job completed for {} payments", upcomingPayments.size());
+        } catch (Exception e) {
+            log.error("Error in payment reminders job", e);
         }
     }
 

@@ -26,8 +26,10 @@ import com.personalfit.enums.ActivityStatus;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Activity;
+import com.personalfit.models.Attendance;
 import com.personalfit.models.User;
 import com.personalfit.repository.ActivityRepository;
+import com.personalfit.repository.AttendanceRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +41,9 @@ public class ActivityService {
     private ActivityRepository activityRepository;
 
     @Autowired
+    private AttendanceRepository attendanceRepository;
+
+    @Autowired
     private UserService userService;
 
     @Autowired
@@ -46,6 +51,9 @@ public class ActivityService {
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private NotificationTriggerService triggerService;
 
     // private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -336,6 +344,52 @@ public class ActivityService {
 
         log.info("Activities check completed successfully. Updated: {}, Created: {}",
                 toUpdate.size(), toCreate.size());
+    }
+
+    /**
+     * Ejecuta cada hora para enviar recordatorios de clases próximas
+     * Se ejecuta a los minutos 0 de cada hora
+     */
+    @Scheduled(cron = "0 0 * * * *")
+    public void sendClassReminders() {
+        try {
+            log.info("Starting class reminders job");
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime oneHourFromNow = now.plusHours(1);
+            LocalDateTime windowStart = oneHourFromNow.minusMinutes(30);
+            LocalDateTime windowEnd = oneHourFromNow.plusMinutes(30);
+
+            // Obtener actividades programadas en la próxima hora (ventana de ±30 minutos)
+            List<Activity> upcomingActivities = activityRepository.findByDateBetween(windowStart, windowEnd)
+                    .stream()
+                    .filter(activity -> activity.getStatus() == ActivityStatus.ACTIVE)
+                    .collect(Collectors.toList());
+
+            if (upcomingActivities.isEmpty()) {
+                log.info("No upcoming activities found for class reminders");
+                return;
+            }
+
+            for (Activity activity : upcomingActivities) {
+                // Obtener usuarios inscritos a través de las asistencias
+                List<Attendance> attendances = attendanceRepository.findByActivity(activity);
+                List<User> enrolledUsers = attendances.stream()
+                        .map(Attendance::getUser)
+                        .collect(Collectors.toList());
+
+                for (User user : enrolledUsers) {
+                    triggerService.sendClassReminder(user, activity.getName(), 
+                            activity.getDate(), activity.getLocation());
+                }
+                
+                log.info("Class reminder sent for activity: {} to {} users", 
+                        activity.getName(), enrolledUsers.size());
+            }
+
+            log.info("Class reminders job completed for {} activities", upcomingActivities.size());
+        } catch (Exception e) {
+            log.error("Error in class reminders job", e);
+        }
     }
 
     /**

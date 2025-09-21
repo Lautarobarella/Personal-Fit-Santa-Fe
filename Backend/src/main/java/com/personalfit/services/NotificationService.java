@@ -17,7 +17,9 @@ import com.personalfit.enums.NotificationStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.models.Notification;
 import com.personalfit.models.User;
+import com.personalfit.models.UserDeviceToken;
 import com.personalfit.repository.NotificationRepository;
+import com.personalfit.repository.UserDeviceTokenRepository;
 import com.personalfit.repository.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,12 @@ public class NotificationService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private NotificationTriggerService triggerService;
+
+    @Autowired
+    private UserDeviceTokenRepository deviceTokenRepository;
 
     public List<NotificationDTO> getAllByUserId(Long id) {
         try {
@@ -211,13 +219,6 @@ public class NotificationService {
         notificationRepository.saveAll(notifications);
     }
 
-    // ===== SCHEDULED TASKS =====
-
-    /**
-     * Tarea programada que se ejecuta diariamente a las 00:30 AM
-     * Verifica cumpleaños de clientes y notifica a los administradores temprano
-     * para que puedan saludarlos durante el día
-     */
     @Scheduled(cron = "0 30 0 * * ?")
     @Transactional
     public void checkClientBirthdays() {
@@ -259,4 +260,47 @@ public class NotificationService {
             log.error("Error during daily birthday check process: {}", e.getMessage(), e);
         }
     }
+
+     /**
+     * Limpia tokens de dispositivos inactivos cada semana (domingos a las 2:00 AM)
+     */
+    @Scheduled(cron = "0 0 2 * * SUN")
+    @Transactional
+    public void cleanupInactiveTokens() {
+        try {
+            log.info("Starting inactive tokens cleanup job");
+            
+            // Buscar tokens que no se han usado en 30 días
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
+            List<UserDeviceToken> inactiveTokens = deviceTokenRepository.findInactiveTokens(cutoffDate);
+            
+            if (inactiveTokens.isEmpty()) {
+                log.info("No inactive tokens found for cleanup");
+                return;
+            }
+            
+            // Eliminar tokens inactivos
+            for (UserDeviceToken token : inactiveTokens) {
+                deviceTokenRepository.delete(token);
+            }
+            
+            log.info("Cleanup completed. Removed {} inactive tokens", inactiveTokens.size());
+        } catch (Exception e) {
+            log.error("Error in inactive tokens cleanup job", e);
+        }
+    }
+
+    /**
+     * Método manual para enviar notificación de meta alcanzada
+     * Este método debe ser llamado desde el servicio correspondiente cuando se detecte una meta cumplida
+     */
+    public void scheduleGoalAchievementNotification(User user, String goalType, String achievement) {
+        try {
+            triggerService.sendGoalAchievement(user, goalType, achievement);
+            log.info("Goal achievement notification scheduled for user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Error scheduling goal achievement notification for user: " + user.getId(), e);
+        }
+    }
+
 }
