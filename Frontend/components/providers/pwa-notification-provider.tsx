@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
-import { usePWANotifications, PWANotificationState } from '@/hooks/notifications/use-pwa-notifications';
 import { useAuth } from '@/contexts/auth-provider';
+import { PWANotificationState, usePWANotifications } from '@/hooks/notifications/use-pwa-notifications';
+import { createContext, ReactNode, useContext, useEffect } from 'react';
 
 interface PWANotificationContextType extends PWANotificationState {
   isGranted: boolean;

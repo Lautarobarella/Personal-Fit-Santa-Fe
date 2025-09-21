@@ -1,23 +1,22 @@
 'use client';
 
-import { usePWANotifications } from '@/hooks/notifications/use-pwa-notifications';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Bell, 
-  BellOff, 
-  Smartphone, 
-  Clock, 
-  CreditCard, 
-  Calendar, 
-  Tag, 
+import { Switch } from '@/components/ui/switch';
+import { usePWANotifications } from '@/hooks/notifications/use-pwa-notifications';
+import {
   AlertTriangle,
-  Loader2,
+  Bell,
+  BellOff,
   CheckCircle,
+  Clock,
+  CreditCard,
+  Loader2,
+  Smartphone,
+  Tag,
   XCircle
 } from 'lucide-react';
 

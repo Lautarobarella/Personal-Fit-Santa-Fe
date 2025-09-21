@@ -1,7 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { getUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/error-handler";
-import { BulkNotificationRequest, Notification, NotificationPreferences, NotificationStatus, RegisterDeviceRequest, SendNotificationRequest } from "@/lib/types";
+import { BulkNotificationRequest, Notification, NotificationPreferences, NotificationStatus, RegisterDeviceRequest } from "@/lib/types";
 
 
 /**

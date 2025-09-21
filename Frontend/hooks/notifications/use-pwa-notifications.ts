@@ -1,4 +1,4 @@
-import { getNotificationPreferences, registerDeviceToken, unregisterDeviceToken, updateNotificationPreferences, enablePushNotifications, disablePushNotifications, getPushNotificationStatus } from '@/api/notifications/notificationsApi';
+import { disablePushNotifications, enablePushNotifications, getNotificationPreferences, getPushNotificationStatus, registerDeviceToken, updateNotificationPreferences } from '@/api/notifications/notificationsApi';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotificationPermission, setupForegroundNotifications } from '@/lib/firebase-messaging';
 import { NotificationPreferences } from '@/lib/types';
@@ -152,10 +152,15 @@ export const usePWANotifications = () => {
   }, [toast]); // Remove state.isSupported dependency
 
   // Toggle push notifications (solo cambia el estado lógico)
-  const togglePushNotifications = useCallback(async (enable: boolean): Promise<boolean> => {
-    // Si se quiere habilitar pero no hay tokens, solicitar permiso primero
+  const togglePushNotifications = async (enable: boolean): Promise<boolean> => {
+    // Si se quiere habilitar pero no hay tokens, mostrar mensaje y no hacer nada
     if (enable && !state.hasDeviceTokens) {
-      return await requestPermission();
+      toast({
+        title: "🔔 Permisos Requeridos",
+        description: "Primero debes permitir las notificaciones usando el botón de 'Solicitar Permisos'",
+        variant: "default"
+      });
+      return false;
     }
 
     setState(prev => ({ ...prev, isLoading: true }));
@@ -199,7 +204,7 @@ export const usePWANotifications = () => {
       
       return false;
     }
-  }, [state.hasDeviceTokens, toast, requestPermission]);
+  };
 
   // Update notification preferences
   const updatePreferences = useCallback(async (newPreferences: NotificationPreferences): Promise<boolean> => {
