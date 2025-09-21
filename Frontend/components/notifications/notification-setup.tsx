@@ -29,8 +29,10 @@ export function NotificationSetup() {
     isActive, 
     isLoading, 
     preferences,
+    pushNotificationsEnabled,
+    hasDeviceTokens,
     requestPermission, 
-    disableNotifications,
+    togglePushNotifications,
     updatePreferences
   } = usePWANotifications();
 
@@ -75,7 +77,7 @@ export function NotificationSetup() {
   }
 
   const getStatusInfo = () => {
-    if (isActive) {
+    if (hasDeviceTokens && pushNotificationsEnabled) {
       return {
         icon: <CheckCircle className="h-4 w-4 text-green-600" />,
         text: "Activas",
@@ -86,6 +88,12 @@ export function NotificationSetup() {
         icon: <XCircle className="h-4 w-4 text-red-600" />,
         text: "Bloqueadas",
         variant: "destructive" as const
+      };
+    } else if (hasDeviceTokens && !pushNotificationsEnabled) {
+      return {
+        icon: <BellOff className="h-4 w-4 text-orange-600" />,
+        text: "Desactivadas",
+        variant: "secondary" as const
       };
     } else {
       return {
@@ -127,27 +135,34 @@ export function NotificationSetup() {
             )}
           </div>
 
-          {!isActive && permission !== 'denied' && (
+          {!hasDeviceTokens && permission !== 'denied' && (
             <Button 
               onClick={requestPermission} 
               disabled={isLoading}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Activar Notificaciones
+              Solicitar Permisos de Notificación
             </Button>
           )}
 
-          {isActive && (
-            <Button 
-              onClick={disableNotifications} 
-              disabled={isLoading}
-              variant="outline"
-              className="w-full"
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Desactivar Notificaciones
-            </Button>
+          {hasDeviceTokens && (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="push-notifications" className="text-sm font-medium">
+                  Notificaciones Push
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {pushNotificationsEnabled ? 'Activas' : 'Desactivadas'}
+                </p>
+              </div>
+              <Switch
+                id="push-notifications"
+                checked={pushNotificationsEnabled}
+                onCheckedChange={(checked) => togglePushNotifications(checked)}
+                disabled={isLoading}
+              />
+            </div>
           )}
 
           {permission === 'denied' && (
@@ -168,7 +183,7 @@ export function NotificationSetup() {
       </Card>
 
       {/* Preferences Card */}
-      {isActive && preferences && (
+      {hasDeviceTokens && pushNotificationsEnabled && preferences && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

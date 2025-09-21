@@ -321,4 +321,6 @@ export interface NotificationPreferences {
     newClasses: boolean;
     promotions: boolean;
     classCancellations: boolean;
+    generalAnnouncements: boolean;
+    pushNotificationsEnabled: boolean;
 }

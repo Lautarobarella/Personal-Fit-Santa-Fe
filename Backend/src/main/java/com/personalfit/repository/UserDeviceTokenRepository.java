@@ -94,4 +94,20 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
      * Encuentra tokens de un usuario ordenados por fecha de creación (el más antiguo primero)
      */
     List<UserDeviceToken> findByUserIdOrderByCreatedAtAsc(Long userId);
+
+    /**
+     * Obtiene solo el token más reciente de cada usuario (para evitar duplicados)
+     */
+    @Query("SELECT udt.token FROM UserDeviceToken udt WHERE udt.user.id IN :userIds AND udt.isActive = true " +
+           "AND udt.createdAt = (SELECT MAX(udt2.createdAt) FROM UserDeviceToken udt2 " +
+           "WHERE udt2.user.id = udt.user.id AND udt2.isActive = true)")
+    List<String> findLatestActiveTokensByUserIds(@Param("userIds") List<Long> userIds);
+
+    /**
+     * Obtiene el token más reciente por usuario para todos los usuarios activos
+     */
+    @Query("SELECT udt.token FROM UserDeviceToken udt WHERE udt.isActive = true " +
+           "AND udt.createdAt = (SELECT MAX(udt2.createdAt) FROM UserDeviceToken udt2 " +
+           "WHERE udt2.user.id = udt.user.id AND udt2.isActive = true)")
+    List<String> findLatestActiveTokensForAllUsers();
 }

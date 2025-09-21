@@ -235,4 +235,49 @@ export async function sendBulkNotification(request: BulkNotificationRequest): Pr
     }
 }
 
+/**
+ * Habilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
+ */
+export async function enablePushNotifications(): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/pwa/enable', {});
+        console.log('Push notifications enabled successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al habilitar notificaciones push');
+        return false;
+    }
+}
+
+/**
+ * Deshabilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
+ */
+export async function disablePushNotifications(): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/pwa/disable', {});
+        console.log('Push notifications disabled successfully');
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al deshabilitar notificaciones push');
+        return false;
+    }
+}
+
+/**
+ * Obtiene el estado de las notificaciones push del usuario autenticado
+ */
+export async function getPushNotificationStatus(): Promise<{
+    pushNotificationsEnabled: boolean;
+    hasDeviceTokens: boolean;
+    activeTokensCount: number;
+} | null> {
+    try {
+        const status = await jwtPermissionsApi.get('/api/notifications/pwa/status');
+        return status;
+    } catch (error) {
+        handleApiError(error, 'Error al obtener estado de notificaciones push');
+        return null;
+    }
+}
+
 
