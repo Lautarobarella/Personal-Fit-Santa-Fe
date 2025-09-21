@@ -222,20 +222,6 @@ export async function updateNotificationPreferences(
 }
 
 /**
- * Envía una notificación de prueba (solo para testing)
- */
-export async function sendTestNotification(request: SendNotificationRequest): Promise<boolean> {
-    try {
-        await jwtPermissionsApi.post('/api/notifications/send-test', request);
-        console.log('Test notification sent successfully');
-        return true;
-    } catch (error) {
-        handleApiError(error, 'Error al enviar notificación de prueba');
-        return false;
-    }
-}
-
-/**
  * Envía una notificación push a todos los usuarios (solo ADMIN)
  */
 export async function sendBulkNotification(request: BulkNotificationRequest): Promise<boolean> {

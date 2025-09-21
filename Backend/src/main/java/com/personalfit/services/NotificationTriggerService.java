@@ -22,7 +22,7 @@ public class NotificationTriggerService {
     private static final Logger logger = LoggerFactory.getLogger(NotificationTriggerService.class);
 
     @Autowired
-    private PushNotificationService pushNotificationService;
+    private NotificationService notificationService;
 
     /**
      * Envía notificación de recordatorio de pago próximo a vencer
@@ -39,7 +39,7 @@ public class NotificationTriggerService {
                 .saveToDatabase(true)
                 .build();
 
-            pushNotificationService.sendNotificationToUser(request);
+            notificationService.sendNotificationToUser(request);
             logger.info("Payment due reminder sent to user: {}", user.getId());
         } catch (Exception e) {
             logger.error("Error sending payment due reminder to user: " + user.getId(), e);
@@ -61,7 +61,7 @@ public class NotificationTriggerService {
                 .saveToDatabase(true)
                 .build();
 
-            pushNotificationService.sendNotificationToUser(request);
+            notificationService.sendNotificationToUser(request);
             logger.info("Payment confirmation sent to user: {}", user.getId());
         } catch (Exception e) {
             logger.error("Error sending payment confirmation to user: " + user.getId(), e);
@@ -83,7 +83,7 @@ public class NotificationTriggerService {
                 .saveToDatabase(true)
                 .build();
 
-            pushNotificationService.sendNotificationToUser(request);
+            notificationService.sendNotificationToUser(request);
             logger.info("Class reminder sent to user: {}", user.getId());
         } catch (Exception e) {
             logger.error("Error sending class reminder to user: " + user.getId(), e);
@@ -107,7 +107,7 @@ public class NotificationTriggerService {
                     .saveToDatabase(true)
                     .build();
 
-                pushNotificationService.sendNotificationToUser(request);
+                notificationService.sendNotificationToUser(request);
             }
             logger.info("New class notification sent to {} users", users.size());
         } catch (Exception e) {
@@ -132,7 +132,7 @@ public class NotificationTriggerService {
                     .saveToDatabase(true)
                     .build();
 
-                pushNotificationService.sendNotificationToUser(request);
+                notificationService.sendNotificationToUser(request);
             }
             logger.info("Promotion notification sent to {} users", users.size());
         } catch (Exception e) {
@@ -155,7 +155,7 @@ public class NotificationTriggerService {
                     .saveToDatabase(true)
                     .build();
 
-                pushNotificationService.sendNotificationToUser(request);
+                notificationService.sendNotificationToUser(request);
             }
             logger.info("General announcement sent to {} users", users.size());
         } catch (Exception e) {
@@ -177,7 +177,7 @@ public class NotificationTriggerService {
                 .saveToDatabase(true)
                 .build();
 
-            pushNotificationService.sendNotificationToUser(request);
+            notificationService.sendNotificationToUser(request);
             logger.info("Welcome notification sent to user: {}", user.getId());
         } catch (Exception e) {
             logger.error("Error sending welcome notification to user: " + user.getId(), e);
@@ -199,7 +199,7 @@ public class NotificationTriggerService {
                 .saveToDatabase(true)
                 .build();
 
-            pushNotificationService.sendNotificationToUser(request);
+            notificationService.sendNotificationToUser(request);
             logger.info("Goal achievement notification sent to user: {}", user.getId());
         } catch (Exception e) {
             logger.error("Error sending goal achievement notification to user: " + user.getId(), e);

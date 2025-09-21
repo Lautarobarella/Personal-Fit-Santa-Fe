@@ -1,11 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Bell, X, Check, AlertTriangle } from "lucide-react";
+import { Bell, Check, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-provider";
 import { requestNotificationPermission } from "@/lib/firebase-messaging";
 import { registerDeviceToken } from "@/api/notifications/notificationsApi";
@@ -69,6 +77,7 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
                 await registerDevice(token);
                 localStorage.setItem('notification-permission-responded', 'true');
                 localStorage.setItem('notification-permission-granted', 'true');
+                setShowRequest(false);
             } else {
                 setPermissionState('denied');
                 localStorage.setItem('notification-permission-responded', 'true');
@@ -105,7 +114,7 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
         }
     };
 
-    const handleDismiss = () => {
+    const handleCancel = () => {
         localStorage.setItem('notification-permission-responded', 'true');
         setShowRequest(false);
         onDismiss?.();
@@ -114,38 +123,28 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
     // No mostrar el componente si:
     // - No es un cliente
     // - Ya tiene permisos otorgados
-    // - No debe mostrarse la solicitud
-    if (user?.role !== UserRole.CLIENT || permissionState === 'granted' || !showRequest) {
+    if (user?.role !== UserRole.CLIENT || permissionState === 'granted') {
         return null;
     }
 
     return (
-        <Card className="mb-4 border-blue-200 bg-blue-50/50">
-            <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+        <AlertDialog open={showRequest} onOpenChange={() => {}}>
+            <AlertDialogContent className="sm:max-w-md">
+                <AlertDialogHeader>
+                    <div className="flex items-center space-x-2 mb-2">
                         <Bell className="h-5 w-5 text-blue-600" />
-                        <CardTitle className="text-lg">Recibe Notificaciones</CardTitle>
+                        <AlertDialogTitle className="text-lg">Recibe Notificaciones</AlertDialogTitle>
                         <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                             Recomendado
                         </Badge>
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleDismiss}
-                        className="h-8 w-8 p-0"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-                <CardDescription>
-                    Activa las notificaciones para recibir recordatorios de clases, pagos y noticias importantes del gimnasio.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+                    <AlertDialogDescription className="text-left">
+                        Activa las notificaciones para recibir recordatorios de clases, pagos y noticias importantes del gimnasio.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+
                 {error && (
-                    <Alert className="mb-4 border-red-200 bg-red-50">
+                    <Alert className="border-red-200 bg-red-50">
                         <AlertTriangle className="h-4 w-4 text-red-600" />
                         <AlertDescription className="text-red-800">
                             {error}
@@ -153,11 +152,31 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
                     </Alert>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
+                <div className="space-y-3">
+                    <div className="text-sm text-muted-foreground space-y-1">
+                        <p className="flex items-center">
+                            <span className="mr-2">🔔</span>
+                            Recordatorios de clases programadas
+                        </p>
+                        <p className="flex items-center">
+                            <span className="mr-2">💳</span>
+                            Notificaciones de vencimiento de pagos
+                        </p>
+                        <p className="flex items-center">
+                            <span className="mr-2">📢</span>
+                            Noticias importantes del gimnasio
+                        </p>
+                    </div>
+                </div>
+
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel onClick={handleCancel} className="mt-0">
+                        Ahora no
+                    </AlertDialogCancel>
+                    <AlertDialogAction
                         onClick={handleRequestPermission}
                         disabled={permissionState === 'requesting' || isRegistering}
-                        className="flex-1"
+                        className="bg-blue-600 hover:bg-blue-700"
                     >
                         {permissionState === 'requesting' || isRegistering ? (
                             <>
@@ -170,22 +189,9 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
                                 Activar Notificaciones
                             </>
                         )}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={handleDismiss}
-                        className="flex-1 sm:flex-initial"
-                    >
-                        Ahora no
-                    </Button>
-                </div>
-
-                <div className="mt-3 text-xs text-muted-foreground">
-                    <p>🔔 Recordatorios de clases programadas</p>
-                    <p>💳 Notificaciones de vencimiento de pagos</p>
-                    <p>📢 Noticias importantes del gimnasio</p>
-                </div>
-            </CardContent>
-        </Card>
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }

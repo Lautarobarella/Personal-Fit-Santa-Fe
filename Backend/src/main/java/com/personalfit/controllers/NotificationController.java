@@ -26,7 +26,6 @@ import com.personalfit.enums.NotificationStatus;
 import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
 import com.personalfit.services.NotificationService;
-import com.personalfit.services.PushNotificationService;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -37,9 +36,6 @@ public class NotificationController {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private PushNotificationService pushNotificationService;
 
     /**
      * Obtiene las notificaciones de un usuario específico
@@ -188,7 +184,7 @@ public class NotificationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
             
-            boolean registered = pushNotificationService.registerDeviceToken(
+            boolean registered = notificationService.registerDeviceToken(
                 user.get().getId(), 
                 request.getToken(), 
                 request.getDeviceInfo()
@@ -219,7 +215,7 @@ public class NotificationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
             
-            boolean unregistered = pushNotificationService.unregisterDeviceToken(user.get().getId(), token);
+            boolean unregistered = notificationService.unregisterDeviceToken(user.get().getId(), token);
             
             if (unregistered) {
                 return ResponseEntity.ok("Device unregistered successfully");
@@ -247,7 +243,7 @@ public class NotificationController {
             }
             
             // Usar getUserPreferences que maneja null correctamente y devuelve DTO directamente
-            NotificationPreferencesDTO dto = pushNotificationService.getUserPreferences(user.get().getId());
+            NotificationPreferencesDTO dto = notificationService.getUserPreferences(user.get().getId());
             
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
@@ -273,7 +269,7 @@ public class NotificationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
             
-            boolean updated = pushNotificationService.updateNotificationPreferences(user.get().getId(), preferencesDTO);
+            boolean updated = notificationService.updateNotificationPreferences(user.get().getId(), preferencesDTO);
             
             if (updated) {
                 return ResponseEntity.ok("Preferences updated successfully");
@@ -293,7 +289,7 @@ public class NotificationController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> sendPushNotification(@RequestBody SendNotificationRequest request) {
         try {
-            boolean sent = pushNotificationService.sendNotificationToUser(request);
+            boolean sent = notificationService.sendNotificationToUser(request);
             
             if (sent) {
                 return ResponseEntity.ok("Notification sent successfully");
@@ -320,7 +316,7 @@ public class NotificationController {
             System.out.println("  User IDs: " + (request.getUserIds() != null ? request.getUserIds().size() + " users" : "null (all users)"));
             System.out.println("  Save to DB: " + request.getSaveToDatabase());
             
-            boolean sent = pushNotificationService.sendBulkNotifications(request);
+            boolean sent = notificationService.sendBulkNotifications(request);
             
             if (sent) {
                 System.out.println("✅ Bulk notifications sent successfully");

@@ -226,16 +226,8 @@ public class PushNotificationService {
 
             // Guardar en base de datos si se solicita
             if (Boolean.TRUE.equals(request.getSaveToDatabase())) {
-                // Guardar notificación para cada usuario objetivo
-                for (Long userId : targetUserIds) {
-                    SendNotificationRequest userRequest = SendNotificationRequest.builder()
-                        .userId(userId)
-                        .title(request.getTitle())
-                        .body(request.getBody())
-                        .type(request.getType())
-                        .build();
-                    saveNotificationToDatabase(userRequest);
-                }
+                // Usar NotificationService para crear las notificaciones en batch
+                notificationService.createBulkNotificationsFromRequest(request);
             }
 
             logger.info("Sent bulk notification to {} users with {} total tokens", 
@@ -414,15 +406,8 @@ public class PushNotificationService {
 
     private void saveNotificationToDatabase(SendNotificationRequest request) {
         try {
-            // Usar el servicio existente de notificaciones para guardar en BD
-            com.personalfit.models.Notification notification = com.personalfit.models.Notification.builder()
-                .title(request.getTitle())
-                .message(request.getBody())
-                .date(LocalDateTime.now())
-                .user(userRepository.findById(request.getUserId()).orElse(null))
-                .build();
-                
-            notificationService.createNotification(notification);
+            // Usar NotificationService para crear y guardar la notificación
+            notificationService.createNotificationFromRequest(request);
         } catch (Exception e) {
             logger.error("Error saving notification to database", e);
         }

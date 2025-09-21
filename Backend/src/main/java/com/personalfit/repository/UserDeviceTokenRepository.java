@@ -89,4 +89,9 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
      * Encuentra un token específico por usuario y token
      */
     Optional<UserDeviceToken> findByUserIdAndToken(Long userId, String token);
+
+    /**
+     * Encuentra tokens de un usuario ordenados por fecha de creación (el más antiguo primero)
+     */
+    List<UserDeviceToken> findByUserIdOrderByCreatedAtAsc(Long userId);
 }

@@ -14,12 +14,13 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/contexts/auth-provider"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
+import { usePWANotifications } from "@/hooks/notifications/use-pwa-notifications"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
 import { BarChart3, Bell, Clock, CreditCard, DollarSign, FileText, Key, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 export default function SettingsPage() {
   const { logout } = useAuth()
@@ -27,6 +28,15 @@ export default function SettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
+  const { 
+    isSupported: notificationsSupported, 
+    isActive: notificationsActive, 
+    isLoading: notificationsLoading,
+    requestPermission, 
+    disableNotifications,
+    loadPreferences
+  } = usePWANotifications()
+  
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
   const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
@@ -39,12 +49,37 @@ export default function SettingsPage() {
     router.push("/")
   }
 
-  const handleNotificationsToggle = () => {
-    toast({
-      title: "Función en desarrollo",
-      description: "Estamos trabajando en esto",
-      variant: "default"
-    })
+  const handleNotificationsToggle = async (checked: boolean) => {
+    if (!notificationsSupported) {
+      toast({
+        title: "❌ No Compatible",
+        description: "Tu navegador no soporta notificaciones push",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (checked) {
+      // Activar notificaciones
+      const success = await requestPermission()
+      if (!success) {
+        toast({
+          title: "❌ Error",
+          description: "No se pudieron activar las notificaciones. Verifica los permisos del navegador.",
+          variant: "destructive"
+        })
+      }
+    } else {
+      // Desactivar notificaciones
+      const success = await disableNotifications()
+      if (!success) {
+        toast({
+          title: "❌ Error", 
+          description: "No se pudieron desactivar las notificaciones",
+          variant: "destructive"
+        })
+      }
+    }
   }
 
   const handleInstallApp = () => {
@@ -58,6 +93,13 @@ export default function SettingsPage() {
   const handleShowTerms = () => {
     setShowTermsDialog(true)
   }
+
+  // Cargar preferencias de notificaciones cuando el usuario esté autenticado
+  useEffect(() => {
+    if (user && notificationsSupported) {
+      loadPreferences()
+    }
+  }, [user, notificationsSupported, loadPreferences])
 
 
   return (
@@ -114,10 +156,21 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Notificaciones</p>
-                  <p className="text-sm text-muted-foreground">Recibir notificaciones push</p>
+                  <p className="text-sm text-muted-foreground">
+                    {!notificationsSupported 
+                      ? "No compatible con tu navegador" 
+                      : notificationsActive 
+                        ? "Activadas" 
+                        : "Recibir notificaciones push"
+                    }
+                  </p>
                 </div>
               </div>
-              <Switch defaultChecked onCheckedChange={handleNotificationsToggle} />
+              <Switch 
+                checked={notificationsActive}
+                onCheckedChange={handleNotificationsToggle}
+                disabled={!notificationsSupported || notificationsLoading}
+              />
             </div>
 
             <div className="flex items-center justify-between">

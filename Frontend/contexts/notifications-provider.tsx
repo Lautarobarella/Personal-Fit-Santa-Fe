@@ -1,152 +1,56 @@
 "use client"
 
-import {
-    archiveNotification as archiveNotificationApi,
-    deleteNotification as deleteNotificationApi,
-    fetchNotifications,
-    markAllNotificationsAsRead,
-    markNotificationAsRead,
-    markNotificationAsUnread
-} from "@/api/notifications/notificationsApi"
-import { Notification, NotificationStatus } from "@/lib/types"
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react"
+import { useNotification, type NotificationState } from "@/hooks/notifications/use-notification"
+import { createContext, useContext, type ReactNode } from "react"
 
-interface NotificationsContextType {
-    notifications: Notification[]
-    loading: boolean
-    error: string | null
-    unreadCount: number
-    loadNotifications: () => Promise<void>
-    markAsRead: (id: number) => Promise<void>
-    markAsUnread: (id: number) => Promise<void>
-    archiveNotification: (id: number) => Promise<void>
-    unarchiveNotification: (id: number) => Promise<void>
-    deleteNotification: (id: number) => Promise<void>
-    markAllAsRead: () => Promise<void>
-}
+/**
+ * Context type - usa exactamente el mismo tipo que retorna el hook
+ */
+type NotificationsContextType = NotificationState
 
+/**
+ * Creación del contexto
+ */
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined)
 
-export function NotificationsProvider({ children }: { children: ReactNode }) {
-    const [notifications, setNotifications] = useState<Notification[]>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
-    // Helper function to sort notifications by date (newest first)
-    const sortNotifications = (notifications: Notification[]) => {
-        return [...notifications].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    }
-
-    const loadNotifications = useCallback(async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            // fetchNotifications ahora puede obtener el user ID automáticamente desde localStorage
-            const data = await fetchNotifications()
-            setNotifications(data || [])
-        } catch (err) {
-            console.error("Error loading notifications:", err)
-            if (err instanceof Error && !err.message.includes('404')) {
-                setError("Error al cargar las notificaciones")
-            } else {
-                setNotifications([])
-            }
-        } finally {
-            setLoading(false)
-        }
-    }, [])
-
-    // Update functions with API calls
-    const markAsRead = async (id: number) => {
-        const success = await markNotificationAsRead(id)
-        if (success) {
-            setNotifications((prev) =>
-                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.READ } : n)))
-            )
-        }
-    }
-
-    const markAsUnread = async (id: number) => {
-        const success = await markNotificationAsUnread(id)
-        if (success) {
-            setNotifications((prev) =>
-                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.UNREAD } : n)))
-            )
-        }
-    }
-
-    const archiveNotification = async (id: number) => {
-        const success = await archiveNotificationApi(id)
-        if (success) {
-            setNotifications((prev) =>
-                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.ARCHIVED } : n)))
-            )
-        }
-    }
-
-    const unarchiveNotification = async (id: number) => {
-        const success = await markNotificationAsRead(id) // Desarchivar = marcar como leído
-        if (success) {
-            setNotifications((prev) =>
-                sortNotifications(prev.map((n) => (n.id === id ? { ...n, status: NotificationStatus.READ } : n)))
-            )
-        }
-    }
-
-    const deleteNotification = async (id: number) => {
-        const success = await deleteNotificationApi(id)
-        if (success) {
-            setNotifications((prev) => sortNotifications(prev.filter((n) => n.id !== id)))
-        }
-    }
-
-    const markAllAsRead = async () => {
-        // markAllNotificationsAsRead ahora puede obtener el user ID automáticamente desde localStorage
-        const success = await markAllNotificationsAsRead()
-        if (success) {
-            setNotifications((prev) =>
-                sortNotifications(prev.map((n) => (n.status === NotificationStatus.UNREAD ? { ...n, status: NotificationStatus.READ } : n)))
-            )
-        }
-    }
-
-    // Computed values
-    const unreadCount = notifications.filter(n => n.status === NotificationStatus.UNREAD).length
-
-    // Auto-refresh notifications every 30 seconds
-    useEffect(() => {
-        const interval = setInterval(() => {
-            loadNotifications()
-        }, 30000)
-
-        return () => clearInterval(interval)
-    }, [loadNotifications])
-
-    const value: NotificationsContextType = {
-        notifications,
-        loading,
-        error,
-        unreadCount,
-        loadNotifications,
-        markAsRead,
-        markAsUnread,
-        archiveNotification,
-        unarchiveNotification,
-        deleteNotification,
-        markAllAsRead,
-    }
-
-    return (
-        <NotificationsContext.Provider value={value}>
-            {children}
-        </NotificationsContext.Provider>
-    )
+/**
+ * Props del provider
+ */
+interface NotificationsProviderProps {
+  children: ReactNode
 }
 
-export function useNotifications() {
-    const context = useContext(NotificationsContext)
-    if (context === undefined) {
-        throw new Error('useNotifications must be used within a NotificationsProvider')
-    }
-    return context
+/**
+ * Notifications Provider - Wrapper limpio que usa el custom hook
+ * 
+ * Este provider es responsable de:
+ * - Usar el custom hook useNotification para obtener toda la lógica
+ * - Proveer el estado a través del contexto
+ * - Mantener la separación de responsabilidades
+ */
+export function NotificationsProvider({ children }: NotificationsProviderProps) {
+  // Usa el custom hook que maneja toda la lógica
+  const notificationState = useNotification()
+
+  return (
+    <NotificationsContext.Provider value={notificationState}>
+      {children}
+    </NotificationsContext.Provider>
+  )
+}
+
+/**
+ * Hook personalizado para usar el contexto de notificaciones
+ * 
+ * @throws Error si se usa fuera del NotificationsProvider
+ * @returns NotificationState - Todo el estado y funciones de notificaciones
+ */
+export function useNotifications(): NotificationsContextType {
+  const context = useContext(NotificationsContext)
+  
+  if (context === undefined) {
+    throw new Error('useNotifications debe ser usado dentro de un NotificationsProvider')
+  }
+  
+  return context
 }

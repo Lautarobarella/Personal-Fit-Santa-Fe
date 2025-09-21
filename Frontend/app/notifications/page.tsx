@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useNotifications } from "@/hooks/notifications/use-notifications"
+import { useNotification } from "@/hooks/notifications/use-notification"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationCategoryType, NotificationStatus, NotificationType } from "@/lib/types"
 import {
@@ -45,7 +45,7 @@ export default function NotificationsPage() {
         unarchiveNotification,
         deleteNotification,
         markAllAsRead,
-    } = useNotifications()
+    } = useNotification()
 
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<NotificationStatus | "all">(NotificationStatus.UNREAD)
