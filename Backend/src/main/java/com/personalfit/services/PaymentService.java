@@ -77,9 +77,6 @@ public class PaymentService {
     @Autowired
     private SettingsService settingsService;
 
-    @Autowired
-    private NotificationTriggerService triggerService;
-
     /**
      * Crea un nuevo pago con archivo opcional
      * Soporta tanto pagos individuales como múltiples usuarios
@@ -659,7 +656,7 @@ public class PaymentService {
             for (Payment payment : upcomingPayments) {
                 // Enviar recordatorio a cada usuario asociado al pago
                 for (User user : payment.getUsers()) {
-                    triggerService.sendPaymentDueReminder(user, payment.getAmount(), 
+                    notificationService.sendPaymentDueReminder(user, payment.getAmount(), 
                             payment.getExpiresAt());
                 }
                 log.info("Payment reminder sent for payment ID: {} to {} users", 

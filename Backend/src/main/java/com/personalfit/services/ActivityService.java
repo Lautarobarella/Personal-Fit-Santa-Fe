@@ -53,7 +53,7 @@ public class ActivityService {
     private PaymentService paymentService;
 
     @Autowired
-    private NotificationTriggerService triggerService;
+    private NotificationService notificationService;
 
     // private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -350,7 +350,7 @@ public class ActivityService {
      * Ejecuta cada hora para enviar recordatorios de clases próximas
      * Se ejecuta a los minutos 0 de cada hora
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 */2 * * * *")
     public void sendClassReminders() {
         try {
             log.info("Starting class reminders job");
@@ -377,13 +377,16 @@ public class ActivityService {
                         .map(Attendance::getUser)
                         .collect(Collectors.toList());
 
-                for (User user : enrolledUsers) {
-                    triggerService.sendClassReminder(user, activity.getName(), 
+                if (!enrolledUsers.isEmpty()) {
+                    // Enviar notificación bulk por actividad
+                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(), 
                             activity.getDate(), activity.getLocation());
+                    
+                    log.info("Bulk class reminder sent for activity: {} to {} users", 
+                            activity.getName(), enrolledUsers.size());
+                } else {
+                    log.info("No enrolled users found for activity: {}", activity.getName());
                 }
-                
-                log.info("Class reminder sent for activity: {} to {} users", 
-                        activity.getName(), enrolledUsers.size());
             }
 
             log.info("Class reminders job completed for {} activities", upcomingActivities.size());

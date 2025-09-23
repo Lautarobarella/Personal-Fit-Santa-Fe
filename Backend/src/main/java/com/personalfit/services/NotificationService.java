@@ -2,6 +2,7 @@ package com.personalfit.services;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -323,15 +325,11 @@ public class NotificationService {
     }
 
     /**
-     * Método manual para enviar notificación de meta alcanzada
-     * NOTA: Este método se movió a NotificationTriggerService para evitar dependencia circular
-     * Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente
+     * Método para enviar notificación de meta alcanzada
+     * Llama al método sendGoalAchievement integrado
      */
-    @Deprecated
     public void scheduleGoalAchievementNotification(User user, String goalType, String achievement) {
-        log.warn("Este método está deprecado. Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente");
-        // Método deprecado para evitar dependencia circular
-        // triggerService.sendGoalAchievement(user, goalType, achievement);
+        sendGoalAchievement(user, goalType, achievement);
     }
 
     /**
@@ -663,7 +661,7 @@ public class NotificationService {
      */
     public NotificationPreferencesDTO getUserPreferences(Long userId) {
         Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
-        
+
         if (prefsOpt.isPresent()) {
             NotificationPreferences prefs = prefsOpt.get();
             return NotificationPreferencesDTO.builder()
@@ -675,7 +673,7 @@ public class NotificationService {
                 .generalAnnouncements(prefs.getGeneralAnnouncements())
                 .build();
         }
-        
+
         // Crear preferencias por defecto
         createDefaultPreferencesIfNotExists(userId);
         return createDefaultPreferencesDTO();
@@ -688,7 +686,7 @@ public class NotificationService {
         try {
             Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
             NotificationPreferences prefs;
-            
+
             if (prefsOpt.isPresent()) {
                 prefs = prefsOpt.get();
             } else {
@@ -702,7 +700,7 @@ public class NotificationService {
                     .user(userOpt.get())
                     .build();
             }
-            
+
             // Actualizar las preferencias
             prefs.setClassReminders(preferencesDTO.getClassReminders());
             prefs.setPaymentDue(preferencesDTO.getPaymentDue());
@@ -710,7 +708,7 @@ public class NotificationService {
             prefs.setPromotions(preferencesDTO.getPromotions());
             prefs.setClassCancellations(preferencesDTO.getClassCancellations());
             prefs.setGeneralAnnouncements(preferencesDTO.getGeneralAnnouncements());
-            
+
             preferencesRepository.save(prefs);
             log.info("Updated notification preferences for user: {}", userId);
             return true;
@@ -728,7 +726,7 @@ public class NotificationService {
         if (prefsOpt.isPresent()) {
             return prefsOpt.get();
         }
-        
+
         // Si no existen, crear preferencias por defecto
         createDefaultPreferencesIfNotExists(userId);
         return preferencesRepository.findByUserId(userId).orElse(null);
@@ -742,11 +740,11 @@ public class NotificationService {
             // Obtener tokens que no han sido usados en los últimos 30 días
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
             List<UserDeviceToken> inactiveTokens = deviceTokenRepository.findInactiveTokens(cutoffDate);
-            
+
             for (UserDeviceToken token : inactiveTokens) {
                 deviceTokenRepository.deactivateByToken(token.getToken());
             }
-            
+
             if (!inactiveTokens.isEmpty()) {
                 log.info("Deactivated {} inactive tokens", inactiveTokens.size());
             }
@@ -807,11 +805,11 @@ public class NotificationService {
         for (int i = 0; i < response.getResponses().size(); i++) {
             SendResponse sendResponse = response.getResponses().get(i);
             String token = tokens.get(i);
-            
+
             if (!sendResponse.isSuccessful()) {
                 FirebaseMessagingException exception = sendResponse.getException();
                 String errorCode = exception != null ? exception.getErrorCode().toString() : "unknown";
-                
+
                 // Manejar tokens inválidos
                 if ("UNREGISTERED".equals(errorCode) || 
                     "INVALID_ARGUMENT".equals(errorCode)) {
@@ -832,12 +830,12 @@ public class NotificationService {
 
     private boolean shouldSendNotification(Long userId, String type) {
         if (type == null) return true;
-        
+
         Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
         if (prefsOpt.isEmpty()) return true;
-        
+
         NotificationPreferences prefs = prefsOpt.get();
-        
+
         return switch (type) {
             case "class_reminder" -> Boolean.TRUE.equals(prefs.getClassReminders());
             case "payment_due" -> Boolean.TRUE.equals(prefs.getPaymentDue());
@@ -871,6 +869,174 @@ public class NotificationService {
             .classCancellations(true)
             .generalAnnouncements(true)
             .build();
+    }
+
+    /**
+     * Envía notificación de recordatorio de pago próximo a vencer
+     */
+    @Async
+    public void sendPaymentDueReminder(User user, double amount, LocalDateTime dueDate) {
+        try {
+            SendNotificationRequest request = SendNotificationRequest.builder()
+                .userId(user.getId())
+                .title("💳 Recordatorio de Pago")
+                .body(String.format("Tu pago de $%.2f vence el %s. ¡No olvides pagarlo a tiempo!", 
+                      amount, dueDate.toLocalDate()))
+                .type("payment_due")
+                .saveToDatabase(true)
+                .build();
+
+            sendNotificationToUser(request);
+            log.info("Payment due reminder sent to user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Error sending payment due reminder to user: " + user.getId(), e);
+        }
+    }
+
+    /**
+     * Envía notificación de confirmación de pago verificado
+     */
+    @Async
+    public void sendPaymentConfirmation(User user, double amount, String paymentMethod) {
+        try {
+            SendNotificationRequest request = SendNotificationRequest.builder()
+                .userId(user.getId())
+                .title("✅ Pago Verificado")
+                .body(String.format("¡Tu pago ha sido verificado con éxito de $%.2f via %s!", 
+                      amount, paymentMethod))
+                .type("payment_confirmation")
+                .saveToDatabase(true)
+                .build();
+
+            sendNotificationToUser(request);
+            log.info("Payment confirmation sent to user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Error sending payment confirmation to user: " + user.getId(), e);
+        }
+    }
+
+    /**
+     * Envía recordatorio de clase próxima (1 hora antes)
+     */
+    @Async
+    public void sendClassReminder(User user, String className, LocalDateTime classTime, String location) {
+        try {
+            SendNotificationRequest request = SendNotificationRequest.builder()
+                .userId(user.getId())
+                .title("🏃‍♀️ Recordatorio de Clase")
+                .body(String.format("Tu clase de %s comienza en 1 hora (%s). Ubicación: %s", 
+                      className, classTime.toLocalTime(), location))
+                .type("class_reminder")
+                .saveToDatabase(true)
+                .build();
+
+            sendNotificationToUser(request);
+            log.info("Class reminder sent to user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Error sending class reminder to user: " + user.getId(), e);
+        }
+    }
+
+    /**
+     * Envía anuncio general a todos los usuarios
+     */
+    @Async
+    public void sendGeneralAnnouncement(List<User> users, String title, String message) {
+        try {
+            for (User user : users) {
+                SendNotificationRequest request = SendNotificationRequest.builder()
+                    .userId(user.getId())
+                    .title("📢 " + title)
+                    .body(message)
+                    .type("general")
+                    .saveToDatabase(true)
+                    .build();
+
+                sendNotificationToUser(request);
+            }
+            log.info("General announcement sent to {} users", users.size());
+        } catch (Exception e) {
+            log.error("Error sending general announcement", e);
+        }
+    }
+
+    /**
+     * Envía notificación de meta de entrenamiento alcanzada
+     */
+    @Async
+    public void sendGoalAchievement(User user, String goalType, String achievement) {
+        try {
+            SendNotificationRequest request = SendNotificationRequest.builder()
+                .userId(user.getId())
+                .title("🏆 ¡Meta Alcanzada!")
+                .body(String.format("¡Felicitaciones %s! Has alcanzado tu meta: %s. ¡Sigue así!", 
+                      user.getFirstName(), achievement))
+                .type("goal_achievement")
+                .saveToDatabase(true)
+                .build();
+
+            sendNotificationToUser(request);
+            log.info("Goal achievement notification sent to user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Error sending goal achievement notification to user: " + user.getId(), e);
+        }
+    }
+
+    /**
+     * Envía notificación bulk de recordatorio de clase próxima
+     */
+    @Async
+    public void sendBulkClassReminder(List<User> users, String className, LocalDateTime classTime, String location) {
+        try {
+            if (users.isEmpty()) {
+                log.info("No users to send class reminder for activity: {}", className);
+                return;
+            }
+
+            // Calcular tiempo restante hasta la clase
+            LocalDateTime now = LocalDateTime.now();
+            long minutesUntilClass = ChronoUnit.MINUTES.between(now, classTime);
+            
+            String timeMessage;
+            if (minutesUntilClass > 60) {
+                long hours = minutesUntilClass / 60;
+                long remainingMinutes = minutesUntilClass % 60;
+                if (remainingMinutes == 0) {
+                    timeMessage = String.format("en %d hora%s", hours, hours > 1 ? "s" : "");
+                } else {
+                    timeMessage = String.format("en %d hora%s y %d minuto%s", 
+                        hours, hours > 1 ? "s" : "", remainingMinutes, remainingMinutes > 1 ? "s" : "");
+                }
+            } else if (minutesUntilClass > 0) {
+                timeMessage = String.format("en %d minuto%s", minutesUntilClass, minutesUntilClass > 1 ? "s" : "");
+            } else {
+                timeMessage = "¡AHORA!";
+            }
+
+            // Obtener IDs de usuarios
+            List<Long> userIds = users.stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList());
+
+            BulkNotificationRequest request = BulkNotificationRequest.builder()
+                .userIds(userIds)
+                .title("🏃‍♀️ Recordatorio de Clase")
+                .body(String.format("Tu clase de %s comienza %s (%s). Ubicación: %s", 
+                      className, timeMessage, classTime.toLocalTime(), location))
+                .type("class_reminder")
+                .saveToDatabase(true)
+                .build();
+
+            boolean sent = sendBulkNotifications(request);
+            
+            if (sent) {
+                log.info("Bulk class reminder sent for activity '{}' to {} users", className, users.size());
+            } else {
+                log.warn("Failed to send bulk class reminder for activity '{}'", className);
+            }
+        } catch (Exception e) {
+            log.error("Error sending bulk class reminder for activity: " + className, e);
+        }
     }
 
 }
