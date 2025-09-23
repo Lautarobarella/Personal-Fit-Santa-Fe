@@ -52,4 +52,12 @@ public class NotificationPreferences {
     @Column(name = "general_announcements")
     @Builder.Default
     private Boolean generalAnnouncements = true;
+
+    /**
+     * Controla si el usuario quiere recibir notificaciones push
+     * Independiente de si tiene tokens de dispositivo registrados
+     */
+    @Column(name = "push_notifications_enabled")
+    @Builder.Default
+    private Boolean pushNotificationsEnabled = false;
 }

@@ -1,4 +1,4 @@
-import { getNotificationPreferences, registerDeviceToken, unregisterDeviceToken, updateNotificationPreferences } from '@/api/notifications/notificationsApi';
+import { disablePushNotifications, enablePushNotifications, getNotificationPreferences, getPushNotificationStatus, registerDeviceToken, updateNotificationPreferences } from '@/api/notifications/notificationsApi';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotificationPermission, setupForegroundNotifications } from '@/lib/firebase-messaging';
 import { NotificationPreferences } from '@/lib/types';
@@ -13,6 +13,9 @@ export interface PWANotificationState {
   token: string | null;
   isLoading: boolean;
   preferences: NotificationPreferences | null;
+  // Estado lógico de notificaciones push (independiente del token)
+  pushNotificationsEnabled: boolean;
+  hasDeviceTokens: boolean;
 }
 
 export const usePWANotifications = () => {
@@ -21,7 +24,9 @@ export const usePWANotifications = () => {
     permission: 'default',
     token: null,
     isLoading: true,
-    preferences: null
+    preferences: null,
+    pushNotificationsEnabled: false,
+    hasDeviceTokens: false
   });
 
   const router = useRouter();
@@ -45,7 +50,7 @@ export const usePWANotifications = () => {
     checkSupport();
   }, []);
 
-  // Load user preferences - this should only be called when user is authenticated
+  // Load user preferences and push notification status - this should only be called when user is authenticated
   const loadPreferences = useCallback(async () => {
     // Check support again to avoid dependency on state
     const isSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
@@ -54,7 +59,12 @@ export const usePWANotifications = () => {
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const preferences = await getNotificationPreferences();
+      // Load both preferences and push notification status
+      const [preferences, pushStatus] = await Promise.all([
+        getNotificationPreferences(),
+        getPushNotificationStatus()
+      ]);
+
       setState(prev => ({
         ...prev,
         preferences: preferences || {
@@ -62,8 +72,12 @@ export const usePWANotifications = () => {
           paymentDue: true,
           newClasses: true,
           promotions: false,
-          classCancellations: true
+          classCancellations: true,
+          generalAnnouncements: true,
+          pushNotificationsEnabled: false
         },
+        pushNotificationsEnabled: pushStatus?.pushNotificationsEnabled || false,
+        hasDeviceTokens: pushStatus?.hasDeviceTokens || false,
         isLoading: false
       }));
     } catch (error) {
@@ -101,6 +115,8 @@ export const usePWANotifications = () => {
             ...prev,
             token,
             permission: 'granted',
+            hasDeviceTokens: true,
+            pushNotificationsEnabled: true, // Se habilita automáticamente al registrar el token
             isLoading: false
           }));
 
@@ -135,46 +151,60 @@ export const usePWANotifications = () => {
     }
   }, [toast]); // Remove state.isSupported dependency
 
-  // Disable notifications
-  const disableNotifications = useCallback(async (): Promise<boolean> => {
-    if (!state.token) {
-      return true;
+  // Toggle push notifications (solo cambia el estado lógico)
+  const togglePushNotifications = async (enable: boolean): Promise<boolean> => {
+    // Si se quiere habilitar pero no hay tokens, mostrar mensaje y no hacer nada
+    if (enable && !state.hasDeviceTokens) {
+      toast({
+        title: "🔔 Permisos Requeridos",
+        description: "Primero debes permitir las notificaciones usando el botón de 'Solicitar Permisos'",
+        variant: "default"
+      });
+      return false;
     }
 
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const success = await unregisterDeviceToken(state.token);
+      let success: boolean;
+      
+      if (enable) {
+        success = await enablePushNotifications();
+      } else {
+        success = await disablePushNotifications();
+      }
       
       if (success) {
         setState(prev => ({
           ...prev,
-          token: null,
+          pushNotificationsEnabled: enable,
           isLoading: false
         }));
 
         toast({
-          title: "🔕 Notificaciones Desactivadas",
-          description: "Ya no recibirás notificaciones push",
+          title: enable ? "✅ Notificaciones Activadas" : "🔕 Notificaciones Desactivadas",
+          description: enable 
+            ? "Recibirás notificaciones importantes de Personal Fit"
+            : "Ya no recibirás notificaciones push",
         });
 
         return true;
       } else {
-        throw new Error('Failed to unregister device token');
+        throw new Error(`Failed to ${enable ? 'enable' : 'disable'} push notifications`);
       }
     } catch (error) {
-      console.error('Error disabling notifications:', error);
+      console.error(`Error ${enable ? 'enabling' : 'disabling'} push notifications:`, error);
       setState(prev => ({ ...prev, isLoading: false }));
       
       toast({
         title: "❌ Error",
-        description: "No se pudieron desactivar las notificaciones",
+        description: `No se pudieron ${enable ? 'activar' : 'desactivar'} las notificaciones`,
         variant: "destructive"
       });
       
       return false;
     }
-  }, [state.token, toast]);
+  };
 
   // Update notification preferences
   const updatePreferences = useCallback(async (newPreferences: NotificationPreferences): Promise<boolean> => {
@@ -307,9 +337,9 @@ export const usePWANotifications = () => {
   return {
     ...state,
     isGranted: state.permission === 'granted',
-    isActive: state.permission === 'granted' && !!state.token,
+    isActive: state.pushNotificationsEnabled && state.hasDeviceTokens,
     requestPermission,
-    disableNotifications,
+    togglePushNotifications,
     updatePreferences,
     loadPreferences
   };

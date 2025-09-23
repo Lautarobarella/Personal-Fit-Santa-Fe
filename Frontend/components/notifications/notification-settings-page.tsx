@@ -1,17 +1,19 @@
 'use client';
 
 import { NotificationSetup } from '@/components/notifications/notification-setup';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useNotificationStatus } from '@/components/providers/pwa-notification-provider';
-import { Bell, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Bell, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 export function NotificationSettingsPage() {
   const { 
     isSupported, 
     canReceiveNotifications, 
     needsPermission, 
-    isBlocked 
+    isBlocked,
+    needsToggle,
+    pushNotificationsEnabled
   } = useNotificationStatus();
 
   const getStatusBadge = () => {

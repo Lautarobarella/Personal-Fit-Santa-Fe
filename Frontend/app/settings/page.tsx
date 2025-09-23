@@ -13,8 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/contexts/auth-provider"
-import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { usePWANotifications } from "@/hooks/notifications/use-pwa-notifications"
+import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
@@ -33,7 +33,7 @@ export default function SettingsPage() {
     isActive: notificationsActive, 
     isLoading: notificationsLoading,
     requestPermission, 
-    disableNotifications,
+    togglePushNotifications,
     loadPreferences
   } = usePWANotifications()
   
@@ -59,26 +59,16 @@ export default function SettingsPage() {
       return
     }
 
-    if (checked) {
-      // Activar notificaciones
-      const success = await requestPermission()
-      if (!success) {
-        toast({
-          title: "❌ Error",
-          description: "No se pudieron activar las notificaciones. Verifica los permisos del navegador.",
-          variant: "destructive"
-        })
-      }
-    } else {
-      // Desactivar notificaciones
-      const success = await disableNotifications()
-      if (!success) {
-        toast({
-          title: "❌ Error", 
-          description: "No se pudieron desactivar las notificaciones",
-          variant: "destructive"
-        })
-      }
+    // Usar togglePushNotifications para ambos casos (activar/desactivar)
+    const success = await togglePushNotifications(checked)
+    if (!success) {
+      toast({
+        title: "❌ Error",
+        description: checked 
+          ? "No se pudieron activar las notificaciones. Verifica los permisos del navegador."
+          : "No se pudieron desactivar las notificaciones",
+        variant: "destructive"
+      })
     }
   }
 

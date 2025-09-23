@@ -1,6 +1,8 @@
 package com.personalfit.controllers;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -329,6 +331,89 @@ public class NotificationController {
             System.err.println("❌ Error sending bulk push notifications: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error sending bulk notifications");
+        }
+    }
+
+    /**
+     * Habilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
+     */
+    @PostMapping("/pwa/enable")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    public ResponseEntity<String> enablePushNotifications(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepository.findByEmail(userEmail);
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body("User not found");
+            }
+            
+            boolean enabled = notificationService.enablePushNotifications(user.get().getId());
+            
+            if (enabled) {
+                return ResponseEntity.ok("Push notifications enabled successfully");
+            } else {
+                return ResponseEntity.badRequest().body("Failed to enable push notifications");
+            }
+        } catch (Exception e) {
+            System.err.println("Error enabling push notifications: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error enabling push notifications");
+        }
+    }
+
+    /**
+     * Deshabilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
+     */
+    @PostMapping("/pwa/disable")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    public ResponseEntity<String> disablePushNotifications(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepository.findByEmail(userEmail);
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body("User not found");
+            }
+            
+            boolean disabled = notificationService.disablePushNotifications(user.get().getId());
+            
+            if (disabled) {
+                return ResponseEntity.ok("Push notifications disabled successfully");
+            } else {
+                return ResponseEntity.badRequest().body("Failed to disable push notifications");
+            }
+        } catch (Exception e) {
+            System.err.println("Error disabling push notifications: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error disabling push notifications");
+        }
+    }
+
+    /**
+     * Verifica si el usuario tiene las notificaciones push habilitadas
+     */
+    @GetMapping("/pwa/status")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    public ResponseEntity<Map<String, Object>> getPushNotificationStatus(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepository.findByEmail(userEmail);
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body(null);
+            }
+            
+            boolean enabled = notificationService.isPushNotificationsEnabled(user.get().getId());
+            long activeTokens = notificationService.getActiveTokensCount(user.get().getId());
+            
+            Map<String, Object> status = new HashMap<>();
+            status.put("pushNotificationsEnabled", enabled);
+            status.put("hasDeviceTokens", activeTokens > 0);
+            status.put("activeTokensCount", activeTokens);
+            
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            System.err.println("Error getting push notification status: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(null);
         }
     }
 }
