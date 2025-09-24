@@ -326,12 +326,18 @@ public class NotificationService {
     }
 
     /**
+     * Método para enviar notificación de meta alcanzada
+     * Llama al método sendGoalAchievement integrado
      * Método manual para enviar notificación de meta alcanzada
-     * NOTA: Este método se movió a NotificationTriggerService para evitar dependencia circular
-     * Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente
+     * NOTA: Este método se movió a NotificationTriggerService para evitar
+     * dependencia circular
+     * Use NotificationTriggerService.scheduleGoalAchievementNotification()
+     * directamente
      */
     public void scheduleGoalAchievementNotification(User user, String goalType, String achievement) {
-        log.warn("Este método está deprecado. Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente");
+        sendGoalAchievement(user, goalType, achievement);
+        log.warn(
+                "Este método está deprecado. Use NotificationTriggerService.scheduleGoalAchievementNotification() directamente");
         // Método deprecado para evitar dependencia circular
         // triggerService.sendGoalAchievement(user, goalType, achievement);
     }
@@ -726,6 +732,7 @@ public class NotificationService {
     public NotificationPreferencesDTO getUserPreferences(Long userId) {
         Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
 
+
         if (prefsOpt.isPresent()) {
             NotificationPreferences prefs = prefsOpt.get();
             return NotificationPreferencesDTO.builder()
@@ -739,6 +746,7 @@ public class NotificationService {
                     .build();
         }
 
+
         // Crear preferencias por defecto
         createDefaultPreferencesIfNotExists(userId);
         return createDefaultPreferencesDTO();
@@ -751,6 +759,7 @@ public class NotificationService {
         try {
             Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
             NotificationPreferences prefs;
+
 
             if (prefsOpt.isPresent()) {
                 prefs = prefsOpt.get();
@@ -766,6 +775,7 @@ public class NotificationService {
                         .build();
             }
 
+
             // Actualizar las preferencias
             prefs.setClassReminders(preferencesDTO.getClassReminders());
             prefs.setPaymentDue(preferencesDTO.getPaymentDue());
@@ -776,6 +786,7 @@ public class NotificationService {
             if (preferencesDTO.getPushNotificationsEnabled() != null) {
                 prefs.setPushNotificationsEnabled(preferencesDTO.getPushNotificationsEnabled());
             }
+
 
             preferencesRepository.save(prefs);
             log.info("Updated notification preferences for user: {}", userId);
@@ -795,6 +806,7 @@ public class NotificationService {
             return prefsOpt.get();
         }
 
+
         // Si no existen, crear preferencias por defecto
         createDefaultPreferencesIfNotExists(userId);
         return preferencesRepository.findByUserId(userId).orElse(null);
@@ -809,9 +821,11 @@ public class NotificationService {
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
             List<UserDeviceToken> inactiveTokens = deviceTokenRepository.findInactiveTokens(cutoffDate);
 
+
             for (UserDeviceToken token : inactiveTokens) {
                 deviceTokenRepository.deactivateByToken(token.getToken());
             }
+
 
             if (!inactiveTokens.isEmpty()) {
                 log.info("Deactivated {} inactive tokens", inactiveTokens.size());
@@ -956,9 +970,11 @@ public class NotificationService {
             SendResponse sendResponse = response.getResponses().get(i);
             String token = tokens.get(i);
 
+
             if (!sendResponse.isSuccessful()) {
                 FirebaseMessagingException exception = sendResponse.getException();
                 String errorCode = exception != null ? exception.getErrorCode().toString() : "unknown";
+
 
                 // Manejar tokens inválidos
                 if ("UNREGISTERED".equals(errorCode) ||
@@ -980,11 +996,15 @@ public class NotificationService {
 
     private boolean shouldSendNotification(Long userId, String type) {
         if (type == null) return true;
-        
+
         Optional<NotificationPreferences> prefsOpt = preferencesRepository.findByUserId(userId);
         if (prefsOpt.isEmpty()) return true;
-        
+
+        if (prefsOpt.isEmpty())
+            return true;
+
         NotificationPreferences prefs = prefsOpt.get();
+
 
         return switch (type) {
             case "class_reminder" -> Boolean.TRUE.equals(prefs.getClassReminders());
