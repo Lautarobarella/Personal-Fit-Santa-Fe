@@ -1,6 +1,6 @@
 {
     "twa_generator": {
-        "packageId": "com.santafe.personalfit.twa",
+        "packageId": "com.personalfitsantafe.twa",
         "host": "personalfitsantafe.com",
         "name": "PERSONAL FIT Santa Fe",
         "launcherName": "PERSONAL FIT",
