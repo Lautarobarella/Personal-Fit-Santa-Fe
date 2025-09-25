@@ -1,14 +1,11 @@
 [
-    {
-        "relation": [
-            "delegate_permission/common.handle_all_urls"
-        ],
-        "target": {
-            "namespace": "android_app",
-            "package_name": "com.personalfitsantafe.twa",
-            "sha256_cert_fingerprints": [
-                "F3:83:5C:6C:42:12:95:F6:B7:2A:6F:55:9C:30:C5:8F:DB:83:0D:E2:DA:F9:A1:82:F6:B4:64:52:43:7B:84:32"
-            ]
-        }
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "",
+      "sha256_cert_fingerprints":
+        ["C9:6C:99:BF:49:75:6B:7E:DF:38:F7:BF:02:36:E1:3D:E9:73:A3:8D:BB:D1:2B:D8:3C:3B:1E:8F:4B:A4:EB:39"]
     }
+  }
 ]
