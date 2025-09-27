@@ -49,8 +49,8 @@ public class PushNotificationService {
     @Autowired
     private FirebaseConfig firebaseConfig;
 
-    @Autowired
-    private NotificationService notificationService;
+    // Removed NotificationService dependency to avoid circular dependency
+    // NotificationService now handles DB operations and calls this service for push notifications
 
     /**
      * Registra un token de dispositivo para un usuario
@@ -157,12 +157,10 @@ public class PushNotificationService {
             // Procesar respuesta
             handleBatchResponse(response, tokenStrings, request.getUserId());
 
-            // Guardar en base de datos si se solicita
-            if (Boolean.TRUE.equals(request.getSaveToDatabase())) {
-                saveNotificationToDatabase(request);
-            }
+            // NOTA: Ya no guardamos en BD aquí - esa responsabilidad es del NotificationService
 
-            logger.info("Sent notification to user: {} with {} tokens", request.getUserId(), tokenStrings.size());
+            logger.info("✅ PUSH_SERVICE: Push notification sent to user: {} with {} tokens", 
+                    request.getUserId(), tokenStrings.size());
             return true;
 
         } catch (Exception e) {
@@ -226,13 +224,9 @@ public class PushNotificationService {
                 handleBatchResponse(response, batchTokens, null);
             }
 
-            // Guardar en base de datos si se solicita
-            if (Boolean.TRUE.equals(request.getSaveToDatabase())) {
-                // Usar NotificationService para crear las notificaciones en batch
-                notificationService.createBulkNotificationsFromRequest(request);
-            }
+            // NOTA: Ya no guardamos en BD aquí - esa responsabilidad es del NotificationService
 
-            logger.info("Sent bulk notification to {} users with {} total tokens", 
+            logger.info("✅ PUSH_SERVICE: Bulk push notification sent to {} users with {} total tokens", 
                        targetUserIds.size(), allTokens.size());
             return true;
 
@@ -406,14 +400,7 @@ public class PushNotificationService {
         };
     }
 
-    private void saveNotificationToDatabase(SendNotificationRequest request) {
-        try {
-            // Usar NotificationService para crear y guardar la notificación
-            notificationService.createNotificationFromRequest(request);
-        } catch (Exception e) {
-            logger.error("Error saving notification to database", e);
-        }
-    }
+    // Method removed - NotificationService now handles database operations
 
     private void createDefaultPreferencesIfNotExists(Long userId) {
         if (!preferencesRepository.existsByUserId(userId)) {

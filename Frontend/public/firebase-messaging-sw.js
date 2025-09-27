@@ -111,7 +111,7 @@ self.addEventListener('notificationclick', (event) => {
   
   const action = event.action;
   const data = event.notification.data || {};
-  const { type, activityId, paymentId, userId } = data;
+  const { type, activityId, paymentId } = data;
   
   let urlToOpen = '/dashboard';
   let shouldOpenWindow = true;

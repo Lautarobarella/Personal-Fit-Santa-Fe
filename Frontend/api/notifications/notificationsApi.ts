@@ -235,39 +235,12 @@ export async function sendBulkNotification(request: BulkNotificationRequest): Pr
     }
 }
 
-/**
- * Habilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
- */
-export async function enablePushNotifications(): Promise<boolean> {
-    try {
-        await jwtPermissionsApi.post('/api/notifications/pwa/enable', {});
-        console.log('Push notifications enabled successfully');
-        return true;
-    } catch (error) {
-        handleApiError(error, 'Error al habilitar notificaciones push');
-        return false;
-    }
-}
 
-/**
- * Deshabilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
- */
-export async function disablePushNotifications(): Promise<boolean> {
-    try {
-        await jwtPermissionsApi.post('/api/notifications/pwa/disable', {});
-        console.log('Push notifications disabled successfully');
-        return true;
-    } catch (error) {
-        handleApiError(error, 'Error al deshabilitar notificaciones push');
-        return false;
-    }
-}
 
 /**
  * Obtiene el estado de las notificaciones push del usuario autenticado
  */
 export async function getPushNotificationStatus(): Promise<{
-    pushNotificationsEnabled: boolean;
     hasDeviceTokens: boolean;
     activeTokensCount: number;
 } | null> {
@@ -280,4 +253,50 @@ export async function getPushNotificationStatus(): Promise<{
     }
 }
 
+// ===============================
+// GESTIÓN PROFESIONAL DE SUSCRIPCIONES
+// ===============================
 
+/**
+ * Obtiene el estado de suscripción a notificaciones push
+ */
+export async function getSubscriptionStatus(): Promise<{
+    isSubscribed: boolean;
+    activeTokensCount: number;
+    canSubscribe: boolean;
+    canUnsubscribe: boolean;
+} | null> {
+    try {
+        const status = await jwtPermissionsApi.get('/api/notifications/subscription-status');
+        return status;
+    } catch (error) {
+        handleApiError(error, 'Error al obtener estado de suscripción');
+        return null;
+    }
+}
+
+/**
+ * Desuscribe al usuario de notificaciones push
+ */
+export async function unsubscribeFromPushNotifications(): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/unsubscribe', {});
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al desuscribirse de notificaciones push');
+        return false;
+    }
+}
+
+/**
+ * Trigger manual de limpieza de tokens (solo admin)
+ */
+export async function cleanupInvalidTokens(): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/cleanup-tokens', {});
+        return true;
+    } catch (error) {
+        handleApiError(error, 'Error al limpiar tokens inválidos');
+        return false;
+    }
+}

@@ -1,10 +1,50 @@
-import { disablePushNotifications, enablePushNotifications, getNotificationPreferences, getPushNotificationStatus, registerDeviceToken, updateNotificationPreferences } from '@/api/notifications/notificationsApi';
+import { getNotificationPreferences, getPushNotificationStatus, registerDeviceToken, updateNotificationPreferences, getSubscriptionStatus, unsubscribeFromPushNotifications } from '@/api/notifications/notificationsApi';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotificationPermission, setupForegroundNotifications } from '@/lib/firebase-messaging';
 import { NotificationPreferences } from '@/lib/types';
 import { MessagePayload } from 'firebase/messaging';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+
+/**
+ * Detecta el tipo de dispositivo basándose en el user agent y características del navegador
+ */
+const detectDeviceType = (): 'PWA' | 'WEB' | 'ANDROID' | 'IOS' => {
+  if (typeof window === 'undefined') return 'WEB';
+  
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isInWebAppMode = (window.navigator as any).standalone === true; // iOS Safari
+  
+  // Log información de debug
+  console.log('🔍 Device detection info:', {
+    userAgent: userAgent.substring(0, 100) + '...',
+    isStandalone,
+    isInWebAppMode,
+    displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser'
+  });
+  
+  // Detectar si es PWA (instalada)
+  if (isStandalone || isInWebAppMode) {
+    console.log('✅ Detected as PWA (installed app)');
+    return 'PWA';
+  }
+  
+  // Detectar plataforma móvil
+  if (/android/i.test(userAgent)) {
+    console.log('✅ Detected as ANDROID device');
+    return 'ANDROID';
+  }
+  
+  if (/iphone|ipad|ipod/i.test(userAgent)) {
+    console.log('✅ Detected as IOS device');
+    return 'IOS';
+  }
+  
+  // Por defecto, navegador web
+  console.log('✅ Detected as WEB browser');
+  return 'WEB';
+};
 
 
 export interface PWANotificationState {
@@ -13,9 +53,11 @@ export interface PWANotificationState {
   token: string | null;
   isLoading: boolean;
   preferences: NotificationPreferences | null;
-  // Estado lógico de notificaciones push (independiente del token)
-  pushNotificationsEnabled: boolean;
   hasDeviceTokens: boolean;
+  isSubscribed: boolean;
+  canSubscribe: boolean;
+  canUnsubscribe: boolean;
+  activeTokensCount: number;
 }
 
 export const usePWANotifications = () => {
@@ -25,8 +67,11 @@ export const usePWANotifications = () => {
     token: null,
     isLoading: true,
     preferences: null,
-    pushNotificationsEnabled: false,
-    hasDeviceTokens: false
+    hasDeviceTokens: false,
+    isSubscribed: false,
+    canSubscribe: true,
+    canUnsubscribe: false,
+    activeTokensCount: 0
   });
 
   const router = useRouter();
@@ -73,10 +118,8 @@ export const usePWANotifications = () => {
           newClasses: true,
           promotions: false,
           classCancellations: true,
-          generalAnnouncements: true,
-          pushNotificationsEnabled: false
+          generalAnnouncements: true
         },
-        pushNotificationsEnabled: pushStatus?.pushNotificationsEnabled || false,
         hasDeviceTokens: pushStatus?.hasDeviceTokens || false,
         isLoading: false
       }));
@@ -104,10 +147,14 @@ export const usePWANotifications = () => {
       const token = await requestNotificationPermission();
       
       if (token) {
+        // Detectar tipo de dispositivo automáticamente
+        const deviceType = detectDeviceType();
+        console.log('🔍 Device type detected:', deviceType);
+        
         // Register device token with backend
         const success = await registerDeviceToken({
           token,
-          deviceType: 'PWA'
+          deviceType
         });
 
         if (success) {
@@ -116,7 +163,6 @@ export const usePWANotifications = () => {
             token,
             permission: 'granted',
             hasDeviceTokens: true,
-            pushNotificationsEnabled: true, // Se habilita automáticamente al registrar el token
             isLoading: false
           }));
 
@@ -151,60 +197,7 @@ export const usePWANotifications = () => {
     }
   }, [toast]); // Remove state.isSupported dependency
 
-  // Toggle push notifications (solo cambia el estado lógico)
-  const togglePushNotifications = async (enable: boolean): Promise<boolean> => {
-    // Si se quiere habilitar pero no hay tokens, mostrar mensaje y no hacer nada
-    if (enable && !state.hasDeviceTokens) {
-      toast({
-        title: "🔔 Permisos Requeridos",
-        description: "Primero debes permitir las notificaciones usando el botón de 'Solicitar Permisos'",
-        variant: "default"
-      });
-      return false;
-    }
 
-    setState(prev => ({ ...prev, isLoading: true }));
-
-    try {
-      let success: boolean;
-      
-      if (enable) {
-        success = await enablePushNotifications();
-      } else {
-        success = await disablePushNotifications();
-      }
-      
-      if (success) {
-        setState(prev => ({
-          ...prev,
-          pushNotificationsEnabled: enable,
-          isLoading: false
-        }));
-
-        toast({
-          title: enable ? "✅ Notificaciones Activadas" : "🔕 Notificaciones Desactivadas",
-          description: enable 
-            ? "Recibirás notificaciones importantes de Personal Fit"
-            : "Ya no recibirás notificaciones push",
-        });
-
-        return true;
-      } else {
-        throw new Error(`Failed to ${enable ? 'enable' : 'disable'} push notifications`);
-      }
-    } catch (error) {
-      console.error(`Error ${enable ? 'enabling' : 'disabling'} push notifications:`, error);
-      setState(prev => ({ ...prev, isLoading: false }));
-      
-      toast({
-        title: "❌ Error",
-        description: `No se pudieron ${enable ? 'activar' : 'desactivar'} las notificaciones`,
-        variant: "destructive"
-      });
-      
-      return false;
-    }
-  };
 
   // Update notification preferences
   const updatePreferences = useCallback(async (newPreferences: NotificationPreferences): Promise<boolean> => {
@@ -334,13 +327,91 @@ export const usePWANotifications = () => {
     }
   }, [router]);
 
+  // ===============================
+  // GESTIÓN PROFESIONAL DE SUSCRIPCIONES
+  // ===============================
+
+  /**
+   * Carga el estado de suscripción desde el servidor
+   */
+  const loadSubscriptionStatus = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      
+      const status = await getSubscriptionStatus();
+      if (status) {
+        setState(prev => ({
+          ...prev,
+          isSubscribed: status.isSubscribed,
+          canSubscribe: status.canSubscribe,
+          canUnsubscribe: status.canUnsubscribe,
+          activeTokensCount: status.activeTokensCount,
+          hasDeviceTokens: status.activeTokensCount > 0,
+          isLoading: false
+        }));
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
+      }
+    } catch (error) {
+      console.error('Error loading subscription status:', error);
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, []);
+
+  /**
+   * Desuscribe al usuario de notificaciones push
+   */
+  const unsubscribe = useCallback(async (): Promise<boolean> => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+
+      const success = await unsubscribeFromPushNotifications();
+      if (success) {
+        setState(prev => ({
+          ...prev,
+          isSubscribed: false,
+          canSubscribe: true,
+          canUnsubscribe: false,
+          activeTokensCount: 0,
+          hasDeviceTokens: false,
+          token: null,
+          isLoading: false
+        }));
+
+        toast({
+          title: "✅ Desuscripción Exitosa",
+          description: "Ya no recibirás notificaciones push",
+        });
+
+        return true;
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
+        return false;
+      }
+    } catch (error) {
+      console.error('Error unsubscribing:', error);
+      setState(prev => ({ ...prev, isLoading: false }));
+      return false;
+    }
+  }, [toast]);
+
+  /**
+   * Suscribe al usuario (reutiliza la lógica existente de requestPermission)
+   */
+  const subscribe = useCallback(async (): Promise<boolean> => {
+    return await requestPermission();
+  }, [requestPermission]);
+
   return {
     ...state,
     isGranted: state.permission === 'granted',
-    isActive: state.pushNotificationsEnabled && state.hasDeviceTokens,
+    isActive: state.hasDeviceTokens,
     requestPermission,
-    togglePushNotifications,
     updatePreferences,
-    loadPreferences
+    loadPreferences,
+    // Nuevas funciones para gestión profesional
+    loadSubscriptionStatus,
+    subscribe,
+    unsubscribe,
   };
 };

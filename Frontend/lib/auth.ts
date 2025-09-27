@@ -56,12 +56,21 @@ export const authenticate = async (email: string, password: string): Promise<Use
   }
 }
 
-export const logout = async (): Promise<void> => {
+export const logout = async (deviceToken?: string): Promise<void> => {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Incluir token del dispositivo si está disponible para desactivarlo
+    if (deviceToken) {
+      headers['Device-Token'] = deviceToken;
+    }
 
     await fetch(`${API_CONFIG.BASE_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
+      headers,
     })
   } catch (error) {
     console.error('Logout error:', error)
