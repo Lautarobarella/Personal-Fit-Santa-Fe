@@ -559,40 +559,74 @@ public class NotificationService {
     }
 
     /**
-     * NUEVO FLUJO: Crea y envía una notificación completa
-     * 1. Crea la notificación en BD
-     * 2. Delega el envío push a PushNotificationService
-     * 3. Actualiza el estado según el resultado
+     * ========================================
+     * FLUJO INDEPENDIENTE DE NOTIFICACIONES
+     * ========================================
+     * 
+     * Este método implementa la lógica de separación entre notificaciones de historial y push:
+     * 
+     * 1. SIEMPRE crea la notificación en BD (para historial en app)
+     * 2. CONDICIONALMENTE envía push (solo si usuario está suscrito)
+     * 
+     * Esto significa que:
+     * - Las notificaciones SIEMPRE aparecen en el historial de la app
+     * - Las notificaciones push SOLO se envían si el usuario tiene tokens activos
+     * - Si un usuario se desuscribe, conserva todo el historial anterior
+     * - Si un usuario se resuscribe, empieza a recibir push de nuevas notificaciones
      */
     public boolean createAndSendNotification(SendNotificationRequest request) {
         try {
-            log.info("📝 NOTIFICATION_SERVICE: Creating and sending notification - User: {}, Title: '{}', Type: '{}'", 
+            log.info("📝 NOTIFICATION_SERVICE: Creating notification for historial - User: {}, Title: '{}', Type: '{}'", 
                     request.getUserId(), request.getTitle(), request.getType());
 
-            // 1. Crear la notificación en BD primero
+            // 1. SIEMPRE crear la notificación en BD para historial
             Notification notification = createNotificationFromRequest(request);
             if (notification == null) {
-                log.error("Failed to create notification in database");
+                log.error("❌ Failed to create notification in database - this should never happen");
                 return false;
             }
 
-            // 2. Delegar el envío push al PushNotificationService
+            log.info("✅ Notification saved to historial - ID: {}, User: {}", 
+                    notification.getId(), request.getUserId());
+
+            // 2. CONDICIONALMENTE intentar envío push
             boolean pushSent = pushNotificationService.sendNotificationToUser(request);
             
-            // 3. Actualizar estado de la notificación según resultado
             if (pushSent) {
-                log.info("✅ Notification created and push sent successfully - ID: {}, User: {}", 
-                        notification.getId(), request.getUserId());
-                return true;
+                log.info("🔔 Push notification sent successfully - User: {}", request.getUserId());
             } else {
-                log.warn("⚠️ Notification created but push failed - ID: {}, User: {}", 
-                        notification.getId(), request.getUserId());
-                return false;
+                log.info("📱 No push sent (user not subscribed or no active tokens) - User: {}", request.getUserId());
             }
 
+            // IMPORTANTE: Siempre retornamos true porque la notificación se guardó en BD
+            // El push es opcional - el historial es lo importante
+            return true;
+
         } catch (Exception e) {
-            log.error("Error in createAndSendNotification for user: " + request.getUserId(), e);
+            log.error("❌ Error in createAndSendNotification for user: " + request.getUserId(), e);
             return false;
+        }
+    }
+
+    /**
+     * Crea una notificación SOLO para historial (sin intento de push)
+     * Útil para casos donde explícitamente no queremos enviar push
+     */
+    public Notification createNotificationForHistoryOnly(SendNotificationRequest request) {
+        try {
+            log.info("📝 NOTIFICATION_SERVICE: Creating notification for history only - User: {}, Title: '{}'", 
+                    request.getUserId(), request.getTitle());
+
+            Notification notification = createNotificationFromRequest(request);
+            if (notification != null) {
+                log.info("✅ Notification saved to history only - ID: {}, User: {}", 
+                        notification.getId(), request.getUserId());
+            }
+            return notification;
+
+        } catch (Exception e) {
+            log.error("❌ Error creating notification for history only - User: " + request.getUserId(), e);
+            return null;
         }
     }
 

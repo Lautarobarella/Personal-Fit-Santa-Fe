@@ -139,11 +139,11 @@ public class PushNotificationService {
                 return true; // No es un error, el usuario simplemente no quiere este tipo
             }
 
-            // Obtener tokens del usuario
+            // Obtener tokens activos del usuario para push
             List<UserDeviceToken> tokens = deviceTokenRepository.findByUserIdAndIsActiveTrue(request.getUserId());
             if (tokens.isEmpty()) {
-                logger.info("No active tokens found for user: {}", request.getUserId());
-                return true; // No es un error, simplemente no hay tokens
+                logger.info("📱 No active tokens found for user: {} - push not sent but notification saved in historial", request.getUserId());
+                return true; // No es un error - simplemente el usuario no está suscrito a push
             }
 
             List<String> tokenStrings = tokens.stream().map(UserDeviceToken::getToken).toList();
