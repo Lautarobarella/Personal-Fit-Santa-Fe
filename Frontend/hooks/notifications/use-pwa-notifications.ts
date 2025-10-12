@@ -280,10 +280,18 @@ export const usePWANotifications = () => {
 
     const setupListener = async () => {
       const listener = setupForegroundNotifications((payload: MessagePayload) => {
+        // 🚨 IMPORTANTE: Solo manejar si la app está visible (evita duplicados en móviles)
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+          console.log('📱 App hidden, letting service worker handle notification');
+          return;
+        }
+
         // Handle foreground notifications with custom toast
         const title = payload.notification?.title || 'Personal Fit';
         const body = payload.notification?.body || 'Nueva notificación';
         const data = payload.data || {};
+
+        console.log('📱 App visible, showing foreground toast notification');
 
         // Show custom toast instead of browser notification
         toast({

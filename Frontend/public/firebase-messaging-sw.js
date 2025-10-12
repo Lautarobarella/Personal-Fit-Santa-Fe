@@ -51,19 +51,28 @@ messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
   
   const notificationTitle = payload.notification?.title || 'Personal Fit Santa Fe';
+  const notificationType = payload.data?.type || 'default';
+  
+  // 🚨 CLAVE: Usar tag único para evitar duplicados en móviles
+  const uniqueTag = `pf_${notificationType}_${Date.now()}`;
+  
   const notificationOptions = {
     body: payload.notification?.body || 'Nueva notificación',
     icon: '/logo.png',
     badge: '/logo.png',
     image: payload.notification?.image,
     data: payload.data || {},
-    tag: payload.data?.type || 'default',
+    tag: uniqueTag, // Tag único para evitar reemplazos
     requireInteraction: true,
     actions: getNotificationActions(payload.data?.type),
     vibrate: [200, 100, 200],
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    // 🔧 Configuraciones adicionales para móviles
+    silent: false,
+    renotify: false // Evitar re-notificar la misma
   };
 
+  console.log(`[firebase-messaging-sw.js] 📱 Showing notification with tag: ${uniqueTag}`);
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
