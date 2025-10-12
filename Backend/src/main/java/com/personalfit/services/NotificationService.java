@@ -287,34 +287,7 @@ public class NotificationService {
         }
     }
 
-    /**
-     * Limpia tokens de dispositivos inactivos cada semana (domingos a las 2:00 AM)
-     */
-    @Scheduled(cron = "0 0 2 * * SUN")
-    @Transactional
-    public void cleanupInactiveTokens() {
-        try {
-            log.info("Starting inactive tokens cleanup job");
 
-            // Buscar tokens que no se han usado en 30 días
-            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
-            List<UserDeviceToken> inactiveTokens = deviceTokenRepository.findInactiveTokens(cutoffDate);
-
-            if (inactiveTokens.isEmpty()) {
-                log.info("No inactive tokens found for cleanup");
-                return;
-            }
-
-            // Eliminar tokens inactivos
-            for (UserDeviceToken token : inactiveTokens) {
-                deviceTokenRepository.delete(token);
-            }
-
-            log.info("Cleanup completed. Removed {} inactive tokens", inactiveTokens.size());
-        } catch (Exception e) {
-            log.error("Error in inactive tokens cleanup job", e);
-        }
-    }
 
     /**
      * Método para enviar notificación de meta alcanzada
@@ -797,17 +770,7 @@ public class NotificationService {
 
 
 
-    /**
-     * Obtiene la cantidad de tokens activos para un usuario
-     */
-    public long getActiveTokensCount(Long userId) {
-        try {
-            return deviceTokenRepository.countByUserIdAndIsActiveTrue(userId);
-        } catch (Exception e) {
-            log.error("Error getting active tokens count for user: " + userId, e);
-            return 0;
-        }
-    }
+
 
     // ===============================
     // MÉTODOS PRIVADOS PARA PUSH NOTIFICATIONS
@@ -815,15 +778,14 @@ public class NotificationService {
 
     /**
      * Verifica si un usuario está suscrito a notificaciones (tiene tokens activos)
+     * Método público unificado que sirve tanto para uso interno como externo
      */
-    private boolean isUserSubscribedToNotifications(Long userId) {
+    public boolean isUserSubscribedToNotifications(Long userId) {
         try {
-            // Verificar que el usuario tenga tokens activos Y tenga habilitadas las
-            // notificaciones push
-            long activeTokens = deviceTokenRepository.countByUserIdAndIsActiveTrue(userId);
+            long activeTokens = getActiveTokenCount(userId);
             boolean hasTokens = activeTokens > 0;
 
-            log.debug("User {} subscription check: hasTokens={}", userId, hasTokens);
+            log.debug("User {} subscription check: hasTokens={} (activeTokens={})", userId, hasTokens, activeTokens);
             return hasTokens;
         } catch (Exception e) {
             log.warn("Error checking subscription status for user {}: {}", userId, e.getMessage());
@@ -1084,25 +1046,7 @@ public class NotificationService {
         }
     }
 
-    /**
-     * Verifica si el usuario tiene tokens activos (está suscrito)
-     */
-    public boolean isUserSubscribedToPushNotifications(Long userId) {
-        try {
-            long activeTokenCount = deviceTokenRepository.countByUserIdAndIsActiveTrue(userId);
-            return activeTokenCount > 0;
-        } catch (Exception e) {
-            log.error("Error checking subscription status for user {}", userId, e);
-            return false;
-        }
-    }
 
-    /**
-     * Obtiene el estado de suscripción del usuario para la UI
-     */
-    public boolean getPushNotificationSubscriptionStatus(Long userId) {
-        return isUserSubscribedToPushNotifications(userId);
-    }
 
     /**
      * Obtiene la cantidad de tokens activos para un usuario

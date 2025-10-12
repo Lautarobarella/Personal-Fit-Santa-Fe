@@ -350,7 +350,7 @@ public class NotificationController {
                 return ResponseEntity.badRequest().body(null);
             }
             
-            long activeTokens = notificationService.getActiveTokensCount(user.get().getId());
+            long activeTokens = notificationService.getActiveTokenCount(user.get().getId());
             
             Map<String, Object> status = new HashMap<>();
             status.put("hasDeviceTokens", activeTokens > 0);
@@ -381,7 +381,7 @@ public class NotificationController {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
 
-            boolean isSubscribed = notificationService.getPushNotificationSubscriptionStatus(user.get().getId());
+            boolean isSubscribed = notificationService.isUserSubscribedToNotifications(user.get().getId());
             long activeTokens = notificationService.getActiveTokenCount(user.get().getId());
             
             Map<String, Object> status = Map.of(
