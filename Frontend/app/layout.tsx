@@ -1,6 +1,7 @@
 import { ZoomPrevention } from "@/components/providers/zoom-prevention"
 import { ThemeProvider } from "@/components/theme-provider"
 import { PWANotificationProvider } from "@/components/providers/pwa-notification-provider"
+import { VersionChecker } from "@/components/providers/version-checker"
 import { Toaster } from "@/components/ui/toaster"
 import { ActivityProvider } from "@/contexts/activity-provider"
 import { AttendanceProvider } from "@/contexts/attendance-provider"
@@ -73,6 +74,7 @@ export default function RootLayout({
         <meta name="browsermode" content="application" />
       </head>
       <body className={inter.className}>
+        <VersionChecker />
         <ThemeProvider>
           <AuthProvider>
             <PWANotificationProvider>
