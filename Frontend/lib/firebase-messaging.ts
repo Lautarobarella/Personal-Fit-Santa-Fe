@@ -155,8 +155,16 @@ export const setupForegroundNotifications = (
   if (!messaging) return;
 
   const unsubscribe = onMessage(messaging, (payload: MessagePayload) => {
-    console.log('Foreground notification received:', payload);
-    callback(payload);
+    console.log('🔥 Foreground notification received:', payload);
+    
+    // 🚨 IMPORTANTE: Solo manejar notificaciones en primer plano si la app está visible
+    // En móviles esto evita duplicados con el service worker
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      console.log('📱 App is visible, handling foreground notification');
+      callback(payload);
+    } else {
+      console.log('📱 App is hidden, letting service worker handle notification');
+    }
   });
 
   return unsubscribe;

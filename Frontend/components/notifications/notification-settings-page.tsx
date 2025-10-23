@@ -12,8 +12,7 @@ export function NotificationSettingsPage() {
     canReceiveNotifications, 
     needsPermission, 
     isBlocked,
-    needsToggle,
-    pushNotificationsEnabled
+    needsToggle
   } = useNotificationStatus();
 
   const getStatusBadge = () => {

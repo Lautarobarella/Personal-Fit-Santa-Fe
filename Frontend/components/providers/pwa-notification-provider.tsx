@@ -8,7 +8,6 @@ interface PWANotificationContextType extends PWANotificationState {
   isGranted: boolean;
   isActive: boolean;
   requestPermission: () => Promise<boolean>;
-  togglePushNotifications: (enable: boolean) => Promise<boolean>;
   updatePreferences: (preferences: any) => Promise<boolean>;
   loadPreferences: () => Promise<void>;
 }
@@ -92,7 +91,6 @@ export function useNotificationStatus() {
     isGranted, 
     isActive, 
     permission, 
-    pushNotificationsEnabled,
     hasDeviceTokens 
   } = usePWANotificationContext();
   
@@ -101,11 +99,10 @@ export function useNotificationStatus() {
     isGranted,
     isActive,
     permission,
-    pushNotificationsEnabled,
     hasDeviceTokens,
-    canReceiveNotifications: isSupported && isGranted && pushNotificationsEnabled && hasDeviceTokens,
+    canReceiveNotifications: isSupported && isGranted && hasDeviceTokens,
     needsPermission: isSupported && !hasDeviceTokens,
     isBlocked: permission === 'denied',
-    needsToggle: hasDeviceTokens && !pushNotificationsEnabled
+    needsToggle: false // Ya no es necesario porque isActive se basa directamente en hasDeviceTokens
   };
 }

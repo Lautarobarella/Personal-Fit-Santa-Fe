@@ -33,8 +33,16 @@ export default function SettingsPage() {
     isActive: notificationsActive, 
     isLoading: notificationsLoading,
     requestPermission, 
-    togglePushNotifications,
-    loadPreferences
+    loadPreferences,
+    // Nuevas propiedades para gestión profesional
+    isSubscribed,
+    canSubscribe,
+    canUnsubscribe,
+    activeTokensCount,
+    subscribe,
+    unsubscribe,
+    loadSubscriptionStatus,
+    token
   } = usePWANotifications()
   
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
@@ -45,7 +53,8 @@ export default function SettingsPage() {
   const [showTermsDialog, setShowTermsDialog] = useState(false)
 
   const handleLogout = () => {
-    logout()
+    // Pasar el token del dispositivo para desactivarlo en el logout
+    logout(token || undefined)
     router.push("/")
   }
 
@@ -59,14 +68,45 @@ export default function SettingsPage() {
       return
     }
 
-    // Usar togglePushNotifications para ambos casos (activar/desactivar)
-    const success = await togglePushNotifications(checked)
-    if (!success) {
+    try {
+      if (checked) {
+        // Suscribirse - solicitar permisos y registrar token
+        const success = await subscribe()
+        if (success) {
+          await loadSubscriptionStatus() // Recargar estado
+          toast({
+            title: "✅ Suscripción Activada",
+            description: "Ahora recibirás notificaciones push importantes",
+          })
+        } else {
+          toast({
+            title: "❌ Error al Suscribirse",
+            description: "No se pudo activar las notificaciones. Intenta de nuevo.",
+            variant: "destructive"
+          })
+        }
+      } else {
+        // Desuscribirse - desactivar todos los tokens
+        const success = await unsubscribe()
+        if (success) {
+          await loadSubscriptionStatus() // Recargar estado
+          toast({
+            title: "🔕 Suscripción Desactivada",
+            description: "Ya no recibirás notificaciones push",
+          })
+        } else {
+          toast({
+            title: "❌ Error al Desuscribirse",
+            description: "No se pudo desactivar las notificaciones. Intenta de nuevo.",
+            variant: "destructive"
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error)
       toast({
         title: "❌ Error",
-        description: checked 
-          ? "No se pudieron activar las notificaciones. Verifica los permisos del navegador."
-          : "No se pudieron desactivar las notificaciones",
+        description: "Ocurrió un error inesperado. Intenta de nuevo.",
         variant: "destructive"
       })
     }
@@ -91,6 +131,12 @@ export default function SettingsPage() {
     }
   }, [user, notificationsSupported, loadPreferences])
 
+  // Cargar estado de suscripción al montar el componente
+  useEffect(() => {
+    if (user && notificationsSupported) {
+      loadSubscriptionStatus()
+    }
+  }, [user, notificationsSupported, loadSubscriptionStatus])
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -145,21 +191,23 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Notificaciones</p>
+                  <p className="font-medium">Notificaciones Push</p>
                   <p className="text-sm text-muted-foreground">
                     {!notificationsSupported 
                       ? "No compatible con tu navegador" 
-                      : notificationsActive 
-                        ? "Activadas" 
-                        : "Recibir notificaciones push"
+                      : notificationsLoading
+                        ? "Cargando..."
+                        : isSubscribed 
+                          ? `Activo - ${activeTokensCount} dispositivo${activeTokensCount !== 1 ? 's' : ''} conectado${activeTokensCount !== 1 ? 's' : ''}` 
+                          : "Activa para recibir notificaciones importantes"
                     }
                   </p>
                 </div>
               </div>
               <Switch 
-                checked={notificationsActive}
+                checked={isSubscribed}
                 onCheckedChange={handleNotificationsToggle}
-                disabled={!notificationsSupported || notificationsLoading}
+                disabled={!notificationsSupported || notificationsLoading || (!canSubscribe && !canUnsubscribe)}
               />
             </div>
 

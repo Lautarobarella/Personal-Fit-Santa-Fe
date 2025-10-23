@@ -28,11 +28,11 @@ export function NotificationSetup() {
     isActive, 
     isLoading, 
     preferences,
-    pushNotificationsEnabled,
     hasDeviceTokens,
     requestPermission, 
-    togglePushNotifications,
-    updatePreferences
+    updatePreferences,
+    subscribe,
+    unsubscribe
   } = usePWANotifications();
 
   const handlePreferenceChange = async (key: string, value: boolean) => {
@@ -76,7 +76,7 @@ export function NotificationSetup() {
   }
 
   const getStatusInfo = () => {
-    if (hasDeviceTokens && pushNotificationsEnabled) {
+    if (isActive && hasDeviceTokens) {
       return {
         icon: <CheckCircle className="h-4 w-4 text-green-600" />,
         text: "Activas",
@@ -87,12 +87,6 @@ export function NotificationSetup() {
         icon: <XCircle className="h-4 w-4 text-red-600" />,
         text: "Bloqueadas",
         variant: "destructive" as const
-      };
-    } else if (hasDeviceTokens && !pushNotificationsEnabled) {
-      return {
-        icon: <BellOff className="h-4 w-4 text-orange-600" />,
-        text: "Desactivadas",
-        variant: "secondary" as const
       };
     } else {
       return {
@@ -152,13 +146,19 @@ export function NotificationSetup() {
                   Notificaciones Push
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  {pushNotificationsEnabled ? 'Activas' : 'Desactivadas'}
+                  {isActive ? 'Activas' : 'Desactivadas'}
                 </p>
               </div>
               <Switch
                 id="push-notifications"
-                checked={pushNotificationsEnabled}
-                onCheckedChange={(checked) => togglePushNotifications(checked)}
+                checked={isActive}
+                onCheckedChange={async (checked) => {
+                  if (checked) {
+                    await subscribe();
+                  } else {
+                    await unsubscribe();
+                  }
+                }}
                 disabled={isLoading}
               />
             </div>
@@ -182,7 +182,7 @@ export function NotificationSetup() {
       </Card>
 
       {/* Preferences Card */}
-      {hasDeviceTokens && pushNotificationsEnabled && preferences && (
+      {hasDeviceTokens && isActive && preferences && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

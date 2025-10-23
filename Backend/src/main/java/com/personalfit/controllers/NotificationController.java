@@ -291,7 +291,7 @@ public class NotificationController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> sendPushNotification(@RequestBody SendNotificationRequest request) {
         try {
-            boolean sent = notificationService.sendNotificationToUser(request);
+            boolean sent = notificationService.createAndSendNotification(request);
             
             if (sent) {
                 return ResponseEntity.ok("Notification sent successfully");
@@ -318,7 +318,7 @@ public class NotificationController {
             System.out.println("  User IDs: " + (request.getUserIds() != null ? request.getUserIds().size() + " users" : "null (all users)"));
             System.out.println("  Save to DB: " + request.getSaveToDatabase());
             
-            boolean sent = notificationService.sendBulkNotifications(request);
+            boolean sent = notificationService.createAndSendBulkNotifications(request);
             
             if (sent) {
                 System.out.println("✅ Bulk notifications sent successfully");
@@ -334,59 +334,7 @@ public class NotificationController {
         }
     }
 
-    /**
-     * Habilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
-     */
-    @PostMapping("/pwa/enable")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> enablePushNotifications(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.badRequest().body("User not found");
-            }
-            
-            boolean enabled = notificationService.enablePushNotifications(user.get().getId());
-            
-            if (enabled) {
-                return ResponseEntity.ok("Push notifications enabled successfully");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to enable push notifications");
-            }
-        } catch (Exception e) {
-            System.err.println("Error enabling push notifications: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error enabling push notifications");
-        }
-    }
 
-    /**
-     * Deshabilita las notificaciones push para el usuario autenticado (solo cambia el estado lógico)
-     */
-    @PostMapping("/pwa/disable")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> disablePushNotifications(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.badRequest().body("User not found");
-            }
-            
-            boolean disabled = notificationService.disablePushNotifications(user.get().getId());
-            
-            if (disabled) {
-                return ResponseEntity.ok("Push notifications disabled successfully");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to disable push notifications");
-            }
-        } catch (Exception e) {
-            System.err.println("Error disabling push notifications: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error disabling push notifications");
-        }
-    }
 
     /**
      * Verifica si el usuario tiene las notificaciones push habilitadas
@@ -402,11 +350,9 @@ public class NotificationController {
                 return ResponseEntity.badRequest().body(null);
             }
             
-            boolean enabled = notificationService.isPushNotificationsEnabled(user.get().getId());
-            long activeTokens = notificationService.getActiveTokensCount(user.get().getId());
+            long activeTokens = notificationService.getActiveTokenCount(user.get().getId());
             
             Map<String, Object> status = new HashMap<>();
-            status.put("pushNotificationsEnabled", enabled);
             status.put("hasDeviceTokens", activeTokens > 0);
             status.put("activeTokensCount", activeTokens);
             
@@ -414,6 +360,83 @@ public class NotificationController {
         } catch (Exception e) {
             System.err.println("Error getting push notification status: " + e.getMessage());
             return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    // ===============================
+    // GESTIÓN PROFESIONAL DE SUSCRIPCIONES
+    // ===============================
+
+    /**
+     * Obtiene el estado de suscripción a notificaciones push del usuario
+     */
+    @GetMapping("/subscription-status")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    public ResponseEntity<Map<String, Object>> getSubscriptionStatus(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepository.findByEmail(userEmail);
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+            }
+
+            boolean isSubscribed = notificationService.isUserSubscribedToNotifications(user.get().getId());
+            long activeTokens = notificationService.getActiveTokenCount(user.get().getId());
+            
+            Map<String, Object> status = Map.of(
+                "isSubscribed", isSubscribed,
+                "activeTokensCount", activeTokens,
+                "canSubscribe", !isSubscribed,
+                "canUnsubscribe", isSubscribed
+            );
+            
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            System.err.println("Error getting subscription status: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "Internal server error"));
+        }
+    }
+
+    /**
+     * Desuscribe al usuario de notificaciones push (desactiva todos sus tokens)
+     */
+    @PostMapping("/unsubscribe")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    public ResponseEntity<String> unsubscribeFromPushNotifications(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepository.findByEmail(userEmail);
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body("User not found");
+            }
+
+            boolean success = notificationService.unsubscribeFromPushNotifications(user.get().getId());
+            
+            if (success) {
+                return ResponseEntity.ok("Successfully unsubscribed from push notifications");
+            } else {
+                return ResponseEntity.badRequest().body("Failed to unsubscribe from push notifications");
+            }
+        } catch (Exception e) {
+            System.err.println("Error unsubscribing from push notifications: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error unsubscribing from push notifications");
+        }
+    }
+
+    /**
+     * Trigger manual de limpieza de tokens (solo para ADMIN)
+     */
+    @PostMapping("/cleanup-tokens")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> cleanupInvalidTokens() {
+        try {
+            notificationService.cleanupInvalidTokens();
+            return ResponseEntity.ok("Token cleanup completed successfully");
+        } catch (Exception e) {
+            System.err.println("Error during manual token cleanup: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error during token cleanup");
         }
     }
 }

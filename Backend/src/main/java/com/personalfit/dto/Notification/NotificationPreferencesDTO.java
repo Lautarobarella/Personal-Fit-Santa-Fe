@@ -17,5 +17,4 @@ public class NotificationPreferencesDTO {
     private Boolean promotions;
     private Boolean classCancellations;
     private Boolean generalAnnouncements;
-    private Boolean pushNotificationsEnabled;
 }

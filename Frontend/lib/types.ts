@@ -322,5 +322,4 @@ export interface NotificationPreferences {
     promotions: boolean;
     classCancellations: boolean;
     generalAnnouncements: boolean;
-    pushNotificationsEnabled: boolean;
 }

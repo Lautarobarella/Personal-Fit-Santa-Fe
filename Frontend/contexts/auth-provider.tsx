@@ -10,7 +10,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 interface AuthContextType {
   user: UserType | null
   login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
+  logout: (deviceToken?: string) => void
   loading: boolean
   refreshUser: () => Promise<void>
 }
@@ -88,9 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = () => {
+  const logout = (deviceToken?: string) => {
     setUser(null)
-    authLogout()
+    authLogout(deviceToken)
   }
 
   return <AuthContext.Provider value={{ user, login, logout, loading, refreshUser }}>{children}</AuthContext.Provider>
