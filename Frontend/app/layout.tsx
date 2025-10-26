@@ -73,6 +73,7 @@ export default function RootLayout({
         <meta name="browsermode" content="application" />
       </head>
       <body className={inter.className}>
+        <VersionChecker />
         <ThemeProvider>
           <AuthProvider>
             <PWANotificationProvider>
