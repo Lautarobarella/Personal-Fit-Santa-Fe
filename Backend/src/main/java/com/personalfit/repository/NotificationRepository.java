@@ -17,6 +17,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByUserIdAndStatus(Long userId, NotificationStatus status);
     
     /**
+     * Cuenta las notificaciones de un usuario por estado
+     */
+    long countByUserIdAndStatus(Long userId, NotificationStatus status);
+    
+    /**
      * Encuentra notificaciones de un usuario creadas después de una fecha específica
      */
     @Query("SELECT n FROM Notification n WHERE n.user.id = :userId AND n.date >= :fromDate ORDER BY n.date DESC")

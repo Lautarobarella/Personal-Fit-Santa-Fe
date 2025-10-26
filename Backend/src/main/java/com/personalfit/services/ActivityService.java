@@ -30,6 +30,7 @@ import com.personalfit.models.Attendance;
 import com.personalfit.models.User;
 import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.AttendanceRepository;
+import com.personalfit.services.notifications.NotificationCoordinatorService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,7 +54,7 @@ public class ActivityService {
     private PaymentService paymentService;
 
     @Autowired
-    private NotificationService notificationService;
+    private NotificationCoordinatorService notificationCoordinator;
 
     // private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -379,7 +380,7 @@ public class ActivityService {
 
                 if (!enrolledUsers.isEmpty()) {
                     // Enviar notificación bulk por actividad
-                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(), 
+                    notificationCoordinator.sendBulkClassReminder(enrolledUsers, activity.getName(), 
                             activity.getDate(), activity.getLocation());
                     
                     log.info("Bulk class reminder sent for activity: {} to {} users", 

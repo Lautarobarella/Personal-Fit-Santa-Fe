@@ -40,6 +40,7 @@ import com.personalfit.models.User;
 import com.personalfit.repository.MonthlyRevenueRepository;
 import com.personalfit.repository.PaymentFileRepository;
 import com.personalfit.repository.PaymentRepository;
+import com.personalfit.services.notifications.NotificationCoordinatorService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -72,7 +73,7 @@ public class PaymentService {
 
     @Autowired
     @Lazy
-    private NotificationService notificationService;
+    private NotificationCoordinatorService notificationCoordinator;
 
     @Autowired
     private SettingsService settingsService;
@@ -612,7 +613,7 @@ public class PaymentService {
 
             // Enviar notificaciones de pago vencido a los usuarios afectados
             try {
-                notificationService.createPaymentExpiredNotification(usersWithExpiredPayments, new ArrayList<>());
+                notificationCoordinator.createPaymentExpiredNotification(usersWithExpiredPayments, new ArrayList<>());
                 log.info("Payment expiration notifications sent to {} users", usersWithExpiredPayments.size());
             } catch (Exception notifEx) {
                 log.error("Error sending payment expiration notifications: {}", notifEx.getMessage(), notifEx);
@@ -656,7 +657,7 @@ public class PaymentService {
             for (Payment payment : upcomingPayments) {
                 // Enviar recordatorio a cada usuario asociado al pago
                 for (User user : payment.getUsers()) {
-                    notificationService.sendPaymentDueReminder(user, payment.getAmount(), 
+                    notificationCoordinator.sendPaymentDueReminder(user, payment.getAmount(), 
                             payment.getExpiresAt());
                 }
                 log.info("Payment reminder sent for payment ID: {} to {} users", 

@@ -6,6 +6,7 @@ import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog
 import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { PaymentGracePeriodDialog } from "@/components/settings/payment-grace-period-dialog"
 import { PushNotificationDialog } from "@/components/settings/push-notification-dialog"
+import { NotificationStatusCard } from "@/components/notifications/version-permission-manager"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -334,6 +335,9 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Version-Aware Notification Management */}
+        <NotificationStatusCard />
 
         {/* Logout */}
         <Card>

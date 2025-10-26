@@ -33,6 +33,7 @@ import com.personalfit.models.User;
 import com.personalfit.repository.AttendanceRepository;
 import com.personalfit.repository.PaymentRepository;
 import com.personalfit.repository.UserRepository;
+import com.personalfit.services.notifications.NotificationCoordinatorService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,7 +51,7 @@ public class UserService {
     private AttendanceRepository attendanceRepository;
 
     @Autowired
-    private NotificationService notificationService;
+    private NotificationCoordinatorService notificationCoordinator;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -275,7 +276,7 @@ public class UserService {
         if (!toUpdate.isEmpty()) {
             userRepository.saveAll(toUpdate);
             log.info("Notifying users about expired payments.");
-            notificationService.createPaymentExpiredNotification(toUpdate, getAllAdmins());
+            notificationCoordinator.createPaymentExpiredNotification(toUpdate, getAllAdmins());
         }
     }
 
@@ -285,7 +286,7 @@ public class UserService {
         List<User> users = userRepository.findAllByBirthDate(LocalDate.now());
         log.info("Found {} users with birthday today.", users.size());
 
-        notificationService.createBirthdayNotification(users, getAllAdmins());
+        notificationCoordinator.createBirthdayNotification(users, getAllAdmins());
     }
 
     @Scheduled(cron = "0 45 2 * * ?")
@@ -298,7 +299,7 @@ public class UserService {
         List<User> users = userRepository.findActiveUsersWithLastAttendanceOn(UserStatus.ACTIVE,
                 dateLimit.toLocalDate()); // Este le envia solo a los que cumplen 4 dias hoy (es decir, 1 vez)
 
-        notificationService.createAttendanceWarningNotification(users, getAllAdmins());
+        notificationCoordinator.createAttendanceWarningNotification(users, getAllAdmins());
 
     }
 

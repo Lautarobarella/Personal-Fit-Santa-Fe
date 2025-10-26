@@ -1,11 +1,11 @@
 import { ZoomPrevention } from "@/components/providers/zoom-prevention"
 import { ThemeProvider } from "@/components/theme-provider"
 import { PWANotificationProvider } from "@/components/providers/pwa-notification-provider"
+import { VersionPermissionManager } from "@/components/notifications/version-permission-manager"
 import { Toaster } from "@/components/ui/toaster"
 import { ActivityProvider } from "@/contexts/activity-provider"
 import { AttendanceProvider } from "@/contexts/attendance-provider"
 import { AuthProvider } from "@/contexts/auth-provider"
-import { NotificationsProvider } from "@/contexts/notifications-provider"
 import { PaymentProvider } from "@/contexts/payment-provider"
 import { SettingsProvider } from "@/contexts/settings-provider"
 import "@/styles/globals.css"
@@ -80,15 +80,14 @@ export default function RootLayout({
                 <PaymentProvider>
                   <ActivityProvider>
                     <AttendanceProvider>
-                      <NotificationsProvider>
-                        <div className="min-h-screen flex justify-center bg-background">
-                          <div className="w-full max-w-md mx-auto relative">
-                            {children}
-                          </div>
+                      <div className="min-h-screen flex justify-center bg-background">
+                        <div className="w-full max-w-md mx-auto relative">
+                          {children}
                         </div>
-                        <ZoomPrevention />
-                        <Toaster />
-                      </NotificationsProvider>
+                      </div>
+                      <ZoomPrevention />
+                      <Toaster />
+                      <VersionPermissionManager />
                     </AttendanceProvider>
                   </ActivityProvider>
                 </PaymentProvider>
