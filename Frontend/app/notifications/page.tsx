@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useNotification } from "@/hooks/notifications/use-notification"
+import { useSimpleNotifications } from "@/hooks/notifications/use-simple-notifications"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationCategoryType, NotificationStatus, NotificationType } from "@/lib/types"
 import {
@@ -36,25 +36,27 @@ export default function NotificationsPage() {
     useRequireAuth()
     const {
         notifications,
-        loading,
+        isLoading,
         error,
-        loadNotifications,
+        unreadNotifications,
+        archivedNotifications, 
+        readNotifications,
         markAsRead,
         markAsUnread,
         archiveNotification,
-        unarchiveNotification,
         deleteNotification,
         markAllAsRead,
-    } = useNotification()
+        refreshNotifications,
+    } = useSimpleNotifications()
 
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<NotificationStatus | "all">(NotificationStatus.UNREAD)
 
     useEffect(() => {
-        loadNotifications()
-    }, [loadNotifications])
+        refreshNotifications()
+    }, [refreshNotifications])
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -72,13 +74,13 @@ export default function NotificationsPage() {
         // Filtrar por estado
         switch (statusFilter) {
             case NotificationStatus.UNREAD:
-                filtered = notifications.filter((n) => n.status === NotificationStatus.UNREAD)
+                filtered = notifications.filter((n: any) => n.status === NotificationStatus.UNREAD)
                 break
             case NotificationStatus.READ:
-                filtered = notifications.filter((n) => n.status === NotificationStatus.READ)
+                filtered = notifications.filter((n: any) => n.status === NotificationStatus.READ)
                 break
             case NotificationStatus.ARCHIVED:
-                filtered = notifications.filter((n) => n.status === NotificationStatus.ARCHIVED)
+                filtered = notifications.filter((n: any) => n.status === NotificationStatus.ARCHIVED)
                 break
             case "all":
                 filtered = notifications
@@ -87,7 +89,7 @@ export default function NotificationsPage() {
         
         // Filtrar por búsqueda
         if (searchTerm) {
-            filtered = filtered.filter((n) =>
+            filtered = filtered.filter((n: any) =>
                 n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 n.message.toLowerCase().includes(searchTerm.toLowerCase())
             )
@@ -97,9 +99,7 @@ export default function NotificationsPage() {
     }
 
     const filteredNotifications = getFilteredNotifications()
-    const unreadNotifications = notifications.filter((n) => n.status === NotificationStatus.UNREAD)
-    const readNotifications = notifications.filter((n) => n.status === NotificationStatus.READ)
-    const archivedNotifications = notifications.filter((n) => n.status === NotificationStatus.ARCHIVED)
+    // Note: unreadNotifications, readNotifications, and archivedNotifications are now provided by the hook
 
     const formatDate = (date: Date) => {
         const now = new Date()
@@ -217,8 +217,9 @@ export default function NotificationsPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={async () => await unarchiveNotification(notification.id)}
+                                            onClick={async () => await markAsUnread(notification.id)}
                                             className="h-7 px-2"
+                                            title="Desarchivar (marcar como no leída)"
                                         >
                                             <Archive className="h-3 w-3" />
                                         </Button>
@@ -306,7 +307,7 @@ export default function NotificationsPage() {
                 {/* Lista de Notificaciones */}
                 <div className="space-y-3">
                     {filteredNotifications.length > 0 ? (
-                        filteredNotifications.map((notification) => (
+                        filteredNotifications.map((notification: any) => (
                             <NotificationCard key={notification.id} notification={notification} />
                         ))
                     ) : (
@@ -392,7 +393,7 @@ export default function NotificationsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={async () => {
-                                        const allActiveNotifications = notifications.filter(n => n.status !== NotificationStatus.ARCHIVED)
+                                        const allActiveNotifications = notifications.filter((n: any) => n.status !== NotificationStatus.ARCHIVED)
                                         
                                         for (const notification of allActiveNotifications) {
                                             await archiveNotification(notification.id)
@@ -403,7 +404,7 @@ export default function NotificationsPage() {
                                             description: `${allActiveNotifications.length} notificaciones archivadas`,
                                         })
                                     }}
-                                    disabled={notifications.filter(n => n.status !== NotificationStatus.ARCHIVED).length === 0}
+                                    disabled={notifications.filter((n: any) => n.status !== NotificationStatus.ARCHIVED).length === 0}
                                     className="bg-transparent min-w-[180px]"
                                 >
                                     <Archive className="h-4 w-4 mr-2" />

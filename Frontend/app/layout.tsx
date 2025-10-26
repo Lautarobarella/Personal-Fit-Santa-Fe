@@ -73,7 +73,7 @@ export default function RootLayout({
         <meta name="browsermode" content="application" />
       </head>
       <body className={inter.className}>
-        <VersionChecker />
+        <VersionPermissionManager />
         <ThemeProvider>
           <AuthProvider>
             <PWANotificationProvider>
@@ -88,7 +88,7 @@ export default function RootLayout({
                       </div>
                       <ZoomPrevention />
                       <Toaster />
-                      <VersionPermissionManager />
+                      
                     </AttendanceProvider>
                   </ActivityProvider>
                 </PaymentProvider>
@@ -96,6 +96,7 @@ export default function RootLayout({
             </PWANotificationProvider>
           </AuthProvider>
         </ThemeProvider>
+        <VersionPermissionManager />
       </body>
     </html>
   )

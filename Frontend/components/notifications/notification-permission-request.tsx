@@ -15,9 +15,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Check, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-provider";
-import { requestNotificationPermission } from "@/lib/firebase-messaging";
-import { registerDeviceToken } from "@/api/notifications/notificationsApi";
-import { RegisterDeviceRequest, UserRole } from "@/lib/types";
+import { usePushNotificationSubscription } from "@/hooks/notifications/use-push-notifications";
+import { UserRole } from "@/lib/types";
 
 interface NotificationPermissionRequestProps {
     onDismiss?: () => void;
@@ -25,9 +24,8 @@ interface NotificationPermissionRequestProps {
 
 export function NotificationPermissionRequest({ onDismiss }: NotificationPermissionRequestProps) {
     const { user } = useAuth();
+    const { subscribe, isLoading, error } = usePushNotificationSubscription();
     const [permissionState, setPermissionState] = useState<'unknown' | 'granted' | 'denied' | 'requesting'>('unknown');
-    const [isRegistering, setIsRegistering] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [showRequest, setShowRequest] = useState(false);
 
     useEffect(() => {
@@ -67,50 +65,23 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
 
     const handleRequestPermission = async () => {
         setPermissionState('requesting');
-        setError(null);
 
         try {
-            const token = await requestNotificationPermission();
+            const result = await subscribe();
             
-            if (token) {
+            if (result.success) {
                 setPermissionState('granted');
-                await registerDevice(token);
                 localStorage.setItem('notification-permission-responded', 'true');
                 localStorage.setItem('notification-permission-granted', 'true');
                 setShowRequest(false);
             } else {
                 setPermissionState('denied');
                 localStorage.setItem('notification-permission-responded', 'true');
-                setError('No se pudo obtener el token de notificación');
             }
         } catch (error) {
             console.error('Error requesting notification permission:', error);
             setPermissionState('denied');
-            setError('Error al solicitar permisos de notificación');
             localStorage.setItem('notification-permission-responded', 'true');
-        }
-    };
-
-    const registerDevice = async (token: string) => {
-        if (!user?.id) return;
-
-        setIsRegistering(true);
-        try {
-            const deviceRequest: RegisterDeviceRequest = {
-                token: token,
-                deviceType: 'PWA',
-                userId: user.id
-            };
-
-            const success = await registerDeviceToken(deviceRequest);
-            if (!success) {
-                setError('Error al registrar el dispositivo para notificaciones');
-            }
-        } catch (error) {
-            console.error('Error registering device:', error);
-            setError('Error al registrar el dispositivo');
-        } finally {
-            setIsRegistering(false);
         }
     };
 
@@ -175,13 +146,13 @@ export function NotificationPermissionRequest({ onDismiss }: NotificationPermiss
                     </AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleRequestPermission}
-                        disabled={permissionState === 'requesting' || isRegistering}
+                        disabled={permissionState === 'requesting' || isLoading}
                         className="bg-blue-600 hover:bg-blue-700"
                     >
-                        {permissionState === 'requesting' || isRegistering ? (
+                        {permissionState === 'requesting' || isLoading ? (
                             <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                {isRegistering ? 'Registrando...' : 'Solicitando...'}
+                                {isLoading ? 'Registrando...' : 'Solicitando...'}
                             </>
                         ) : (
                             <>

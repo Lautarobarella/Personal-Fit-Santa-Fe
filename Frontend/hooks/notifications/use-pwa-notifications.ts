@@ -1,10 +1,78 @@
-import { getNotificationPreferences, getPushNotificationStatus, registerDeviceToken, updateNotificationPreferences, getSubscriptionStatus, unsubscribeFromPushNotifications } from '@/api/notifications/notificationsApi';
+import { jwtPermissionsApi } from "@/api/JWTAuth/api";
+import { handleApiError } from "@/lib/error-handler";
 import { useToast } from '@/hooks/use-toast';
 import { requestNotificationPermission, setupForegroundNotifications } from '@/lib/firebase-messaging';
 import { NotificationPreferences } from '@/lib/types';
 import { MessagePayload } from 'firebase/messaging';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+
+// Inline API functions to replace the missing notificationsApi
+const getNotificationPreferences = async (): Promise<NotificationPreferences | null> => {
+  try {
+    const response = await jwtPermissionsApi.get('/api/notifications/preferences');
+    return response;
+  } catch (error) {
+    console.error('Error getting notification preferences:', error);
+    handleApiError(error, 'Error al obtener preferencias');
+    return null;
+  }
+};
+
+const updateNotificationPreferences = async (preferences: NotificationPreferences): Promise<boolean> => {
+  try {
+    await jwtPermissionsApi.put('/api/notifications/preferences', preferences);
+    return true;
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
+    handleApiError(error, 'Error al actualizar preferencias');
+    return false;
+  }
+};
+
+const getPushNotificationStatus = async (): Promise<any> => {
+  try {
+    const response = await jwtPermissionsApi.get('/api/notifications/push-status');
+    return response;
+  } catch (error) {
+    console.error('Error getting push notification status:', error);
+    handleApiError(error, 'Error al obtener estado de notificaciones');
+    return null;
+  }
+};
+
+const getSubscriptionStatus = async (): Promise<any> => {
+  try {
+    const response = await jwtPermissionsApi.get('/api/notifications/subscription-status');
+    return response;
+  } catch (error) {
+    console.error('Error getting subscription status:', error);
+    handleApiError(error, 'Error al obtener estado de suscripción');
+    return null;
+  }
+};
+
+const unsubscribeFromPushNotifications = async (): Promise<boolean> => {
+  try {
+    await jwtPermissionsApi.post('/api/notifications/unsubscribe', {});
+    return true;
+  } catch (error) {
+    console.error('Error unsubscribing from push notifications:', error);
+    handleApiError(error, 'Error al desuscribirse');
+    return false;
+  }
+};
+
+const registerDeviceToken = async (request: any): Promise<boolean> => {
+  try {
+    await jwtPermissionsApi.post('/api/notifications/pwa/register-device', request);
+    return true;
+  } catch (error) {
+    console.error('Error registering device token:', error);
+    handleApiError(error, 'Error al registrar dispositivo');
+    return false;
+  }
+};
 
 /**
  * Detecta el tipo de dispositivo basándose en el user agent y características del navegador

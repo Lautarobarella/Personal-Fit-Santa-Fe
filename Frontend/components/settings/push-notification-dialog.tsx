@@ -1,7 +1,7 @@
 "use client"
 
-import { sendBulkNotification } from "@/api/notifications/notificationsApi";
 import { BulkNotificationRequest } from "@/lib/types";
+import { NotificationRepository } from "@/lib/notifications/infrastructure/notification-repository";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -35,6 +35,26 @@ export function PushNotificationDialog({ open, onOpenChange }: PushNotificationD
     const [notificationType, setNotificationType] = useState("general")
     const [saveToDatabase, setSaveToDatabase] = useState(true)
     const [isSending, setIsSending] = useState(false)
+
+    // Create repository instance
+    const notificationRepository = new NotificationRepository()
+    
+    // Wrapper function to match expected interface
+    const sendBulkNotification = async (request: BulkNotificationRequest): Promise<boolean> => {
+        try {
+            const result = await notificationRepository.sendBulkNotification({
+                title: request.title,
+                body: request.body,
+                type: request.type,
+                data: request.data,
+                saveToDatabase: request.saveToDatabase
+            })
+            return result.success
+        } catch (error) {
+            console.error('Error sending bulk notification:', error)
+            return false
+        }
+    }
 
     const maxMessageLength = 500
 
