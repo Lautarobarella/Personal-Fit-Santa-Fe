@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 
 // Versión actual de la app (actualizar con cada release)
-const CURRENT_APP_VERSION = '1.2.0' // 🚀 Actualizar esto con cada nueva versión
+const CURRENT_APP_VERSION = '1.3.0' // 🚀 Actualizar esto con cada nueva versión
 
 // Claves para localStorage
 const STORAGE_KEYS = {
