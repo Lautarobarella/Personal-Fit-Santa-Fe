@@ -50,30 +50,50 @@ self.addEventListener('activate', (event) => {
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
   
-  const notificationTitle = payload.notification?.title || 'Personal Fit Santa Fe';
-  const notificationType = payload.data?.type || 'default';
-  
-  // 🚨 CLAVE: Usar tag único para evitar duplicados en móviles
-  const uniqueTag = `pf_${notificationType}_${Date.now()}`;
-  
-  const notificationOptions = {
-    body: payload.notification?.body || 'Nueva notificación',
-    icon: '/logo.png',
-    badge: '/logo.png',
-    image: payload.notification?.image,
-    data: payload.data || {},
-    tag: uniqueTag, // Tag único para evitar reemplazos
-    requireInteraction: true,
-    actions: getNotificationActions(payload.data?.type),
-    vibrate: [200, 100, 200],
-    timestamp: Date.now(),
-    // 🔧 Configuraciones adicionales para móviles
-    silent: false,
-    renotify: false // Evitar re-notificar la misma
-  };
+  // 🚨 CLAVE: Verificar si hay clientes activos/visibles antes de mostrar notificación
+  return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then((clientList) => {
+      // Verificar si algún cliente está visible y enfocado
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && client.visibilityState === 'visible') {
+          console.log('[firebase-messaging-sw.js] ❌ App is visible, NOT showing background notification');
+          // Enviar mensaje al cliente para que maneje la notificación
+          client.postMessage({
+            type: 'FOREGROUND_NOTIFICATION',
+            payload: payload
+          });
+          return; // No mostrar notificación del service worker
+        }
+      }
+      
+      // Si llegamos aquí, la app no está visible, mostrar notificación
+      console.log('[firebase-messaging-sw.js] ✅ App is hidden, showing background notification');
+      
+      const notificationTitle = payload.notification?.title || 'Personal Fit Santa Fe';
+      const notificationType = payload.data?.type || 'default';
+      
+      // 🚨 CLAVE: Usar tag único para evitar duplicados en móviles
+      const uniqueTag = `pf_${notificationType}_${Date.now()}`;
+      
+      const notificationOptions = {
+        body: payload.notification?.body || 'Nueva notificación',
+        icon: '/logo.png',
+        badge: '/logo.png',
+        image: payload.notification?.image,
+        data: payload.data || {},
+        tag: uniqueTag, // Tag único para evitar reemplazos
+        requireInteraction: true,
+        actions: getNotificationActions(payload.data?.type),
+        vibrate: [200, 100, 200],
+        timestamp: Date.now(),
+        // 🔧 Configuraciones adicionales para móviles
+        silent: false,
+        renotify: false // Evitar re-notificar la misma
+      };
 
-  console.log(`[firebase-messaging-sw.js] 📱 Showing notification with tag: ${uniqueTag}`);
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+      console.log(`[firebase-messaging-sw.js] 📱 Showing notification with tag: ${uniqueTag}`);
+      return self.registration.showNotification(notificationTitle, notificationOptions);
+    });
 });
 
 // Get notification actions based on notification type

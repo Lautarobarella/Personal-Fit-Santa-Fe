@@ -280,27 +280,23 @@ export const usePWANotifications = () => {
 
     const setupListener = async () => {
       const listener = setupForegroundNotifications((payload: MessagePayload) => {
-        // 🚨 IMPORTANTE: Solo manejar si la app está visible (evita duplicados en móviles)
-        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
-          console.log('📱 App hidden, letting service worker handle notification');
-          return;
-        }
-
-        // Handle foreground notifications with custom toast
+        // En este punto, firebase-messaging.ts ya verificó que la app está visible y tiene foco
+        // Solo necesitamos manejar la notificación
+        
         const title = payload.notification?.title || 'Personal Fit';
         const body = payload.notification?.body || 'Nueva notificación';
         const data = payload.data || {};
 
-        console.log('📱 App visible, showing foreground toast notification');
+        console.log('🎯 Handling foreground notification with toast:', { title, body });
 
-        // Show custom toast instead of browser notification
+        // Mostrar toast personalizado en lugar de notificación del navegador
         toast({
           title: title,
           description: body,
           duration: 10000
         });
 
-        // Handle navigation based on notification type
+        // Manejar navegación según el tipo de notificación
         handleNotificationNavigation(data);
       });
 
