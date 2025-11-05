@@ -1,11 +1,8 @@
-// firebase-messaging-sw.js - Version: 2025-09-21T15:30:00Z
+// firebase-messaging-sw.js - Simplified Version
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-console.log('[firebase-messaging-sw.js] Service Worker version: 2025-09-21T15:30:00Z');
-
-// Get Firebase config from build-time environment variables
-// These should match the client-side configuration exactly
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDGdX-7s_MDOmBWlz8I4Q10ezLrpZIf1cA",
   authDomain: "personal-fit-santa-fe.firebaseapp.com",
@@ -16,210 +13,57 @@ const firebaseConfig = {
   measurementId: "G-6YSYFJ4C5R"
 };
 
-console.log('[firebase-messaging-sw.js] Initializing Firebase with config:', {
-  apiKey: firebaseConfig.apiKey?.substring(0, 20) + '...',
-  authDomain: firebaseConfig.authDomain,
-  projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket,
-  messagingSenderId: firebaseConfig.messagingSenderId,
-  appId: firebaseConfig.appId?.substring(0, 20) + '...',
-  measurementId: firebaseConfig.measurementId
-});
-
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-
-// Retrieve Firebase Messaging object
 const messaging = firebase.messaging();
 
-// Handle skipWaiting message for immediate update
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.action === 'skipWaiting') {
-    console.log('[firebase-messaging-sw.js] Skipping waiting and activating new service worker');
-    self.skipWaiting();
-  }
-});
-
-// Ensure the service worker takes control immediately
-self.addEventListener('activate', (event) => {
-  console.log('[firebase-messaging-sw.js] Service worker activated');
-  event.waitUntil(self.clients.claim());
-});
-
-// Handle background messages
+// Background message handler
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
-  
-  const notificationTitle = payload.notification?.title || 'Personal Fit Santa Fe';
-  const notificationType = payload.data?.type || 'default';
-  
-  // 🚨 CLAVE: Usar tag único para evitar duplicados en móviles
-  const uniqueTag = `pf_${notificationType}_${Date.now()}`;
-  
+
+  // Extract title and body from either notification or data payload
+  const title = payload.notification?.title || payload.data?.title || 'Personal Fit Santa Fe';
+  const body = payload.notification?.body || payload.data?.body || 'Nueva notificación';
+  const icon = '/logo.png';
+
   const notificationOptions = {
-    body: payload.notification?.body || 'Nueva notificación',
-    icon: '/logo.png',
-    badge: '/logo.png',
-    image: payload.notification?.image,
-    data: payload.data || {},
-    tag: uniqueTag, // Tag único para evitar reemplazos
-    requireInteraction: true,
-    actions: getNotificationActions(payload.data?.type),
-    vibrate: [200, 100, 200],
-    timestamp: Date.now(),
-    // 🔧 Configuraciones adicionales para móviles
-    silent: false,
-    renotify: false // Evitar re-notificar la misma
+    body: body,
+    icon: icon,
+    badge: icon,
+    data: payload.data, // Keep data for click handling
+    tag: 'pf-notification' // Simple tag
   };
 
-  console.log(`[firebase-messaging-sw.js] 📱 Showing notification with tag: ${uniqueTag}`);
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(title, notificationOptions);
 });
 
-// Get notification actions based on notification type
-function getNotificationActions(type) {
-  switch (type) {
-    case 'class_reminder':
-      return [
-        { 
-          action: 'view', 
-          title: '👀 Ver Clase', 
-          icon: '/icons/eye.png' 
-        }
-      ];
-    case 'payment_due':
-      return [
-        { 
-          action: 'pay', 
-          title: '💳 Pagar Ahora', 
-          icon: '/icons/payment.png' 
-        },
-        { 
-          action: 'remind', 
-          title: '⏰ Recordar Después', 
-          icon: '/icons/clock.png' 
-        }
-      ];
-    case 'general':
-    default:
-      return [
-        { 
-          action: 'view', 
-          title: '👀 Ver', 
-          icon: '/icons/eye.png' 
-        }
-      ];
-  }
-}
-
-// Handle notification clicks
+// Notification click handler
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Notification click received:', event);
-  
+  console.log('[firebase-messaging-sw.js] Notification click received');
   event.notification.close();
-  
-  const action = event.action;
-  const data = event.notification.data || {};
-  const { type, activityId, paymentId } = data;
-  
-  let urlToOpen = '/dashboard';
-  let shouldOpenWindow = true;
-  
-  // Handle different actions
-  switch (action) {
-    case 'confirm':
-      if (type === 'class_reminder' && activityId) {
-        // Confirm attendance via API
-        handleConfirmAttendance(activityId);
-        shouldOpenWindow = false;
-      }
-      break;
-      
-    case 'view':
-      if (type === 'class_reminder' && activityId) {
-        urlToOpen = `/activities/${activityId}`;
-      } else if (type === 'payment_due' && paymentId) {
-        urlToOpen = `/payments/${paymentId}`;
-      } else {
-        urlToOpen = '/dashboard';
-      }
-      break;
-      
-    case 'pay':
-      if (paymentId) {
-        urlToOpen = `/payments/${paymentId}`;
-      } else {
-        urlToOpen = '/payments';
-      }
-      break;
-      
-    case 'enroll':
-      if (activityId) {
-        handleEnrollInActivity(activityId);
-        urlToOpen = `/activities/${activityId}`;
-      }
-      break;
-      
-    case 'alternatives':
-      urlToOpen = '/activities';
-      break;
-      
-    case 'contact':
-      urlToOpen = '/settings';
-      break;
-      
-    case 'remind':
-      // Schedule a reminder for later
-      handleRemindLater(paymentId);
-      shouldOpenWindow = false;
-      break;
-      
-    default:
-      // Default click (no action button)
-      if (type === 'class_reminder' && activityId) {
-        urlToOpen = `/activities/${activityId}`;
-      } else if (type === 'payment_due' && paymentId) {
-        urlToOpen = `/payments/${paymentId}`;
-      } else {
-        urlToOpen = '/dashboard';
-      }
-  }
-  
-  if (shouldOpenWindow) {
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          // Check if app is already open
-          for (const client of clientList) {
-            if (client.url.includes(self.location.origin)) {
-              // Focus existing window and navigate
-              client.focus();
-              client.postMessage({
-                type: 'NOTIFICATION_CLICK',
-                action: action,
-                url: urlToOpen,
-                data: data
-              });
-              return;
-            }
-          }
-          // Open new window if app is not open
-          return clients.openWindow(urlToOpen);
-        })
-    );
-  }
-});
 
-// Handle remind later
-function handleRemindLater(paymentId) {
-  // In a real implementation, you might want to schedule a notification
-  // or update user preferences via an API call
-  console.log('Setting reminder for payment:', paymentId);
-  
-  self.registration.showNotification('⏰ Recordatorio Programado', {
-    body: 'Te recordaremos sobre el pago más tarde',
-    icon: '/logo.png',
-    tag: 'reminder_set',
-    requireInteraction: false
-  });
-}
+  const urlToOpen = '/dashboard'; // Default URL
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Focus existing window if available
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            return client.focus().then(focusedClient => {
+              if (focusedClient) {
+                focusedClient.postMessage({
+                  type: 'NOTIFICATION_CLICK',
+                  payload: event.notification.data
+                });
+              }
+              return focusedClient;
+            });
+          }
+        }
+        // Otherwise open new window
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});

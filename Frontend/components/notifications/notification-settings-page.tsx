@@ -1,19 +1,21 @@
 'use client';
 
 import { NotificationSetup } from '@/components/notifications/notification-setup';
-import { useNotificationStatus } from '@/components/providers/pwa-notification-provider';
+import { useNotificationsContext } from '@/contexts/notifications-provider';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bell, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 export function NotificationSettingsPage() {
-  const { 
-    isSupported, 
-    canReceiveNotifications, 
-    needsPermission, 
-    isBlocked,
-    needsToggle
-  } = useNotificationStatus();
+  const {
+    isSupported,
+    isActive,
+    permissionState: permission
+  } = useNotificationsContext();
+
+  const canReceiveNotifications = isActive;
+  const needsPermission = permission === 'default';
+  const isBlocked = permission === 'denied';
 
   const getStatusBadge = () => {
     if (!isSupported) {
@@ -24,7 +26,7 @@ export function NotificationSettingsPage() {
         </Badge>
       );
     }
-    
+
     if (canReceiveNotifications) {
       return (
         <Badge variant="default" className="flex items-center gap-1 bg-green-600">
@@ -33,7 +35,7 @@ export function NotificationSettingsPage() {
         </Badge>
       );
     }
-    
+
     if (isBlocked) {
       return (
         <Badge variant="destructive" className="flex items-center gap-1">
@@ -42,7 +44,7 @@ export function NotificationSettingsPage() {
         </Badge>
       );
     }
-    
+
     if (needsPermission) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
@@ -51,7 +53,7 @@ export function NotificationSettingsPage() {
         </Badge>
       );
     }
-    
+
     return (
       <Badge variant="outline" className="flex items-center gap-1">
         <Bell className="h-3 w-3" />
@@ -95,7 +97,7 @@ export function NotificationSettingsPage() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
@@ -105,7 +107,7 @@ export function NotificationSettingsPage() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
@@ -115,7 +117,7 @@ export function NotificationSettingsPage() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
@@ -130,8 +132,8 @@ export function NotificationSettingsPage() {
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <h4 className="font-medium mb-2">Privacidad y Seguridad</h4>
             <p className="text-sm text-muted-foreground">
-              Tus tokens de notificación están encriptados y protegidos. Solo Personal Fit puede 
-              enviarte notificaciones y puedes desactivarlas en cualquier momento. Nunca compartimos 
+              Tus tokens de notificación están encriptados y protegidos. Solo Personal Fit puede
+              enviarte notificaciones y puedes desactivarlas en cualquier momento. Nunca compartimos
               tu información con terceros.
             </p>
           </div>

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/contexts/auth-provider"
-import { usePWANotifications } from "@/hooks/notifications/use-pwa-notifications"
+import { useNotificationsContext } from "@/contexts/notifications-provider"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
@@ -28,23 +28,23 @@ export default function SettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
-  const { 
-    isSupported: notificationsSupported, 
-    isActive: notificationsActive, 
-    isLoading: notificationsLoading,
-    requestPermission, 
-    loadPreferences,
-    // Nuevas propiedades para gestión profesional
-    isSubscribed,
-    canSubscribe,
-    canUnsubscribe,
-    activeTokensCount,
+  const {
+    isSupported: notificationsSupported,
+    isActive: isSubscribed,
+    loading: notificationsLoading,
+    requestPermission,
     subscribe,
     unsubscribe,
-    loadSubscriptionStatus,
-    token
-  } = usePWANotifications()
-  
+    fcmToken: token
+  } = useNotificationsContext()
+
+  // Derived state for compatibility
+  const activeTokensCount = isSubscribed ? 1 : 0;
+  const canSubscribe = !isSubscribed;
+  const canUnsubscribe = isSubscribed;
+  const loadSubscriptionStatus = async () => { }; // No-op, handled by provider
+  const loadPreferences = async () => { }; // No-op, handled by provider
+
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
   const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
@@ -193,18 +193,18 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-medium">Notificaciones Push</p>
                   <p className="text-sm text-muted-foreground">
-                    {!notificationsSupported 
-                      ? "No compatible con tu navegador" 
+                    {!notificationsSupported
+                      ? "No compatible con tu navegador"
                       : notificationsLoading
                         ? "Cargando..."
-                        : isSubscribed 
-                          ? `Activo - ${activeTokensCount} dispositivo${activeTokensCount !== 1 ? 's' : ''} conectado${activeTokensCount !== 1 ? 's' : ''}` 
+                        : isSubscribed
+                          ? `Activo - ${activeTokensCount} dispositivo${activeTokensCount !== 1 ? 's' : ''} conectado${activeTokensCount !== 1 ? 's' : ''}`
                           : "Activa para recibir notificaciones importantes"
                     }
                   </p>
                 </div>
               </div>
-              <Switch 
+              <Switch
                 checked={isSubscribed}
                 onCheckedChange={handleNotificationsToggle}
                 disabled={!notificationsSupported || notificationsLoading || (!canSubscribe && !canUnsubscribe)}
@@ -242,7 +242,6 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
 
         {/* Resources Settings */}
         <Card>

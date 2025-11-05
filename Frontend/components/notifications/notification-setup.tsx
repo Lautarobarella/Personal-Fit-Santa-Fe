@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { usePWANotifications } from '@/hooks/notifications/use-pwa-notifications';
+import { useNotificationsContext } from '@/contexts/notifications-provider';
 import {
   AlertTriangle,
   Bell,
@@ -21,28 +21,29 @@ import {
 } from 'lucide-react';
 
 export function NotificationSetup() {
-  const { 
-    isSupported, 
-    permission, 
-    isGranted, 
-    isActive, 
-    isLoading, 
+  const {
+    isSupported,
+    permissionState: permission,
+    isActive,
+    loading: isLoading,
     preferences,
-    hasDeviceTokens,
-    requestPermission, 
+    requestPermission,
     updatePreferences,
     subscribe,
     unsubscribe
-  } = usePWANotifications();
+  } = useNotificationsContext();
+
+  const hasDeviceTokens = isActive;
+  // const isGranted = permission === 'granted'; // Unused
 
   const handlePreferenceChange = async (key: string, value: boolean) => {
     if (!preferences) return;
-    
+
     const newPreferences = {
       ...preferences,
       [key]: value
     };
-    
+
     await updatePreferences(newPreferences);
   };
 
@@ -122,15 +123,15 @@ export function NotificationSetup() {
                 <span className="text-sm">{statusInfo.text}</span>
               </div>
             </div>
-            
+
             {isLoading && (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
           </div>
 
           {!hasDeviceTokens && permission !== 'denied' && (
-            <Button 
-              onClick={requestPermission} 
+            <Button
+              onClick={requestPermission}
               disabled={isLoading}
               className="w-full"
             >
@@ -237,29 +238,6 @@ export function NotificationSetup() {
                 disabled={isLoading}
               />
             </div>
-
-            <Separator />
-
-            {/* New Classes */}
-{/*             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-purple-600" />
-                <div>
-                  <Label htmlFor="new-classes" className="text-sm font-medium">
-                    Nuevas Clases
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Notificaciones cuando se agregan nuevas clases
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="new-classes"
-                checked={preferences.newClasses}
-                onCheckedChange={(checked) => handlePreferenceChange('newClasses', checked)}
-                disabled={isLoading}
-              />
-            </div> */}
 
             <Separator />
 
