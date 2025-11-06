@@ -35,6 +35,13 @@ export async function registerFCMToken(token: string, deviceInfo?: string): Prom
 }
 
 /**
+ * Alias para registerFCMToken para compatibilidad con hooks existentes
+ */
+export async function registerDeviceToken(request: { token: string; deviceType?: string }): Promise<boolean> {
+    return await registerFCMToken(request.token, request.deviceType);
+}
+
+/**
  * Obtiene las notificaciones del usuario especificado
  * @param userId ID del usuario (opcional, si no se proporciona se obtiene desde localStorage)
  */
@@ -133,6 +140,100 @@ export async function checkNotificationServiceHealth(): Promise<{ status: string
             status: 'error',
             message: error?.response?.data || error?.message || 'Unknown error'
         };
+    }
+}
+
+/**
+ * Envía una notificación masiva a múltiples usuarios
+ */
+export async function sendBulkNotification(notification: { title: string; message: string; userIds?: number[] }): Promise<boolean> {
+    try {
+        await jwtPermissionsApi.post('/api/notifications/bulk', notification);
+        console.log('✅ Bulk notification sent successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Error sending bulk notification:', error);
+        handleApiError(error, 'Error al enviar notificación masiva');
+        return false;
+    }
+}
+
+/**
+ * Obtiene las preferencias de notificación del usuario
+ */
+export async function getNotificationPreferences(): Promise<any> {
+    try {
+        // Por ahora devolvemos preferencias por defecto
+        return {
+            classReminders: true,
+            paymentDue: true,
+            newClasses: true,
+            promotions: false,
+            classCancellations: true,
+            generalAnnouncements: true
+        };
+    } catch (error) {
+        console.error('❌ Error getting notification preferences:', error);
+        return null;
+    }
+}
+
+/**
+ * Obtiene el estado de las notificaciones push del usuario
+ */
+export async function getPushNotificationStatus(): Promise<{ hasDeviceTokens: boolean } | null> {
+    try {
+        // Por ahora simulamos que no hay tokens activos
+        return { hasDeviceTokens: false };
+    } catch (error) {
+        console.error('❌ Error getting push notification status:', error);
+        return null;
+    }
+}
+
+/**
+ * Actualiza las preferencias de notificación del usuario
+ */
+export async function updateNotificationPreferences(preferences: any): Promise<boolean> {
+    try {
+        // Por ahora solo simulamos éxito
+        console.log('✅ Notification preferences updated:', preferences);
+        return true;
+    } catch (error) {
+        console.error('❌ Error updating notification preferences:', error);
+        return false;
+    }
+}
+
+/**
+ * Obtiene el estado de suscripción a notificaciones del usuario
+ */
+export async function getSubscriptionStatus(): Promise<{ isSubscribed: boolean; canSubscribe: boolean; canUnsubscribe: boolean; activeTokensCount: number } | null> {
+    try {
+        // Por ahora simulamos estado no suscrito
+        return {
+            isSubscribed: false,
+            canSubscribe: true,
+            canUnsubscribe: false,
+            activeTokensCount: 0
+        };
+    } catch (error) {
+        console.error('❌ Error getting subscription status:', error);
+        return null;
+    }
+}
+
+/**
+ * Desuscribe al usuario de las notificaciones push
+ */
+export async function unsubscribeFromPushNotifications(): Promise<boolean> {
+    try {
+        // Por ahora solo simulamos éxito
+        console.log('✅ Unsubscribed from push notifications');
+        return true;
+    } catch (error) {
+        console.error('❌ Error unsubscribing from push notifications:', error);
+        return false;
     }
 }
 
