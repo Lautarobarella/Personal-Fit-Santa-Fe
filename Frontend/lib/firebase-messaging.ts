@@ -1,5 +1,7 @@
 import { messaging } from '@/lib/firebase-config';
-import { getToken, MessagePayload, onMessage } from 'firebase/messaging';
+import { getToken, MessagePayload, onMessage, Messaging } from 'firebase/messaging';
+import { initializeApp, getApps } from 'firebase/app';
+import { getMessaging as getFirebaseMessaging } from 'firebase/messaging';
 
 export interface CustomNotificationPayload {
   notification?: {
@@ -139,15 +141,7 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
   }
 };
 
-export const onMessageListener = (): Promise<MessagePayload> =>
-  new Promise((resolve) => {
-    if (!messaging) return;
-    
-    onMessage(messaging, (payload: MessagePayload) => {
-      console.log('Foreground message received:', payload);
-      resolve(payload);
-    });
-  });
+
 
 export const setupForegroundNotifications = (
   callback: (payload: MessagePayload) => void
@@ -180,3 +174,47 @@ export const setupForegroundNotifications = (
 
   return unsubscribe;
 };
+
+// ===============================
+// FUNCIONES NUEVAS PARA EL DOCUMENTO FCM
+// ===============================
+
+/**
+ * Inicializa Firebase (usado por el nuevo NotificationsProvider)
+ */
+export const initializeFirebase = async (): Promise<void> => {
+  // Firebase ya se inicializa en firebase-config, esta función es para compatibilidad
+  if (getApps().length === 0) {
+    throw new Error('Firebase not initialized in firebase-config')
+  }
+  console.log('✅ Firebase already initialized')
+}
+
+/**
+ * Obtiene la instancia de Messaging (usado por el nuevo NotificationsProvider)
+ */
+export const getMessaging = async (): Promise<Messaging | null> => {
+  return messaging
+}
+
+/**
+ * Versión simplificada de onMessageListener que acepta callback
+ * Implementa la sección 4.2 del documento
+ */
+export const onMessageListener = (callback: (payload: MessagePayload) => void): void => {
+  if (!messaging) return;
+  
+  onMessage(messaging, (payload: MessagePayload) => {
+    console.log('📱 Foreground notification received:', payload);
+    
+    // Solo manejar si la app está visible y enfocada (sección 4.2)
+    if (typeof document !== 'undefined') {
+      const isVisible = document.visibilityState === 'visible';
+      const hasFocus = document.hasFocus();
+      
+      if (isVisible && hasFocus) {
+        callback(payload);
+      }
+    }
+  });
+}

@@ -1,8 +1,6 @@
 package com.personalfit.controllers;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,25 +8,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.personalfit.dto.Notification.BulkNotificationRequest;
 import com.personalfit.dto.Notification.NotificationDTO;
-import com.personalfit.dto.Notification.NotificationPreferencesDTO;
-import com.personalfit.dto.Notification.RegisterDeviceTokenRequest;
-import com.personalfit.dto.Notification.SendNotificationRequest;
-import com.personalfit.enums.NotificationStatus;
 import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
 import com.personalfit.services.NotificationService;
 
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Controller de Notificaciones implementado según el documento FCM
+ * 
+ * Endpoints principales:
+ * - POST /api/notifications/token - Registro de tokens FCM (sección 1.3 del documento)
+ * - GET /api/notifications/user/{id} - Obtener historial de notificaciones
+ */
+@Slf4j
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
@@ -40,10 +41,84 @@ public class NotificationController {
     private UserRepository userRepository;
 
     /**
+     * DTO para el registro de token FCM según la sección 1.3 del documento
+     */
+    public static class FCMTokenRequest {
+        public String token;
+        public String deviceInfo;
+        
+        // Constructors
+        public FCMTokenRequest() {}
+        public FCMTokenRequest(String token, String deviceInfo) {
+            this.token = token;
+            this.deviceInfo = deviceInfo;
+        }
+    }
+
+    // ===============================
+    // ENDPOINT PRINCIPAL: REGISTRO DE TOKEN FCM (Sección 1.3 del documento)
+    // ===============================
+
+    /**
+     * Registra un token FCM para un usuario autenticado
+     * Implementa la sección 1.3 del documento: "Envío al Backend"
+     * 
+     * Endpoint seguro que requiere autenticación (@PreAuthorize)
+     * El token debe estar asociado al User autenticado
+     */
+    @PostMapping("/token")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
+    public ResponseEntity<String> registerFCMToken(@RequestBody FCMTokenRequest request, Authentication authentication) {
+        try {
+            if (request.token == null || request.token.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("FCM Token is required");
+            }
+
+            // Obtener usuario autenticado
+            String userEmail = authentication.getName();
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+            
+            if (userOpt.isEmpty()) {
+                log.warn("User not found with email: {}", userEmail);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            }
+
+            User user = userOpt.get();
+            
+            // Registrar token FCM usando el NotificationService
+            boolean success = notificationService.registerFCMToken(
+                user.getId(), 
+                request.token, 
+                request.deviceInfo
+            );
+
+            if (success) {
+                log.info("✅ FCM token registered successfully for user: {}", user.getId());
+                return ResponseEntity.ok("FCM token registered successfully");
+            } else {
+                log.error("❌ Failed to register FCM token for user: {}", user.getId());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to register FCM token");
+            }
+
+        } catch (Exception e) {
+            log.error("Error registering FCM token", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Internal server error");
+        }
+    }
+
+    // ===============================
+    // ENDPOINTS DE HISTORIAL DE NOTIFICACIONES
+    // ===============================
+
+    /**
      * Obtiene las notificaciones de un usuario específico
+     * Los usuarios solo pueden ver sus propias notificaciones
+     * Los administradores pueden ver las de cualquier usuario
      */
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
     public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id, Authentication authentication) {
         try {
             // Verificar si es ADMIN
@@ -55,388 +130,72 @@ public class NotificationController {
                 List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
                 return ResponseEntity.ok(notifications);
             } else {
-                // Para CLIENT, verificar que solo pueda acceder a sus propias notificaciones
+                // Para CLIENT/TRAINER, verificar que solo pueda acceder a sus propias notificaciones
                 String userEmail = authentication.getName();
-                List<NotificationDTO> notifications = notificationService.getUserNotificationsByIdAndEmail(id, userEmail);
+                Optional<User> userOpt = userRepository.findByEmail(userEmail);
+                
+                if (userOpt.isEmpty() || !userOpt.get().getId().equals(id)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(List.of());
+                }
+                
+                List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
                 return ResponseEntity.ok(notifications);
             }
         } catch (Exception e) {
-            System.err.println("Error fetching notifications for user " + id + ": " + e.getMessage());
+            log.error("Error fetching notifications for user {}: {}", id, e.getMessage());
             return ResponseEntity.ok(List.of());
         }
     }
 
     /**
-     * Marca una notificación como leída
+     * Obtiene las notificaciones del usuario autenticado actual
+     * Endpoint de conveniencia para el frontend
      */
-    @PutMapping("/{id}/read")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> markAsRead(@PathVariable Long id) {
-        try {
-            boolean updated = notificationService.updateNotificationStatus(id, NotificationStatus.READ);
-            if (updated) {
-                return ResponseEntity.ok("Notification marked as read");
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            System.err.println("Error marking notification as read: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error updating notification");
-        }
-    }
-
-    /**
-     * Marca una notificación como no leída
-     */
-    @PutMapping("/{id}/unread")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> markAsUnread(@PathVariable Long id) {
-        try {
-            boolean updated = notificationService.updateNotificationStatus(id, NotificationStatus.UNREAD);
-            if (updated) {
-                return ResponseEntity.ok("Notification marked as unread");
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            System.err.println("Error marking notification as unread: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error updating notification");
-        }
-    }
-
-    /**
-     * Archiva una notificación
-     */
-    @PutMapping("/{id}/archive")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> archiveNotification(@PathVariable Long id) {
-        try {
-            boolean updated = notificationService.updateNotificationStatus(id, NotificationStatus.ARCHIVED);
-            if (updated) {
-                return ResponseEntity.ok("Notification archived");
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            System.err.println("Error archiving notification: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error updating notification");
-        }
-    }
-
-    /**
-     * Elimina una notificación
-     */
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> deleteNotification(@PathVariable Long id) {
-        try {
-            boolean deleted = notificationService.deleteNotification(id);
-            if (deleted) {
-                return ResponseEntity.ok("Notification deleted");
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            System.err.println("Error deleting notification: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error deleting notification");
-        }
-    }
-
-    /**
-     * Marca todas las notificaciones como leídas para un usuario
-     */
-    @PutMapping("/user/{userId}/mark-all-read")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> markAllAsRead(@PathVariable Long userId, Authentication authentication) {
-        try {
-            // Verificar si es ADMIN
-            boolean isAdmin = authentication.getAuthorities().stream()
-                    .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
-            
-            if (!isAdmin) {
-                // Para CLIENT, verificar que el userId corresponda al usuario autenticado
-                String userEmail = authentication.getName();
-                Optional<User> user = userRepository.findByEmail(userEmail);
-                if (user.isEmpty() || !user.get().getId().equals(userId)) {
-                    return ResponseEntity.status(403).body("Access denied");
-                }
-            }
-            
-            notificationService.markAllAsReadByUserId(userId);
-            return ResponseEntity.ok("All notifications marked as read");
-        } catch (Exception e) {
-            System.err.println("Error marking all notifications as read: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error updating notifications");
-        }
-    }
-
-    // ==================== PWA PUSH NOTIFICATION ENDPOINTS ====================
-
-    /**
-     * Registra un token de dispositivo para notificaciones push
-     */
-    @PostMapping("/pwa/register-device")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> registerDevice(@RequestBody RegisterDeviceTokenRequest request, Authentication authentication) {
+    @GetMapping("/my-notifications")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
+    public ResponseEntity<List<NotificationDTO>> getMyNotifications(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
             
-            if (user.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(List.of());
             }
             
-            boolean registered = notificationService.registerDeviceToken(
-                user.get().getId(), 
-                request.getToken(), 
-                request.getDeviceInfo()
-            );
+            List<NotificationDTO> notifications = notificationService.getAllByUserId(userOpt.get().getId());
+            return ResponseEntity.ok(notifications);
             
-            if (registered) {
-                return ResponseEntity.ok("Device registered successfully");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to register device");
-            }
         } catch (Exception e) {
-            System.err.println("Error registering device: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error registering device");
-        }
-    }
-
-    /**
-     * Elimina un token de dispositivo
-     */
-    @DeleteMapping("/pwa/unregister-device/{token}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> unregisterDevice(@PathVariable String token, Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-            }
-            
-            boolean unregistered = notificationService.unregisterDeviceToken(user.get().getId(), token);
-            
-            if (unregistered) {
-                return ResponseEntity.ok("Device unregistered successfully");
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            System.err.println("Error unregistering device: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error unregistering device");
-        }
-    }
-
-    /**
-     * Obtiene las preferencias de notificación del usuario
-     */
-    @GetMapping("/pwa/preferences")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<NotificationPreferencesDTO> getNotificationPreferences(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-            
-            // Usar getUserPreferences que maneja null correctamente y devuelve DTO directamente
-            NotificationPreferencesDTO dto = notificationService.getUserPreferences(user.get().getId());
-            
-            return ResponseEntity.ok(dto);
-        } catch (Exception e) {
-            System.err.println("Error getting notification preferences: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * Actualiza las preferencias de notificación del usuario
-     */
-    @PutMapping("/pwa/preferences")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> updateNotificationPreferences(
-            @RequestBody NotificationPreferencesDTO preferencesDTO, 
-            Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-            }
-            
-            boolean updated = notificationService.updateNotificationPreferences(user.get().getId(), preferencesDTO);
-            
-            if (updated) {
-                return ResponseEntity.ok("Preferences updated successfully");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to update preferences");
-            }
-        } catch (Exception e) {
-            System.err.println("Error updating notification preferences: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error updating preferences");
-        }
-    }
-
-    /**
-     * Envía una notificación push a un usuario específico (solo ADMIN)
-     */
-    @PostMapping("/pwa/send")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> sendPushNotification(@RequestBody SendNotificationRequest request) {
-        try {
-            boolean sent = notificationService.createAndSendNotification(request);
-            
-            if (sent) {
-                return ResponseEntity.ok("Notification sent successfully");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to send notification");
-            }
-        } catch (Exception e) {
-            System.err.println("Error sending push notification: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error sending notification");
-        }
-    }
-
-    /**
-     * Envía notificaciones push a múltiples usuarios (solo ADMIN)
-     */
-    @PostMapping("/pwa/send-bulk")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> sendBulkPushNotifications(@RequestBody BulkNotificationRequest request) {
-        try {
-            System.out.println("🔥 Bulk notification request received:");
-            System.out.println("  Title: " + request.getTitle());
-            System.out.println("  Body: " + request.getBody());
-            System.out.println("  Type: " + request.getType());
-            System.out.println("  User IDs: " + (request.getUserIds() != null ? request.getUserIds().size() + " users" : "null (all users)"));
-            System.out.println("  Save to DB: " + request.getSaveToDatabase());
-            
-            boolean sent = notificationService.createAndSendBulkNotifications(request);
-            
-            if (sent) {
-                System.out.println("✅ Bulk notifications sent successfully");
-                return ResponseEntity.ok("Bulk notifications sent successfully");
-            } else {
-                System.out.println("❌ Failed to send bulk notifications");
-                return ResponseEntity.badRequest().body("Failed to send bulk notifications");
-            }
-        } catch (Exception e) {
-            System.err.println("❌ Error sending bulk push notifications: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error sending bulk notifications");
-        }
-    }
-
-
-
-    /**
-     * Verifica si el usuario tiene las notificaciones push habilitadas
-     */
-    @GetMapping("/pwa/status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<Map<String, Object>> getPushNotificationStatus(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.badRequest().body(null);
-            }
-            
-            long activeTokens = notificationService.getActiveTokenCount(user.get().getId());
-            
-            Map<String, Object> status = new HashMap<>();
-            status.put("hasDeviceTokens", activeTokens > 0);
-            status.put("activeTokensCount", activeTokens);
-            
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            System.err.println("Error getting push notification status: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(null);
+            log.error("Error fetching my notifications: {}", e.getMessage());
+            return ResponseEntity.ok(List.of());
         }
     }
 
     // ===============================
-    // GESTIÓN PROFESIONAL DE SUSCRIPCIONES
+    // ENDPOINT DE SALUD/DIAGNÓSTICO
     // ===============================
 
     /**
-     * Obtiene el estado de suscripción a notificaciones push del usuario
+     * Endpoint de diagnóstico para verificar el estado del servicio de notificaciones
+     * Solo accesible para administradores
      */
-    @GetMapping("/subscription-status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<Map<String, Object>> getSubscriptionStatus(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-            }
-
-            boolean isSubscribed = notificationService.isUserSubscribedToNotifications(user.get().getId());
-            long activeTokens = notificationService.getActiveTokenCount(user.get().getId());
-            
-            Map<String, Object> status = Map.of(
-                "isSubscribed", isSubscribed,
-                "activeTokensCount", activeTokens,
-                "canSubscribe", !isSubscribed,
-                "canUnsubscribe", isSubscribed
-            );
-            
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            System.err.println("Error getting subscription status: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(Map.of("error", "Internal server error"));
-        }
-    }
-
-    /**
-     * Desuscribe al usuario de notificaciones push (desactiva todos sus tokens)
-     */
-    @PostMapping("/unsubscribe")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
-    public ResponseEntity<String> unsubscribeFromPushNotifications(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            Optional<User> user = userRepository.findByEmail(userEmail);
-            
-            if (user.isEmpty()) {
-                return ResponseEntity.badRequest().body("User not found");
-            }
-
-            boolean success = notificationService.unsubscribeFromPushNotifications(user.get().getId());
-            
-            if (success) {
-                return ResponseEntity.ok("Successfully unsubscribed from push notifications");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to unsubscribe from push notifications");
-            }
-        } catch (Exception e) {
-            System.err.println("Error unsubscribing from push notifications: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error unsubscribing from push notifications");
-        }
-    }
-
-    /**
-     * Trigger manual de limpieza de tokens (solo para ADMIN)
-     */
-    @PostMapping("/cleanup-tokens")
+    @GetMapping("/health")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> cleanupInvalidTokens() {
+    public ResponseEntity<String> healthCheck() {
         try {
-            notificationService.cleanupInvalidTokens();
-            return ResponseEntity.ok("Token cleanup completed successfully");
+            // Verificar si Firebase está configurado
+            if (!notificationService.isFirebaseConfigured()) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Firebase is not configured - FCM notifications disabled");
+            }
+            
+            return ResponseEntity.ok("Notification service is healthy - FCM ready");
+            
         } catch (Exception e) {
-            System.err.println("Error during manual token cleanup: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Error during token cleanup");
+            log.error("Error in notification service health check", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Notification service error: " + e.getMessage());
         }
     }
 }

@@ -657,7 +657,7 @@ public class PaymentService {
                 // Enviar recordatorio a cada usuario asociado al pago
                 for (User user : payment.getUsers()) {
                     notificationService.sendPaymentDueReminder(user, payment.getAmount(), 
-                            payment.getExpiresAt());
+                            payment.getExpiresAt().toLocalDate());
                 }
                 log.info("Payment reminder sent for payment ID: {} to {} users", 
                         payment.getId(), payment.getUsers().size());

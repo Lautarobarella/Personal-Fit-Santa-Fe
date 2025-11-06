@@ -46,7 +46,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Handle background messages
+// Handle background messages según sección 4.1 del documento
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
   
@@ -57,7 +57,7 @@ messaging.onBackgroundMessage((payload) => {
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && client.visibilityState === 'visible') {
           console.log('[firebase-messaging-sw.js] ❌ App is visible, NOT showing background notification');
-          // Enviar mensaje al cliente para que maneje la notificación
+          // Enviar mensaje al cliente para que maneje la notificación en primer plano
           client.postMessage({
             type: 'FOREGROUND_NOTIFICATION',
             payload: payload
@@ -66,23 +66,25 @@ messaging.onBackgroundMessage((payload) => {
         }
       }
       
-      // Si llegamos aquí, la app no está visible, mostrar notificación
+      // Si llegamos aquí, la app no está visible, mostrar notificación (sección 4.1)
       console.log('[firebase-messaging-sw.js] ✅ App is hidden, showing background notification');
       
+      // Usar notification payload si existe, sino crear desde data payload (sección 3.3)
       const notificationTitle = payload.notification?.title || 'Personal Fit Santa Fe';
+      const notificationBody = payload.notification?.body || 'Nueva notificación';
       const notificationType = payload.data?.type || 'default';
       
       // 🚨 CLAVE: Usar tag único para evitar duplicados en móviles
       const uniqueTag = `pf_${notificationType}_${Date.now()}`;
       
       const notificationOptions = {
-        body: payload.notification?.body || 'Nueva notificación',
+        body: notificationBody,
         icon: '/logo.png',
         badge: '/logo.png',
         image: payload.notification?.image,
-        data: payload.data || {},
+        data: payload.data || {}, // Data payload para procesamiento (sección 3.3)
         tag: uniqueTag, // Tag único para evitar reemplazos
-        requireInteraction: true,
+        requireInteraction: isImportantNotification(notificationType),
         actions: getNotificationActions(payload.data?.type),
         vibrate: [200, 100, 200],
         timestamp: Date.now(),
@@ -96,43 +98,70 @@ messaging.onBackgroundMessage((payload) => {
     });
 });
 
-// Get notification actions based on notification type
+// Determina si una notificación es importante (sección 3.3 del documento)
+function isImportantNotification(type) {
+  const importantTypes = [
+    'PAYMENT_EXPIRED',
+    'PAYMENT_DUE_REMINDER',
+    'ACTIVITY_CANCELLED'
+  ];
+  return importantTypes.includes(type);
+}
+
+// Get notification actions based on notification type (sección 4.3 del documento)
 function getNotificationActions(type) {
   switch (type) {
-    case 'class_reminder':
+    case 'ACTIVITY_REMINDER':
       return [
         { 
           action: 'view', 
           title: '👀 Ver Clase', 
-          icon: '/icons/eye.png' 
+          icon: '/logo.png' 
         }
       ];
-    case 'payment_due':
+    case 'PAYMENT_EXPIRED':
+    case 'PAYMENT_DUE_REMINDER':
       return [
         { 
           action: 'pay', 
           title: '💳 Pagar Ahora', 
-          icon: '/icons/payment.png' 
+          icon: '/logo.png' 
         },
         { 
           action: 'remind', 
           title: '⏰ Recordar Después', 
-          icon: '/icons/clock.png' 
+          icon: '/logo.png' 
         }
       ];
-    case 'general':
+    case 'BIRTHDAY':
+      return [
+        { 
+          action: 'view', 
+          title: '🎉 Ver', 
+          icon: '/logo.png' 
+        }
+      ];
+    case 'NEW_ACTIVITY':
+      return [
+        { 
+          action: 'view', 
+          title: '👀 Ver Actividades', 
+          icon: '/logo.png' 
+        }
+      ];
+    case 'GENERAL_ANNOUNCEMENT':
     default:
       return [
         { 
           action: 'view', 
           title: '👀 Ver', 
-          icon: '/icons/eye.png' 
+          icon: '/logo.png' 
         }
       ];
   }
 }
 
-// Handle notification clicks
+// Handle notification clicks (sección 4.3 del documento)
 self.addEventListener('notificationclick', (event) => {
   console.log('[firebase-messaging-sw.js] Notification click received:', event);
   
@@ -140,68 +169,51 @@ self.addEventListener('notificationclick', (event) => {
   
   const action = event.action;
   const data = event.notification.data || {};
-  const { type, activityId, paymentId } = data;
+  const { type, activityId, paymentId, userId } = data;
   
   let urlToOpen = '/dashboard';
   let shouldOpenWindow = true;
   
-  // Handle different actions
+  // Determinar URL según el tipo de notificación (sección 4.3)
   switch (action) {
-    case 'confirm':
-      if (type === 'class_reminder' && activityId) {
-        // Confirm attendance via API
-        handleConfirmAttendance(activityId);
-        shouldOpenWindow = false;
-      }
-      break;
-      
     case 'view':
-      if (type === 'class_reminder' && activityId) {
-        urlToOpen = `/activities/${activityId}`;
-      } else if (type === 'payment_due' && paymentId) {
-        urlToOpen = `/payments/${paymentId}`;
+      if (type === 'ACTIVITY_REMINDER' && activityId) {
+        urlToOpen = `/activities`;
+      } else if (type === 'PAYMENT_EXPIRED' || type === 'PAYMENT_DUE_REMINDER') {
+        urlToOpen = `/payments`;
+      } else if (type === 'NEW_ACTIVITY') {
+        urlToOpen = `/activities`;
       } else {
         urlToOpen = '/dashboard';
       }
       break;
       
     case 'pay':
-      if (paymentId) {
-        urlToOpen = `/payments/${paymentId}`;
-      } else {
-        urlToOpen = '/payments';
-      }
-      break;
-      
-    case 'enroll':
-      if (activityId) {
-        handleEnrollInActivity(activityId);
-        urlToOpen = `/activities/${activityId}`;
-      }
-      break;
-      
-    case 'alternatives':
-      urlToOpen = '/activities';
-      break;
-      
-    case 'contact':
-      urlToOpen = '/settings';
+      urlToOpen = '/payments';
       break;
       
     case 'remind':
-      // Schedule a reminder for later
-      handleRemindLater(paymentId);
+      // Programar recordatorio - no abrir ventana
+      console.log('Setting reminder for payment:', paymentId);
       shouldOpenWindow = false;
       break;
       
     default:
-      // Default click (no action button)
-      if (type === 'class_reminder' && activityId) {
-        urlToOpen = `/activities/${activityId}`;
-      } else if (type === 'payment_due' && paymentId) {
-        urlToOpen = `/payments/${paymentId}`;
-      } else {
-        urlToOpen = '/dashboard';
+      // Click por defecto (sin botón de acción)
+      switch (type) {
+        case 'ACTIVITY_REMINDER':
+        case 'NEW_ACTIVITY':
+          urlToOpen = '/activities';
+          break;
+        case 'PAYMENT_EXPIRED':
+        case 'PAYMENT_DUE_REMINDER':
+          urlToOpen = '/payments';
+          break;
+        case 'BIRTHDAY':
+          urlToOpen = '/dashboard';
+          break;
+        default:
+          urlToOpen = '/dashboard';
       }
   }
   
@@ -209,10 +221,10 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
-          // Check if app is already open
+          // Verificar si la app ya está abierta
           for (const client of clientList) {
             if (client.url.includes(self.location.origin)) {
-              // Focus existing window and navigate
+              // Enfocar ventana existente y navegar
               client.focus();
               client.postMessage({
                 type: 'NOTIFICATION_CLICK',
@@ -223,23 +235,11 @@ self.addEventListener('notificationclick', (event) => {
               return;
             }
           }
-          // Open new window if app is not open
+          // Abrir nueva ventana si la app no está abierta
           return clients.openWindow(urlToOpen);
         })
     );
   }
 });
 
-// Handle remind later
-function handleRemindLater(paymentId) {
-  // In a real implementation, you might want to schedule a notification
-  // or update user preferences via an API call
-  console.log('Setting reminder for payment:', paymentId);
-  
-  self.registration.showNotification('⏰ Recordatorio Programado', {
-    body: 'Te recordaremos sobre el pago más tarde',
-    icon: '/logo.png',
-    tag: 'reminder_set',
-    requireInteraction: false
-  });
-}
+console.log('[firebase-messaging-sw.js] ✅ Service Worker initialized according to FCM architecture document');

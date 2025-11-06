@@ -323,3 +323,70 @@ export interface NotificationPreferences {
     classCancellations: boolean;
     generalAnnouncements: boolean;
 }
+
+// ===============================
+// TIPOS PARA FCM (Firebase Cloud Messaging) según documento de arquitectura
+// ===============================
+
+/**
+ * Payload de datos para notificaciones FCM (sección 3.3 del documento)
+ * Se envía junto con la notificación para procesamiento de la PWA
+ */
+export interface FCMDataPayload {
+    type: string; // Tipo de notificación (ej: 'NEW_PAYMENT', 'ACTIVITY_REMINDER')
+    userId?: string;
+    activityId?: string;
+    paymentId?: string;
+    amount?: string;
+    dueDate?: string;
+    timestamp?: string;
+    [key: string]: string | undefined; // Permitir datos adicionales
+}
+
+/**
+ * Payload completo de notificación FCM (sección 4.1 del documento)
+ * Recibido en el Service Worker y en onMessage
+ */
+export interface FCMNotificationPayload {
+    notification?: {
+        title?: string;
+        body?: string;
+        image?: string;
+    };
+    data?: FCMDataPayload;
+}
+
+/**
+ * Request para registro de token FCM (sección 1.3 del documento)
+ * Se envía al endpoint POST /api/notifications/token
+ */
+export interface FCMTokenRequest {
+    token: string;
+    deviceInfo?: string;
+}
+
+/**
+ * Tipos de notificaciones push soportados
+ * Usado en el data payload para determinar el comportamiento
+ */
+export enum FCMNotificationType {
+    PAYMENT_EXPIRED = "PAYMENT_EXPIRED",
+    PAYMENT_DUE_REMINDER = "PAYMENT_DUE_REMINDER", 
+    BIRTHDAY = "BIRTHDAY",
+    ATTENDANCE_WARNING = "ATTENDANCE_WARNING",
+    ACTIVITY_REMINDER = "ACTIVITY_REMINDER",
+    NEW_ACTIVITY = "NEW_ACTIVITY",
+    ACTIVITY_CANCELLED = "ACTIVITY_CANCELLED",
+    ADMIN_NOTIFICATION = "ADMIN_NOTIFICATION",
+    GENERAL_ANNOUNCEMENT = "GENERAL_ANNOUNCEMENT"
+}
+
+/**
+ * Estado del permiso de notificaciones
+ * Usado en el Context Provider para manejar el estado
+ */
+export enum NotificationPermissionState {
+    DEFAULT = "default",
+    GRANTED = "granted", 
+    DENIED = "denied"
+}
