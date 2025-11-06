@@ -59,7 +59,7 @@ public class NotificationService {
     @Autowired
     private FirebaseConfig firebaseConfig;
 
-    @Autowired
+    @Autowired(required = false)
     private FirebaseMessaging firebaseMessaging;
 
     // ===============================
@@ -204,9 +204,11 @@ public class NotificationService {
      */
     public boolean sendNotification(Long userId, String title, String body, Map<String, String> data) {
         try {
-            // Verificar que Firebase está configurado
-            if (!firebaseConfig.isFirebaseConfigured()) {
-                log.warn("Firebase is not configured. Notification not sent.");
+            // Verificar que Firebase está configurado y el bean está disponible
+            if (!firebaseConfig.isFirebaseConfigured() || firebaseMessaging == null) {
+                log.warn("🔕 Firebase is not configured or FirebaseMessaging bean is not available. Notification not sent.");
+                // Guardar en historial aunque no se envíe push
+                saveNotificationHistory(userId, title, body);
                 return false;
             }
 

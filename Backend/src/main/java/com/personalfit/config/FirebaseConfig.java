@@ -90,16 +90,23 @@ public class FirebaseConfig {
     /**
      * Bean para FirebaseMessaging - componente principal para envío de notificaciones push
      * Según el documento: se usa FirebaseMessaging.getInstance().sendMulticast(message)
+     * Retorna null si Firebase no está configurado, lo que requiere @Autowired(required = false)
      */
     @Bean
     public FirebaseMessaging firebaseMessaging() {
-        if (!isFirebaseConfigured()) {
-            logger.warn("⚠️ Firebase not initialized - FirebaseMessaging bean will not be available");
+        try {
+            if (!isFirebaseConfigured()) {
+                logger.info("🔕 Firebase not initialized - FirebaseMessaging bean will be null (notifications disabled)");
+                return null;
+            }
+            
+            logger.info("✅ Creating FirebaseMessaging bean for FCM push notifications");
+            return FirebaseMessaging.getInstance();
+            
+        } catch (Exception e) {
+            logger.error("❌ Error creating FirebaseMessaging bean", e);
             return null;
         }
-        
-        logger.info("✅ Creating FirebaseMessaging bean for FCM push notifications");
-        return FirebaseMessaging.getInstance();
     }
 
     /**
