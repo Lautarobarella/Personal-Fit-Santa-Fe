@@ -1,6 +1,7 @@
 "use client"
 
 import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
+import { NotificationDebug } from "@/components/notifications/notification-debug"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
 import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
@@ -243,6 +244,20 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Debug Section - Solo en desarrollo */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Debug de Notificaciones
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NotificationDebug />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Resources Settings */}
         <Card>

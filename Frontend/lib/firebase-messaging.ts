@@ -12,6 +12,34 @@ export interface CustomNotificationPayload {
   data?: Record<string, string>;
 }
 
+/**
+ * Función utilitaria para limpiar todos los service workers
+ * Útil para resolver problemas de service workers redundantes
+ */
+export const cleanupServiceWorkers = async (): Promise<void> => {
+  try {
+    if ('serviceWorker' in navigator) {
+      console.log('🧹 Starting cleanup of all service workers...');
+      
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      console.log(`Found ${registrations.length} service worker(s) to clean up`);
+      
+      for (const registration of registrations) {
+        const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL;
+        console.log(`🗑️ Unregistering: ${scriptURL}`);
+        await registration.unregister();
+      }
+      
+      console.log('✅ All service workers cleaned up successfully');
+      console.log('💡 Please refresh the page to register a fresh service worker');
+    } else {
+      console.warn('Service workers not supported in this browser');
+    }
+  } catch (error) {
+    console.error('❌ Error during cleanup:', error);
+  }
+};
+
 export const requestNotificationPermission = async (): Promise<string | null> => {
   try {
     if (!messaging) {
@@ -38,32 +66,54 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 
     // Force service worker update and registration
     try {
-      // First, try to unregister any existing service worker
+      // Clean up ALL existing service workers to prevent conflicts
+      console.log('🧹 Cleaning up existing service workers...');
       const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+      
       for (const registration of existingRegistrations) {
-        if (registration.active?.scriptURL.includes('firebase-messaging-sw.js')) {
-          console.log('� Unregistering old service worker...');
-          await registration.unregister();
-        }
+        const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL;
+        console.log(`🔍 Found service worker: ${scriptURL}`);
+        
+        // Unregister any service worker (not just Firebase ones)
+        console.log('🗑️ Unregistering service worker:', scriptURL);
+        await registration.unregister();
       }
 
-      // Register fresh service worker with cache-busting
+      // Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Register fresh Firebase service worker
+      console.log('📝 Registering new Firebase service worker...');
       const timestamp = Date.now();
       const registration = await navigator.serviceWorker.register(
-        `/firebase-messaging-sw.js?t=${timestamp}`, 
+        `/firebase-messaging-sw.js?v=${timestamp}`, 
         {
           scope: '/',
-          updateViaCache: 'none' // Prevent caching of the service worker script
+          updateViaCache: 'none'
         }
       );
 
-      // Wait for the service worker to be ready
+      // Wait for activation
+      if (registration.installing) {
+        console.log('⏳ Waiting for service worker to install...');
+        await new Promise<void>(resolve => {
+          registration.installing!.addEventListener('statechange', () => {
+            if (registration.installing!.state === 'installed') {
+              resolve();
+            }
+          });
+        });
+      }
+
+      // Take immediate control
       await navigator.serviceWorker.ready;
       console.log('✅ Firebase service worker registered and ready');
 
-      // Force update if there's a waiting service worker
+      // Force activation if needed
       if (registration.waiting) {
+        console.log('🚀 Activating waiting service worker...');
         registration.waiting.postMessage({ action: 'skipWaiting' });
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
     } catch (swError) {
@@ -95,20 +145,35 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
       });
 
       console.log('🔧 About to call getToken with VAPID key...');
-      const currentToken = await getToken(messaging, {
-        vapidKey: vapidKey
-      });
-
-      if (currentToken) {
-        console.log('✅ Registration token obtained:', currentToken.substring(0, 20) + '...');
-        return currentToken;
-      } else {
-        console.log('⚠️ No registration token available - possible causes:');
-        console.log('  - Service worker Firebase config mismatch');
-        console.log('  - VAPID key not associated with this project');
-        console.log('  - Firebase project configuration issue');
-        console.log('  - Network/firewall blocking Firebase services');
-        throw new Error('No registration token available');
+      
+      try {
+        const currentToken = await getToken(messaging, {
+          vapidKey: vapidKey
+        });
+        
+        if (currentToken) {
+          console.log('✅ FCM registration token obtained:', currentToken.substring(0, 20) + '...');
+          return currentToken;
+        } else {
+          console.error('❌ No registration token available');
+          throw new Error('No FCM token available');
+        }
+        
+      } catch (tokenError: any) {
+        console.error('❌ Error getting FCM token:', tokenError);
+        
+        // Provide specific error messages based on error type
+        if (tokenError.code === 'messaging/failed-service-worker-registration') {
+          throw new Error('Service Worker registration failed for FCM. Please check your service worker configuration.');
+        } else if (tokenError.code === 'messaging/permission-blocked') {
+          throw new Error('Notification permission was blocked. Please enable notifications in your browser settings.');
+        } else if (tokenError.code === 'messaging/vapid-key-required') {
+          throw new Error('VAPID key configuration error. Please check your Firebase configuration.');
+        } else if (tokenError.message?.includes('service worker')) {
+          throw new Error('Service Worker issue detected. Try refreshing the page or clearing your browser cache.');
+        } else {
+          throw new Error(`FCM token error: ${tokenError.message || 'Unknown error'}`);
+        }
       }
     } else {
       console.log('❌ Permission denied:', permission);

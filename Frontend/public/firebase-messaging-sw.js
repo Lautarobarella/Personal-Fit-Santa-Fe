@@ -1,11 +1,11 @@
-// firebase-messaging-sw.js - Version: 2025-09-21T15:30:00Z
+// firebase-messaging-sw.js - Version: 2025-11-06T01:30:00Z
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-console.log('[firebase-messaging-sw.js] Service Worker version: 2025-09-21T15:30:00Z');
+console.log('[firebase-messaging-sw.js] Service Worker version: 2025-11-06T01:30:00Z');
 
-// Get Firebase config from build-time environment variables
-// These should match the client-side configuration exactly
+// Firebase config - these values should match your environment variables
+// Updated to match the correct Firebase project configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDGdX-7s_MDOmBWlz8I4Q10ezLrpZIf1cA",
   authDomain: "personal-fit-santa-fe.firebaseapp.com",
