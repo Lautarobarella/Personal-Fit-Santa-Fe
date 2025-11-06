@@ -173,6 +173,96 @@ public class NotificationController {
     }
 
     // ===============================
+    // ENDPOINT PARA NOTIFICACIONES MASIVAS
+    // ===============================
+
+    /**
+     * DTO para notificaciones masivas
+     */
+    public static class BulkNotificationRequest {
+        public String title;
+        public String message;
+        public List<Long> userIds; // Opcional: si no se proporciona, se envía a todos los usuarios
+        
+        // Constructors
+        public BulkNotificationRequest() {}
+        
+        public BulkNotificationRequest(String title, String message) {
+            this.title = title;
+            this.message = message;
+        }
+        
+        public BulkNotificationRequest(String title, String message, List<Long> userIds) {
+            this.title = title;
+            this.message = message;
+            this.userIds = userIds;
+        }
+    }
+
+    /**
+     * Envía notificaciones masivas a múltiples usuarios
+     * Solo accesible para administradores
+     */
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> sendBulkNotification(@RequestBody BulkNotificationRequest request) {
+        try {
+            if (request.title == null || request.title.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Title is required");
+            }
+            
+            if (request.message == null || request.message.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Message is required");
+            }
+
+            // Si no se especifican userIds, obtener todos los usuarios activos
+            List<User> targetUsers;
+            if (request.userIds == null || request.userIds.isEmpty()) {
+                targetUsers = userRepository.findAll().stream()
+                    .filter(user -> user.getStatus() != null && 
+                            !"INACTIVE".equals(user.getStatus().toString()))
+                    .toList();
+                log.info("Sending bulk notification to all active users: {} users", targetUsers.size());
+            } else {
+                targetUsers = userRepository.findAllById(request.userIds);
+                log.info("Sending bulk notification to specified users: {} users", targetUsers.size());
+            }
+
+            if (targetUsers.isEmpty()) {
+                return ResponseEntity.badRequest().body("No target users found");
+            }
+
+            // Enviar notificación a cada usuario
+            int successCount = 0;
+            for (User user : targetUsers) {
+                boolean success = notificationService.sendNotification(
+                    user.getId(), 
+                    request.title, 
+                    request.message, 
+                    null // sin datos adicionales por ahora
+                );
+                if (success) {
+                    successCount++;
+                }
+            }
+
+            String responseMessage = String.format(
+                "Bulk notification sent: %d/%d successful", 
+                successCount, 
+                targetUsers.size()
+            );
+            
+            log.info(responseMessage);
+            return ResponseEntity.ok(responseMessage);
+            
+        } catch (Exception e) {
+            log.error("Error sending bulk notification", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error sending bulk notification: " + e.getMessage());
+        }
+    }
+
+    // ===============================
     // ENDPOINT DE SALUD/DIAGNÓSTICO
     // ===============================
 

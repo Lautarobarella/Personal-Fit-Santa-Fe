@@ -70,38 +70,86 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
       console.log('🧹 Cleaning up existing service workers...');
       const existingRegistrations = await navigator.serviceWorker.getRegistrations();
       
-      for (const registration of existingRegistrations) {
-        const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL;
-        console.log(`🔍 Found service worker: ${scriptURL}`);
+      if (existingRegistrations.length > 0) {
+        console.log(`Found ${existingRegistrations.length} existing service worker(s)`);
         
-        // Unregister any service worker (not just Firebase ones)
-        console.log('🗑️ Unregistering service worker:', scriptURL);
-        await registration.unregister();
-      }
+        for (const registration of existingRegistrations) {
+          const scriptURL = registration.active?.scriptURL || 
+                           registration.installing?.scriptURL || 
+                           registration.waiting?.scriptURL || 'Unknown';
+          
+          console.log(`�️ Unregistering service worker: ${scriptURL}`);
+          
+          try {
+            await registration.unregister();
+          } catch (unregisterError) {
+            console.warn('⚠️ Failed to unregister service worker:', unregisterError);
+          }
+        }
 
-      // Wait a moment for cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait longer for cleanup to complete
+        console.log('⏳ Waiting for cleanup to complete...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        console.log('✅ No existing service workers to clean up');
+      }
 
       // Register fresh Firebase service worker
       console.log('📝 Registering new Firebase service worker...');
       const timestamp = Date.now();
+      
+      // Clear any cached service worker first
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map(cacheName => 
+              cacheName.includes('workbox') || cacheName.includes('firebase') 
+                ? caches.delete(cacheName) 
+                : Promise.resolve()
+            )
+          );
+          console.log('🧹 Cleared service worker caches');
+        } catch (cacheError) {
+          console.warn('⚠️ Failed to clear caches:', cacheError);
+        }
+      }
+      
       const registration = await navigator.serviceWorker.register(
-        `/firebase-messaging-sw.js?v=${timestamp}`, 
+        `/firebase-messaging-sw.js?v=${timestamp}&bustCache=${Math.random()}`, 
         {
           scope: '/',
           updateViaCache: 'none'
         }
       );
+      
+      console.log('✅ Service worker registration successful');
 
-      // Wait for activation
+      // Wait for activation with better null handling
       if (registration.installing) {
         console.log('⏳ Waiting for service worker to install...');
         await new Promise<void>(resolve => {
-          registration.installing!.addEventListener('statechange', () => {
-            if (registration.installing!.state === 'installed') {
+          const sw = registration.installing!;
+          const handleStateChange = () => {
+            // Check if sw still exists and has the expected state
+            if (sw && sw.state === 'installed') {
+              resolve();
+            } else if (sw && sw.state === 'activated') {
+              resolve();
+            } else if (!sw || sw.state === 'redundant') {
+              // If service worker becomes null or redundant, still resolve
+              console.warn('⚠️ Service worker became null or redundant during installation');
               resolve();
             }
-          });
+          };
+          
+          sw.addEventListener('statechange', handleStateChange);
+          
+          // Fallback timeout to prevent hanging
+          setTimeout(() => {
+            console.log('⏰ Service worker installation timeout - continuing anyway');
+            resolve();
+          }, 5000);
         });
       }
 
