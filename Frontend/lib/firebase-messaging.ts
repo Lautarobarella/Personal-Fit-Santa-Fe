@@ -153,16 +153,40 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
         });
       }
 
-      // Take immediate control
+      // Wait for service worker to be ready and active
+      console.log('⏳ Waiting for service worker to be ready...');
       await navigator.serviceWorker.ready;
-      console.log('✅ Firebase service worker registered and ready');
-
+      
       // Force activation if needed
       if (registration.waiting) {
         console.log('🚀 Activating waiting service worker...');
         registration.waiting.postMessage({ action: 'skipWaiting' });
-        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Wait for activation to complete
+        await new Promise<void>((resolve) => {
+          const checkActive = () => {
+            if (registration.active) {
+              console.log('✅ Service worker is now active');
+              resolve();
+            } else {
+              setTimeout(checkActive, 100);
+            }
+          };
+          checkActive();
+        });
       }
+      
+      // Additional wait to ensure service worker is stable
+      console.log('⏳ Ensuring service worker stability...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Final verification
+      const finalRegistration = await navigator.serviceWorker.ready;
+      if (!finalRegistration.active) {
+        throw new Error('Service worker failed to activate properly');
+      }
+      
+      console.log('✅ Firebase service worker registered and ready');
 
     } catch (swError) {
       console.error('❌ Service worker registration error:', swError);
@@ -194,18 +218,46 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 
       console.log('🔧 About to call getToken with VAPID key...');
       
+      // Additional verification that service worker is ready
+      const swRegistration = await navigator.serviceWorker.ready;
+      if (!swRegistration.active) {
+        console.error('❌ Service worker is not active when trying to get token');
+        throw new Error('Service worker not active - cannot get FCM token');
+      }
+      
+      console.log('✅ Service worker confirmed active, proceeding with getToken...');
+      
       try {
-        const currentToken = await getToken(messaging, {
-          vapidKey: vapidKey
-        });
+        // Add retry logic for getToken
+        let currentToken = null;
+        let attempts = 0;
+        const maxAttempts = 3;
         
-        if (currentToken) {
-          console.log('✅ FCM registration token obtained:', currentToken.substring(0, 20) + '...');
-          return currentToken;
-        } else {
-          console.error('❌ No registration token available');
-          throw new Error('No FCM token available');
+        while (!currentToken && attempts < maxAttempts) {
+          attempts++;
+          console.log(`🔄 Attempting to get FCM token (attempt ${attempts}/${maxAttempts})`);
+          
+          try {
+            currentToken = await getToken(messaging, {
+              vapidKey: vapidKey
+            });
+            
+            if (currentToken) {
+              console.log('✅ FCM registration token obtained:', currentToken.substring(0, 20) + '...');
+              return currentToken;
+            }
+          } catch (attemptError: any) {
+            console.warn(`⚠️ Attempt ${attempts} failed:`, attemptError.message);
+            
+            if (attempts < maxAttempts) {
+              console.log('⏳ Waiting before retry...');
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            }
+          }
         }
+        
+        console.error('❌ No registration token available after all attempts');
+        throw new Error('No FCM token available after retries');
         
       } catch (tokenError: any) {
         console.error('❌ Error getting FCM token:', tokenError);

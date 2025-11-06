@@ -205,13 +205,19 @@ public class NotificationController {
      */
     @PostMapping("/bulk")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> sendBulkNotification(@RequestBody BulkNotificationRequest request) {
+    public ResponseEntity<String> sendBulkNotification(@RequestBody BulkNotificationRequest request, Authentication authentication) {
         try {
+            log.info("Received bulk notification request from user: {}", authentication.getName());
+            log.info("Request: title='{}', message='{}', userIds={}", 
+                request.title, request.message, request.userIds);
+            
             if (request.title == null || request.title.trim().isEmpty()) {
+                log.warn("Bulk notification failed: Title is required");
                 return ResponseEntity.badRequest().body("Title is required");
             }
             
             if (request.message == null || request.message.trim().isEmpty()) {
+                log.warn("Bulk notification failed: Message is required");
                 return ResponseEntity.badRequest().body("Message is required");
             }
 
