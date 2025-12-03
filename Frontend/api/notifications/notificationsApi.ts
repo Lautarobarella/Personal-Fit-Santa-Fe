@@ -1,7 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { getUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/error-handler";
-import { FCMTokenRequest, Notification, NotificationStatus } from "@/lib/types";
+import { BulkNotificationRequest, FCMTokenRequest, Notification, NotificationStatus } from "@/lib/types";
 
 // ===============================
 // API DE NOTIFICACIONES FCM - Implementación según documento
@@ -23,10 +23,10 @@ export async function registerFCMToken(token: string, deviceInfo?: string): Prom
         };
 
         await jwtPermissionsApi.post('/api/notifications/token', request);
-        
+
         console.log('✅ FCM token registered successfully');
         return true;
-        
+
     } catch (error) {
         console.error('❌ Error registering FCM token:', error);
         handleApiError(error, 'Error al registrar token de notificaciones');
@@ -48,7 +48,7 @@ export async function registerDeviceToken(request: { token: string; deviceType?:
 export async function fetchNotifications(userId?: number): Promise<Notification[]> {
     try {
         let targetUserId = userId;
-        
+
         if (!targetUserId) {
             const storedUserId = getUserId();
             if (!storedUserId) {
@@ -59,7 +59,7 @@ export async function fetchNotifications(userId?: number): Promise<Notification[
         }
 
         const notifications = await jwtPermissionsApi.get(`/api/notifications/user/${targetUserId}`);
-        
+
         if (!notifications || !Array.isArray(notifications)) {
             return [];
         }
@@ -77,12 +77,12 @@ export async function fetchNotifications(userId?: number): Promise<Notification[
 
         // Ordenar las notificaciones de más nuevas a más viejas
         return mappedNotifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        
+
     } catch (error) {
         if (error instanceof Error && error.message.includes('404')) {
             return [];
         }
-        
+
         handleApiError(error, 'Error al cargar las notificaciones');
         return [];
     }
@@ -95,7 +95,7 @@ export async function fetchNotifications(userId?: number): Promise<Notification[
 export async function fetchMyNotifications(): Promise<Notification[]> {
     try {
         const notifications = await jwtPermissionsApi.get('/api/notifications/my-notifications');
-        
+
         if (!notifications || !Array.isArray(notifications)) {
             return [];
         }
@@ -113,12 +113,12 @@ export async function fetchMyNotifications(): Promise<Notification[]> {
 
         // Ordenar las notificaciones de más nuevas a más viejas
         return mappedNotifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        
+
     } catch (error) {
         if (error instanceof Error && error.message.includes('404')) {
             return [];
         }
-        
+
         handleApiError(error, 'Error al cargar mis notificaciones');
         return [];
     }
@@ -146,7 +146,7 @@ export async function checkNotificationServiceHealth(): Promise<{ status: string
 /**
  * Envía una notificación masiva a múltiples usuarios
  */
-export async function sendBulkNotification(notification: { title: string; message: string; userIds?: number[] }): Promise<boolean> {
+export async function sendBulkNotification(notification: BulkNotificationRequest): Promise<boolean> {
     try {
         await jwtPermissionsApi.post('/api/notifications/bulk', notification);
         console.log('✅ Bulk notification sent successfully');

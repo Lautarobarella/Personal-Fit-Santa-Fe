@@ -26,7 +26,8 @@ import lombok.extern.slf4j.Slf4j;
  * Controller de Notificaciones implementado según el documento FCM
  * 
  * Endpoints principales:
- * - POST /api/notifications/token - Registro de tokens FCM (sección 1.3 del documento)
+ * - POST /api/notifications/token - Registro de tokens FCM (sección 1.3 del
+ * documento)
  * - GET /api/notifications/user/{id} - Obtener historial de notificaciones
  */
 @Slf4j
@@ -46,9 +47,11 @@ public class NotificationController {
     public static class FCMTokenRequest {
         public String token;
         public String deviceInfo;
-        
+
         // Constructors
-        public FCMTokenRequest() {}
+        public FCMTokenRequest() {
+        }
+
         public FCMTokenRequest(String token, String deviceInfo) {
             this.token = token;
             this.deviceInfo = deviceInfo;
@@ -68,7 +71,8 @@ public class NotificationController {
      */
     @PostMapping("/token")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
-    public ResponseEntity<String> registerFCMToken(@RequestBody FCMTokenRequest request, Authentication authentication) {
+    public ResponseEntity<String> registerFCMToken(@RequestBody FCMTokenRequest request,
+            Authentication authentication) {
         try {
             if (request.token == null || request.token.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("FCM Token is required");
@@ -77,20 +81,19 @@ public class NotificationController {
             // Obtener usuario autenticado
             String userEmail = authentication.getName();
             Optional<User> userOpt = userRepository.findByEmail(userEmail);
-            
+
             if (userOpt.isEmpty()) {
                 log.warn("User not found with email: {}", userEmail);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
 
             User user = userOpt.get();
-            
+
             // Registrar token FCM usando el NotificationService
             boolean success = notificationService.registerFCMToken(
-                user.getId(), 
-                request.token, 
-                request.deviceInfo
-            );
+                    user.getId(),
+                    request.token,
+                    request.deviceInfo);
 
             if (success) {
                 log.info("✅ FCM token registered successfully for user: {}", user.getId());
@@ -98,13 +101,13 @@ public class NotificationController {
             } else {
                 log.error("❌ Failed to register FCM token for user: {}", user.getId());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to register FCM token");
+                        .body("Failed to register FCM token");
             }
 
         } catch (Exception e) {
             log.error("Error registering FCM token", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal server error");
+                    .body("Internal server error");
         }
     }
 
@@ -119,26 +122,28 @@ public class NotificationController {
      */
     @GetMapping("/user/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
-    public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id,
+            Authentication authentication) {
         try {
             // Verificar si es ADMIN
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
-            
+
             if (isAdmin) {
                 // Para ADMIN, obtener todas las notificaciones del usuario especificado
                 List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
                 return ResponseEntity.ok(notifications);
             } else {
-                // Para CLIENT/TRAINER, verificar que solo pueda acceder a sus propias notificaciones
+                // Para CLIENT/TRAINER, verificar que solo pueda acceder a sus propias
+                // notificaciones
                 String userEmail = authentication.getName();
                 Optional<User> userOpt = userRepository.findByEmail(userEmail);
-                
+
                 if (userOpt.isEmpty() || !userOpt.get().getId().equals(id)) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(List.of());
+                            .body(List.of());
                 }
-                
+
                 List<NotificationDTO> notifications = notificationService.getAllByUserId(id);
                 return ResponseEntity.ok(notifications);
             }
@@ -158,14 +163,14 @@ public class NotificationController {
         try {
             String userEmail = authentication.getName();
             Optional<User> userOpt = userRepository.findByEmail(userEmail);
-            
+
             if (userOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(List.of());
             }
-            
+
             List<NotificationDTO> notifications = notificationService.getAllByUserId(userOpt.get().getId());
             return ResponseEntity.ok(notifications);
-            
+
         } catch (Exception e) {
             log.error("Error fetching my notifications: {}", e.getMessage());
             return ResponseEntity.ok(List.of());
@@ -177,60 +182,39 @@ public class NotificationController {
     // ===============================
 
     /**
-     * DTO para notificaciones masivas
-     */
-    public static class BulkNotificationRequest {
-        public String title;
-        public String message;
-        public List<Long> userIds; // Opcional: si no se proporciona, se envía a todos los usuarios
-        
-        // Constructors
-        public BulkNotificationRequest() {}
-        
-        public BulkNotificationRequest(String title, String message) {
-            this.title = title;
-            this.message = message;
-        }
-        
-        public BulkNotificationRequest(String title, String message, List<Long> userIds) {
-            this.title = title;
-            this.message = message;
-            this.userIds = userIds;
-        }
-    }
-
-    /**
      * Envía notificaciones masivas a múltiples usuarios
      * Solo accesible para administradores
      */
     @PostMapping("/bulk")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> sendBulkNotification(@RequestBody BulkNotificationRequest request, Authentication authentication) {
+    public ResponseEntity<String> sendBulkNotification(
+            @RequestBody com.personalfit.dto.Notification.BulkNotificationRequest request,
+            Authentication authentication) {
         try {
             log.info("Received bulk notification request from user: {}", authentication.getName());
-            log.info("Request: title='{}', message='{}', userIds={}", 
-                request.title, request.message, request.userIds);
-            
-            if (request.title == null || request.title.trim().isEmpty()) {
+            log.info("Request: title='{}', body='{}', userIds={}",
+                    request.getTitle(), request.getBody(), request.getUserIds());
+
+            if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
                 log.warn("Bulk notification failed: Title is required");
                 return ResponseEntity.badRequest().body("Title is required");
             }
-            
-            if (request.message == null || request.message.trim().isEmpty()) {
-                log.warn("Bulk notification failed: Message is required");
-                return ResponseEntity.badRequest().body("Message is required");
+
+            if (request.getBody() == null || request.getBody().trim().isEmpty()) {
+                log.warn("Bulk notification failed: Body is required");
+                return ResponseEntity.badRequest().body("Body is required");
             }
 
             // Si no se especifican userIds, obtener todos los usuarios activos
             List<User> targetUsers;
-            if (request.userIds == null || request.userIds.isEmpty()) {
+            if (request.getUserIds() == null || request.getUserIds().isEmpty()) {
                 targetUsers = userRepository.findAll().stream()
-                    .filter(user -> user.getStatus() != null && 
-                            !"INACTIVE".equals(user.getStatus().toString()))
-                    .toList();
+                        .filter(user -> user.getStatus() != null &&
+                                !"INACTIVE".equals(user.getStatus().toString()))
+                        .toList();
                 log.info("Sending bulk notification to all active users: {} users", targetUsers.size());
             } else {
-                targetUsers = userRepository.findAllById(request.userIds);
+                targetUsers = userRepository.findAllById(request.getUserIds());
                 log.info("Sending bulk notification to specified users: {} users", targetUsers.size());
             }
 
@@ -242,10 +226,10 @@ public class NotificationController {
             int successCount = 0;
             for (User user : targetUsers) {
                 boolean success = notificationService.sendNotification(
-                    user.getId(), 
-                    request.title, 
-                    request.message, 
-                    null // sin datos adicionales por ahora
+                        user.getId(),
+                        request.getTitle(),
+                        request.getBody(),
+                        request.getData() // Usar datos adicionales si existen
                 );
                 if (success) {
                     successCount++;
@@ -253,18 +237,17 @@ public class NotificationController {
             }
 
             String responseMessage = String.format(
-                "Bulk notification sent: %d/%d successful", 
-                successCount, 
-                targetUsers.size()
-            );
-            
+                    "Bulk notification sent: %d/%d successful",
+                    successCount,
+                    targetUsers.size());
+
             log.info(responseMessage);
             return ResponseEntity.ok(responseMessage);
-            
+
         } catch (Exception e) {
             log.error("Error sending bulk notification", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error sending bulk notification: " + e.getMessage());
+                    .body("Error sending bulk notification: " + e.getMessage());
         }
     }
 
@@ -273,7 +256,8 @@ public class NotificationController {
     // ===============================
 
     /**
-     * Endpoint de diagnóstico para verificar el estado del servicio de notificaciones
+     * Endpoint de diagnóstico para verificar el estado del servicio de
+     * notificaciones
      * Solo accesible para administradores
      */
     @GetMapping("/health")
@@ -283,15 +267,15 @@ public class NotificationController {
             // Verificar si Firebase está configurado
             if (!notificationService.isFirebaseConfigured()) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("Firebase is not configured - FCM notifications disabled");
+                        .body("Firebase is not configured - FCM notifications disabled");
             }
-            
+
             return ResponseEntity.ok("Notification service is healthy - FCM ready");
-            
+
         } catch (Exception e) {
             log.error("Error in notification service health check", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Notification service error: " + e.getMessage());
+                    .body("Notification service error: " + e.getMessage());
         }
     }
 }
