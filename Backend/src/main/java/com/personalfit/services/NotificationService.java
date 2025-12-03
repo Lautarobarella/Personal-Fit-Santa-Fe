@@ -34,7 +34,8 @@ import com.personalfit.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Servicio de Notificaciones implementado según el documento de arquitectura FCM
+ * Servicio de Notificaciones implementado según el documento de arquitectura
+ * FCM
  * 
  * Responsabilidades principales:
  * 1. Gestión CRUD de tokens FCM (2.2 del documento)
@@ -70,8 +71,8 @@ public class NotificationService {
      * Registra un token FCM para un usuario autenticado
      * Implementa la sección 1.3 del documento: "Envío al Backend"
      * 
-     * @param userId ID del usuario autenticado
-     * @param token Token FCM recibido del frontend
+     * @param userId     ID del usuario autenticado
+     * @param token      Token FCM recibido del frontend
      * @param deviceInfo Información opcional del dispositivo
      * @return true si se registró correctamente
      */
@@ -93,17 +94,17 @@ public class NotificationService {
                 fcmToken.setUser(user);
                 fcmToken.setDeviceInfo(deviceInfo);
                 fcmTokenRepository.save(fcmToken);
-                log.info("✅ Updated existing FCM token for user: {} | Token: {}...", 
+                log.info("✅ Updated existing FCM token for user: {} | Token: {}...",
                         user.getId(), token.substring(0, Math.min(20, token.length())));
             } else {
                 // Crear nuevo token
                 FCMToken newToken = FCMToken.builder()
-                    .user(user)
-                    .token(token)
-                    .deviceInfo(deviceInfo)
-                    .build();
+                        .user(user)
+                        .token(token)
+                        .deviceInfo(deviceInfo)
+                        .build();
                 fcmTokenRepository.save(newToken);
-                log.info("🆕 Registered new FCM token for user: {} | Token: {}...", 
+                log.info("🆕 Registered new FCM token for user: {} | Token: {}...",
                         user.getId(), token.substring(0, Math.min(20, token.length())));
             }
 
@@ -143,9 +144,10 @@ public class NotificationService {
 
     /**
      * Desactiva el token FCM de un dispositivo cuando el usuario hace logout
-     * Implementa la lógica de cleanup en logout para mantener la base de datos limpia
+     * Implementa la lógica de cleanup en logout para mantener la base de datos
+     * limpia
      * 
-     * @param userEmail Email del usuario que está haciendo logout
+     * @param userEmail   Email del usuario que está haciendo logout
      * @param deviceToken Token FCM del dispositivo a desactivar
      */
     public void deactivateDeviceTokenOnLogout(String userEmail, String deviceToken) {
@@ -163,28 +165,28 @@ public class NotificationService {
             }
 
             User user = userOpt.get();
-            
+
             // Eliminar el token específico de este dispositivo
             Optional<FCMToken> tokenOpt = fcmTokenRepository.findByToken(deviceToken);
             if (tokenOpt.isPresent()) {
                 FCMToken fcmToken = tokenOpt.get();
-                
+
                 // Verificar que el token pertenece al usuario correcto
                 if (fcmToken.getUser().getId().equals(user.getId())) {
                     fcmTokenRepository.delete(fcmToken);
-                    log.info("🔓 Deactivated FCM token for user: {} on logout | Token: {}...", 
+                    log.info("🔓 Deactivated FCM token for user: {} on logout | Token: {}...",
                             user.getId(), deviceToken.substring(0, Math.min(10, deviceToken.length())));
                 } else {
-                    log.warn("Token mismatch: token belongs to user {} but logout requested for user {}", 
+                    log.warn("Token mismatch: token belongs to user {} but logout requested for user {}",
                             fcmToken.getUser().getId(), user.getId());
                 }
             } else {
-                log.debug("FCM token not found during logout: {}...", 
+                log.debug("FCM token not found during logout: {}...",
                         deviceToken.substring(0, Math.min(10, deviceToken.length())));
             }
-            
+
         } catch (Exception e) {
-            log.error("Error deactivating device token on logout for user: {} | Error: {}", 
+            log.error("Error deactivating device token on logout for user: {} | Error: {}",
                     userEmail, e.getMessage(), e);
         }
     }
@@ -194,19 +196,21 @@ public class NotificationService {
     // ===============================
 
     /**
-     * Método central para enviar notificaciones push según la sección 3.2 del documento
+     * Método central para enviar notificaciones push según la sección 3.2 del
+     * documento
      * 
      * @param userId ID del usuario objetivo
-     * @param title Título de la notificación
-     * @param body Cuerpo de la notificación
-     * @param data Datos adicionales para la PWA
+     * @param title  Título de la notificación
+     * @param body   Cuerpo de la notificación
+     * @param data   Datos adicionales para la PWA
      * @return true si se envió correctamente
      */
     public boolean sendNotification(Long userId, String title, String body, Map<String, String> data) {
         try {
             // Verificar que Firebase está configurado y el bean está disponible
             if (!firebaseConfig.isFirebaseConfigured() || firebaseMessaging == null) {
-                log.warn("🔕 Firebase is not configured or FirebaseMessaging bean is not available. Notification not sent.");
+                log.warn(
+                        "🔕 Firebase is not configured or FirebaseMessaging bean is not available. Notification not sent.");
                 // Guardar en historial aunque no se envíe push
                 saveNotificationHistory(userId, title, body);
                 return false;
@@ -222,13 +226,14 @@ public class NotificationService {
             }
 
             List<String> tokenStrings = fcmTokens.stream()
-                .map(FCMToken::getToken)
-                .collect(Collectors.toList());
+                    .map(FCMToken::getToken)
+                    .collect(Collectors.toList());
 
             // 2. Construir MulticastMessage (sección 3.2.2)
             MulticastMessage message = createMulticastMessage(title, body, data, tokenStrings);
 
-            // 3. Enviar usando FirebaseMessaging.getInstance().sendMulticast (sección 3.2.3)
+            // 3. Enviar usando FirebaseMessaging.getInstance().sendMulticast (sección
+            // 3.2.3)
             BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
 
             // 4. Procesar respuesta y manejar tokens inválidos
@@ -247,38 +252,37 @@ public class NotificationService {
     }
 
     /**
-     * Crea un MulticastMessage según las especificaciones del documento (sección 3.3)
+     * Crea un MulticastMessage según las especificaciones del documento (sección
+     * 3.3)
      * Utiliza tanto notification payload como data payload
      */
-    private MulticastMessage createMulticastMessage(String title, String body, Map<String, String> data, List<String> tokens) {
-        // Crear notification payload para mostrar la alerta (sección 3.3)
-        com.google.firebase.messaging.Notification notification = com.google.firebase.messaging.Notification.builder()
-            .setTitle(title)
-            .setBody(body)
-            .build();
-
+    private MulticastMessage createMulticastMessage(String title, String body, Map<String, String> data,
+            List<String> tokens) {
         // Preparar data payload para procesamiento de la PWA (sección 3.3)
+        // CAMBIO: Usamos SOLO data payload para evitar doble notificación (System + SW)
         Map<String, String> dataPayload = new HashMap<>();
         if (data != null) {
             dataPayload.putAll(data);
         }
-        
+
+        // Agregar campos estándar en data para que el SW los use
+        dataPayload.put("title", title);
+        dataPayload.put("body", body);
+
         // Agregar timestamp para el service worker
         dataPayload.put("timestamp", String.valueOf(System.currentTimeMillis()));
 
         return MulticastMessage.builder()
-            .setNotification(notification)
-            .putAllData(dataPayload)
-            .addAllTokens(tokens)
-            .build();
+                // .setNotification(notification) // REMOVIDO: Para evitar notificación del
+                // sistema
+                .putAllData(dataPayload)
+                .addAllTokens(tokens)
+                .build();
     }
 
-    /**
-     * Maneja la respuesta del batch y limpia tokens inválidos (sección 2.2)
-     */
     private void handleBatchResponse(BatchResponse response, List<String> tokens, Long userId) {
         List<String> invalidTokens = new ArrayList<>();
-        
+
         for (int i = 0; i < response.getResponses().size(); i++) {
             SendResponse sendResponse = response.getResponses().get(i);
             if (!sendResponse.isSuccessful()) {
@@ -286,8 +290,8 @@ public class NotificationService {
                 if (exception != null) {
                     String errorCode = exception.getErrorCode().toString();
                     // Tokens que FCM considera inválidos o expirados
-                    if ("registration-token-not-registered".equals(errorCode) || 
-                        "invalid-registration-token".equals(errorCode)) {
+                    if ("registration-token-not-registered".equals(errorCode) ||
+                            "invalid-registration-token".equals(errorCode)) {
                         invalidTokens.add(tokens.get(i));
                     }
                 }
@@ -313,14 +317,14 @@ public class NotificationService {
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isPresent()) {
                 Notification notification = Notification.builder()
-                    .title(title)
-                    .message(body)
-                    .user(userOpt.get())
-                    .date(LocalDateTime.now())
-                    .status(NotificationStatus.UNREAD)
-                    .targetRole(userOpt.get().getRole())
-                    .build();
-                
+                        .title(title)
+                        .message(body)
+                        .user(userOpt.get())
+                        .date(LocalDateTime.now())
+                        .status(NotificationStatus.UNREAD)
+                        .targetRole(userOpt.get().getRole())
+                        .build();
+
                 notificationRepository.save(notification);
                 log.debug("💾 Saved notification to history for user: {}", userId);
             }
@@ -369,23 +373,23 @@ public class NotificationService {
             Map<String, String> data = new HashMap<>();
             data.put("type", "PAYMENT_EXPIRED");
             data.put("userId", user.getId().toString());
-            
-            sendNotification(user.getId(), 
-                "Pago Vencido", 
-                "Tu pago ha vencido. Por favor, renueva tu membresía.", 
-                data);
+
+            sendNotification(user.getId(),
+                    "Pago Vencido",
+                    "Tu pago ha vencido. Por favor, renueva tu membresía.",
+                    data);
         }
-        
+
         // Notificar a admins
         for (User admin : admins) {
             Map<String, String> data = new HashMap<>();
             data.put("type", "ADMIN_PAYMENT_EXPIRED");
             data.put("count", String.valueOf(users.size()));
-            
+
             sendNotification(admin.getId(),
-                "Pagos Vencidos",
-                users.size() + " usuarios tienen pagos vencidos",
-                data);
+                    "Pagos Vencidos",
+                    users.size() + " usuarios tienen pagos vencidos",
+                    data);
         }
     }
 
@@ -399,27 +403,27 @@ public class NotificationService {
             Map<String, String> data = new HashMap<>();
             data.put("type", "BIRTHDAY");
             data.put("userId", user.getId().toString());
-            
+
             sendNotification(user.getId(),
-                "¡Feliz Cumpleaños!",
-                "¡Que tengas un día fantástico! 🎉",
-                data);
+                    "¡Feliz Cumpleaños!",
+                    "¡Que tengas un día fantástico! 🎉",
+                    data);
         }
-        
+
         // Notificar a admins
         for (User admin : admins) {
             String names = users.stream()
-                .map(User::getFirstName)
-                .collect(Collectors.joining(", "));
-                
+                    .map(User::getFirstName)
+                    .collect(Collectors.joining(", "));
+
             Map<String, String> data = new HashMap<>();
             data.put("type", "ADMIN_BIRTHDAYS");
             data.put("names", names);
-            
+
             sendNotification(admin.getId(),
-                "Cumpleaños Hoy",
-                "Cumpleaños: " + names,
-                data);
+                    "Cumpleaños Hoy",
+                    "Cumpleaños: " + names,
+                    data);
         }
     }
 
@@ -432,23 +436,23 @@ public class NotificationService {
             Map<String, String> data = new HashMap<>();
             data.put("type", "ATTENDANCE_WARNING");
             data.put("userId", user.getId().toString());
-            
+
             sendNotification(user.getId(),
-                "Recordatorio de Asistencia",
-                "No olvides asistir a tus clases programadas",
-                data);
+                    "Recordatorio de Asistencia",
+                    "No olvides asistir a tus clases programadas",
+                    data);
         }
-        
+
         // Notificar a admins
         for (User admin : admins) {
             Map<String, String> data = new HashMap<>();
             data.put("type", "ADMIN_ATTENDANCE_WARNING");
             data.put("count", String.valueOf(users.size()));
-            
+
             sendNotification(admin.getId(),
-                "Advertencias de Asistencia",
-                users.size() + " usuarios necesitan recordatorio",
-                data);
+                    "Advertencias de Asistencia",
+                    users.size() + " usuarios necesitan recordatorio",
+                    data);
         }
     }
 
@@ -461,31 +465,32 @@ public class NotificationService {
         data.put("type", "PAYMENT_DUE_REMINDER");
         data.put("amount", amount.toString());
         data.put("dueDate", dueDate.toString());
-        
+
         sendNotification(user.getId(),
-            "Recordatorio de Pago",
-            "Tu pago de $" + amount + " vence el " + dueDate,
-            data);
+                "Recordatorio de Pago",
+                "Tu pago de $" + amount + " vence el " + dueDate,
+                data);
     }
 
     /**
      * Envía recordatorios masivos de clase a múltiples usuarios
      */
     @Async
-    public void sendBulkClassReminder(List<User> users, String activityName, LocalDateTime activityDate, String location) {
+    public void sendBulkClassReminder(List<User> users, String activityName, LocalDateTime activityDate,
+            String location) {
         for (User user : users) {
             Map<String, String> data = new HashMap<>();
             data.put("type", "ACTIVITY_REMINDER");
             data.put("activityName", activityName);
             data.put("activityDate", activityDate.toString());
             data.put("location", location != null ? location : "");
-            
+
             sendNotification(user.getId(),
-                "Recordatorio de Clase",
-                "Tu clase de " + activityName + " es hoy a las " + activityDate.toLocalTime(),
-                data);
+                    "Recordatorio de Clase",
+                    "Tu clase de " + activityName + " es hoy a las " + activityDate.toLocalTime(),
+                    data);
         }
-        
+
         log.info("✅ Bulk class reminders sent to {} users for activity: {}", users.size(), activityName);
     }
 

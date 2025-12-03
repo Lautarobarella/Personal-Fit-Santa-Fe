@@ -49,7 +49,7 @@ self.addEventListener('activate', (event) => {
 // Handle background messages según sección 4.1 del documento
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
-  
+
   // 🚨 CLAVE: Verificar si hay clientes activos/visibles antes de mostrar notificación
   return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     .then((clientList) => {
@@ -65,18 +65,18 @@ messaging.onBackgroundMessage((payload) => {
           return; // No mostrar notificación del service worker
         }
       }
-      
+
       // Si llegamos aquí, la app no está visible, mostrar notificación (sección 4.1)
       console.log('[firebase-messaging-sw.js] ✅ App is hidden, showing background notification');
-      
-      // Usar notification payload si existe, sino crear desde data payload (sección 3.3)
-      const notificationTitle = payload.notification?.title || 'Personal Fit Santa Fe';
-      const notificationBody = payload.notification?.body || 'Nueva notificación';
+
+      // CAMBIO: Extraer título y cuerpo del data payload (ya que no enviamos notification payload)
+      const notificationTitle = payload.data?.title || payload.notification?.title || 'Personal Fit Santa Fe';
+      const notificationBody = payload.data?.body || payload.notification?.body || 'Nueva notificación';
       const notificationType = payload.data?.type || 'default';
-      
+
       // 🚨 CLAVE: Usar tag único para evitar duplicados en móviles
       const uniqueTag = `pf_${notificationType}_${Date.now()}`;
-      
+
       const notificationOptions = {
         body: notificationBody,
         icon: '/logo.png',
@@ -113,49 +113,49 @@ function getNotificationActions(type) {
   switch (type) {
     case 'ACTIVITY_REMINDER':
       return [
-        { 
-          action: 'view', 
-          title: '👀 Ver Clase', 
-          icon: '/logo.png' 
+        {
+          action: 'view',
+          title: '👀 Ver Clase',
+          icon: '/logo.png'
         }
       ];
     case 'PAYMENT_EXPIRED':
     case 'PAYMENT_DUE_REMINDER':
       return [
-        { 
-          action: 'pay', 
-          title: '💳 Pagar Ahora', 
-          icon: '/logo.png' 
+        {
+          action: 'pay',
+          title: '💳 Pagar Ahora',
+          icon: '/logo.png'
         },
-        { 
-          action: 'remind', 
-          title: '⏰ Recordar Después', 
-          icon: '/logo.png' 
+        {
+          action: 'remind',
+          title: '⏰ Recordar Después',
+          icon: '/logo.png'
         }
       ];
     case 'BIRTHDAY':
       return [
-        { 
-          action: 'view', 
-          title: '🎉 Ver', 
-          icon: '/logo.png' 
+        {
+          action: 'view',
+          title: '🎉 Ver',
+          icon: '/logo.png'
         }
       ];
     case 'NEW_ACTIVITY':
       return [
-        { 
-          action: 'view', 
-          title: '👀 Ver Actividades', 
-          icon: '/logo.png' 
+        {
+          action: 'view',
+          title: '👀 Ver Actividades',
+          icon: '/logo.png'
         }
       ];
     case 'GENERAL_ANNOUNCEMENT':
     default:
       return [
-        { 
-          action: 'view', 
-          title: '👀 Ver', 
-          icon: '/logo.png' 
+        {
+          action: 'view',
+          title: '👀 Ver',
+          icon: '/logo.png'
         }
       ];
   }
@@ -164,16 +164,16 @@ function getNotificationActions(type) {
 // Handle notification clicks (sección 4.3 del documento)
 self.addEventListener('notificationclick', (event) => {
   console.log('[firebase-messaging-sw.js] Notification click received:', event);
-  
+
   event.notification.close();
-  
+
   const action = event.action;
   const data = event.notification.data || {};
   const { type, activityId, paymentId, userId } = data;
-  
+
   let urlToOpen = '/dashboard';
   let shouldOpenWindow = true;
-  
+
   // Determinar URL según el tipo de notificación (sección 4.3)
   switch (action) {
     case 'view':
@@ -187,17 +187,17 @@ self.addEventListener('notificationclick', (event) => {
         urlToOpen = '/dashboard';
       }
       break;
-      
+
     case 'pay':
       urlToOpen = '/payments';
       break;
-      
+
     case 'remind':
       // Programar recordatorio - no abrir ventana
       console.log('Setting reminder for payment:', paymentId);
       shouldOpenWindow = false;
       break;
-      
+
     default:
       // Click por defecto (sin botón de acción)
       switch (type) {
@@ -216,7 +216,7 @@ self.addEventListener('notificationclick', (event) => {
           urlToOpen = '/dashboard';
       }
   }
-  
+
   if (shouldOpenWindow) {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
