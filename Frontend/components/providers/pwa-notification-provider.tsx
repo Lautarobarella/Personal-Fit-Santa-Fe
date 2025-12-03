@@ -1,108 +1,107 @@
 'use client';
 
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { requestNotificationPermission, onMessageListener } from '@/lib/firebase-messaging';
+import { registerFCMToken } from '@/api/notifications/notificationsApi';
 import { useAuth } from '@/contexts/auth-provider';
-import { PWANotificationState, usePWANotifications } from '@/hooks/notifications/use-pwa-notifications';
-import { createContext, ReactNode, useContext, useEffect } from 'react';
+import { toast } from 'sonner';
 
-interface PWANotificationContextType extends PWANotificationState {
+interface PWANotificationContextType {
+  isSupported: boolean;
   isGranted: boolean;
-  isActive: boolean;
-  requestPermission: () => Promise<boolean>;
-  updatePreferences: (preferences: any) => Promise<boolean>;
-  loadPreferences: () => Promise<void>;
+  isLoading: boolean;
+  requestPermission: () => Promise<void>;
 }
 
 const PWANotificationContext = createContext<PWANotificationContextType | undefined>(undefined);
 
-interface PWANotificationProviderProps {
-  children: ReactNode;
-}
-
-export function PWANotificationProvider({ children }: PWANotificationProviderProps) {
+export function PWANotificationProvider({ children }: { children: ReactNode }) {
+  const [isSupported, setIsSupported] = useState(false);
+  const [isGranted, setIsGranted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
-  const notificationHook = usePWANotifications();
 
-  // Load preferences only when user is authenticated
   useEffect(() => {
-    if (user && notificationHook.isSupported && notificationHook.loadPreferences) {
-      notificationHook.loadPreferences();
+    // Check support on mount
+    if (typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator) {
+      setIsSupported(true);
+      setIsGranted(Notification.permission === 'granted');
     }
-  }, [user, notificationHook.isSupported, notificationHook.loadPreferences]);
+    setIsLoading(false);
+  }, []);
 
-  // Auto-request permission for logged-in users (optional)
   useEffect(() => {
-    if (user && notificationHook.isSupported && notificationHook.permission === 'default') {
-      // Optionally auto-prompt for notifications
-      // notificationHook.requestPermission();
-    }
-  }, [user, notificationHook.isSupported, notificationHook.permission]);
-
-  // Register service worker for notifications
-  useEffect(() => {
+    // Register service worker on mount
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const registerSW = async () => {
-        try {
-          // Check if we already have a service worker registered
-          const registration = await navigator.serviceWorker.getRegistration();
-          
-          if (!registration) {
-            // Register our custom service worker for notifications
-            await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-              scope: '/'
-            });
-            console.log('Service Worker registered successfully');
-          } else {
-            console.log('Service Worker already registered');
-          }
-        } catch (error) {
-          console.error('Service Worker registration failed:', error);
-        }
-      };
-
-      registerSW();
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log('✅ Service Worker registered with scope:', registration.scope);
+        })
+        .catch((err) => {
+          console.error('❌ Service Worker registration failed:', err);
+        });
     }
   }, []);
 
-  const value: PWANotificationContextType = {
-    ...notificationHook
+  const requestPermission = async () => {
+    if (!isSupported) {
+      toast.error('Las notificaciones no están soportadas en este navegador.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const token = await requestNotificationPermission();
+
+      if (token) {
+        setIsGranted(true);
+        // Send token to backend
+        if (user) {
+          await registerFCMToken(token);
+        }
+        toast.success('Notificaciones activadas correctamente');
+      } else {
+        setIsGranted(false);
+        toast.error('No se pudieron activar las notificaciones. Verifica los permisos del navegador.');
+      }
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+      toast.error('Error al activar notificaciones');
+      setIsGranted(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // Listen for foreground messages
+  useEffect(() => {
+    if (isGranted) {
+      const unsubscribe = onMessageListener((payload) => {
+        const title = payload.notification?.title || payload.data?.title || 'Nueva notificación';
+        const body = payload.notification?.body || payload.data?.body || '';
+
+        toast(title, {
+          description: body,
+        });
+      });
+      return () => {
+        // unsubscribe is void | Unsubscribe, handle accordingly if needed
+        // onMessage returns an Unsubscribe function
+      };
+    }
+  }, [isGranted]);
+
   return (
-    <PWANotificationContext.Provider value={value}>
+    <PWANotificationContext.Provider value={{ isSupported, isGranted, isLoading, requestPermission }}>
       {children}
     </PWANotificationContext.Provider>
   );
 }
 
-export function usePWANotificationContext(): PWANotificationContextType {
+export function usePWANotificationContext() {
   const context = useContext(PWANotificationContext);
-  
   if (context === undefined) {
     throw new Error('usePWANotificationContext must be used within a PWANotificationProvider');
   }
-  
   return context;
-}
-
-// Helper hook for quick status checks
-export function useNotificationStatus() {
-  const { 
-    isSupported, 
-    isGranted, 
-    isActive, 
-    permission, 
-    hasDeviceTokens 
-  } = usePWANotificationContext();
-  
-  return {
-    isSupported,
-    isGranted,
-    isActive,
-    permission,
-    hasDeviceTokens,
-    canReceiveNotifications: isSupported && isGranted && hasDeviceTokens,
-    needsPermission: isSupported && !hasDeviceTokens,
-    isBlocked: permission === 'denied',
-    needsToggle: false // Ya no es necesario porque isActive se basa directamente en hasDeviceTokens
-  };
 }
