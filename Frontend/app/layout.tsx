@@ -1,6 +1,5 @@
 import { ZoomPrevention } from "@/components/providers/zoom-prevention"
 import { ThemeProvider } from "@/components/theme-provider"
-import { PWANotificationProvider } from "@/components/providers/pwa-notification-provider"
 import { VersionChecker } from "@/components/providers/version-checker"
 import { Toaster } from "@/components/ui/toaster"
 import { ActivityProvider } from "@/contexts/activity-provider"
@@ -55,17 +54,17 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
-        
+
         {/* Meta tags para comportamiento nativo en PWA empaquetada */}
         <meta name="application-name" content="PERSONAL FIT" />
         <meta name="msapplication-TileColor" content="#FF6000" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
         <meta name="theme-color" content="#FF6000" />
-        
+
         {/* Prevenir que el sistema fuerce estilos */}
         <meta name="color-scheme" content="light" />
         <meta name="supported-color-schemes" content="light" />
-        
+
         {/* Configuraciones específicas para TWA (Trusted Web Activity) */}
         <meta name="mobile-web-app-title" content="PERSONAL FIT" />
         <meta name="application-url" content="https://personalfitsantafe.com" />
@@ -77,25 +76,23 @@ export default function RootLayout({
         <VersionChecker />
         <ThemeProvider>
           <AuthProvider>
-            <PWANotificationProvider>
-              <SettingsProvider>
-                <PaymentProvider>
-                  <ActivityProvider>
-                    <AttendanceProvider>
-                      <NotificationsProvider>
-                        <div className="min-h-screen flex justify-center bg-background">
-                          <div className="w-full max-w-md mx-auto relative">
-                            {children}
-                          </div>
+            <SettingsProvider>
+              <PaymentProvider>
+                <ActivityProvider>
+                  <AttendanceProvider>
+                    <NotificationsProvider>
+                      <div className="min-h-screen flex justify-center bg-background">
+                        <div className="w-full max-w-md mx-auto relative">
+                          {children}
                         </div>
-                        <ZoomPrevention />
-                        <Toaster />
-                      </NotificationsProvider>
-                    </AttendanceProvider>
-                  </ActivityProvider>
-                </PaymentProvider>
-              </SettingsProvider>
-            </PWANotificationProvider>
+                      </div>
+                      <ZoomPrevention />
+                      <Toaster />
+                    </NotificationsProvider>
+                  </AttendanceProvider>
+                </ActivityProvider>
+              </PaymentProvider>
+            </SettingsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
