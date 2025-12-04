@@ -43,9 +43,13 @@ export interface NotificationState {
     clearError: () => void
 
     // Acciones sobre notificaciones
+    // Acciones sobre notificaciones
     markAsRead: (id: number) => Promise<void>
+    markAsUnread: (id: number) => Promise<void>
     markAllAsRead: () => Promise<void>
     deleteNotification: (id: number) => Promise<void>
+    archiveNotification: (id: number) => Promise<void>
+    unarchiveNotification: (id: number) => Promise<void>
 
     // Compatibilidad con UI existente
     isSupported: boolean
@@ -222,7 +226,9 @@ export const useNotification = (): NotificationState => {
     const unsubscribe = useCallback(async (): Promise<boolean> => {
         try {
             setIsLoading(true)
-            const success = await unsubscribeFromPushNotifications()
+            // Si tenemos un token local, intentamos desuscribirlo específicamente
+            const tokenToUnsubscribe = fcmToken || undefined
+            const success = await unsubscribeFromPushNotifications(tokenToUnsubscribe)
 
             if (success) {
                 setHasDeviceTokens(false)
@@ -241,7 +247,7 @@ export const useNotification = (): NotificationState => {
         } finally {
             setIsLoading(false)
         }
-    }, [toast])
+    }, [fcmToken, toast])
 
     const updatePreferencesHandler = useCallback(async (newPrefs: NotificationPreferences): Promise<boolean> => {
         try {
@@ -307,7 +313,16 @@ export const useNotification = (): NotificationState => {
         clearError,
 
         markAsRead,
+        markAsUnread: async (id: number) => {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'UNREAD' as any } : n))
+        },
         markAllAsRead,
-        deleteNotification
+        deleteNotification,
+        archiveNotification: async (id: number) => {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'ARCHIVED' as any } : n))
+        },
+        unarchiveNotification: async (id: number) => {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'READ' as any } : n))
+        }
     }
 }

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useNotification } from "@/hooks/notifications/use-notification"
+import { useNotificationsContext } from "@/contexts/notifications-provider"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationCategoryType, NotificationStatus, NotificationType } from "@/lib/types"
 import {
@@ -31,21 +31,21 @@ import { useEffect, useState } from "react"
 
 export default function NotificationsPage() {
     const { toast } = useToast()
-    
+
     // Use custom hook to redirect to login if not authenticated
     useRequireAuth()
     const {
         notifications,
         loading,
         error,
-        loadNotifications,
+        refreshNotifications: loadNotifications,
         markAsRead,
         markAsUnread,
         archiveNotification,
         unarchiveNotification,
         deleteNotification,
         markAllAsRead,
-    } = useNotification()
+    } = useNotificationsContext()
 
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<NotificationStatus | "all">(NotificationStatus.UNREAD)
@@ -68,7 +68,7 @@ export default function NotificationsPage() {
     // Filtrar notificaciones por estado y término de búsqueda
     const getFilteredNotifications = () => {
         let filtered = notifications
-        
+
         // Filtrar por estado
         switch (statusFilter) {
             case NotificationStatus.UNREAD:
@@ -84,7 +84,7 @@ export default function NotificationsPage() {
                 filtered = notifications
                 break
         }
-        
+
         // Filtrar por búsqueda
         if (searchTerm) {
             filtered = filtered.filter((n) =>
@@ -92,7 +92,7 @@ export default function NotificationsPage() {
                 n.message.toLowerCase().includes(searchTerm.toLowerCase())
             )
         }
-        
+
         return filtered
     }
 
@@ -175,11 +175,11 @@ export default function NotificationsPage() {
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 {getEntityIcon(notification.notificationCategory || "")}
                                 <span className="capitalize">
-                                    {({ 
-                                        [NotificationCategoryType.PAYMENT]: "Pago", 
-                                        [NotificationCategoryType.ENROLLMENT]: "Inscripción", 
-                                        [NotificationCategoryType.ACTIVITY]: "Actividad", 
-                                        [NotificationCategoryType.CLIENT]: "Cliente" 
+                                    {({
+                                        [NotificationCategoryType.PAYMENT]: "Pago",
+                                        [NotificationCategoryType.ENROLLMENT]: "Inscripción",
+                                        [NotificationCategoryType.ACTIVITY]: "Actividad",
+                                        [NotificationCategoryType.CLIENT]: "Cliente"
                                     } as Record<string, string>)[notification.notificationCategory || ""] || ""}
                                 </span>
                             </div>
@@ -317,8 +317,8 @@ export default function NotificationsPage() {
                                         <CheckCircle className="h-12 w-12 mx-auto text-success mb-4" />
                                         <h3 className="text-lg font-medium mb-2">¡Todo al día!</h3>
                                         <p className="text-muted-foreground">
-                                            {searchTerm 
-                                                ? "No se encontraron notificaciones no leídas" 
+                                            {searchTerm
+                                                ? "No se encontraron notificaciones no leídas"
                                                 : "No tienes notificaciones sin leer"
                                             }
                                         </p>
@@ -329,8 +329,8 @@ export default function NotificationsPage() {
                                         <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <h3 className="text-lg font-medium mb-2">No hay notificaciones leídas</h3>
                                         <p className="text-muted-foreground">
-                                            {searchTerm 
-                                                ? "No se encontraron notificaciones leídas" 
+                                            {searchTerm
+                                                ? "No se encontraron notificaciones leídas"
                                                 : "Las notificaciones que marques como leídas aparecerán aquí"
                                             }
                                         </p>
@@ -341,8 +341,8 @@ export default function NotificationsPage() {
                                         <Archive className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <h3 className="text-lg font-medium mb-2">No hay notificaciones archivadas</h3>
                                         <p className="text-muted-foreground">
-                                            {searchTerm 
-                                                ? "No se encontraron notificaciones archivadas" 
+                                            {searchTerm
+                                                ? "No se encontraron notificaciones archivadas"
                                                 : "Las notificaciones archivadas aparecerán aquí"
                                             }
                                         </p>
@@ -353,8 +353,8 @@ export default function NotificationsPage() {
                                         <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <h3 className="text-lg font-medium mb-2">No hay notificaciones</h3>
                                         <p className="text-muted-foreground">
-                                            {searchTerm 
-                                                ? "No se encontraron notificaciones" 
+                                            {searchTerm
+                                                ? "No se encontraron notificaciones"
                                                 : "No tienes notificaciones disponibles"
                                             }
                                         </p>
@@ -372,16 +372,16 @@ export default function NotificationsPage() {
                             <h3 className="font-medium mb-3">Acciones Rápidas</h3>
                             <div className="flex flex-wrap gap-2">
                                 {unreadNotifications.length > 0 && (
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
                                         onClick={async () => {
                                             await markAllAsRead()
                                             toast({
                                                 title: "Éxito",
                                                 description: "Todas las notificaciones fueron marcadas como leídas",
                                             })
-                                        }} 
+                                        }}
                                         className="bg-transparent min-w-[180px]"
                                     >
                                         <CheckCheck className="h-4 w-4 mr-2" />
@@ -393,11 +393,11 @@ export default function NotificationsPage() {
                                     size="sm"
                                     onClick={async () => {
                                         const allActiveNotifications = notifications.filter(n => n.status !== NotificationStatus.ARCHIVED)
-                                        
+
                                         for (const notification of allActiveNotifications) {
                                             await archiveNotification(notification.id)
                                         }
-                                        
+
                                         toast({
                                             title: "Éxito",
                                             description: `${allActiveNotifications.length} notificaciones archivadas`,

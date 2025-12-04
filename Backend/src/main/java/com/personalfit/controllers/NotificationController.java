@@ -1,6 +1,7 @@
 package com.personalfit.controllers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -111,6 +113,68 @@ public class NotificationController {
         }
     }
 
+    /**
+     * Verifica si el usuario tiene tokens FCM activos
+     * Endpoint para que el frontend sepa si mostrar el estado "Activo"
+     */
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Boolean>> getNotificationStatus(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            boolean hasTokens = notificationService.hasActiveTokens(userOpt.get().getId());
+            return ResponseEntity.ok(Map.of("hasDeviceTokens", hasTokens));
+
+        } catch (Exception e) {
+            log.error("Error checking notification status", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Desuscribe un dispositivo específico (elimina su token)
+     */
+    @DeleteMapping("/token")
+    public ResponseEntity<String> unsubscribe(@RequestBody(required = false) FCMTokenRequest request,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            }
+
+            // Si no se envía token, no podemos desuscribir un dispositivo específico
+            // En el futuro podríamos soportar "desuscribir todos" si request es null
+            if (request == null || request.token == null || request.token.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Token is required to unsubscribe");
+            }
+
+            boolean success = notificationService.unsubscribe(userOpt.get().getId(), request.token);
+
+            if (success) {
+                log.info("✅ FCM token unsubscribed successfully for user: {}", userOpt.get().getId());
+                return ResponseEntity.ok("Unsubscribed successfully");
+            } else {
+                // Si no se encontró el token, igual retornamos OK para ser idempotentes
+                // pero logueamos warning
+                log.warn("⚠️ Token not found or mismatch during unsubscribe for user: {}", userOpt.get().getId());
+                return ResponseEntity.ok("Unsubscribed successfully (token not found)");
+            }
+
+        } catch (Exception e) {
+            log.error("Error unsubscribing token", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Internal server error");
+        }
+    }
+
     // ===============================
     // ENDPOINTS DE HISTORIAL DE NOTIFICACIONES
     // ===============================
@@ -121,7 +185,6 @@ public class NotificationController {
      * Los administradores pueden ver las de cualquier usuario
      */
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
     public ResponseEntity<List<NotificationDTO>> getUserNotifications(@PathVariable Long id,
             Authentication authentication) {
         try {
@@ -158,7 +221,6 @@ public class NotificationController {
      * Endpoint de conveniencia para el frontend
      */
     @GetMapping("/my-notifications")
-    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<List<NotificationDTO>> getMyNotifications(Authentication authentication) {
         try {
             String userEmail = authentication.getName();

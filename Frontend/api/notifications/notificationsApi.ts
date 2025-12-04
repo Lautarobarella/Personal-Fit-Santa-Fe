@@ -183,8 +183,8 @@ export async function getNotificationPreferences(): Promise<any> {
  */
 export async function getPushNotificationStatus(): Promise<{ hasDeviceTokens: boolean } | null> {
     try {
-        // Por ahora simulamos que no hay tokens activos
-        return { hasDeviceTokens: false };
+        const response = await jwtPermissionsApi.get('/api/notifications/status');
+        return response;
     } catch (error) {
         console.error('❌ Error getting push notification status:', error);
         return null;
@@ -210,25 +210,30 @@ export async function updateNotificationPreferences(preferences: any): Promise<b
  */
 export async function getSubscriptionStatus(): Promise<{ isSubscribed: boolean; canSubscribe: boolean; canUnsubscribe: boolean; activeTokensCount: number } | null> {
     try {
-        // Por ahora simulamos estado no suscrito
+        const status = await getPushNotificationStatus();
+
+        if (!status) return null;
+
         return {
-            isSubscribed: false,
+            isSubscribed: status.hasDeviceTokens,
             canSubscribe: true,
-            canUnsubscribe: false,
-            activeTokensCount: 0
+            canUnsubscribe: status.hasDeviceTokens,
+            activeTokensCount: status.hasDeviceTokens ? 1 : 0
         };
     } catch (error) {
         console.error('❌ Error getting subscription status:', error);
         return null;
     }
 }
-
 /**
  * Desuscribe al usuario de las notificaciones push
  */
-export async function unsubscribeFromPushNotifications(): Promise<boolean> {
+export async function unsubscribeFromPushNotifications(token?: string): Promise<boolean> {
     try {
-        // Por ahora solo simulamos éxito
+        await jwtPermissionsApi.request('/api/notifications/token', {
+            method: 'DELETE',
+            body: { token }
+        });
         console.log('✅ Unsubscribed from push notifications');
         return true;
     } catch (error) {

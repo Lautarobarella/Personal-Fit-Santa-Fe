@@ -120,6 +120,45 @@ public class NotificationService {
     }
 
     /**
+     * Verifica si el usuario tiene tokens activos
+     */
+    public boolean hasActiveTokens(Long userId) {
+        return fcmTokenRepository.countByUserId(userId) > 0;
+    }
+
+    /**
+     * Desuscribe un token específico
+     */
+    public boolean unsubscribe(Long userId, String token) {
+        try {
+            Optional<FCMToken> tokenOpt = fcmTokenRepository.findByToken(token);
+            if (tokenOpt.isPresent() && tokenOpt.get().getUser().getId().equals(userId)) {
+                fcmTokenRepository.delete(tokenOpt.get());
+                log.info("✅ Unsubscribed token for user: {}", userId);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error unsubscribing token for user: {}", userId, e);
+            return false;
+        }
+    }
+
+    /**
+     * Desactiva un token de dispositivo al cerrar sesión
+     */
+    public void deactivateDeviceTokenOnLogout(String userEmail, String token) {
+        try {
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+            if (userOpt.isPresent()) {
+                unsubscribe(userOpt.get().getId(), token);
+            }
+        } catch (Exception e) {
+            log.error("Error deactivating device token for user: {}", userEmail, e);
+        }
+    }
+
+    /**
      * Elimina tokens FCM inválidos o expirados
      * Implementa la sección 2.2 del documento: "Manejo de la caducidad"
      */
@@ -131,69 +170,6 @@ public class NotificationService {
             }
         }
     }
-
-    /**
-     * Limpieza periódica de tokens antiguos (más de 60 días sin actualizar)
-     */
-    @Scheduled(cron = "0 0 2 * * ?") // Ejecutar a las 2:00 AM diariamente
-    public void cleanupOldTokens() {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(60);
-        fcmTokenRepository.deleteTokensOlderThan(cutoffDate);
-        log.info("🧹 Cleaned up FCM tokens older than 60 days");
-    }
-
-    /**
-     * Desactiva el token FCM de un dispositivo cuando el usuario hace logout
-     * Implementa la lógica de cleanup en logout para mantener la base de datos
-     * limpia
-     * 
-     * @param userEmail   Email del usuario que está haciendo logout
-     * @param deviceToken Token FCM del dispositivo a desactivar
-     */
-    public void deactivateDeviceTokenOnLogout(String userEmail, String deviceToken) {
-        try {
-            if (deviceToken == null || deviceToken.trim().isEmpty()) {
-                log.debug("No device token provided for logout cleanup");
-                return;
-            }
-
-            // Buscar usuario por email
-            Optional<User> userOpt = userRepository.findByEmail(userEmail);
-            if (userOpt.isEmpty()) {
-                log.warn("User not found with email: {} during token deactivation", userEmail);
-                return;
-            }
-
-            User user = userOpt.get();
-
-            // Eliminar el token específico de este dispositivo
-            Optional<FCMToken> tokenOpt = fcmTokenRepository.findByToken(deviceToken);
-            if (tokenOpt.isPresent()) {
-                FCMToken fcmToken = tokenOpt.get();
-
-                // Verificar que el token pertenece al usuario correcto
-                if (fcmToken.getUser().getId().equals(user.getId())) {
-                    fcmTokenRepository.delete(fcmToken);
-                    log.info("🔓 Deactivated FCM token for user: {} on logout | Token: {}...",
-                            user.getId(), deviceToken.substring(0, Math.min(10, deviceToken.length())));
-                } else {
-                    log.warn("Token mismatch: token belongs to user {} but logout requested for user {}",
-                            fcmToken.getUser().getId(), user.getId());
-                }
-            } else {
-                log.debug("FCM token not found during logout: {}...",
-                        deviceToken.substring(0, Math.min(10, deviceToken.length())));
-            }
-
-        } catch (Exception e) {
-            log.error("Error deactivating device token on logout for user: {} | Error: {}",
-                    userEmail, e.getMessage(), e);
-        }
-    }
-
-    // ===============================
-    // 2. ENVÍO DE NOTIFICACIONES (Sección 3 del documento)
-    // ===============================
 
     /**
      * Método central para enviar notificaciones push según la sección 3.2 del
