@@ -3,7 +3,6 @@ package com.personalfit.models;
 import java.time.LocalDateTime;
 
 import com.personalfit.enums.NotificationStatus;
-import com.personalfit.enums.UserRole;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,16 +30,13 @@ public class Notification {
 
     private String title;
     private String message;
-    private LocalDateTime date;
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private NotificationStatus status = NotificationStatus.UNREAD;
 
-    @Enumerated(EnumType.STRING)
-    private UserRole targetRole; // Para notificaciones específicas de rol
-
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 }

@@ -16,7 +16,6 @@ import com.personalfit.config.CookieProperties;
 import com.personalfit.dto.Auth.AuthRequestDTO;
 import com.personalfit.dto.Auth.AuthResponseDTO;
 import com.personalfit.services.AuthService;
-import com.personalfit.services.NotificationService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,6 @@ public class AuthController {
 
     private final AuthService authService;
     private final CookieProperties cookieProperties;
-    private final NotificationService notificationService;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> authenticate(@Valid @RequestBody AuthRequestDTO request) {
@@ -125,7 +123,6 @@ public class AuthController {
             // Desactivar tokens de dispositivo si está disponible
             if (authentication != null && deviceToken != null && !deviceToken.trim().isEmpty()) {
                 String userEmail = authentication.getName();
-                notificationService.deactivateDeviceTokenOnLogout(userEmail, deviceToken);
             }
         } catch (Exception e) {
             // Log del error pero continúa con el logout
