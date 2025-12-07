@@ -42,26 +42,12 @@ export enum PaymentStatus {
   EXPIRED = "EXPIRED"
 }
 
-export enum NotificationType {
-  SUCCESS = "SUCCESS",
-  INFO = "INFO",
-  WARNING = "WARNING",
-  ERROR = "ERROR"
-}
-
 export interface GlobalSettingsType {
   monthlyFee: number
   registrationTimeHours: number
   unregistrationTimeHours: number
   maxActivitiesPerDay: number
   paymentGracePeriodDays: number
-}
-
-export enum NotificationCategoryType {
-  PAYMENT = "PAYMENT",
-  CLIENT = "CLIENT",
-  ENROLLMENT = "ENROLLMENT",
-  ACTIVITY = "ACTIVITY"
 }
 
 export enum NotificationStatus {
@@ -248,10 +234,27 @@ export interface Notification {
   id: number
   title: string
   message: string
-  infoType: NotificationType
   status: NotificationStatus
   createdAt: Date
-  notificationCategory: NotificationCategoryType
+  userId: number
+  userName: string
+}
+
+export interface NotificationDetailInfo {
+  id: number
+  title: string
+  message: string
+  createdAt: Date
+  status: NotificationStatus
+  userId: number
+  userName: string
+}
+
+export interface NotificationFormType {
+  id?: string
+  title: string
+  message: string
+  userId: string
 }
 
 export interface NewPaymentInput {
@@ -293,100 +296,3 @@ export interface WeeklySchedule {
   sunday: boolean
 }
 
-export interface RegisterDeviceRequest {
-    token: string;
-    deviceType: 'PWA' | 'ANDROID' | 'IOS' | 'WEB';
-    userId?: number;
-}
-
-export interface SendNotificationRequest {
-    userId: number;
-    title: string;
-    body: string;
-    type?: string;
-    data?: Record<string, string>;
-}
-
-export interface BulkNotificationRequest {
-    title: string;
-    body: string;
-    type?: string;
-    data?: Record<string, string>;
-    saveToDatabase?: boolean;
-}
-
-export interface NotificationPreferences {
-    classReminders: boolean;
-    paymentDue: boolean;
-    newClasses: boolean;
-    promotions: boolean;
-    classCancellations: boolean;
-    generalAnnouncements: boolean;
-}
-
-// ===============================
-// TIPOS PARA FCM (Firebase Cloud Messaging) según documento de arquitectura
-// ===============================
-
-/**
- * Payload de datos para notificaciones FCM (sección 3.3 del documento)
- * Se envía junto con la notificación para procesamiento de la PWA
- */
-export interface FCMDataPayload {
-    type: string; // Tipo de notificación (ej: 'NEW_PAYMENT', 'ACTIVITY_REMINDER')
-    userId?: string;
-    activityId?: string;
-    paymentId?: string;
-    amount?: string;
-    dueDate?: string;
-    timestamp?: string;
-    [key: string]: string | undefined; // Permitir datos adicionales
-}
-
-/**
- * Payload completo de notificación FCM (sección 4.1 del documento)
- * Recibido en el Service Worker y en onMessage
- */
-export interface FCMNotificationPayload {
-    notification?: {
-        title?: string;
-        body?: string;
-        image?: string;
-    };
-    data?: FCMDataPayload;
-}
-
-/**
- * Request para registro de token FCM (sección 1.3 del documento)
- * Se envía al endpoint POST /api/notifications/token
- */
-export interface FCMTokenRequest {
-    token: string;
-    deviceInfo?: string;
-}
-
-/**
- * Tipos de notificaciones push soportados
- * Usado en el data payload para determinar el comportamiento
- */
-export enum FCMNotificationType {
-    PAYMENT_EXPIRED = "PAYMENT_EXPIRED",
-    PAYMENT_DUE_REMINDER = "PAYMENT_DUE_REMINDER", 
-    BIRTHDAY = "BIRTHDAY",
-    ATTENDANCE_WARNING = "ATTENDANCE_WARNING",
-    ACTIVITY_REMINDER = "ACTIVITY_REMINDER",
-    NEW_ACTIVITY = "NEW_ACTIVITY",
-    ACTIVITY_CANCELLED = "ACTIVITY_CANCELLED",
-    ADMIN_NOTIFICATION = "ADMIN_NOTIFICATION",
-    GENERAL_ANNOUNCEMENT = "GENERAL_ANNOUNCEMENT"
-}
-
-/**
- * Estado del permiso de notificaciones
- * Usado en el Context Provider para manejar el estado
- */
-export enum NotificationPermissionState {
-    DEFAULT = "default",
-    GRANTED = "granted", 
-    DENIED = "denied"
-}

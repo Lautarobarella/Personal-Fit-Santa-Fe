@@ -5,7 +5,7 @@ import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
 import { MonthlyFeeDialog } from "@/components/settings/monthly-fee-dialog"
 import { PaymentGracePeriodDialog } from "@/components/settings/payment-grace-period-dialog"
-import { PushNotificationDialog } from "@/components/settings/push-notification-dialog"
+import { CreateNotificationDialog } from "@/components/settings/create-notification-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/contexts/auth-provider"
-import { useNotificationsContext } from "@/contexts/notifications-provider"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
@@ -28,88 +27,32 @@ export default function SettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
-  const {
-    isSupported: notificationsSupported,
-    isActive: isSubscribed,
-    loading: notificationsLoading,
-    requestPermission,
-    subscribe,
-    unsubscribe,
-    fcmToken: token
-  } = useNotificationsContext()
-
-  // Derived state for compatibility
-  const activeTokensCount = isSubscribed ? 1 : 0;
-  const canSubscribe = !isSubscribed;
-  const canUnsubscribe = isSubscribed;
-  const loadSubscriptionStatus = async () => { }; // No-op, handled by provider
-  const loadPreferences = async () => { }; // No-op, handled by provider
+  // Notificaciones push temporalmente deshabilitadas
+  const notificationsSupported = false;
+  const isSubscribed = false;
+  const notificationsLoading = false;
+  const activeTokensCount = 0;
+  const canSubscribe = false;
+  const canUnsubscribe = false;
 
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
   const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
   const [showPaymentGracePeriodDialog, setShowPaymentGracePeriodDialog] = useState(false)
-  const [showPushNotificationDialog, setShowPushNotificationDialog] = useState(false)
+  const [showCreateNotificationDialog, setShowCreateNotificationDialog] = useState(false)
   const [showTermsDialog, setShowTermsDialog] = useState(false)
 
   const handleLogout = () => {
-    // Pasar el token del dispositivo para desactivarlo en el logout
-    logout(token || undefined)
+    logout()
     router.push("/")
   }
 
   const handleNotificationsToggle = async (checked: boolean) => {
-    if (!notificationsSupported) {
-      toast({
-        title: "❌ No Compatible",
-        description: "Tu navegador no soporta notificaciones push",
-        variant: "destructive"
-      })
-      return
-    }
-
-    try {
-      if (checked) {
-        // Suscribirse - solicitar permisos y registrar token
-        const success = await subscribe()
-        if (success) {
-          await loadSubscriptionStatus() // Recargar estado
-          toast({
-            title: "✅ Suscripción Activada",
-            description: "Ahora recibirás notificaciones push importantes",
-          })
-        } else {
-          toast({
-            title: "❌ Error al Suscribirse",
-            description: "No se pudo activar las notificaciones. Intenta de nuevo.",
-            variant: "destructive"
-          })
-        }
-      } else {
-        // Desuscribirse - desactivar todos los tokens
-        const success = await unsubscribe()
-        if (success) {
-          await loadSubscriptionStatus() // Recargar estado
-          toast({
-            title: "🔕 Suscripción Desactivada",
-            description: "Ya no recibirás notificaciones push",
-          })
-        } else {
-          toast({
-            title: "❌ Error al Desuscribirse",
-            description: "No se pudo desactivar las notificaciones. Intenta de nuevo.",
-            variant: "destructive"
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling notifications:', error)
-      toast({
-        title: "❌ Error",
-        description: "Ocurrió un error inesperado. Intenta de nuevo.",
-        variant: "destructive"
-      })
-    }
+    toast({
+      title: "Funcionalidad deshabilitada",
+      description: "Las notificaciones push están temporalmente deshabilitadas",
+      variant: "destructive"
+    })
   }
 
   const handleInstallApp = () => {
@@ -123,20 +66,6 @@ export default function SettingsPage() {
   const handleShowTerms = () => {
     setShowTermsDialog(true)
   }
-
-  // Cargar preferencias de notificaciones cuando el usuario esté autenticado
-  useEffect(() => {
-    if (user && notificationsSupported) {
-      loadPreferences()
-    }
-  }, [user, notificationsSupported, loadPreferences])
-
-  // Cargar estado de suscripción al montar el componente
-  useEffect(() => {
-    if (user && notificationsSupported) {
-      loadSubscriptionStatus()
-    }
-  }, [user, notificationsSupported, loadSubscriptionStatus])
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -193,21 +122,14 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-medium">Notificaciones Push</p>
                   <p className="text-sm text-muted-foreground">
-                    {!notificationsSupported
-                      ? "No compatible con tu navegador"
-                      : notificationsLoading
-                        ? "Cargando..."
-                        : isSubscribed
-                          ? `Activo - ${activeTokensCount} dispositivo${activeTokensCount !== 1 ? 's' : ''} conectado${activeTokensCount !== 1 ? 's' : ''}`
-                          : "Activa para recibir notificaciones importantes"
-                    }
+                    Temporalmente deshabilitadas
                   </p>
                 </div>
               </div>
               <Switch
-                checked={isSubscribed}
+                checked={false}
                 onCheckedChange={handleNotificationsToggle}
-                disabled={!notificationsSupported || notificationsLoading || (!canSubscribe && !canUnsubscribe)}
+                disabled={true}
               />
             </div>
 
@@ -324,8 +246,8 @@ export default function SettingsPage() {
 
               <Button
                 variant="outline"
-                className="w-full justify-start bg-transparent"
-                onClick={() => setShowPushNotificationDialog(true)}
+                className="w-full justify-start"
+                onClick={() => setShowCreateNotificationDialog(true)}
               >
                 <Bell className="h-4 w-4 mr-3" />
                 Generar notificación
@@ -372,9 +294,9 @@ export default function SettingsPage() {
       />
 
       {/* Push Notification Dialog */}
-      <PushNotificationDialog
-        open={showPushNotificationDialog}
-        onOpenChange={setShowPushNotificationDialog}
+      <CreateNotificationDialog
+        open={showCreateNotificationDialog}
+        onOpenChange={setShowCreateNotificationDialog}
       />
 
       {/* Terms and Conditions Dialog */}

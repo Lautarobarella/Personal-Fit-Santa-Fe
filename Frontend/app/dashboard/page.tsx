@@ -2,7 +2,6 @@
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
-import { NotificationPermissionRequest } from "@/components/notifications/notification-permission-request"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -447,7 +446,6 @@ function DashboardContent() {
 
       <div className="container-centered h-full py-6 space-y-6">
         {/* Solicitud de permisos de notificación para clientes */}
-        <NotificationPermissionRequest />
 
         {/* Welcome Section - Diseño profesional con imagen de fondo */}
         <div className="relative overflow-hidden rounded-3xl shadow-professional-lg">

@@ -4,7 +4,7 @@
  */
 
 // IMPORTANTE: Incrementa este número cada vez que resetees la BD o hagas cambios que requieran limpiar cache
-export const BUILD_VERSION = '1.0.10';
+export const BUILD_VERSION = '1.0.12';
 const VERSION_KEY = 'app_build_version';
 
 /**
@@ -148,7 +148,7 @@ const clearAppCache = async (): Promise<void> => {
             console.log('ℹ️ [CLEAR-CACHE] Cache API no disponible en este navegador');
         }
 
-        // 5. Limpiar IndexedDB (usado por Firebase)
+        // 5. Limpiar IndexedDB
         console.log('🗑️ [CLEAR-CACHE] Paso 5/5: Limpiando IndexedDB...');
         if ('indexedDB' in window) {
             console.log('🗑️ [CLEAR-CACHE] IndexedDB API disponible');
