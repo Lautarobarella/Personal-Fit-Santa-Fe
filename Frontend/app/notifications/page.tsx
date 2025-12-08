@@ -107,7 +107,7 @@ export default function NotificationsPage() {
                 onBack={() => window.history.back()}
             />
 
-            <div className="container mx-auto px-4 pt-20 pb-24 max-w-4xl">
+            <div className="container mx-auto px-4 pt-4 pb-24 max-w-4xl">
                 {/* Barra de búsqueda */}
                 <div className="mb-4">
                     <div className="relative">
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
                 </Tabs>
                 {/* Card de acciones rápidas */}
                 {notifications.length > 0 && (
-                    <Card className="mb-6">
+                    <Card className="mt-8 mb-4">
                         <CardHeader>
                             <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
                         </CardHeader>

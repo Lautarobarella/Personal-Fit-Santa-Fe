@@ -60,7 +60,7 @@ export function NotificationsList({ filterStatus = "all" }: NotificationsListPro
       {filteredNotifications.map((notification) => (
         <Card 
           key={notification.id} 
-          className={notification.status === NotificationStatus.UNREAD ? "border-l-4 border-l-blue-500" : ""}
+          className={notification.status === NotificationStatus.UNREAD ? "border-l-4 border-l-orange-500" : ""}
         >
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-4">
