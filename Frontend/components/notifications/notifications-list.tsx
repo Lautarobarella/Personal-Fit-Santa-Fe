@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Bell, Check, Archive, Trash2 } from "lucide-react"
-import { NotificationStatus, Notification } from "@/lib/types"
+import { NotificationStatus } from "@/lib/types"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 

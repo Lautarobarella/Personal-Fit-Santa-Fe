@@ -27,13 +27,6 @@ export default function SettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
-  // Notificaciones push temporalmente deshabilitadas
-  const notificationsSupported = false;
-  const isSubscribed = false;
-  const notificationsLoading = false;
-  const activeTokensCount = 0;
-  const canSubscribe = false;
-  const canUnsubscribe = false;
 
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
