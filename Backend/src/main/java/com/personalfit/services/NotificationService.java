@@ -19,7 +19,6 @@ import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Notification;
 import com.personalfit.models.User;
 import com.personalfit.repository.NotificationRepository;
-import com.personalfit.repository.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,9 +28,6 @@ public class NotificationService {
 
     @Autowired
     private NotificationRepository notificationRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     @Lazy
@@ -67,12 +63,9 @@ public class NotificationService {
     public int createBulkNotification(String title, String message) {
         try {
             // Obtener todos los usuarios que NO son ADMIN
-            List<User> allUsers = userRepository.findAll();
-            List<User> nonAdminUsers = allUsers.stream()
-                    .filter(u -> u.getRole() != com.personalfit.enums.UserRole.ADMIN)
-                    .collect(Collectors.toList());
+            List<User> allUsers = userService.getAllNonAdminUsers();
 
-            if (nonAdminUsers.isEmpty()) {
+            if (allUsers.isEmpty()) {
                 log.warn("⚠️ No hay usuarios no-admin para enviar notificaciones");
                 return 0;
             }
@@ -80,7 +73,7 @@ public class NotificationService {
             LocalDateTime now = LocalDateTime.now();
             int count = 0;
 
-            for (User user : nonAdminUsers) {
+            for (User user : allUsers) {
                 Notification notification = Notification.builder()
                         .title(title)
                         .message(message)
