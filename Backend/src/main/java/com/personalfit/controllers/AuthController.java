@@ -119,15 +119,6 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(Authentication authentication, 
                                      @RequestHeader(value = "Device-Token", required = false) String deviceToken) {
-        try {
-            // Desactivar tokens de dispositivo si está disponible
-            if (authentication != null && deviceToken != null && !deviceToken.trim().isEmpty()) {
-                String userEmail = authentication.getName();
-            }
-        } catch (Exception e) {
-            // Log del error pero continúa con el logout
-            System.err.println("Error deactivating device token on logout: " + e.getMessage());
-        }
 
         // Eliminar las cookies estableciendo su valor vacío y maxAge 0
         ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", "")
