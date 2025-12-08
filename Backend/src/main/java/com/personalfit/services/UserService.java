@@ -202,6 +202,18 @@ public class UserService {
         return userRepository.findAllByRole(UserRole.ADMIN);
     }
 
+    /**
+     * Obtiene todos los usuarios que NO son administradores
+     * Usado para enviar notificaciones masivas
+     * 
+     * @return Lista de usuarios no-admin
+     */
+    public List<User> getAllNonAdminUsers() {
+        return userRepository.findAll().stream()
+                .filter(u -> u.getRole() != UserRole.ADMIN)
+                .collect(Collectors.toList());
+    }
+
     public List<User> getAll(List<Long> id) {
         return userRepository.findByIdIn(id);
     }
