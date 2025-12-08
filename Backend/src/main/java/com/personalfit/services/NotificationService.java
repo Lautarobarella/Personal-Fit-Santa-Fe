@@ -19,6 +19,7 @@ import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Notification;
 import com.personalfit.models.User;
 import com.personalfit.repository.NotificationRepository;
+import com.personalfit.repository.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,9 +31,15 @@ public class NotificationService {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     @Lazy
     private UserService userService;
 
+    /**
+     * Crea una notificación para un usuario específico
+     */
     public void createNotification(NotificationFormTypeDTO notification) {
         User user = userService.getUserById(Long.parseLong(notification.getUserId()));
 
@@ -50,6 +57,49 @@ public class NotificationService {
         } catch (Exception e) {
             throw new BusinessRuleException("Error al guardar la notificación: " + e.getMessage(),
                     "Api/Notification/createNotification");
+        }
+    }
+
+    /**
+     * Crea notificaciones masivas para todos los usuarios (excepto admins)
+     * Usado por el admin para enviar notificaciones generales desde /settings
+     */
+    public int createBulkNotification(String title, String message) {
+        try {
+            // Obtener todos los usuarios que NO son ADMIN
+            List<User> allUsers = userRepository.findAll();
+            List<User> nonAdminUsers = allUsers.stream()
+                    .filter(u -> u.getRole() != com.personalfit.enums.UserRole.ADMIN)
+                    .collect(Collectors.toList());
+
+            if (nonAdminUsers.isEmpty()) {
+                log.warn("⚠️ No hay usuarios no-admin para enviar notificaciones");
+                return 0;
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            int count = 0;
+
+            for (User user : nonAdminUsers) {
+                Notification notification = Notification.builder()
+                        .title(title)
+                        .message(message)
+                        .user(user)
+                        .status(NotificationStatus.UNREAD)
+                        .createdAt(now)
+                        .build();
+
+                notificationRepository.save(notification);
+                count++;
+            }
+
+            log.info("✅ Bulk notifications created: {} | Title: '{}' | Recipients: {}", count, title, count);
+            return count;
+
+        } catch (Exception e) {
+            log.error("❌ Error al crear notificaciones masivas: {}", e.getMessage());
+            throw new BusinessRuleException("Error al crear notificaciones masivas: " + e.getMessage(),
+                    "Api/Notification/createBulkNotification");
         }
     }
 
@@ -100,7 +150,7 @@ public class NotificationService {
                         "Api/Notification/markAsRead"));
 
         notification.setStatus(NotificationStatus.READ);
-        
+
         try {
             notificationRepository.save(notification);
             log.info("✅ Notification marked as read: {}", id);
@@ -116,7 +166,7 @@ public class NotificationService {
                         "Api/Notification/markAsUnread"));
 
         notification.setStatus(NotificationStatus.UNREAD);
-        
+
         try {
             notificationRepository.save(notification);
             log.info("✅ Notification marked as unread: {}", id);
@@ -132,7 +182,7 @@ public class NotificationService {
                         "Api/Notification/archiveNotification"));
 
         notification.setStatus(NotificationStatus.ARCHIVED);
-        
+
         try {
             notificationRepository.save(notification);
             log.info("✅ Notification archived: {}", id);
@@ -148,7 +198,7 @@ public class NotificationService {
                         "Api/Notification/unarchiveNotification"));
 
         notification.setStatus(NotificationStatus.READ);
-        
+
         try {
             notificationRepository.save(notification);
             log.info("✅ Notification unarchived: {}", id);
@@ -167,24 +217,25 @@ public class NotificationService {
      */
     public void createPaymentExpiredNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         for (User user : users) {
             try {
                 Notification notification = Notification.builder()
                         .title("Pago Vencido")
-                        .message("Tu membresía ha vencido. Por favor, realiza el pago para continuar usando los servicios.")
+                        .message(
+                                "Tu membresía ha vencido. Por favor, realiza el pago para continuar usando los servicios.")
                         .user(user)
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
-                
+
                 notificationRepository.save(notification);
                 log.info("✅ Payment expired notification created for user: {}", user.getId());
             } catch (Exception e) {
                 log.error("Error creating payment expired notification for user {}: {}", user.getId(), e.getMessage());
             }
         }
-        
+
         // Notificar a admins si hay usuarios con pagos vencidos
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
@@ -196,11 +247,12 @@ public class NotificationService {
                             .status(NotificationStatus.UNREAD)
                             .createdAt(now)
                             .build();
-                    
+
                     notificationRepository.save(notification);
                     log.info("✅ Payment expired notification created for admin: {}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Error creating payment expired notification for admin {}: {}", admin.getId(), e.getMessage());
+                    log.error("Error creating payment expired notification for admin {}: {}", admin.getId(),
+                            e.getMessage());
                 }
             }
         }
@@ -211,7 +263,7 @@ public class NotificationService {
      */
     public void createBirthdayNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         for (User user : users) {
             try {
                 Notification notification = Notification.builder()
@@ -221,14 +273,14 @@ public class NotificationService {
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
-                
+
                 notificationRepository.save(notification);
                 log.info("✅ Birthday notification created for user: {}", user.getId());
             } catch (Exception e) {
                 log.error("Error creating birthday notification for user {}: {}", user.getId(), e.getMessage());
             }
         }
-        
+
         // Notificar a admins sobre cumpleaños
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
@@ -236,7 +288,7 @@ public class NotificationService {
                     String userNames = users.stream()
                             .map(User::getFullName)
                             .collect(Collectors.joining(", "));
-                    
+
                     Notification notification = Notification.builder()
                             .title("Cumpleaños Hoy")
                             .message("Hoy cumplen años: " + userNames)
@@ -244,7 +296,7 @@ public class NotificationService {
                             .status(NotificationStatus.UNREAD)
                             .createdAt(now)
                             .build();
-                    
+
                     notificationRepository.save(notification);
                     log.info("✅ Birthday notification created for admin: {}", admin.getId());
                 } catch (Exception e) {
@@ -259,7 +311,7 @@ public class NotificationService {
      */
     public void createAttendanceWarningNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         for (User user : users) {
             try {
                 Notification notification = Notification.builder()
@@ -269,14 +321,15 @@ public class NotificationService {
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
-                
+
                 notificationRepository.save(notification);
                 log.info("✅ Attendance warning notification created for user: {}", user.getId());
             } catch (Exception e) {
-                log.error("Error creating attendance warning notification for user {}: {}", user.getId(), e.getMessage());
+                log.error("Error creating attendance warning notification for user {}: {}", user.getId(),
+                        e.getMessage());
             }
         }
-        
+
         // Notificar a admins sobre usuarios con inasistencias
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
@@ -288,11 +341,12 @@ public class NotificationService {
                             .status(NotificationStatus.UNREAD)
                             .createdAt(now)
                             .build();
-                    
+
                     notificationRepository.save(notification);
                     log.info("✅ Attendance warning notification created for admin: {}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Error creating attendance warning notification for admin {}: {}", admin.getId(), e.getMessage());
+                    log.error("Error creating attendance warning notification for admin {}: {}", admin.getId(),
+                            e.getMessage());
                 }
             }
         }
@@ -305,7 +359,7 @@ public class NotificationService {
         try {
             long daysUntilExpiration = java.time.temporal.ChronoUnit.DAYS.between(
                     LocalDate.now(), expiresAt);
-            
+
             Notification notification = Notification.builder()
                     .title("Recordatorio de Pago")
                     .message("Tu membresía vence en " + daysUntilExpiration + " día(s). Monto: $" + amount)
@@ -313,7 +367,7 @@ public class NotificationService {
                     .status(NotificationStatus.UNREAD)
                     .createdAt(LocalDateTime.now())
                     .build();
-            
+
             notificationRepository.save(notification);
             log.info("✅ Payment due reminder created for user: {}", user.getId());
         } catch (Exception e) {
@@ -324,10 +378,10 @@ public class NotificationService {
     /**
      * Envía recordatorio de clase en lote a múltiples usuarios
      */
-    public void sendBulkClassReminder(List<User> users, String activityName, 
-                                      LocalDateTime activityDate, String location) {
+    public void sendBulkClassReminder(List<User> users, String activityName,
+            LocalDateTime activityDate, String location) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         for (User user : users) {
             try {
                 Notification notification = Notification.builder()
@@ -337,7 +391,7 @@ public class NotificationService {
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
-                
+
                 notificationRepository.save(notification);
                 log.info("✅ Class reminder created for user: {} for activity: {}", user.getId(), activityName);
             } catch (Exception e) {

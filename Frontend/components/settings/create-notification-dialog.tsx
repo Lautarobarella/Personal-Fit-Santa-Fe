@@ -1,5 +1,6 @@
 "use client"
 
+import { createBulkNotification } from "@/api/notifications/notificationsApi"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -12,12 +13,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-provider"
+import { useNotificationsContext } from "@/contexts/notifications-provider"
 import { UserRole } from "@/lib/types"
-import { Bell, Send, AlertTriangle, CheckCircle } from "lucide-react"
+import { Bell, Send, AlertTriangle, Users, MessageSquare } from "lucide-react"
 import { useState } from "react"
 
 interface CreateNotificationDialogProps {
@@ -28,12 +29,12 @@ interface CreateNotificationDialogProps {
 export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificationDialogProps) {
     const { toast } = useToast()
     const { user } = useAuth()
+    const { refetchNotifications } = useNotificationsContext()
     const [title, setTitle] = useState("")
     const [message, setMessage] = useState("")
-    const [notificationType, setNotificationType] = useState("general")
-    const [saveToDatabase, setSaveToDatabase] = useState(true)
     const [isSending, setIsSending] = useState(false)
 
+    const maxTitleLength = 100
     const maxMessageLength = 500
 
     // Verificar si el usuario es administrador
@@ -49,46 +50,67 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
             return
         }
 
+        // Validaciones
+        if (!title.trim()) {
+            toast({
+                title: "Error",
+                description: "El título es obligatorio",
+                variant: "destructive",
+            })
+            return
+        }
+
+        if (title.length > maxTitleLength) {
+            toast({
+                title: "Error",
+                description: `El título no puede exceder ${maxTitleLength} caracteres`,
+                variant: "destructive",
+            })
+            return
+        }
+
+        if (!message.trim()) {
+            toast({
+                title: "Error",
+                description: "El mensaje es obligatorio",
+                variant: "destructive",
+            })
+            return
+        }
+
+        if (message.length > maxMessageLength) {
+            toast({
+                title: "Error",
+                description: `El mensaje no puede exceder ${maxMessageLength} caracteres`,
+                variant: "destructive",
+            })
+            return
+        }
+
         try {
             setIsSending(true)
 
-            if (!title.trim()) {
-                toast({
-                    title: "Error",
-                    description: "El título es obligatorio",
-                    variant: "destructive",
-                })
-                return
-            }
-
-            if (!message.trim()) {
-                toast({
-                    title: "Error",
-                    description: "El mensaje es obligatorio",
-                    variant: "destructive",
-                })
-                return
-            }
-
-            if (message.length > maxMessageLength) {
-                toast({
-                    title: "Error",
-                    description: `El mensaje no puede exceder ${maxMessageLength} caracteres`,
-                    variant: "destructive",
-                })
-                return
-            }
+            const response = await createBulkNotification(title.trim(), message.trim())
 
             toast({
-                title: "Funcionalidad deshabilitada",
-                description: "Las notificaciones push están temporalmente deshabilitadas",
-                variant: "destructive",
+                title: "✅ Notificación enviada",
+                description: `La notificación ha sido enviada a ${response.count || 'todos los'} usuarios`,
+                variant: "default",
             })
+
+            // Limpiar formulario y cerrar
+            setTitle("")
+            setMessage("")
+            onOpenChange(false)
+
+            // Recargar notificaciones
+            refetchNotifications()
+
         } catch (error) {
             console.error('Error sending notification:', error)
             toast({
                 title: "Error",
-                description: "Ocurrió un error inesperado al enviar la notificación",
+                description: "Ocurrió un error al enviar la notificación",
                 variant: "destructive",
             })
         } finally {
@@ -99,8 +121,6 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
     const handleCancel = () => {
         setTitle("")
         setMessage("")
-        setNotificationType("general")
-        setSaveToDatabase(true)
         onOpenChange(false)
     }
 
@@ -118,7 +138,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription>
-                            Solo los administradores pueden enviar notificaciones push a los usuarios.
+                            Solo los administradores pueden enviar notificaciones a los usuarios.
                         </AlertDescription>
                     </Alert>
                     <div className="flex justify-end pt-4">
@@ -133,181 +153,125 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Bell className="h-5 w-5" />
-                        Generar Notificación Push
+                        Crear Notificación
                     </DialogTitle>
                     <DialogDescription>
-                        Envía una notificación push a todos los usuarios.
+                        Crea una notificación que será visible para todos los usuarios en su bandeja de notificaciones.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col h-full overflow-hidden">
-                    <div className="flex-1 overflow-y-auto space-y-4">
-                        {/* Formulario de notificación */}
-                        <Card className="m-2">
+                <div className="flex-1 overflow-y-auto space-y-4 py-4">
+                    {/* Info Card */}
+                    <Alert>
+                        <Users className="h-4 w-4" />
+                        <AlertDescription>
+                            Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores) y aparecerá en su sección de notificaciones.
+                        </AlertDescription>
+                    </Alert>
+
+                    {/* Formulario */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4" />
+                                Contenido de la Notificación
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Título */}
+                            <div className="space-y-2">
+                                <Label htmlFor="title">
+                                    Título *
+                                </Label>
+                                <Input
+                                    id="title"
+                                    placeholder="Ej: Cambio de horarios"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    maxLength={maxTitleLength}
+                                    disabled={isSending}
+                                />
+                                <p className="text-xs text-muted-foreground text-right">
+                                    {title.length}/{maxTitleLength}
+                                </p>
+                            </div>
+
+                            {/* Mensaje */}
+                            <div className="space-y-2">
+                                <Label htmlFor="message">
+                                    Mensaje *
+                                </Label>
+                                <Textarea
+                                    id="message"
+                                    placeholder="Escribe aquí el mensaje de la notificación..."
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    maxLength={maxMessageLength}
+                                    rows={6}
+                                    disabled={isSending}
+                                    className="resize-none"
+                                />
+                                <p className="text-xs text-muted-foreground text-right">
+                                    {message.length}/{maxMessageLength}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Vista previa */}
+                    {(title || message) && (
+                        <Card className="border-2 border-dashed">
                             <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <Bell className="h-5 w-5" />
-                                    Contenido de la Notificación
-                                </CardTitle>
+                                <CardTitle className="text-sm">Vista Previa</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="title">Título de la notificación</Label>
-                                    <Input
-                                        id="title"
-                                        type="text"
-                                        placeholder="Ej: Nueva clase disponible"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        disabled={isSending}
-                                        maxLength={100}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        El título aparecerá destacado en la notificación.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="message">Mensaje</Label>
-                                    <Textarea
-                                        id="message"
-                                        placeholder="Ej: Se ha añadido una nueva clase para mañana a las 18:00. ¡No te la pierdas!"
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        disabled={isSending}
-                                        maxLength={maxMessageLength}
-                                        rows={4}
-                                        className="resize-none"
-                                    />
-                                    <div className="flex justify-between items-center">
-                                        <p className="text-xs text-muted-foreground">
-                                            Este será el cuerpo principal de la notificación.
-                                        </p>
-                                        <p className={`text-xs ${message.length > maxMessageLength * 0.9 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                            {message.length}/{maxMessageLength}
-                                        </p>
+                            <CardContent className="space-y-2">
+                                {title && (
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Título:</p>
+                                        <p className="font-semibold">{title}</p>
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="type">Tipo de notificación</Label>
-                                    <select
-                                        id="type"
-                                        value={notificationType}
-                                        onChange={(e) => setNotificationType(e.target.value)}
-                                        disabled={isSending}
-                                        className="w-full p-2 border border-input rounded-md bg-background text-sm"
-                                    >
-                                        <option value="general">General</option>
-                                        <option value="class_reminder">Recordatorio de Clase</option>
-                                        <option value="payment_due">Pago Vencido</option>
-                                        <option value="promotion">Promoción</option>
-                                        <option value="announcement">Anuncio Importante</option>
-                                    </select>
-                                    <p className="text-xs text-muted-foreground">
-                                        El tipo ayuda a categorizar la notificación.
-                                    </p>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="save-db">Guardar en historial</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            La notificación se guardará en el historial de la app
-                                        </p>
+                                )}
+                                {message && (
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Mensaje:</p>
+                                        <p className="text-sm text-gray-600">{message}</p>
                                     </div>
-                                    <Switch
-                                        id="save-db"
-                                        checked={saveToDatabase}
-                                        onCheckedChange={setSaveToDatabase}
-                                        disabled={isSending}
-                                    />
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
+                    )}
+                </div>
 
-                        {/* Vista previa de la notificación */}
-                        {(title.trim() || message.trim()) && (
-                            <Card className="m-2">
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        <CheckCircle className="h-5 w-5 text-green-600" />
-                                        Vista Previa
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="p-4 border rounded-lg bg-muted/30">
-                                        <div className="flex items-start gap-3">
-                                            <div className="mt-1">
-                                                <Bell className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-medium text-sm truncate">
-                                                    {title.trim() || "Título de la notificación"}
-                                                </h4>
-                                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                    {message.trim() || "Mensaje de la notificación"}
-                                                </p>
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                                                        Personal Fit
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ahora
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                        Así se verá la notificación en el dispositivo del usuario
-                                    </p>
-                                </CardContent>
-                            </Card>
+                {/* Footer con botones */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button
+                        variant="outline"
+                        onClick={handleCancel}
+                        disabled={isSending}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleSend}
+                        disabled={isSending || !title.trim() || !message.trim()}
+                        className="gap-2"
+                    >
+                        {isSending ? (
+                            <>
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                Enviando...
+                            </>
+                        ) : (
+                            <>
+                                <Send className="h-4 w-4" />
+                                Enviar Notificación
+                            </>
                         )}
-
-                        {/* Información adicional */}
-                        <Card className="m-2">
-                            <CardContent className="p-4">
-                                <Alert>
-                                    <Bell className="h-4 w-4" />
-                                    <AlertDescription>
-                                        <strong>Información importante:</strong>
-                                        <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                                            <li>La notificación se enviará a todos los usuarios registrados</li>
-                                            <li>Solo usuarios con notificaciones activas la recibirán</li>
-                                            <li>El envío puede tardar algunos segundos en completarse</li>
-                                            {saveToDatabase && <li>Se guardará una copia en el historial de cada usuario</li>}
-                                        </ul>
-                                    </AlertDescription>
-                                </Alert>
-                            </CardContent>
-                        </Card>
-
-                    </div>
-
-                    {/* Botones */}
-                    <div className="flex gap-3 p-4 border-t border-border">
-                        <Button
-                            onClick={handleCancel}
-                            disabled={isSending}
-                            className="flex-1 bg-background border-2 border-border hover:bg-accent hover:text-accent-foreground hover:border-primary/50"
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={handleSend}
-                            disabled={isSending || !title.trim() || !message.trim()}
-                            className="flex-1"
-                        >
-                            <Send className="h-4 w-4 mr-2" />
-                            {isSending ? "Enviando..." : "Enviar Notificación"}
-                        </Button>
-                    </div>
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
