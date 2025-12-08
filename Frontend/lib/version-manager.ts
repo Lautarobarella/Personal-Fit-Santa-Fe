@@ -4,13 +4,14 @@
  */
 
 // IMPORTANTE: Incrementa este número cada vez que resetees la BD o hagas cambios que requieran limpiar cache
-export const BUILD_VERSION = '1.0.12';
+export const BUILD_VERSION = '1.0.13';
 const VERSION_KEY = 'app_build_version';
 
 /**
  * Verifica si hay una nueva versión y limpia el cache si es necesario
  * Retorna true si se limpió el cache
  */
+
 export const checkVersionAndClearCache = async (): Promise<boolean> => {
     console.log('🚀 [VERSION-MANAGER] Iniciando verificación de versión...');
     console.log('🚀 [VERSION-MANAGER] BUILD_VERSION actual:', BUILD_VERSION);

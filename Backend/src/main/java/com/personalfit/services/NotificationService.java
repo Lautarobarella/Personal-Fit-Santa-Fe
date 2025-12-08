@@ -33,6 +33,9 @@ public class NotificationService {
     @Lazy
     private UserService userService;
 
+    @Autowired
+    private FCMService fcmService;
+
     /**
      * Crea una notificación para un usuario específico
      */
@@ -50,6 +53,10 @@ public class NotificationService {
         try {
             notificationRepository.save(newNotification);
             log.info("✅ Notification created for user: {} | Title: {}", user.getId(), notification.getTitle());
+
+            // Send Push Notification
+            fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
+
         } catch (Exception e) {
             throw new BusinessRuleException("Error al guardar la notificación: " + e.getMessage(),
                     "Api/Notification/createNotification");
@@ -83,6 +90,10 @@ public class NotificationService {
                         .build();
 
                 notificationRepository.save(notification);
+
+                // Send Push Notification
+                fcmService.sendNotification(user.getId(), title, message);
+
                 count++;
             }
 
@@ -213,16 +224,22 @@ public class NotificationService {
 
         for (User user : users) {
             try {
+                String title = "Pago Vencido";
+                String message = "Tu membresía ha vencido. Por favor, realiza el pago para continuar usando los servicios.";
+
                 Notification notification = Notification.builder()
-                        .title("Pago Vencido")
-                        .message(
-                                "Tu membresía ha vencido. Por favor, realiza el pago para continuar usando los servicios.")
+                        .title(title)
+                        .message(message)
                         .user(user)
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
 
                 notificationRepository.save(notification);
+
+                // Send Push Notification
+                fcmService.sendNotification(user.getId(), title, message);
+
                 log.info("✅ Payment expired notification created for user: {}", user.getId());
             } catch (Exception e) {
                 log.error("Error creating payment expired notification for user {}: {}", user.getId(), e.getMessage());
@@ -233,15 +250,22 @@ public class NotificationService {
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
+                    String title = "Pagos Vencidos";
+                    String message = users.size() + " usuario(s) tienen pagos vencidos hoy.";
+
                     Notification notification = Notification.builder()
-                            .title("Pagos Vencidos")
-                            .message(users.size() + " usuario(s) tienen pagos vencidos hoy.")
+                            .title(title)
+                            .message(message)
                             .user(admin)
                             .status(NotificationStatus.UNREAD)
                             .createdAt(now)
                             .build();
 
                     notificationRepository.save(notification);
+
+                    // Send Push Notification
+                    fcmService.sendNotification(admin.getId(), title, message);
+
                     log.info("✅ Payment expired notification created for admin: {}", admin.getId());
                 } catch (Exception e) {
                     log.error("Error creating payment expired notification for admin {}: {}", admin.getId(),
@@ -259,15 +283,22 @@ public class NotificationService {
 
         for (User user : users) {
             try {
+                String title = "¡Feliz Cumpleaños!";
+                String message = "¡Feliz cumpleaños " + user.getFirstName() + "! Te deseamos un excelente día. 🎉";
+
                 Notification notification = Notification.builder()
-                        .title("¡Feliz Cumpleaños!")
-                        .message("¡Feliz cumpleaños " + user.getFirstName() + "! Te deseamos un excelente día. 🎉")
+                        .title(title)
+                        .message(message)
                         .user(user)
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
 
                 notificationRepository.save(notification);
+
+                // Send Push Notification
+                fcmService.sendNotification(user.getId(), title, message);
+
                 log.info("✅ Birthday notification created for user: {}", user.getId());
             } catch (Exception e) {
                 log.error("Error creating birthday notification for user {}: {}", user.getId(), e.getMessage());
@@ -282,15 +313,22 @@ public class NotificationService {
                             .map(User::getFullName)
                             .collect(Collectors.joining(", "));
 
+                    String title = "Cumpleaños Hoy";
+                    String message = "Hoy cumplen años: " + userNames;
+
                     Notification notification = Notification.builder()
-                            .title("Cumpleaños Hoy")
-                            .message("Hoy cumplen años: " + userNames)
+                            .title(title)
+                            .message(message)
                             .user(admin)
                             .status(NotificationStatus.UNREAD)
                             .createdAt(now)
                             .build();
 
                     notificationRepository.save(notification);
+
+                    // Send Push Notification
+                    fcmService.sendNotification(admin.getId(), title, message);
+
                     log.info("✅ Birthday notification created for admin: {}", admin.getId());
                 } catch (Exception e) {
                     log.error("Error creating birthday notification for admin {}: {}", admin.getId(), e.getMessage());
@@ -307,15 +345,22 @@ public class NotificationService {
 
         for (User user : users) {
             try {
+                String title = "Advertencia de Inasistencia";
+                String message = "Hace más de 7 días que no asistes a clases. ¡Te esperamos!";
+
                 Notification notification = Notification.builder()
-                        .title("Advertencia de Inasistencia")
-                        .message("Hace más de 7 días que no asistes a clases. ¡Te esperamos!")
+                        .title(title)
+                        .message(message)
                         .user(user)
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
 
                 notificationRepository.save(notification);
+
+                // Send Push Notification
+                fcmService.sendNotification(user.getId(), title, message);
+
                 log.info("✅ Attendance warning notification created for user: {}", user.getId());
             } catch (Exception e) {
                 log.error("Error creating attendance warning notification for user {}: {}", user.getId(),
@@ -327,15 +372,22 @@ public class NotificationService {
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
+                    String title = "Usuarios con Inasistencias";
+                    String message = users.size() + " usuario(s) llevan más de 7 días sin asistir.";
+
                     Notification notification = Notification.builder()
-                            .title("Usuarios con Inasistencias")
-                            .message(users.size() + " usuario(s) llevan más de 7 días sin asistir.")
+                            .title(title)
+                            .message(message)
                             .user(admin)
                             .status(NotificationStatus.UNREAD)
                             .createdAt(now)
                             .build();
 
                     notificationRepository.save(notification);
+
+                    // Send Push Notification
+                    fcmService.sendNotification(admin.getId(), title, message);
+
                     log.info("✅ Attendance warning notification created for admin: {}", admin.getId());
                 } catch (Exception e) {
                     log.error("Error creating attendance warning notification for admin {}: {}", admin.getId(),
@@ -353,15 +405,22 @@ public class NotificationService {
             long daysUntilExpiration = java.time.temporal.ChronoUnit.DAYS.between(
                     LocalDate.now(), expiresAt);
 
+            String title = "Recordatorio de Pago";
+            String message = "Tu membresía vence en " + daysUntilExpiration + " día(s). Monto: $" + amount;
+
             Notification notification = Notification.builder()
-                    .title("Recordatorio de Pago")
-                    .message("Tu membresía vence en " + daysUntilExpiration + " día(s). Monto: $" + amount)
+                    .title(title)
+                    .message(message)
                     .user(user)
                     .status(NotificationStatus.UNREAD)
                     .createdAt(LocalDateTime.now())
                     .build();
 
             notificationRepository.save(notification);
+
+            // Send Push Notification
+            fcmService.sendNotification(user.getId(), title, message);
+
             log.info("✅ Payment due reminder created for user: {}", user.getId());
         } catch (Exception e) {
             log.error("Error creating payment due reminder for user {}: {}", user.getId(), e.getMessage());
@@ -377,15 +436,22 @@ public class NotificationService {
 
         for (User user : users) {
             try {
+                String title = "Recordatorio de Clase";
+                String message = "Tienes la clase '" + activityName + "' próximamente en " + location + ".";
+
                 Notification notification = Notification.builder()
-                        .title("Recordatorio de Clase")
-                        .message("Tienes la clase '" + activityName + "' próximamente en " + location + ".")
+                        .title(title)
+                        .message(message)
                         .user(user)
                         .status(NotificationStatus.UNREAD)
                         .createdAt(now)
                         .build();
 
                 notificationRepository.save(notification);
+
+                // Send Push Notification
+                fcmService.sendNotification(user.getId(), title, message);
+
                 log.info("✅ Class reminder created for user: {} for activity: {}", user.getId(), activityName);
             } catch (Exception e) {
                 log.error("Error creating class reminder for user {}: {}", user.getId(), e.getMessage());
