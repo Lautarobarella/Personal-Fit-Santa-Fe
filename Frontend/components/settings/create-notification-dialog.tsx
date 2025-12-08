@@ -1,7 +1,5 @@
 "use client"
 
-import { sendBulkNotification } from "@/api/notifications/notificationsApi";
-import { BulkNotificationRequest } from "@/lib/types";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -22,12 +20,12 @@ import { UserRole } from "@/lib/types"
 import { Bell, Send, AlertTriangle, CheckCircle } from "lucide-react"
 import { useState } from "react"
 
-interface PushNotificationDialogProps {
+interface CreateNotificationDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
-export function PushNotificationDialog({ open, onOpenChange }: PushNotificationDialogProps) {
+export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificationDialogProps) {
     const { toast } = useToast()
     const { user } = useAuth()
     const [title, setTitle] = useState("")
@@ -81,35 +79,11 @@ export function PushNotificationDialog({ open, onOpenChange }: PushNotificationD
                 return
             }
 
-            const request: BulkNotificationRequest = {
-                title: title.trim(),
-                body: message.trim(),
-                type: notificationType,
-                saveToDatabase: saveToDatabase
-            }
-
-            const success = await sendBulkNotification(request)
-
-            if (success) {
-                toast({
-                    title: "✅ Notificación enviada",
-                    description: "La notificación ha sido enviada a todos los usuarios",
-                    variant: "default",
-                })
-
-                // Limpiar formulario y cerrar
-                setTitle("")
-                setMessage("")
-                setNotificationType("general")
-                setSaveToDatabase(true)
-                onOpenChange(false)
-            } else {
-                toast({
-                    title: "Error",
-                    description: "No se pudo enviar la notificación. Inténtalo de nuevo",
-                    variant: "destructive",
-                })
-            }
+            toast({
+                title: "Funcionalidad deshabilitada",
+                description: "Las notificaciones push están temporalmente deshabilitadas",
+                variant: "destructive",
+            })
         } catch (error) {
             console.error('Error sending notification:', error)
             toast({
