@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button"
 export default function NotificationsPage() {
     useRequireAuth()
     const { toast } = useToast()
-    
+
     const {
         notifications,
         unreadCount,
@@ -65,7 +65,7 @@ export default function NotificationsPage() {
 
     const handleMarkAllAsRead = async () => {
         const unreadNotifications = notifications.filter(n => n.status === NotificationStatus.UNREAD)
-        
+
         try {
             await Promise.all(unreadNotifications.map(n => markAsRead(n.id)))
             toast({
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
 
     const handleArchiveAll = async () => {
         const allActiveNotifications = notifications.filter(n => n.status !== NotificationStatus.ARCHIVED)
-        
+
         try {
             await Promise.all(allActiveNotifications.map(n => archiveNotification(n.id)))
             toast({
@@ -108,37 +108,6 @@ export default function NotificationsPage() {
             />
 
             <div className="container mx-auto px-4 pt-20 pb-24 max-w-4xl">
-                {/* Card de acciones rápidas */}
-                {notifications.length > 0 && (
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-3">
-                                <Button
-                                    variant="outline"
-                                    onClick={handleMarkAllAsRead}
-                                    disabled={notifications.filter(n => n.status === NotificationStatus.UNREAD).length === 0}
-                                    className="bg-transparent min-w-[180px]"
-                                >
-                                    <CheckCheck className="h-4 w-4 mr-2" />
-                                    Marcar todas como leídas
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleArchiveAll}
-                                    disabled={notifications.filter(n => n.status !== NotificationStatus.ARCHIVED).length === 0}
-                                    className="bg-transparent min-w-[180px]"
-                                >
-                                    <Archive className="h-4 w-4 mr-2" />
-                                    Archivar todas
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
                 {/* Barra de búsqueda */}
                 <div className="mb-4">
                     <div className="relative">
@@ -191,6 +160,36 @@ export default function NotificationsPage() {
                         </TabsContent>
                     </div>
                 </Tabs>
+                {/* Card de acciones rápidas */}
+                {notifications.length > 0 && (
+                    <Card className="mb-6">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleMarkAllAsRead}
+                                    disabled={notifications.filter(n => n.status === NotificationStatus.UNREAD).length === 0}
+                                    className="bg-transparent min-w-[180px]"
+                                >
+                                    <CheckCheck className="h-4 w-4 mr-2" />
+                                    Marcar todas como leídas
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleArchiveAll}
+                                    disabled={notifications.filter(n => n.status !== NotificationStatus.ARCHIVED).length === 0}
+                                    className="bg-transparent min-w-[180px]"
+                                >
+                                    <Archive className="h-4 w-4 mr-2" />
+                                    Archivar todas
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
             <BottomNav />
