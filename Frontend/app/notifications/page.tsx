@@ -2,26 +2,32 @@
 
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { BottomNav } from "@/components/ui/bottom-nav"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useNotificationsContext } from "@/contexts/notifications-provider"
 import { NotificationStatus } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 import {
     Archive,
     Bell,
+    CheckCheck,
     Search,
 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { NotificationsList } from "@/components/notifications/notifications-list"
+import { Button } from "@/components/ui/button"
 
 export default function NotificationsPage() {
     useRequireAuth()
+    const { toast } = useToast()
     
     const {
         notifications,
         unreadCount,
+        markAsRead,
+        archiveNotification,
     } = useNotificationsContext()
 
     const [searchTerm, setSearchTerm] = useState("")
@@ -57,6 +63,42 @@ export default function NotificationsPage() {
         return filtered
     }, [notifications, activeTab, searchTerm])
 
+    const handleMarkAllAsRead = async () => {
+        const unreadNotifications = notifications.filter(n => n.status === NotificationStatus.UNREAD)
+        
+        try {
+            await Promise.all(unreadNotifications.map(n => markAsRead(n.id)))
+            toast({
+                title: "Éxito",
+                description: `${unreadNotifications.length} notificaciones marcadas como leídas`,
+            })
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "No se pudieron marcar todas como leídas",
+                variant: "destructive"
+            })
+        }
+    }
+
+    const handleArchiveAll = async () => {
+        const allActiveNotifications = notifications.filter(n => n.status !== NotificationStatus.ARCHIVED)
+        
+        try {
+            await Promise.all(allActiveNotifications.map(n => archiveNotification(n.id)))
+            toast({
+                title: "Éxito",
+                description: `${allActiveNotifications.length} notificaciones archivadas`,
+            })
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "No se pudieron archivar todas las notificaciones",
+                variant: "destructive"
+            })
+        }
+    }
+
     return (
         <div className="min-h-screen bg-background pb-32">
             <MobileHeader
@@ -66,6 +108,37 @@ export default function NotificationsPage() {
             />
 
             <div className="container mx-auto px-4 pt-20 pb-24 max-w-4xl">
+                {/* Card de acciones rápidas */}
+                {notifications.length > 0 && (
+                    <Card className="mb-6">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleMarkAllAsRead}
+                                    disabled={notifications.filter(n => n.status === NotificationStatus.UNREAD).length === 0}
+                                    className="bg-transparent min-w-[180px]"
+                                >
+                                    <CheckCheck className="h-4 w-4 mr-2" />
+                                    Marcar todas como leídas
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleArchiveAll}
+                                    disabled={notifications.filter(n => n.status !== NotificationStatus.ARCHIVED).length === 0}
+                                    className="bg-transparent min-w-[180px]"
+                                >
+                                    <Archive className="h-4 w-4 mr-2" />
+                                    Archivar todas
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Barra de búsqueda */}
                 <div className="mb-4">
                     <div className="relative">
