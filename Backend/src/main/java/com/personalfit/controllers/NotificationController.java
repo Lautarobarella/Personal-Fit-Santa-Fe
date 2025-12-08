@@ -38,6 +38,21 @@ public class NotificationController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> createBulkNotification(@RequestBody Map<String, String> request) {
+        String title = request.get("title");
+        String message = request.get("message");
+
+        int count = notificationService.createBulkNotification(title, message);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Notificaciones creadas exitosamente");
+        response.put("success", true);
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteNotification(@PathVariable Long id) {

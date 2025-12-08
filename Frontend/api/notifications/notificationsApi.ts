@@ -79,3 +79,14 @@ export async function unarchiveNotification(id: number) {
     throw error;
   }
 }
+
+export async function createBulkNotification(title: string, message: string) {
+  try {
+    const response = await jwtPermissionsApi.post('/api/notifications/bulk', { title, message });
+    return response;
+  } catch (error) {
+    console.error('Error creating bulk notification:', error);
+    handleApiError(error, 'Error al crear notificaciones masivas');
+    throw error;
+  }
+}
