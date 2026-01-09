@@ -37,7 +37,7 @@ jobs:
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
       
     steps:
-      - name: Checkout repo (incluye .env)
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Sanity check de secrets SSH
@@ -47,12 +47,7 @@ jobs:
               echo "Falta variable SSH $v (revisa environment/Production o nombres)"; exit 1
             fi
           done
-          
-          # Verificar que el archivo .env existe
-          if [ ! -f .env ]; then
-            echo "ERROR: Archivo .env no encontrado en el repositorio"; exit 1
-          fi
-          echo "✅ Archivo .env encontrado"
+          echo "✅ Secrets SSH verificados"
 
       - name: Install sshpass (para autenticación por usuario+password)
         run: sudo apt-get update && sudo apt-get install -y sshpass
@@ -62,17 +57,6 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
-
-      - name: Copy .env file to server
-        run: |
-          # default port
-          if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
-            SSH_PORT=22
-          fi
-          
-          echo "Copiando archivo .env al servidor..."
-          sshpass -p "${SSH_PASSWORD}" scp -o StrictHostKeyChecking=no -P "${SSH_PORT}" .env "${SSH_USERNAME}@${SSH_HOST}:/opt/Personal-Fit-Santa-Fe/.env"
-          echo "✅ Archivo .env copiado exitosamente"
 
       - name: Deploy to host (ssh via password) and wait healthchecks
         run: |
@@ -89,11 +73,12 @@ jobs:
             echo "==> Entrando en $DEPLOY_DIR"
             cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
             
-            echo "==> Verificando archivo .env"
+            echo "==> Verificando archivo .env local"
             if [ ! -f .env ]; then
-              echo "ERROR: Archivo .env no encontrado después de copiarlo"; exit 2
+              echo "ERROR: Archivo .env no encontrado en el servidor. Debes crearlo manualmente en $DEPLOY_DIR/.env"
+              exit 2
             fi
-            echo "✅ Archivo .env presente"
+            echo "✅ Archivo .env presente en servidor"
 
             echo "==> Creando backup de la base de datos..."
             mkdir -p /opt/backups
