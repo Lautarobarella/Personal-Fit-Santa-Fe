@@ -30,35 +30,29 @@ jobs:
     environment: Production
     runs-on: ubuntu-latest
     env:
+      # Solo se requieren las credenciales SSH como secrets
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-      NEXT_PUBLIC_MP_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_MP_PUBLIC_KEY }}
-      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-      # Firebase Configuration
-      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
-      NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
-      NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
       
     steps:
-      - name: Checkout repo (opcional para tests)
+      - name: Checkout repo (incluye .env)
         uses: actions/checkout@v4
 
-      - name: Sanity check de secrets
+      - name: Sanity check de secrets SSH
         run: |
-          for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD JWT_SECRET MP_ACCESS_TOKEN NEXT_PUBLIC_MP_PUBLIC_KEY NEXT_PUBLIC_FIREBASE_API_KEY NEXT_PUBLIC_FIREBASE_PROJECT_ID; do
+          for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD; do
             if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
-              echo "Falta variable $v (revisa environment/Production o nombres)"; exit 1
+              echo "Falta variable SSH $v (revisa environment/Production o nombres)"; exit 1
             fi
           done
+          
+          # Verificar que el archivo .env existe
+          if [ ! -f .env ]; then
+            echo "ERROR: Archivo .env no encontrado en el repositorio"; exit 1
+          fi
+          echo "✅ Archivo .env encontrado"
 
       - name: Install sshpass (para autenticación por usuario+password)
         run: sudo apt-get update && sudo apt-get install -y sshpass
@@ -68,6 +62,17 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
+
+      - name: Copy .env file to server
+        run: |
+          # default port
+          if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
+            SSH_PORT=22
+          fi
+          
+          echo "Copiando archivo .env al servidor..."
+          sshpass -p "${SSH_PASSWORD}" scp -o StrictHostKeyChecking=no -P "${SSH_PORT}" .env "${SSH_USERNAME}@${SSH_HOST}:/opt/Personal-Fit-Santa-Fe/.env"
+          echo "✅ Archivo .env copiado exitosamente"
 
       - name: Deploy to host (ssh via password) and wait healthchecks
         run: |
@@ -83,6 +88,12 @@ jobs:
             DEPLOY_DIR=/opt/Personal-Fit-Santa-Fe
             echo "==> Entrando en $DEPLOY_DIR"
             cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
+            
+            echo "==> Verificando archivo .env"
+            if [ ! -f .env ]; then
+              echo "ERROR: Archivo .env no encontrado después de copiarlo"; exit 2
+            fi
+            echo "✅ Archivo .env presente"
 
             echo "==> Creando backup de la base de datos..."
             mkdir -p /opt/backups
@@ -111,21 +122,9 @@ jobs:
             echo "==> Construyendo y levantando servicios"
             docker-compose down -v
             
-            # Exportar secretos como variables de entorno para docker-compose
-            export JWT_SECRET="'"${JWT_SECRET}"'"
-            export MP_ACCESS_TOKEN="'"${MP_ACCESS_TOKEN}"'"
-            export NEXT_PUBLIC_MP_PUBLIC_KEY="'"${NEXT_PUBLIC_MP_PUBLIC_KEY}"'"
-            export WEBHOOK_SECRET="'"${WEBHOOK_SECRET}"'"
-            
-            # Firebase Configuration
-            export NEXT_PUBLIC_FIREBASE_API_KEY="'"${NEXT_PUBLIC_FIREBASE_API_KEY}"'"
-            export NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="'"${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}"'"
-            export NEXT_PUBLIC_FIREBASE_PROJECT_ID="'"${NEXT_PUBLIC_FIREBASE_PROJECT_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="'"${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}"'"
-            export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="'"${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_APP_ID="'"${NEXT_PUBLIC_FIREBASE_APP_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="'"${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_VAPID_KEY="'"${NEXT_PUBLIC_FIREBASE_VAPID_KEY}"'"
+            # Docker Compose automáticamente cargará las variables del archivo .env
+            # No es necesario exportar manualmente las variables
+            echo "==> Usando variables del archivo .env"
             
             docker-compose up -d --build
 
