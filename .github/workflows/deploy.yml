@@ -30,44 +30,27 @@ jobs:
     environment: Production
     runs-on: ubuntu-latest
     env:
+      # Solo se requieren las credenciales SSH como secrets
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-      NEXT_PUBLIC_MP_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_MP_PUBLIC_KEY }}
-      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-      # Firebase Configuration
-      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
-      NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
-      NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
       
     steps:
-      - name: Checkout repo (opcional para tests)
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Sanity check de secrets
+      - name: Sanity check de secrets SSH
         run: |
-          for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD JWT_SECRET MP_ACCESS_TOKEN NEXT_PUBLIC_MP_PUBLIC_KEY NEXT_PUBLIC_FIREBASE_API_KEY NEXT_PUBLIC_FIREBASE_PROJECT_ID; do
+          for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD; do
             if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
-              echo "Falta variable $v (revisa environment/Production o nombres)"; exit 1
+              echo "Falta variable SSH $v (revisa environment/Production o nombres)"; exit 1
             fi
           done
+          echo "✅ Secrets SSH verificados"
 
       - name: Install sshpass (para autenticación por usuario+password)
         run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: Install Docker Compose V2 (CLI docker-compose)
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
 
       - name: Deploy to host (ssh via password) and wait healthchecks
         run: |
@@ -83,25 +66,13 @@ jobs:
             DEPLOY_DIR=/opt/Personal-Fit-Santa-Fe
             echo "==> Entrando en $DEPLOY_DIR"
             cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
-
-            echo "==> Creando backup de la base de datos..."
-            mkdir -p /opt/backups
-            BACKUP_FILE="/opt/backups/backup_$(date +%Y%m%d_%H%M%S).sql"
-
-            # Verificar readiness usando envs del contenedor (POSTGRES_USER/DB/PASSWORD)
-            if ! docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\""; then
-              echo "ERROR: PostgreSQL no está listo para backup"
-              exit 3
+            
+            echo "==> Verificando archivo .env local"
+            if [ ! -f .env ]; then
+              echo "ERROR: Archivo .env no encontrado en el servidor. Debes crearlo manualmente en $DEPLOY_DIR/.env"
+              exit 2
             fi
-
-            # Crear backup con credenciales del contenedor
-            if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_dump -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" > "$BACKUP_FILE"; then
-              echo "✅ Backup creado: $BACKUP_FILE"
-              echo "📊 Tamaño: $(du -h "$BACKUP_FILE" | cut -f1)"
-            else
-              echo "ERROR: Falló la creación del backup"
-              exit 4
-            fi
+            echo "✅ Archivo .env presente en servidor"
 
             echo "==> Actualizando repo (origin/main)"
             git fetch --all --prune
@@ -109,25 +80,13 @@ jobs:
             git pull origin main
 
             echo "==> Construyendo y levantando servicios"
-            docker-compose down -v
+            docker compose down -v
             
-            # Exportar secretos como variables de entorno para docker-compose
-            export JWT_SECRET="'"${JWT_SECRET}"'"
-            export MP_ACCESS_TOKEN="'"${MP_ACCESS_TOKEN}"'"
-            export NEXT_PUBLIC_MP_PUBLIC_KEY="'"${NEXT_PUBLIC_MP_PUBLIC_KEY}"'"
-            export WEBHOOK_SECRET="'"${WEBHOOK_SECRET}"'"
+            # Docker Compose automáticamente cargará las variables del archivo .env
+            # No es necesario exportar manualmente las variables
+            echo "==> Usando variables del archivo .env"
             
-            # Firebase Configuration
-            export NEXT_PUBLIC_FIREBASE_API_KEY="'"${NEXT_PUBLIC_FIREBASE_API_KEY}"'"
-            export NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="'"${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}"'"
-            export NEXT_PUBLIC_FIREBASE_PROJECT_ID="'"${NEXT_PUBLIC_FIREBASE_PROJECT_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="'"${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}"'"
-            export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="'"${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_APP_ID="'"${NEXT_PUBLIC_FIREBASE_APP_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="'"${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}"'"
-            export NEXT_PUBLIC_FIREBASE_VAPID_KEY="'"${NEXT_PUBLIC_FIREBASE_VAPID_KEY}"'"
-            
-            docker-compose up -d --build
+            docker compose up -d --build
 
             # Esperar a Postgres (usa envs del contenedor)
             wait_for_postgres() {
@@ -135,7 +94,7 @@ jobs:
               local interval=2
               local waited=0
               while [ "$waited" -lt "$timeout" ]; do
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
+                if docker compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
                   echo "$(date +"%F %T") - Postgres ready"
                   return 0
                 fi
@@ -149,34 +108,8 @@ jobs:
             echo "==> Esperando Postgres..."
             if ! wait_for_postgres 120; then
               echo "ERROR: Postgres no estuvo listo a tiempo"
-              docker-compose logs --no-color --timestamps postgres | tail -n 200 || true
+              docker compose logs --no-color --timestamps postgres | tail -n 200 || true
               exit 5
-            fi
-
-            echo "==> Verificando si necesita restaurar backup..."
-            # Verificar si la base de datos tiene datos (específicamente la tabla app_user)
-            USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
-            
-            if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-              echo "==> Base de datos vacía, buscando backup más reciente para restaurar..."
-              LATEST_BACKUP=$(ls -1t /opt/backups/backup*.sql 2>/dev/null | head -n1 || echo "")
-              
-              if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
-                echo "==> Restaurando backup: $LATEST_BACKUP"
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" < "$LATEST_BACKUP"; then
-                  echo "✅ Backup restaurado exitosamente"
-                  
-                  # Verificar que la restauración fue exitosa
-                  RESTORED_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
-                  echo "✅ Usuarios restaurados: $RESTORED_USER_COUNT"
-                else
-                  echo "⚠️  Error al restaurar backup, pero continuando deployment"
-                fi
-              else
-                echo "ℹ️  No se encontró backup para restaurar, base de datos iniciará vacía"
-              fi
-            else
-              echo "ℹ️  Base de datos ya contiene $USER_COUNT usuarios, no se necesita restaurar"
             fi
 
             wait_for_healthy() {
@@ -221,110 +154,19 @@ jobs:
             echo "==> Esperando backend..."
             if ! wait_for_healthy personalfit-backend 60; then
               echo "ERROR: backend no responde -> logs:"
-              docker-compose logs --no-color --timestamps personalfit-backend | tail -n 300
+              docker compose logs --no-color --timestamps personalfit-backend | tail -n 300
               exit 10
             fi
 
             echo "==> Esperando frontend..."
             if ! wait_for_healthy personalfit-frontend 60; then
               echo "ERROR: frontend no responde -> logs:"
-              docker-compose logs --no-color --timestamps personalfit-frontend | tail -n 300
+              docker compose logs --no-color --timestamps personalfit-frontend | tail -n 300
               exit 11
             fi
 
             echo "==> Limpieza de imágenes antiguas"
             docker image prune -f
 
-            echo "==> Verificando integridad del backup"
-            
-            # Verificar que el archivo de backup existe y no está vacío
-            if [ -f "$BACKUP_FILE" ] && [ -s "$BACKUP_FILE" ]; then
-              BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-              echo "✅ Archivo de backup válido: $BACKUP_SIZE"
-              
-              # Verificar que la base de datos actual coincide con el backup recién creado
-              echo "==> Verificando consistencia entre backup y base de datos actual..."
-              CURRENT_USER_COUNT=$(docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -t -c \"SELECT COUNT(*) FROM app_user;\"" 2>/dev/null | tr -d ' \n' || echo "0")
-              echo "ℹ️  Usuarios actuales en BD: $CURRENT_USER_COUNT"
-              
-              # Verificar que el backup contiene SQL válido buscando patrones típicos
-              if grep -q "CREATE TABLE\|INSERT INTO\|COPY.*FROM stdin" "$BACKUP_FILE" 2>/dev/null; then
-                echo "✅ Backup contiene estructura SQL válida"
-                
-                # Intentar contar líneas de datos para estimar contenido
-                DATA_LINES=$(grep -c "INSERT INTO\|COPY.*FROM stdin" "$BACKUP_FILE" 2>/dev/null || echo 0)
-                echo "✅ Backup contiene $DATA_LINES líneas de datos"
-                
-                # Analizar contenido del backup por tabla
-                echo "Analizando contenido del backup por tabla..."
-                TOTAL_RECORDS=0
-                
-                # Lista de tablas a verificar (nombres reales según los modelos)
-                TABLES="app_user activity attendance payment payment_file notification app_settings"
-                
-                for table in $TABLES; do
-                  # Buscar líneas COPY para esta tabla en el backup (más flexible)
-                  if grep -q "^COPY public\\.$table" "$BACKUP_FILE" 2>/dev/null; then
-                    echo "  🔍 Analizando tabla $table..."
-                    
-                    # Extraer el bloque completo de datos para esta tabla
-                    # Desde COPY hasta el próximo \.
-                    START_LINE=$(grep -n "^COPY public\\.$table" "$BACKUP_FILE" | head -n1 | cut -d: -f1)
-                    if [ -n "$START_LINE" ] && [ "$START_LINE" != "" ]; then
-                      # Buscar el \\. después de la línea COPY
-                      RAW_END_LINE=$(tail -n +$((START_LINE + 1)) "$BACKUP_FILE" | grep -n "^\\\\\\.$" | head -n1 | cut -d: -f1)
-                      if [ -n "$RAW_END_LINE" ] && [ "$RAW_END_LINE" != "" ]; then
-                        # Limpiar cualquier carácter extraño y asegurar que es un número
-                        END_LINE=$(echo "$RAW_END_LINE" | tr -cd '0-9')
-                        if [ -n "$END_LINE" ] && [ "$END_LINE" -gt 0 ]; then
-                          # Calcular líneas de datos (END_LINE - 1 porque excluimos el \\.)
-                          COUNT=$((END_LINE - 1))
-                          if [ "$COUNT" -gt 0 ]; then
-                            echo "  ✅ $table: $COUNT registros en backup"
-                            TOTAL_RECORDS=$((TOTAL_RECORDS + COUNT))
-                          else
-                            echo "  📋 $table: estructura presente, sin datos"
-                          fi
-                        else
-                          echo "  ⚠️  $table: no se pudo calcular registros"
-                        fi
-                      else
-                        echo "  ⚠️  $table: estructura encontrada, pero formato inusual"
-                      fi
-                    else
-                      echo "  📋 $table: no se pudo analizar"
-                    fi
-                  else
-                    # Buscar INSERT INTO como alternativa
-                    INSERT_COUNT=$(grep -c "^INSERT INTO.*\\.$table\\|^INSERT INTO $table" "$BACKUP_FILE" 2>/dev/null || echo "0")
-                    if [ "$INSERT_COUNT" -gt 0 ]; then
-                      echo "  ✅ $table: $INSERT_COUNT registros en backup (INSERT)"
-                      TOTAL_RECORDS=$((TOTAL_RECORDS + INSERT_COUNT))
-                    else
-                      echo "  📋 $table: no encontrada en backup"
-                    fi
-                  fi
-                done
-                
-                if [ "$TOTAL_RECORDS" -gt 0 ]; then
-                  echo "✅ Backup contiene $TOTAL_RECORDS registros totales distribuidos en las tablas"
-                else
-                  echo "⚠️  No se pudieron detectar registros específicos en el backup"
-                fi
-                
-                # Verificar que la base actual esté accesible para futuras operaciones
-                if docker-compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"SELECT 1;\"" 2>/dev/null | grep -q "1"; then
-                  echo "✅ Base de datos actual accesible para futuras operaciones"
-                else
-                  echo "⚠️  Problema de conectividad con la base actual"
-                fi
-              else
-                echo "⚠️  Backup no contiene estructura SQL reconocible"
-              fi
-            else
-              echo "❌ Archivo de backup no existe o está vacío"
-            fi
-
             echo "==> DEPLOY OK"
-            echo "💾 Backup en: $BACKUP_FILE"
           '
