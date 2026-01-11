@@ -73,6 +73,21 @@ jobs:
               exit 2
             fi
             echo "✅ Archivo .env presente en servidor"
+            
+            echo "==> Verificando variables requeridas en .env"
+            REQUIRED_VARS=("POSTGRES_PASSWORD" "JWT_SECRET" "MP_ACCESS_TOKEN" "WEBHOOK_SECRET" "NEXT_PUBLIC_MP_PUBLIC_KEY")
+            MISSING_VARS=()
+            for var in "${REQUIRED_VARS[@]}"; do
+              if ! grep -q "^${var}=" .env; then
+                MISSING_VARS+=("$var")
+              fi
+            done
+            if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+              echo "ERROR: Variables faltantes en .env: ${MISSING_VARS[*]}"
+              echo "Agrega estas variables al archivo $DEPLOY_DIR/.env"
+              exit 2
+            fi
+            echo "✅ Variables requeridas presentes"
 
             echo "==> Actualizando repo (origin/main)"
             git fetch --all --prune
