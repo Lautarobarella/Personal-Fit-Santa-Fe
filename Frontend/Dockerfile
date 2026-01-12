@@ -36,7 +36,7 @@ ENV NEXT_PUBLIC_FIREBASE_VAPID_KEY=$NEXT_PUBLIC_FIREBASE_VAPID_KEY
 
 COPY Frontend/package*.json ./
 
-RUN npm install
+RUN npm ci --prefer-offline --no-audit --no-fund
 COPY Frontend/ ./
 RUN npm run build
 
