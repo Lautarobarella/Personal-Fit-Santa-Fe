@@ -11,6 +11,12 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
+// Validate Firebase config
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.error("❌ Firebase configuration is missing. Check your .env file.");
+    console.error("Required: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID");
+}
+
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const messaging = async () => {
@@ -20,16 +26,32 @@ export const messaging = async () => {
 
 export const getToken = async () => {
     const msg = await messaging();
-    if (!msg) return null;
+    if (!msg) {
+        console.warn("⚠️ Messaging not supported or initialized");
+        return null;
+    }
 
     const { getToken } = await import("firebase/messaging");
 
     try {
-        return await getToken(msg, {
-            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-        });
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        if (!vapidKey) {
+            console.error("❌ VAPID key is missing. Check NEXT_PUBLIC_FIREBASE_VAPID_KEY in .env");
+            return null;
+        }
+        
+        console.log("🔑 Requesting FCM token with VAPID key...");
+        const token = await getToken(msg, { vapidKey });
+        
+        if (token) {
+            console.log("✅ FCM Token obtained successfully");
+            return token;
+        } else {
+            console.warn("⚠️ No registration token available");
+            return null;
+        }
     } catch (error) {
-        console.error("An error occurred while retrieving token. ", error);
+        console.error("❌ An error occurred while retrieving token:", error);
         return null;
     }
 };

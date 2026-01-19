@@ -1,0 +1,3 @@
+# Keep the auto-generated service worker out of git
+# It's generated from the template during build
+firebase-messaging-sw.js

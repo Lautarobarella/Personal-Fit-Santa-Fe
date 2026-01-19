@@ -86,7 +86,8 @@ jobs:
             # No es necesario exportar manualmente las variables
             echo "==> Usando variables del archivo .env"
             
-            docker compose up -d --build
+            docker compose build
+            docker compose up -d
 
             # Esperar a Postgres (usa envs del contenedor)
             wait_for_postgres() {

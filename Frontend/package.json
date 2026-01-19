@@ -7,6 +7,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "generate:sw": "node scripts/generate-sw.js",
+    "prebuild": "npm run generate:sw",
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",

@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.MulticastMessage;
@@ -48,9 +49,17 @@ public class FCMService {
     }
 
     public void sendNotification(Long userId, String title, String body) {
+        // Check if Firebase is initialized
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.error("❌ Firebase not initialized. Cannot send notification to user: {}", userId);
+            return;
+        }
+
         Optional<UserTokens> userTokensOpt = userTokensRepository.findByUserId(userId);
         if (userTokensOpt.isPresent() && !userTokensOpt.get().getTokens().isEmpty()) {
             List<String> tokens = userTokensOpt.get().getTokens();
+            
+            log.info("📤 Attempting to send notification to user: {} with {} token(s)", userId, tokens.size());
 
             // Send to multiple tokens (Multicast)
             MulticastMessage message = MulticastMessage.builder()
@@ -65,9 +74,15 @@ public class FCMService {
                 BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
                 log.info("✅ FCM Notification sent to user: {}. Success: {}, Failure: {}", userId,
                         response.getSuccessCount(), response.getFailureCount());
+                
+                if (response.getFailureCount() > 0) {
+                    log.warn("⚠️ Some notifications failed. Details: {}", response.getResponses());
+                }
             } catch (Exception e) {
-                log.error("❌ Error sending FCM notification to user {}: {}", userId, e.getMessage());
+                log.error("❌ Error sending FCM notification to user {}: {}", userId, e.getMessage(), e);
             }
+        } else {
+            log.warn("⚠️ No FCM tokens found for user: {}. Push notification not sent.", userId);
         }
     }
 
