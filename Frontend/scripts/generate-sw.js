@@ -2,16 +2,16 @@
 /**
  * Generate firebase-messaging-sw.js from template with .env values
  * This script runs before build to inject Firebase config into the service worker
+ * Works in Docker (using ENV vars) and locally (using .env file)
  */
 
 const fs = require('fs');
 const path = require('path');
 
 // Simple .env parser (no dependencies needed)
-function loadEnv() {
+function loadEnvFromFile() {
     const envPath = path.resolve(__dirname, '../../.env');
     if (!fs.existsSync(envPath)) {
-        console.warn('⚠️  .env file not found at:', envPath);
         return {};
     }
     
@@ -34,7 +34,17 @@ function loadEnv() {
     return env;
 }
 
-const env = loadEnv();
+// Load from environment variables first (Docker), then from .env file (local)
+const fileEnv = loadEnvFromFile();
+const env = {
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || fileEnv.NEXT_PUBLIC_FIREBASE_API_KEY,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || fileEnv.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || fileEnv.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || fileEnv.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || fileEnv.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || fileEnv.NEXT_PUBLIC_FIREBASE_APP_ID,
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || fileEnv.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+};
 
 const template = fs.readFileSync(
     path.resolve(__dirname, '../firebase-messaging-sw.template.js'),
@@ -75,9 +85,10 @@ const requiredVars = [
 const missingVars = requiredVars.filter(varName => !env[varName]);
 
 if (missingVars.length > 0) {
-    console.warn('⚠️  Missing required Firebase environment variables:');
-    missingVars.forEach(varName => console.warn(`   - ${varName}`));
-    console.warn('   Service worker may not work correctly.');
+    console.error('❌ Missing required Firebase environment variables:');
+    missingVars.forEach(varName => console.error(`   - ${varName}`));
+    console.error('   Service worker will not work correctly.');
+    console.error('   Make sure these are set in .env file or as environment variables.');
     process.exit(1);
 }
 
