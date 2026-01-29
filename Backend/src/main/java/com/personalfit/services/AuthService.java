@@ -17,6 +17,10 @@ import com.personalfit.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Service generic for Authentication.
+ * Handles the core business logic for user login and token management.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,7 +30,13 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserRepository userRepository;
 
-    
+    /**
+     * Authenticates a user with email and password.
+     * Generates Access and Refresh tokens upon success.
+     * 
+     * @param request Login credentials.
+     * @return AuthResponseDTO containing tokens and user info.
+     */
     public AuthResponseDTO authenticate(AuthRequestDTO request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -51,11 +61,16 @@ public class AuthService {
 
         } catch (Exception e) {
             log.error("Authentication failed for user: {}", request.getEmail(), e);
-            throw new BusinessRuleException("Email o contraseña incorrectos", "Api/Auth/authenticate");
+            throw new BusinessRuleException("Incorrect email or password", "Api/Auth/authenticate");
         }
     }
 
-    
+    /**
+     * Refreshes the Access Token using a valid Refresh Token.
+     * 
+     * @param refreshToken The refresh token string.
+     * @return New set of tokens.
+     */
     public AuthResponseDTO refreshToken(String refreshToken) {
         try {
             String userEmail = jwtService.extractUsername(refreshToken);
@@ -80,11 +95,11 @@ public class AuthService {
                         .user(userInfo)
                         .build();
             } else {
-                throw new BusinessRuleException("Token de refresco inválido", "Api/Auth/refreshToken");
+                throw new BusinessRuleException("Invalid refresh token", "Api/Auth/refreshToken");
             }
         } catch (Exception e) {
             log.error("Token refresh failed", e);
-            throw new BusinessRuleException("Error al refrescar el token", "Api/Auth/refreshToken");
+            throw new BusinessRuleException("Error refreshing token", "Api/Auth/refreshToken");
         }
     }
 }

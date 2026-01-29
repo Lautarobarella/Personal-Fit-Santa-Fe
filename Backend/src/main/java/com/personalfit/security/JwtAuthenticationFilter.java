@@ -18,6 +18,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filter that intercepts every request to extract and validate the JWT.
+ * It sets the authentication in the SecurityContext if the token is valid.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -26,13 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    /**
+     * Internal filter logic.
+     * Skips filtering for auth endpoints to avoid loops.
+     */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
-        
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
+
         if (request.getServletPath().contains("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
@@ -51,16 +58,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                
+
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
-                            userDetails.getAuthorities()
-                    );
+                            userDetails.getAuthorities());
                     authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
+                            new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
@@ -72,10 +77,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extrae el JWT del request, priorizando cookies sobre Authorization header
+     * Extracts the JWT from the request, prioritizing Cookies over the
+     * Authorization header.
      */
     private String extractJwtFromRequest(HttpServletRequest request) {
-        // Primero intentar obtener del cookie (más seguro)
+        // First try to get it from the cookie (more secure)
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
@@ -84,13 +90,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         }
-        
-        // Si no hay cookie, intentar con Authorization header (compatibilidad hacia atrás)
+
+        // If no cookie, try with Authorization header (backward compatibility)
         final String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);
         }
-        
+
         return null;
     }
-} 
+}

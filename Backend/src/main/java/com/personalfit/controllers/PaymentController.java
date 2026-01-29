@@ -34,8 +34,9 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Controlador unificado para pagos y archivos
- * Combina PaymentController y PaymentFileController
+ * Controller for Payment & Financial Management.
+ * Handles payment processing (Manual, Batch, Webhooks), file uploads
+ * (receipts), and revenue statistics.
  */
 @Slf4j
 @RestController
@@ -45,87 +46,89 @@ public class PaymentController {
     @Autowired
     private PaymentService paymentService;
 
-    // ===== ENDPOINTS DE PAGOS =====
+    // ========================
+    // PAYMENT ENDPOINTS
+    // ========================
 
     /**
-     * Crear nuevo pago con archivo opcional
-     * Endpoint principal usado por el frontend
+     * Create a new payment (Optional receipt file upload).
+     * Main endpoint used by Frontend.
      */
     @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createPayment(
             @RequestPart("payment") PaymentRequestDTO paymentRequest,
             @RequestPart(value = "file", required = false) MultipartFile file) {
-        
-        log.info("Creando nuevo pago: Cliente={}, Monto={}", 
+
+        log.info("Creating new payment: Client={}, Amount={}",
                 paymentRequest.getClientDni(), paymentRequest.getAmount());
 
         Payment createdPayment = paymentService.createPayment(paymentRequest, file);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("id", createdPayment.getId());
-        response.put("message", "Pago creado exitosamente");
+        response.put("message", "Payment created successfully");
         response.put("success", true);
-        
+
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Crear múltiples pagos en lote
-     * Endpoint para crear pagos masivamente (solo para administradores)
+     * Create multiple payments in batch (Admin only).
      */
     @PostMapping("/batch")
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createBatchPayments(
             @Valid @RequestBody List<PaymentRequestDTO> paymentRequests) {
-        
-        log.info("Creando pagos en lote: {} pagos solicitados", paymentRequests.size());
-        
+
+        log.info("Batch payment creation: {} items requested", paymentRequests.size());
+
         Integer createdCount = paymentService.createBatchPayments(paymentRequests);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Pagos creados en lote exitosamente");
+        response.put("message", "Batch payments created successfully");
         response.put("createdCount", createdCount);
         response.put("requestedCount", paymentRequests.size());
-        
+
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
-     * Crear pago desde webhook de MercadoPago
+     * Webhook Endpoint for MercadoPago Integration.
+     * Receives payment notifications automatically.
      */
     @PostMapping("/webhook/mercadopago")
     public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(
             @RequestBody PaymentRequestDTO paymentRequest) {
-        
-        log.info("Procesando pago desde webhook: DNI={}, Monto={}", 
+
+        log.info("Webhook received: DNI={}, Amount={}",
                 paymentRequest.getClientDni(), paymentRequest.getAmount());
-        
+
         try {
             paymentService.createWebhookPayment(paymentRequest);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Pago registrado exitosamente desde webhook");
+            response.put("message", "Payment registered via webhook");
             response.put("timestamp", LocalDateTime.now());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
-            log.error("Error procesando webhook: {}", e.getMessage());
-            
+            log.error("Webhook processing error: {}", e.getMessage());
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
-            response.put("message", "Error al registrar pago: " + e.getMessage());
+            response.put("message", "Error registering payment: " + e.getMessage());
             response.put("timestamp", LocalDateTime.now());
-            
+
             return ResponseEntity.badRequest().body(response);
         }
     }
 
     /**
-     * Obtener todos los pagos (para admin)
+     * Get all payments (Admin view).
      */
     @GetMapping("/getAll")
     public ResponseEntity<List<PaymentTypeDTO>> getAllPayments() {
@@ -134,21 +137,21 @@ public class PaymentController {
     }
 
     /**
-     * Obtener pagos por mes y año (para admin)
+     * Get payments filtered by Month and Year (Admin view).
      */
     @GetMapping("/getAll/{year}/{month}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PaymentTypeDTO>> getPaymentsByMonthAndYear(
-            @PathVariable Integer year, 
+            @PathVariable Integer year,
             @PathVariable Integer month) {
-        
-        log.info("Obteniendo pagos del mes {} del año {}", month, year);
+
+        log.info("Fetching payments for {}/{}", month, year);
         List<PaymentTypeDTO> payments = paymentService.getPaymentsByMonthAndYear(year, month);
         return ResponseEntity.ok(payments);
     }
 
     /**
-     * Obtener pagos de un usuario específico
+     * Get payments for a specific user.
      */
     @GetMapping("/{userId}")
     public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long userId) {
@@ -157,7 +160,7 @@ public class PaymentController {
     }
 
     /**
-     * Obtener detalles de un pago específico
+     * Get details of a single payment.
      */
     @GetMapping("/info/{paymentId}")
     public ResponseEntity<PaymentTypeDTO> getPaymentDetails(@PathVariable Long paymentId) {
@@ -166,36 +169,38 @@ public class PaymentController {
     }
 
     /**
-     * Actualizar estado de un pago (aprobar/rechazar)
+     * Update payment status (e.g., Approve/Reject a pending cash payment).
      */
     @PutMapping("/pending/{paymentId}")
     public ResponseEntity<Map<String, Object>> updatePaymentStatus(
             @PathVariable Long paymentId,
             @Valid @RequestBody PaymentStatusUpdateDTO statusUpdate) {
-        
-        log.info("Actualizando estado de pago: ID={}, Nuevo Estado={}", 
+
+        log.info("Updating payment status: ID={}, New Status={}",
                 paymentId, statusUpdate.getStatus());
-        
+
         paymentService.updatePaymentStatus(paymentId, statusUpdate);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Estado actualizado correctamente");
+        response.put("message", "Status updated successfully");
         response.put("paymentId", paymentId);
         response.put("newStatus", statusUpdate.getStatus());
-        
+
         return ResponseEntity.ok(response);
     }
 
-    // ===== ENDPOINTS DE ARCHIVOS =====
+    // ========================
+    // FILE ENDPOINTS
+    // ========================
 
     /**
-     * Descargar archivo de comprobante
+     * Download a payment receipt/proof file.
      */
     @GetMapping("/files/{fileId}")
     public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
-        log.info("Descargando archivo: ID={}", fileId);
-        
+        log.info("Downloading file: ID={}", fileId);
+
         byte[] fileContent = paymentService.getFileContent(fileId);
         PaymentFile fileInfo = paymentService.getPaymentFileInfo(fileId);
 
@@ -206,18 +211,18 @@ public class PaymentController {
     }
 
     /**
-     * Obtener archivo de un pago específico (para verificación)
+     * Get file associated with a payment (for verification).
      */
     @GetMapping("/getFile/{paymentId}")
     public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId) {
-        log.info("Obteniendo archivo de pago: ID={}", paymentId);
-        
+        log.info("Fetching file for payment: ID={}", paymentId);
+
         Payment payment = paymentService.getPaymentWithFile(paymentId);
-        
+
         if (payment.getPaymentFile() == null) {
             return ResponseEntity.notFound().build();
         }
-        
+
         PaymentFile file = payment.getPaymentFile();
         byte[] fileContent = paymentService.getFileContent(file.getId());
 
@@ -227,26 +232,28 @@ public class PaymentController {
                 .body(fileContent);
     }
 
-    // ===== ENDPOINTS DE INGRESOS MENSUALES =====
+    // ========================
+    // REVENUE ENDPOINTS
+    // ========================
 
     /**
-     * Obtener ingresos del mes actual (solo para admin)
+     * Get Current Month Revenue stats (Admin only).
      */
     @GetMapping("/revenue/current")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MonthlyRevenueDTO> getCurrentMonthRevenue() {
-        log.info("Obteniendo ingresos del mes actual");
+        log.info("Fetching current month revenue");
         MonthlyRevenueDTO currentRevenue = paymentService.getCurrentMonthRevenue();
         return ResponseEntity.ok(currentRevenue);
     }
 
     /**
-     * Obtener historial de ingresos mensuales archivados (solo para admin)
+     * Get Historical Monthly Revenue stats (Admin only).
      */
     @GetMapping("/revenue/history")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<MonthlyRevenueDTO>> getArchivedMonthlyRevenues() {
-        log.info("Obteniendo historial de ingresos mensuales");
+        log.info("Fetching revenue history");
         List<MonthlyRevenueDTO> archivedRevenues = paymentService.getArchivedMonthlyRevenues();
         return ResponseEntity.ok(archivedRevenues);
     }

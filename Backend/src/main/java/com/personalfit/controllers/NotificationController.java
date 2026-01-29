@@ -21,6 +21,11 @@ import com.personalfit.dto.Notification.NotificationFormTypeDTO;
 import com.personalfit.dto.Notification.NotificationTypeDTO;
 import com.personalfit.services.NotificationService;
 
+/**
+ * Controller for Notification Management.
+ * Handles the creation (Admin only) and consumption (Users) of system
+ * notifications.
+ */
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
@@ -28,16 +33,24 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Create a single notification for a specific user.
+     * Admin only.
+     */
     @PostMapping("/new")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> newNotification(@RequestBody NotificationFormTypeDTO notification) {
         notificationService.createNotification(notification);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificación creada exitosamente");
+        response.put("message", "Notification created successfully");
         response.put("success", true);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Send a broadcast notification to ALL users.
+     * Admin only.
+     */
     @PostMapping("/bulk")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createBulkNotification(@RequestBody Map<String, String> request) {
@@ -47,23 +60,29 @@ public class NotificationController {
         int count = notificationService.createBulkNotification(title, message);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificaciones creadas exitosamente");
+        response.put("message", "Bulk notifications created successfully");
         response.put("success", true);
         response.put("count", count);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Delete a notification.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteNotification(@PathVariable Long id) {
         notificationService.deleteNotification(id);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificación eliminada exitosamente");
+        response.put("message", "Notification deleted successfully");
         response.put("success", true);
         response.put("notificationId", id);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get all notifications for a user.
+     */
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<List<NotificationTypeDTO>> getAllNotifications(@PathVariable Long userId) {
@@ -71,6 +90,9 @@ public class NotificationController {
         return ResponseEntity.ok(notifications);
     }
 
+    /**
+     * Get details of a single notification.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<NotificationDetailInfoDTO> getNotificationInfo(@PathVariable Long id) {
@@ -78,45 +100,57 @@ public class NotificationController {
         return ResponseEntity.ok(notificationInfo);
     }
 
+    /**
+     * Mark notification as read.
+     */
     @PutMapping("/{id}/read")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> markAsRead(@PathVariable Long id) {
         notificationService.markAsRead(id);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificación marcada como leída");
+        response.put("message", "Notification marked as read");
         response.put("success", true);
         response.put("notificationId", id);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Mark notification as unread.
+     */
     @PutMapping("/{id}/unread")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> markAsUnread(@PathVariable Long id) {
         notificationService.markAsUnread(id);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificación marcada como no leída");
+        response.put("message", "Notification marked as unread");
         response.put("success", true);
         response.put("notificationId", id);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Archive a notification.
+     */
     @PutMapping("/{id}/archive")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> archiveNotification(@PathVariable Long id) {
         notificationService.archiveNotification(id);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificación archivada exitosamente");
+        response.put("message", "Notification archived successfully");
         response.put("success", true);
         response.put("notificationId", id);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Unarchive a notification.
+     */
     @PutMapping("/{id}/unarchive")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> unarchiveNotification(@PathVariable Long id) {
         notificationService.unarchiveNotification(id);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Notificación desarchivada exitosamente");
+        response.put("message", "Notification unarchived successfully");
         response.put("success", true);
         response.put("notificationId", id);
         return ResponseEntity.ok(response);

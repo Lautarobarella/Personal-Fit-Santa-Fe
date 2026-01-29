@@ -25,6 +25,12 @@ import com.personalfit.security.JwtAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Main Security Configuration.
+ * Configures the filter chain, CORS, CSRF, and exception handling for the
+ * application.
+ * Defines public vs protected endpoints.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -37,33 +43,34 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/health").permitAll() // Endpoint de health check público
-                .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/auth/refresh").permitAll()
-                .requestMatchers("/api/auth/logout").permitAll()
-                .requestMatchers("/api/auth/test-users").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/users/public/first-admin").permitAll()
-                .requestMatchers("/api/payments/webhook/mercadopago").permitAll() // Permitir webhooks de MercadoPago sin autenticación
-                .requestMatchers("/api/payments/files/**").permitAll() // Permitir descarga de comprobantes de pago
-                .requestMatchers("/payments/mercadopago/**").permitAll() // Permitir endpoints de MercadoPago sin autenticación
-                .requestMatchers("/payments/files/**").permitAll() // Permitir acceso a archivos de pagos
-                .requestMatchers("/api/files/**").permitAll() // Permitir acceso directo a archivos del backend
-                .requestMatchers("/api/attendance/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30").permitAll() // Permitir endpoint NFC sin autenticación
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/error").permitAll()
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-            );
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/health").permitAll() // Public Health Check Endpoint
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/test-users").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/users/public/first-admin").permitAll()
+                        .requestMatchers("/api/payments/webhook/mercadopago").permitAll() // Allow MercadoPago webhooks
+                                                                                          // without auth
+                        .requestMatchers("/api/payments/files/**").permitAll() // Allow downloading payment receipts
+                        .requestMatchers("/payments/mercadopago/**").permitAll() // Allow MercadoPago endpoints without
+                                                                                 // auth
+                        .requestMatchers("/payments/files/**").permitAll() // Allow access to payment files
+                        .requestMatchers("/api/files/**").permitAll() // Allow direct access to backend files
+                        .requestMatchers(
+                                "/api/attendance/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30")
+                        .permitAll() // Allow NFC endpoint without auth
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint));
 
         return http.build();
     }
@@ -71,11 +78,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Para cookies httpOnly, necesitamos especificar orígenes específicos, no usar "*"
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://localhost:3000", "https://personalfitsantafe.com"));
+        // For httpOnly cookies, we need specific origins, cannot use "*"
+        configuration.setAllowedOriginPatterns(
+                List.of("http://localhost:3000", "https://localhost:3000", "https://personalfitsantafe.com"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true); // Permitir envío de cookies
+        configuration.setAllowCredentials(true); // Allow sending cookies
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -92,4 +100,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-} 
+}

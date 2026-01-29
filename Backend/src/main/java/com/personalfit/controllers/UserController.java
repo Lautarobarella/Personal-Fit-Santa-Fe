@@ -32,7 +32,10 @@ import com.personalfit.services.UserService;
 
 import jakarta.validation.Valid;
 
-
+/**
+ * Controller for User Management.
+ * Handles user creation, profile updates, and retrieving user statistics.
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -40,46 +43,62 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    /**
+     * Create a new user (Client).
+     */
     @PostMapping("/new")
     public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody CreateUserDTO user) {
         userService.createNewUser(user);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Usuario creado exitosamente");
+        response.put("message", "User created successfully");
         response.put("success", true);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Bootstrap endpoint to create the first Admin user.
+     * Accessible publicly to set up the system.
+     */
     @PostMapping("/public/first-admin")
     public ResponseEntity<Map<String, Object>> createFirstAdmin(@Valid @RequestBody CreateUserDTO user) {
-        
-        // Forzar el rol de admin y estado activo
+
+        // Force ADMIN role and ACTIVE status
         user.setRole(UserRole.ADMIN);
         user.setStatus(UserStatus.ACTIVE);
-        
+
         userService.createNewUser(user);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Primer administrador creado exitosamente");
+        response.put("message", "First Administrator created successfully");
         response.put("success", true);
         response.put("role", "ADMIN");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Delete a user by ID.
+     */
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Usuario eliminado exitosamente");
+        response.put("message", "User deleted successfully");
         response.put("success", true);
         response.put("userId", id);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Find user model by DNI (Internal use).
+     */
     @GetMapping("/findByDni")
     public ResponseEntity<User> findByDni(@Valid @RequestBody Integer userDni) {
         User user = userService.getUserByDni(userDni);
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
+    /**
+     * Get User DTO by DNI.
+     */
     @GetMapping("/by-dni/{dni}")
     public ResponseEntity<UserTypeDTO> getUserByDni(@PathVariable Integer dni) {
         User user = userService.getUserByDni(dni);
@@ -87,11 +106,17 @@ public class UserController {
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
+    /**
+     * Get all users.
+     */
     @GetMapping("/getAll")
     public ResponseEntity<List<UserTypeDTO>> getAllUsers() {
         return new ResponseEntity<>(userService.getAllUsers(), HttpStatus.OK);
     }
 
+    /**
+     * Get specific user info by ID.
+     */
     @GetMapping("/info/{id}")
     public ResponseEntity<UserTypeDTO> getUserInfo(@PathVariable Long id) {
         User user = userService.getUserById(id);
@@ -99,59 +124,62 @@ public class UserController {
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
+    /**
+     * Get all trainers.
+     */
     @GetMapping("/trainers")
     public ResponseEntity<List<UserTypeDTO>> getAllTrainers() {
         List<UserTypeDTO> trainers = userService.getAllTrainers();
         return new ResponseEntity<>(trainers, HttpStatus.OK);
     }
 
-    // @PutMapping("/status/{id}")
-    // public ResponseEntity<Void> updateUserStatus(@PathVariable Long id, String status){
-    //     User user = userService.getUserById(id);
-    //     userService.updateUserStatus(user, UserStatus.valueOf(status.toUpperCase()));
-    //     return new ResponseEntity<>(HttpStatus.OK);
-    // }
-
+    /**
+     * Update last attendance timestamp for a user.
+     */
     @PutMapping("/lastAttendance/{dni}")
     public ResponseEntity<Map<String, Object>> updateLastAttendance(@PathVariable Integer dni) {
         userService.updateLastAttendanceByDni(dni);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Última asistencia actualizada exitosamente");
+        response.put("message", "Last attendance updated successfully");
         response.put("success", true);
         response.put("dni", dni);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Update User Password.
+     * Users can update their own password. Admins can update any password (logic
+     * handled inside).
+     */
     @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
     @PutMapping("/update-password")
     public ResponseEntity<Map<String, Object>> updatePassword(
             @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO,
             Authentication authentication) {
         try {
-            // Verificar que el usuario solo pueda cambiar su propia contraseña (excepto ADMIN)
+            // Check permissions
             String currentUserEmail = authentication.getName();
             User currentUser = userService.getUserByEmail(currentUserEmail);
-            
-            // Solo permitir si es ADMIN o si está cambiando su propia contraseña
-            if (!currentUser.getRole().equals(UserRole.ADMIN) && 
-                !currentUser.getId().equals(updatePasswordDTO.getUserId())) {
+
+            // Allow if ADMIN or if user is updating their own password
+            if (!currentUser.getRole().equals(UserRole.ADMIN) &&
+                    !currentUser.getId().equals(updatePasswordDTO.getUserId())) {
                 Map<String, Object> response = new HashMap<>();
-                response.put("message", "No tienes permisos para cambiar la contraseña de otro usuario");
+                response.put("message", "You do not have permission to change another user's password");
                 response.put("success", false);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
             }
-            
+
             userService.updatePassword(
-                updatePasswordDTO.getUserId(),
-                updatePasswordDTO.getCurrentPassword(),
-                updatePasswordDTO.getNewPassword()
-            );
-            
+                    updatePasswordDTO.getUserId(),
+                    updatePasswordDTO.getCurrentPassword(),
+                    updatePasswordDTO.getNewPassword());
+
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Contraseña actualizada exitosamente");
+            response.put("message", "Password updated successfully");
             response.put("success", true);
             return ResponseEntity.ok(response);
-            
+
         } catch (IllegalArgumentException e) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", e.getMessage());
@@ -160,32 +188,35 @@ public class UserController {
         }
     }
 
+    /**
+     * Update User Profile (Non-sensitive data).
+     */
     @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
     @PutMapping("/update-profile")
     public ResponseEntity<Map<String, Object>> updateProfile(
             @Valid @RequestBody UpdateProfileDTO updateProfileDTO,
             Authentication authentication) {
         try {
-            // Verificar que el usuario solo pueda cambiar su propio perfil (excepto ADMIN)
+            // Check permissions
             String currentUserEmail = authentication.getName();
             User currentUser = userService.getUserByEmail(currentUserEmail);
-            
-            // Solo permitir si es ADMIN o si está cambiando su propio perfil
-            if (!currentUser.getRole().equals(UserRole.ADMIN) && 
-                !currentUser.getId().equals(updateProfileDTO.getUserId())) {
+
+            // Allow if ADMIN or if user is updating their own profile
+            if (!currentUser.getRole().equals(UserRole.ADMIN) &&
+                    !currentUser.getId().equals(updateProfileDTO.getUserId())) {
                 Map<String, Object> response = new HashMap<>();
-                response.put("message", "No tienes permisos para cambiar el perfil de otro usuario");
+                response.put("message", "You do not have permission to edit another user's profile");
                 response.put("success", false);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
             }
-            
+
             userService.updateProfile(updateProfileDTO);
-            
+
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Perfil actualizado exitosamente");
+            response.put("message", "Profile updated successfully");
             response.put("success", true);
             return ResponseEntity.ok(response);
-            
+
         } catch (IllegalArgumentException e) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", e.getMessage());
@@ -194,24 +225,26 @@ public class UserController {
         }
     }
 
+    /**
+     * Batch create clients.
+     */
     @Transactional
     @PostMapping("/batch/clients")
     public ResponseEntity<Map<String, Object>> createBatchClients(@Valid @RequestBody List<CreateUserDTO> newUsers) {
-        // Mantener el role y status que llegan en cada CreateUserDTO
         Integer createdCount = userService.createBatchClients(newUsers);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Usuarios creados exitosamente");
+        response.put("message", "Users batch created successfully");
         response.put("success", true);
         response.put("createdCount", createdCount);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // ===== ENDPOINTS PARA ESTADÍSTICAS DEL CLIENTE =====
+    // ===================================
+    // CLIENT STATISTICS ENDPOINTS
+    // ===================================
 
     /**
-     * Endpoint unificado para obtener todas las estadísticas de un cliente
-     * @param clientId ID del cliente
-     * @return ClientStatsDTO con todas las estadísticas
+     * Get aggregated stats for a client.
      */
     @GetMapping("/stats/{clientId}")
     public ResponseEntity<ClientStatsDTO> getClientStats(@PathVariable Long clientId) {
@@ -220,9 +253,7 @@ public class UserController {
     }
 
     /**
-     * Obtiene la cantidad de actividades de la semana actual para un cliente
-     * @param clientId ID del cliente
-     * @return Cantidad de actividades de la semana
+     * Get number of activities this week for a client.
      */
     @GetMapping("/{clientId}/weekly-activities")
     public ResponseEntity<Integer> getWeeklyActivities(@PathVariable Long clientId) {
@@ -232,10 +263,7 @@ public class UserController {
     }
 
     /**
-     * Obtiene la cantidad de actividades de una semana específica para un cliente
-     * @param clientId ID del cliente
-     * @param date Fecha de la semana (formato YYYY-MM-DD)
-     * @return Cantidad de actividades de esa semana
+     * Get number of activities for a specific week for a client.
      */
     @GetMapping("/{clientId}/weekly-activities/{date}")
     public ResponseEntity<Integer> getWeeklyActivities(@PathVariable Long clientId, @PathVariable String date) {
@@ -246,9 +274,7 @@ public class UserController {
     }
 
     /**
-     * Obtiene la próxima clase más cercana para un cliente
-     * @param clientId ID del cliente
-     * @return NextClassDTO con información de la próxima clase
+     * Get the next upcoming class for a client.
      */
     @GetMapping("/{clientId}/next-class")
     public ResponseEntity<ClientStatsDTO.NextClassDTO> getNextClass(@PathVariable Long clientId) {
@@ -258,9 +284,7 @@ public class UserController {
     }
 
     /**
-     * Obtiene el total de clases completadas para un cliente
-     * @param clientId ID del cliente
-     * @return Cantidad total de clases completadas
+     * Get total completed classes count.
      */
     @GetMapping("/{clientId}/completed-classes")
     public ResponseEntity<Integer> getCompletedClasses(@PathVariable Long clientId) {
@@ -270,19 +294,17 @@ public class UserController {
     }
 
     /**
-     * Obtiene el estado de membresía de un cliente
-     * @param clientId ID del cliente
-     * @return Map con el estado de membresía
+     * Get client membership status (Active, Inactive, Blocked).
      */
     @GetMapping("/{clientId}/membership-status")
     public ResponseEntity<Map<String, Object>> getMembershipStatus(@PathVariable Long clientId) {
         User client = userService.getUserById(clientId);
         UserStatus status = userService.getMembershipStatus(client);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("status", status);
         response.put("clientId", clientId);
-        
+
         return ResponseEntity.ok(response);
     }
 

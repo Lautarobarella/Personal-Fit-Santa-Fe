@@ -7,8 +7,9 @@ import {
 } from "mercadopago";
 
 /**
- * Configuración del cliente de MercadoPago
- * Se inicializa con el token de acceso desde las variables de entorno
+ * MercadoPago Client Configuration
+ * Initializes the SDK with the secure Access Token.
+ * Note: Only safe to run in a server-side context (Next.js API Routes or Server Components).
  */
 const client = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -18,19 +19,18 @@ const client = new MercadoPagoConfig({
     }
 });
 
-// Instancia de Preference para crear preferencias de pago
+// Instance for creating Payment Preferences (User Checkout Flow)
 const pref = new Preference(client);
 
-// Nota: La URL base para llamadas al backend debe ser NEXT_PUBLIC_API_URL,
-// que ya está resuelta por buildApiUrl (internamente usa API_CONFIG.BASE_URL)
-
-
+// Note: The base URL for backend calls should rely on the standardized configuration
+// to avoid environment mismatches (Local/Production).
 
 /**
- * Obtiene información de un pago por su ID
+ * Retrieve Payment Information
+ * Fetches the status of a specific transaction directly from MercadoPago's API.
  * 
- * @param id - ID del pago de MercadoPago
- * @returns Promise<any> Información del pago
+ * @param id - The unique MercadoPago Payment ID
+ * @returns Promise<any> Raw payment data
  */
 export async function getPaymentById(id: string) {
     const accessToken = process.env.MP_ACCESS_TOKEN;
@@ -43,42 +43,48 @@ export async function getPaymentById(id: string) {
     return paymentInfo;
 }
 
-
-
 /**
- * Tipo de datos para el payload del webhook
- * Estructura de datos que envía MercadoPago en las notificaciones
+ * Webhook Payload Interface
+ * Represents the JSON structure sent by MercadoPago during an IPN (Instant Payment Notification).
  */
 export type WebhookPayload = {
     action?: string;
     api_version?: string;
     data?: {
-        id: string;
+        id: string; // The ID of the resource (e.g., payment ID)
     };
     date_created?: string;
     id?: number;
     live_mode?: boolean;
     type?: string;
-    topic?: string; // MercadoPago usa 'topic' en lugar de 'type' en algunos casos
+    topic?: string; // Legacy parameter, synonymous with 'type'
     user_id?: string;
-    resource?: string; // URL del recurso (ej: merchant_order, payment)
+    resource?: string; // Full URI of the resource
 };
 
 /**
- * Procesa la notificación del webhook de MercadoPago
- * Esta función se puede llamar desde el webhook externo o desde una API route
+ * Webhook Processor
+ * The core logic for handling incoming notifications from MercadoPago.
  * 
- * @param payload - Payload del webhook
- * @returns Promise<any> Resultado del procesamiento
+ * Flow:
+ * 1. Identify notification type (we care about 'payment')
+ * 2. Fetch the full payment details from MP to verify authenticity (security step)
+ * 3. If Approved, map the data to our system domain
+ * 4. Trigger creation of a permanent payment record
+ * 
+ * @param payload - The lightweight notification body
+ * @returns Result object summarizing the action taken
  */
 export async function processWebhookNotification(payload: WebhookPayload) {
     try {
         const notificationType = payload.type || payload.topic;
 
+        // We only process final payment notifications (not pending, not merchant_orders)
         if (notificationType === "payment" && payload.data?.id) {
             const mpPayment = await getPaymentById(payload.data.id);
 
             if (mpPayment && mpPayment.status === 'approved') {
+                // Map external MP data to internal Client structure
                 const clientInfo = await mapPaymentToClient(mpPayment);
 
                 return {
@@ -107,10 +113,11 @@ export async function processWebhookNotification(payload: WebhookPayload) {
     }
 }
 
-
-
 /**
- * Mapea un pago de MercadoPago con el cliente y crea el pago en el sistema
+ * Mapper: External -> Internal
+ * Decodes the 'external_reference' field to identify which User and Product this payment belongs to.
+ * 
+ * Structure: "DNI-ProductID-Timestamp-Salt"
  */
 async function mapPaymentToClient(mpPayment: any) {
     try {
@@ -140,6 +147,7 @@ async function mapPaymentToClient(mpPayment: any) {
                 clientDni: userDni,
             };
 
+            // Trigger internal persistence
             await createPaymentMP(paymentInfo);
 
             return paymentInfo;
@@ -153,7 +161,8 @@ async function mapPaymentToClient(mpPayment: any) {
 }
 
 /**
- * Crea un pago real en el sistema usando la API del backend
+ * Internal Logic: Payment Creation Wrapper
+ * Conditional logic to ensure we only save 'meaningful' payments (e.g. Paid/Rejected).
  */
 async function createPaymentMP(paymentInfo: any) {
     const newStatus = mapMercadoPagoStatus(paymentInfo.status) as "paid" | "rejected";
@@ -163,6 +172,7 @@ async function createPaymentMP(paymentInfo: any) {
             clientDni: paymentInfo.clientDni,
             amount: paymentInfo.amount,
             createdAt: new Date().toISOString().split('T')[0],
+            // Auto-calculate expiration date (30 days from now) for the membership
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             mpPaymentId: paymentInfo.mpPaymentId,
             paymentMethod: paymentInfo.paymentMethod,
@@ -175,8 +185,11 @@ async function createPaymentMP(paymentInfo: any) {
 }
 
 /**
- * Crea un pago real en el sistema usando la API del backend (versión servidor)
- * Esta función no depende de localStorage ni toast, por lo que puede ejecutarse en el servidor
+ * Server-Side API Caller
+ * 
+ * Used during webhook execution (server context). 
+ * Directs the request to the internal backend API to persist the transaction record.
+ * Avoids using client-side auth tokens, relying purely on the network layer trust.
  */
 async function createPaymentServerSide(paymentData: {
     clientDni: number;
@@ -186,6 +199,7 @@ async function createPaymentServerSide(paymentData: {
     mpPaymentId: string;
     paymentMethod: string;
 }) {
+    // Construct the backend URL
     const url = buildApiUrl('/api/payments/webhook/mercadopago');
 
     const payment = {
@@ -215,7 +229,8 @@ async function createPaymentServerSide(paymentData: {
 }
 
 /**
- * Mapea el estado de MercadoPago al estado del sistema
+ * Status Normalizer
+ * Maps standard MP statuses to our system's Enums.
  */
 function mapMercadoPagoStatus(mpStatus: string): string {
     switch (mpStatus) {
@@ -232,10 +247,9 @@ function mapMercadoPagoStatus(mpStatus: string): string {
 }
 
 /**
- * Mapea el método de pago de MercadoPago al método del sistema
- * Todos los pagos de MercadoPago se clasifican como MERCADOPAGO
+ * Payment Method Normalizer
+ * Simplifies the granular MP methods (credit_card, debit_card) into our system types.
  */
-
 function mapPaymentMethod(mpMethod: string): MethodType {
     switch (mpMethod) {
         case 'credit_card':
@@ -249,7 +263,9 @@ function mapPaymentMethod(mpMethod: string): MethodType {
 }
 
 /**
- * Prueba mínima de configuración de Mercado Pago
+ * Configuration Sentinel
+ * Safe utility to check if MP is correctly configured in the current environment.
+ * Useful for health checks or debugging.
  */
 export async function testMercadoPagoConfiguration() {
     const accessToken = process.env.MP_ACCESS_TOKEN;

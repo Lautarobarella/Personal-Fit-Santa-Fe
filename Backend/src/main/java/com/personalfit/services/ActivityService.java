@@ -33,6 +33,11 @@ import com.personalfit.repository.AttendanceRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Service generic for managing gym classes/activities.
+ * Handles scheduling, recurrence, enrollment, and lifecycle management (Active
+ * -> Completed).
+ */
 @Slf4j
 @Service
 public class ActivityService {
@@ -55,8 +60,9 @@ public class ActivityService {
     @Autowired
     private NotificationService notificationService;
 
-    // private final ObjectMapper objectMapper = new ObjectMapper();
-
+    /**
+     * Schedules a new activity.
+     */
     public void createActivity(ActivityFormTypeDTO activity) {
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
@@ -80,27 +86,29 @@ public class ActivityService {
         try {
             activityRepository.save(newActivity);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al guardar la actividad: " + e.getMessage(),
+            throw new BusinessRuleException("Failed to save activity: " + e.getMessage(),
                     "Api/Activity/createActivity");
         }
     }
 
+    /**
+     * Updates an existing activity.
+     * Can update schedule, trainer, location, etc.
+     */
     public void updateActivity(Long id, ActivityFormTypeDTO activity) {
         Activity existingActivity = activityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + id,
                         "Api/Activity/updateActivity"));
 
         User trainer = userService.getUserById(Long.parseLong(activity.getTrainerId()));
 
-        // Actualizar fecha y hora si se proporcionan
+        // Logic to update DateTime depending on what was provided
         LocalDateTime newDateTime = null;
         if (activity.getDate() != null && activity.getTime() != null) {
             newDateTime = LocalDateTime.of(activity.getDate(), activity.getTime());
         } else if (activity.getDate() != null) {
-            // Si solo se proporciona la fecha, mantener la hora actual
             newDateTime = LocalDateTime.of(activity.getDate(), existingActivity.getDate().toLocalTime());
         } else if (activity.getTime() != null) {
-            // Si solo se proporciona la hora, mantener la fecha actual
             newDateTime = LocalDateTime.of(existingActivity.getDate().toLocalDate(), activity.getTime());
         }
 
@@ -112,7 +120,6 @@ public class ActivityService {
         existingActivity.setTrainer(trainer);
         existingActivity.setIsRecurring(activity.getIsRecurring());
 
-        // Actualizar la fecha solo si se proporcionó una nueva
         if (newDateTime != null) {
             existingActivity.setDate(newDateTime);
         }
@@ -120,20 +127,20 @@ public class ActivityService {
         try {
             activityRepository.save(existingActivity);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al actualizar la actividad: " + e.getMessage(),
+            throw new BusinessRuleException("Failed to update activity: " + e.getMessage(),
                     "Api/Activity/updateActivity");
         }
     }
 
     public void deleteActivity(Long id) {
         Activity activity = activityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + id,
                         "Api/Activity/deleteActivity"));
 
         try {
             activityRepository.delete(activity);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al eliminar la actividad: " + e.getMessage(),
+            throw new BusinessRuleException("Failed to delete activity: " + e.getMessage(),
                     "Api/Activity/deleteActivity");
         }
     }
@@ -145,10 +152,13 @@ public class ActivityService {
                 .toList();
     }
 
+    /**
+     * Gets detailed info for a specific activity, including participant list.
+     */
     public ActivityDetailInfoDTO getActivityDetailInfo(Long id) {
         Optional<Activity> activity = activityRepository.findById(id);
         if (activity.isEmpty()) {
-            throw new EntityNotFoundException("Actividad con ID: " + id + " no encontrada",
+            throw new EntityNotFoundException("Activity not found with ID: " + id,
                     "Api/Activity/getActivityDetailInfo");
         }
 
@@ -180,51 +190,54 @@ public class ActivityService {
                 .build();
     }
 
+    /**
+     * Scheduling View:
+     * Returns activities for the week containing the given date.
+     * Range: Monday (00:00) to Sunday (23:59).
+     */
     public List<ActivityTypeDTO> getAllActivitiesTypeDtoAtWeek(LocalDate date) {
-
-        // Obtener el inicio de la semana: lunes (incluido) - formato ISO/europeo
         LocalDate startOfWeekDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDateTime startOfWeek = startOfWeekDate.atStartOfDay(); // 00:00:00
+        LocalDateTime startOfWeek = startOfWeekDate.atStartOfDay();
 
-        // Obtener fin de semana: domingo (incluido) - formato ISO/europeo
         LocalDate endOfWeekDate = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-        LocalDateTime endOfWeek = endOfWeekDate.atTime(LocalTime.MAX); // 23:59:59.999999999
+        LocalDateTime endOfWeek = endOfWeekDate.atTime(LocalTime.MAX);
 
-        // Obtener todas las actividades entre el inicio y fin de semana
         List<Activity> allActivities = activityRepository.findByDateBetween(startOfWeek, endOfWeek);
 
-        // Filtrar las actividades que estén dentro del rango [startOfWeek, endOfWeek]
         return allActivities.stream()
                 .map(this::convertToActivityTypeDTO)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * User Enrollment:
+     * 1. Checks payment status (must be active).
+     * 2. Delegates enrollment creation to AttendanceService.
+     */
     public EnrollmentResponseDTO enrollUser(EnrollmentRequestDTO enrollmentRequest) {
         try {
-            // Validar que el usuario puede inscribirse basado en su estado de pago
             Boolean paymentValidation = paymentService.canUserEnrollBasedOnPayment(enrollmentRequest.getUserId());
 
             if (!paymentValidation) {
                 return EnrollmentResponseDTO.builder()
                         .success(false)
-                        .message("El usuario no puede inscribirse debido a su estado de pago.")
+                        .message("User cannot enroll due to payment status (Expired or Unpaid).")
                         .build();
             }
 
-            // Si llega aquí, puede inscribirse (proceder con la inscripción normal)
             AttendanceDTO attendance = attendanceService.enrollUser(
                     enrollmentRequest.getUserId(),
                     enrollmentRequest.getActivityId());
 
             return EnrollmentResponseDTO.builder()
                     .success(true)
-                    .message("Usuario inscrito exitosamente")
+                    .message("User enrolled successfully")
                     .enrollment(attendance)
                     .build();
         } catch (Exception e) {
             return EnrollmentResponseDTO.builder()
                     .success(false)
-                    .message("Error al inscribir usuario: " + e.getMessage())
+                    .message("Enrollment failed: " + e.getMessage())
                     .build();
         }
     }
@@ -237,13 +250,13 @@ public class ActivityService {
 
             return EnrollmentResponseDTO.builder()
                     .success(true)
-                    .message("Usuario desinscrito exitosamente")
+                    .message("User unenrolled successfully")
                     .enrollment(null)
                     .build();
         } catch (Exception e) {
             return EnrollmentResponseDTO.builder()
                     .success(false)
-                    .message("Error al desinscribir usuario: " + e.getMessage())
+                    .message("Unenrollment failed: " + e.getMessage())
                     .build();
         }
     }
@@ -270,44 +283,46 @@ public class ActivityService {
                 .build();
     }
 
+    // ===============================
+    // CRON JOBS
+    // ===============================
+
+    /**
+     * Cron Job: Activity Lifecycle (Every 30 mins).
+     * 1. Detects finished activities -> marks COMPUTED.
+     * 2. Marks pending attendances as ABSENT.
+     * 3. Creates next week's activity if 'isRecurring' is true.
+     */
     @Scheduled(cron = "0 */30 * * * *")
     @Transactional
     public void checkCompletedActivies() {
-        log.info("Checking completed activities...");
+        log.info("Running job: Check Completed Activities");
         LocalDateTime now = LocalDateTime.now();
 
-        // Buscar actividades activas que ya han terminado (fecha + duración < hora
-        // actual)
         List<Activity> activeActivities = activityRepository.findByStatus(ActivityStatus.ACTIVE);
         List<Activity> toUpdate = new ArrayList<>();
         List<Activity> toCreate = new ArrayList<>();
 
         for (Activity activity : activeActivities) {
-            // Calcular cuándo termina la actividad (fecha de inicio)
             LocalDateTime activityEndTime = activity.getDate();
 
-            // Si la actividad ya terminó, marcarla como completada
+            // Check if activity has ended (assuming instant completion at start time, logic
+            // could be improved with duration)
             if (activityEndTime.isBefore(now)) {
                 activity.setStatus(ActivityStatus.COMPLETED);
                 toUpdate.add(activity);
-                log.info("Activity with ID {} marked as completed (ended at: {})",
-                        activity.getId(), activityEndTime);
+                log.info("Activity {} marked COMPLETED. Ended at: {}", activity.getId(), activityEndTime);
 
-                // Marcar como ausentes a todos los participantes que estén en estado PENDING
+                // Auto-mark absentees
                 try {
                     attendanceService.markPendingAttendancesAsAbsent(activity.getId());
-                    log.info("Marked pending attendances as absent for completed activity ID: {}", activity.getId());
+                    log.info("marked pending as absent for activity: {}", activity.getId());
                 } catch (Exception e) {
-                    log.error("Error marking pending attendances as absent for activity ID {}: {}",
-                            activity.getId(), e.getMessage());
+                    log.error("Failed to mark absentees for activity {}: {}", activity.getId(), e.getMessage());
                 }
 
-                // Si la actividad tiene activado el repetir semanalmente, crear una nueva para
-                // la próxima semana
+                // Handle Recurrence
                 if (activity.getRepeatEveryWeek()) {
-                    log.info("Creating recurring activity for next week for activity ID: {}", activity.getId());
-
-                    // Calcular la fecha para la próxima semana (mismo día de la semana, misma hora)
                     LocalDateTime nextWeekDate = activity.getDate().plusWeeks(1);
 
                     Activity newActivity = Activity.builder()
@@ -325,84 +340,74 @@ public class ActivityService {
                             .build();
 
                     toCreate.add(newActivity);
-                    log.info("New recurring activity created for next week: {} at {}",
-                            newActivity.getName(), nextWeekDate);
+                    log.info("Recurring activity created for: {}", nextWeekDate);
                 }
             }
         }
 
-        // Guardar todas las actividades actualizadas y nuevas en una sola transacción
         if (!toUpdate.isEmpty()) {
             activityRepository.saveAll(toUpdate);
-            log.info("Updated {} completed activities", toUpdate.size());
         }
-
         if (!toCreate.isEmpty()) {
             activityRepository.saveAll(toCreate);
-            log.info("Created {} new recurring activities", toCreate.size());
         }
 
-        log.info("Activities check completed successfully. Updated: {}, Created: {}",
-                toUpdate.size(), toCreate.size());
+        log.info("Job Complete. Activities Updated: {}, Created: {}", toUpdate.size(), toCreate.size());
     }
 
     /**
-     * Ejecuta cada hora para enviar recordatorios de clases próximas
-     * Se ejecuta a los minutos 0 de cada hora
+     * Cron Job: Class Reminders (Every 2 mins).
+     * Sends push notifications to enrolled users 1 hour before class.
      */
     @Scheduled(cron = "0 */2 * * * *")
     public void sendClassReminders() {
         try {
-            log.info("Starting class reminders job");
+            log.info("Running job: Class Reminders");
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime oneHourFromNow = now.plusHours(1);
+
+            // Look for classes starting approx 1 hour from now (+/- 30m window)
+            // Note: This logic seems broad, it might re-notify if run every 2 mins.
+            // Better logic would be ensuring we haven't notified yet, but keeping as-is for
+            // documentation.
             LocalDateTime windowStart = oneHourFromNow.minusMinutes(30);
             LocalDateTime windowEnd = oneHourFromNow.plusMinutes(30);
 
-            // Obtener actividades programadas en la próxima hora (ventana de ±30 minutos)
             List<Activity> upcomingActivities = activityRepository.findByDateBetween(windowStart, windowEnd)
                     .stream()
                     .filter(activity -> activity.getStatus() == ActivityStatus.ACTIVE)
                     .collect(Collectors.toList());
 
             if (upcomingActivities.isEmpty()) {
-                log.info("No upcoming activities found for class reminders");
                 return;
             }
 
             for (Activity activity : upcomingActivities) {
-                // Obtener usuarios inscritos a través de las asistencias
                 List<Attendance> attendances = attendanceRepository.findByActivity(activity);
                 List<User> enrolledUsers = attendances.stream()
                         .map(Attendance::getUser)
                         .collect(Collectors.toList());
 
                 if (!enrolledUsers.isEmpty()) {
-                    // Enviar notificación bulk por actividad
-                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(), 
+                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(),
                             activity.getDate(), activity.getLocation());
-                    
-                    log.info("Bulk class reminder sent for activity: {} to {} users", 
+
+                    log.info("Reminders sent for activity {}: {} users notified",
                             activity.getName(), enrolledUsers.size());
-                } else {
-                    log.info("No enrolled users found for activity: {}", activity.getName());
                 }
             }
-
-            log.info("Class reminders job completed for {} activities", upcomingActivities.size());
         } catch (Exception e) {
-            log.error("Error in class reminders job", e);
+            log.error("Class Reminder Job failed", e);
         }
     }
 
     /**
-     * Crea múltiples actividades de forma masiva
+     * Batch Activity Import.
      * 
-     * @param activities Lista de DTOs de actividades a crear
-     * @return Número de actividades creadas exitosamente
+     * @return Number of successful creations.
      */
     public Integer createBatchActivities(List<ActivityFormTypeDTO> activities) {
-        log.info("Starting batch creation of {} activities", activities.size());
+        log.info("Batch processing {} activities", activities.size());
 
         List<Activity> activitiesToCreate = new ArrayList<>();
         int successCount = 0;
@@ -434,26 +439,23 @@ public class ActivityService {
 
             } catch (Exception e) {
                 errorCount++;
-                log.error("Error creating activity '{}' at {} {}: {}",
-                        activityDTO.getName(), activityDTO.getDate(), activityDTO.getTime(), e.getMessage());
+                log.error("Batch item skipped: {} - {}", activityDTO.getName(), e.getMessage());
             }
         }
 
-        // Guardar todas las actividades válidas en una sola transacción
         if (!activitiesToCreate.isEmpty()) {
             try {
                 activityRepository.saveAll(activitiesToCreate);
-                log.info("Successfully created {} activities in batch", successCount);
+                log.info("Batch success: {} saved", successCount);
             } catch (Exception e) {
-                log.error("Error saving batch activities: {}", e.getMessage());
-                throw new BusinessRuleException("Error al guardar las actividades en lote: " + e.getMessage(),
+                log.error("Batch save failed: {}", e.getMessage());
+                throw new BusinessRuleException("Batch save failed: " + e.getMessage(),
                         "Api/Activity/createBatchActivities");
             }
         }
 
         if (errorCount > 0) {
-            log.warn("Batch creation completed with {} errors out of {} total activities",
-                    errorCount, activities.size());
+            log.warn("Batch completed with {} errors", errorCount);
         }
 
         return successCount;

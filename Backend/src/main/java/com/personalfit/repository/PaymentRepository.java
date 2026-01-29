@@ -16,105 +16,106 @@ import com.personalfit.models.User;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    // ===== CONSULTAS BÁSICAS =====
-    Optional<Payment> findByConfNumber(Long confNumber);
+        // ===== BASIC QUERIES =====
+        Optional<Payment> findByConfNumber(Long confNumber);
 
-    List<Payment> findByStatus(PaymentStatus status);
+        List<Payment> findByStatus(PaymentStatus status);
 
-    // ===== CONSULTAS POR USUARIO CON FETCH JOINS OPTIMIZADAS =====
+        // ===== USER QUERIES WITH OPTIMIZED FETCH JOINS =====
 
-    /**
-     * Obtiene el último pago de un usuario con información completa
-     */
-    @Query("SELECT p FROM Payment p " +
-            "JOIN p.users u " +
-            "WHERE u = :user " +
-            "ORDER BY p.createdAt DESC " +
-            "LIMIT 1")
-    Optional<Payment> findTopByUserOrderByCreatedAtDesc(@Param("user") User user);
+        /**
+         * Retrieves the latest payment for a user with full details.
+         */
+        @Query("SELECT p FROM Payment p " +
+                        "JOIN p.users u " +
+                        "WHERE u = :user " +
+                        "ORDER BY p.createdAt DESC " +
+                        "LIMIT 1")
+        Optional<Payment> findTopByUserOrderByCreatedAtDesc(@Param("user") User user);
 
-    /**
-     * Obtiene el último pago de un usuario con estado específico
-     */
-    @Query("SELECT p FROM Payment p " +
-            "JOIN p.users u " +
-            "WHERE u = :user AND p.status = :status " +
-            "ORDER BY p.createdAt DESC " +
-            "LIMIT 1")
-    Optional<Payment> findTopByUserAndStatusOrderByCreatedAtDesc(@Param("user") User user,
-            @Param("status") PaymentStatus status);
+        /**
+         * Retrieves the latest payment for a user with a specific status.
+         */
+        @Query("SELECT p FROM Payment p " +
+                        "JOIN p.users u " +
+                        "WHERE u = :user AND p.status = :status " +
+                        "ORDER BY p.createdAt DESC " +
+                        "LIMIT 1")
+        Optional<Payment> findTopByUserAndStatusOrderByCreatedAtDesc(@Param("user") User user,
+                        @Param("status") PaymentStatus status);
 
-    /**
-     * Obtiene todos los pagos de un usuario específico ordenados por fecha
-     */
-    @Query("SELECT DISTINCT p FROM Payment p " +
-            "JOIN p.users u " +
-            "LEFT JOIN FETCH p.paymentFile " +
-            "WHERE u.id = :userId " +
-            "ORDER BY p.createdAt DESC")
-    List<Payment> findAllByUserIdWithDetails(@Param("userId") Long userId);
+        /**
+         * Retrieves all payments for a specific user, ordered by date.
+         * Fetches associated payment files.
+         */
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "JOIN p.users u " +
+                        "LEFT JOIN FETCH p.paymentFile " +
+                        "WHERE u.id = :userId " +
+                        "ORDER BY p.createdAt DESC")
+        List<Payment> findAllByUserIdWithDetails(@Param("userId") Long userId);
 
-    /**
-     * Obtiene todos los pagos de un usuario con un estado específico
-     */
-    @Query("SELECT DISTINCT p FROM Payment p " +
-            "JOIN p.users u " +
-            "WHERE u = :user AND p.status = :status " +
-            "ORDER BY p.createdAt DESC")
-    List<Payment> findByUserAndStatus(@Param("user") User user, @Param("status") PaymentStatus status);
+        /**
+         * Retrieves all payments for a specific user with a specific status.
+         */
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "JOIN p.users u " +
+                        "WHERE u = :user AND p.status = :status " +
+                        "ORDER BY p.createdAt DESC")
+        List<Payment> findByUserAndStatus(@Param("user") User user, @Param("status") PaymentStatus status);
 
-    /**
-     * Verifica si existe un pago para un usuario específico
-     */
-    @Query("SELECT COUNT(p) > 0 FROM Payment p " +
-            "JOIN p.users u " +
-            "WHERE p.id = :paymentId AND u.id = :userId")
-    boolean existsByPaymentIdAndUserId(@Param("paymentId") Long paymentId, @Param("userId") Long userId);
+        /**
+         * Checks if a payment exists for a specific user.
+         */
+        @Query("SELECT COUNT(p) > 0 FROM Payment p " +
+                        "JOIN p.users u " +
+                        "WHERE p.id = :paymentId AND u.id = :userId")
+        boolean existsByPaymentIdAndUserId(@Param("paymentId") Long paymentId, @Param("userId") Long userId);
 
-    // ===== CONSULTAS PARA MÚLTIPLES USUARIOS =====
+        // ===== MULTI-USER QUERIES =====
 
-    /**
-     * Obtiene todos los pagos con múltiples usuarios
-     */
-    @Query("SELECT DISTINCT p FROM Payment p " +
-            "JOIN FETCH p.users u " +
-            "LEFT JOIN FETCH p.paymentFile " +
-            "WHERE SIZE(p.users) > 1 " +
-            "ORDER BY p.createdAt DESC")
-    List<Payment> findAllMultiUserPayments();
+        /**
+         * Retrieves all payments involving multiple users.
+         */
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "JOIN FETCH p.users u " +
+                        "LEFT JOIN FETCH p.paymentFile " +
+                        "WHERE SIZE(p.users) > 1 " +
+                        "ORDER BY p.createdAt DESC")
+        List<Payment> findAllMultiUserPayments();
 
-    // ===== CONSULTAS PARA ADMINISTRACIÓN =====
+        // ===== ADMIN QUERIES =====
 
-    /**
-     * Obtiene todos los pagos del mes actual para el panel de administración
-     */
-    @Query("SELECT DISTINCT p FROM Payment p " +
-            "JOIN FETCH p.users u " +
-            "LEFT JOIN FETCH p.paymentFile " +
-            "WHERE p.createdAt >= :startOfMonth AND p.createdAt < :endOfMonth " +
-            "ORDER BY p.createdAt DESC")
-    List<Payment> findAllPaymentsInMonth(@Param("startOfMonth") LocalDateTime startOfMonth,
-            @Param("endOfMonth") LocalDateTime endOfMonth);
+        /**
+         * Retrieves all payments for the current month for the admin dashboard.
+         */
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "JOIN FETCH p.users u " +
+                        "LEFT JOIN FETCH p.paymentFile " +
+                        "WHERE p.createdAt >= :startOfMonth AND p.createdAt < :endOfMonth " +
+                        "ORDER BY p.createdAt DESC")
+        List<Payment> findAllPaymentsInMonth(@Param("startOfMonth") LocalDateTime startOfMonth,
+                        @Param("endOfMonth") LocalDateTime endOfMonth);
 
-    /**
-     * Obtiene pagos que expiran hoy para la tarea de verificación automática
-     */
-    @Query("SELECT DISTINCT p FROM Payment p " +
-            "JOIN FETCH p.users u " +
-            "WHERE p.status = 'PAID' " +
-            "AND p.expiresAt >= :startOfDay " +
-            "AND p.expiresAt < :endOfDay")
-    List<Payment> findPaidPaymentsExpiringToday(@Param("startOfDay") LocalDateTime startOfDay,
-            @Param("endOfDay") LocalDateTime endOfDay);
+        /**
+         * Retrieves paid payments expiring today (for auto-verification task).
+         */
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "JOIN FETCH p.users u " +
+                        "WHERE p.status = 'PAID' " +
+                        "AND p.expiresAt >= :startOfDay " +
+                        "AND p.expiresAt < :endOfDay")
+        List<Payment> findPaidPaymentsExpiringToday(@Param("startOfDay") LocalDateTime startOfDay,
+                        @Param("endOfDay") LocalDateTime endOfDay);
 
-    // ===== CONSULTAS PARA INGRESOS =====
+        // ===== REVENUE QUERIES =====
 
-    /**
-     * Calcula el total de ingresos confirmados en un período
-     */
-    @Query("SELECT COALESCE(SUM(p.amount), 0.0) FROM Payment p " +
-            "WHERE p.status = 'PAID' " +
-            "AND p.verifiedAt >= :startDate AND p.verifiedAt < :endDate")
-    Double calculateConfirmedRevenueInPeriod(@Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
+        /**
+         * Calculates total confirmed revenue within a period.
+         */
+        @Query("SELECT COALESCE(SUM(p.amount), 0.0) FROM Payment p " +
+                        "WHERE p.status = 'PAID' " +
+                        "AND p.verifiedAt >= :startDate AND p.verifiedAt < :endDate")
+        Double calculateConfirmedRevenueInPeriod(@Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
 }

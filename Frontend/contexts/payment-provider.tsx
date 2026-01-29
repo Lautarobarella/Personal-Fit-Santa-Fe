@@ -6,45 +6,48 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createContext, useContext, useState, type ReactNode } from "react"
 
 /**
- * Context type - usa exactamente el mismo tipo que retorna el hook
+ * Payment Context Interface
+ * Inherits the exact state shape from the `usePayment` hook.
+ * This ensures strict type safety between the logic and the consumers.
  */
 type PaymentContextType = PaymentState
 
 /**
- * Creación del contexto
+ * Context Initialization
+ * Default is undefined to enforce usage within the Provider.
  */
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined)
 
-/**
- * Props del provider
- */
 interface PaymentProviderProps {
   children: ReactNode
 }
 
 /**
- * Payment Provider - Wrapper que incluye QueryClient y el context de pagos
+ * Payment Provider Component
  * 
- * Este provider es responsable de:
- * - Proveer QueryClient para React Query
- * - Usar el custom hook usePayment para obtener toda la lógica
- * - Proveer el estado a través del contexto
- * - Mantener la separación de responsabilidades
- * - Determinar automáticamente si el usuario es admin
+ * Architectural Role:
+ * 1. State Management: Wraps the application part requiring payment logic.
+ * 2. Dependency Injection: Injects `QueryClient` for efficient data fetching.
+ * 3. Logic Centralization: Instantiates `usePayment` once and distributes it via Context.
+ * 
+ * Features:
+ * - Optimized React Query configuration (staleTime: 5 mins, retry: 1)
+ * - Automatic Admin role detection from Auth Context.
  */
 export function PaymentProvider({ children }: PaymentProviderProps) {
+  // Initialize QueryClient lazily to ensure it persists across re-renders
+  // but is reset on full page reloads.
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        // Evitar refetch en window focus durante SSR
+        // Optimization: Prevent refetching when user switches tabs (common in dashboard usage)
         refetchOnWindowFocus: false,
-        // Retry solo una vez
+        // Error handling: Minimal retries to fail fast on network issues
         retry: 1,
-        // Tiempo de stale data más largo
-        staleTime: 5 * 60 * 1000, // 5 minutos
+        // Cache data for 5 minutes since payment history rarely changes instantaneously
+        staleTime: 5 * 60 * 1000,
       },
       mutations: {
-        // Retry solo una vez para mutaciones
         retry: 1,
       },
     },
@@ -58,16 +61,21 @@ export function PaymentProvider({ children }: PaymentProviderProps) {
 }
 
 /**
- * Provider interno que maneja el contexto de pagos
+ * Internal Context Provider (Separated for cleaner QueryClient scope)
+ * 
+ * Connects the `useAuth` user state with the `usePayment` logic.
  */
 function PaymentContextProvider({ children }: PaymentProviderProps) {
   const { user } = useAuth()
-  
-  // Determinar automáticamente si es admin y obtener userId
+
+  // Dynamic Role Resolution:
+  // Payments logic often behaves differently for Admins (View All) vs Clients (View Own).
+  // We compute this once here to simplify the hook logic.
   const isAdmin = user?.role === 'ADMIN'
   const userId = user?.id
-  
-  // Usa el custom hook que maneja toda la lógica
+
+  // Core Logic Hook:
+  // This is where the actual business logic for payments resides.
   const paymentState = usePayment(userId, isAdmin)
 
   return (
@@ -78,17 +86,19 @@ function PaymentContextProvider({ children }: PaymentProviderProps) {
 }
 
 /**
- * Hook personalizado para usar el contexto de pagos
+ * usePaymentContext Hook
  * 
- * @throws Error si se usa fuera del PaymentProvider
- * @returns PaymentState - Todo el estado y funciones de pagos
+ * The public API for consuming payment data.
+ * 
+ * @throws Error if used outside of <PaymentProvider />
+ * @returns The full payment state (payments list, loading status, revenue stats, etc.)
  */
 export function usePaymentContext(): PaymentContextType {
   const context = useContext(PaymentContext)
-  
+
   if (context === undefined) {
     throw new Error('usePaymentContext debe ser usado dentro de un PaymentProvider')
   }
-  
+
   return context
 }

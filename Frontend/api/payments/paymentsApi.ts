@@ -5,14 +5,24 @@ import { compressFile, formatFileSize, validatePaymentFile } from "@/lib/file-co
 import { MonthlyRevenue, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
 
 /**
- * API unificada para manejo de pagos
- * Combina funcionalidad de pagos y checkout de MercadoPago
+ * Unified Payment API Wrapper
+ * 
+ * Centralizes all payment-related HTTP requests, bridging the frontend with the 
+ * backend standard payments controller and MercadoPago integrations.
+ * 
+ * Features:
+ * - Error standardization (handleApiError)
+ * - Compression and validation middleware for receipt images
+ * - Type-safe response handling
  */
 
-// ===== OPERACIONES DE CONSULTA =====
+// ==========================================
+// QUERY OPERATIONS (READ)
+// ==========================================
 
 /**
- * Obtiene todos los pagos (para admin)
+ * Validates and retrieves the full administrative payment history.
+ * @returns {Promise<PaymentType[]>} List of all payments in the system.
  */
 export async function fetchAllPayments(): Promise<PaymentType[]> {
   try {
@@ -24,7 +34,11 @@ export async function fetchAllPayments(): Promise<PaymentType[]> {
 }
 
 /**
- * Obtiene pagos por mes y año específico (para admin)
+ * Retrieves payment history filtered by time period.
+ * Optimization: Uses backend filtering instead of client-side filtering for performance.
+ * 
+ * @param year Full four-digit year (e.g., 2024)
+ * @param month 1-indexed month (1 = January, 12 = December)
  */
 export async function fetchPaymentsByMonthAndYear(year: number, month: number): Promise<PaymentType[]> {
   try {
@@ -36,7 +50,10 @@ export async function fetchPaymentsByMonthAndYear(year: number, month: number): 
 }
 
 /**
- * Obtiene pagos de un usuario específico
+ * Retrieves the specific payment history for a single user context.
+ * Used in the "My Payments" section of the client dashboard.
+ * 
+ * @param userId Unique identifier of the authenticated user
  */
 export async function fetchUserPayments(userId: number): Promise<PaymentType[]> {
   try {
@@ -48,13 +65,18 @@ export async function fetchUserPayments(userId: number): Promise<PaymentType[]> 
 }
 
 /**
- * Obtiene detalles de un pago específico con URL de comprobante
+ * Fetches detailed metadata for a single transaction, including the 
+ * signed URL for accessing the receipt image.
+ * 
+ * @param paymentId The unique ID of the payment
+ * @returns {Promise<PaymentType & { receiptUrl: string | null }>} Augmented payment object
  */
 export async function fetchPaymentDetails(paymentId: number): Promise<PaymentType & { receiptUrl: string | null }> {
   try {
     const payment = await jwtPermissionsApi.get(`/api/payments/info/${paymentId}`);
     return {
       ...payment,
+      // Helper function transforms the raw ID into a resolvable static asset URL
       receiptUrl: buildReceiptUrl(payment.receiptId)
     };
   } catch (error) {
@@ -63,56 +85,63 @@ export async function fetchPaymentDetails(paymentId: number): Promise<PaymentTyp
   }
 }
 
-// ===== OPERACIONES DE CREACIÓN =====
+// ==========================================
+// CREATION OPERATIONS (CREATE)
+// ==========================================
 
 /**
- * Crea un nuevo pago (manual o automático)
- * @param paymentData - Datos del pago
- * @param isAutomaticPayment - Si es pago automático (MercadoPago) o manual
+ * Proxy function for Payment Creation.
+ * Handles both:
+ * 1. Manual Cash/Transfer payments (with optional receipt file upload)
+ * 2. Automated MercadoPago callbacks (no file, auto-approved)
+ * 
+ * Includes client-side compression logic to optimize upload bandwidth usage.
+ * 
+ * @param paymentData Form data including amount, notes, dates, etc.
+ * @param isAutomaticPayment Boolean flag affecting the initial status (PAID vs PENDING)
  */
 export async function createPayment(
   paymentData: Omit<NewPaymentInput, 'paymentStatus'>,
   isAutomaticPayment: boolean = false
 ) {
+  // Automatic payments (MP) default to PAID, manual uploads must be verified by Admin (PENDING)
   const paymentStatus = isAutomaticPayment ? PaymentStatus.PAID : PaymentStatus.PENDING;
   const formData = new FormData();
 
   const payment = {
-    // Para pagos múltiples, enviar clientDnis; para pagos únicos, clientDni
+    // Dynamic handling: supports batch updates (clientDnis) or single user (clientDni)
     ...(paymentData.clientDnis ? { clientDnis: paymentData.clientDnis } : { clientDni: paymentData.clientDni }),
-    // DNI del usuario que crea el pago
     createdByDni: paymentData.createdByDni,
     amount: paymentData.amount,
+    // Format dates to ISO String, stripping time component for standard comparison
     createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
     expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
     paymentStatus,
     methodType: paymentData.method,
-    notes: paymentData.notes, // Agregar las notas del pago
+    notes: paymentData.notes,
   };
 
+  // Append complex object as JSON blob part
   formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }));
 
-  // Procesar archivo si existe (solo para pagos manuales)
+  // File Processing Pipeline (Manual Payments Only)
   if (paymentData.file && !isAutomaticPayment) {
     try {
-      // Validar archivo antes de procesar
+      // Step 1: Structural Validation (size, mime-type)
       const validation = validatePaymentFile(paymentData.file);
       if (!validation.isValid) {
         throw new Error(validation.error);
       }
 
-
-
-      // Comprimir archivo automáticamente
+      // Step 2: Lossy Compression to reduce storage load
       const { compressedFile, originalSize, compressedSize, compressionRatio } = await compressFile(paymentData.file);
 
-
-
-      // Usar archivo comprimido para upload
+      // Step 3: Append optimized binary
       formData.append("file", compressedFile);
     } catch (compressionError) {
       console.error('Error al comprimir archivo:', compressionError);
-      // Si falla la compresión, intentar con archivo original
+      // Fallback Strategy: If compression fails (e.g. browser incompatibility), 
+      // upload the original file rather than blocking the user transaction.
       formData.append("file", paymentData.file);
     }
   }
@@ -120,6 +149,7 @@ export async function createPayment(
   try {
     return await jwtPermissionsApi.post('/api/payments/new', formData);
   } catch (error) {
+    // Discriminate between 400 Bad Request (Validation) and 500 Server Error
     if (isValidationError(error)) {
       handleValidationError(error);
     } else {
@@ -129,10 +159,17 @@ export async function createPayment(
   }
 }
 
-// ===== OPERACIONES DE ACTUALIZACIÓN =====
+// ==========================================
+// UPDATE OPERATIONS (UPDATE)
+// ==========================================
 
 /**
- * Actualiza el estado de un pago (aprobar/rechazar)
+ * State Transition Handler
+ * Allows Admins to Approve or Reject a submitted payment proof.
+ * 
+ * @param paymentId Target payment
+ * @param status valid next state ('paid' | 'rejected')
+ * @param rejectionReason Optional text required only when status is 'rejected'
  */
 export async function updatePaymentStatus(
   paymentId: number,
@@ -154,16 +191,15 @@ export async function updatePaymentStatus(
   }
 }
 
-// ===== MERCADOPAGO CHECKOUT =====
+// ==========================================
+// MERCADOPAGO INTEGRATION
+// ==========================================
 
 /**
- * Crea una preferencia de pago en MercadoPago
- * @param productId - ID del producto
- * @param productName - Nombre del producto
- * @param productPrice - Precio del producto
- * @param userEmail - Email del usuario
- * @param userDni - DNI del usuario
- * @returns Promise<any> Respuesta de MercadoPago
+ * Preference Generator
+ * 
+ * Initializes a transaction intent with MercadoPago's API.
+ * The returned ID is used to mount the Checkout Pro widget.
  */
 export async function createCheckoutPreference(
   productId: string,
@@ -186,20 +222,25 @@ export async function createCheckoutPreference(
   }
 }
 
-// ===== UTILIDADES =====
+// ==========================================
+// UTILITIES
+// ==========================================
 
 /**
- * Construye la URL del comprobante de pago
+ * Utility: Receipt URL Builder
+ * Encapsulates URL formatting logic to ensure consistency across the app.
  */
 export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
   return buildFileUrl(receiptId);
 }
 
-// ===== INGRESOS MENSUALES =====
+// ==========================================
+// ANALYTICS & REVENUE
+// ==========================================
 
 /**
- * Obtiene el historial de ingresos mensuales archivados (solo para admin)
- * El mes actual se calcula desde usePayment para mayor eficiencia
+ * Retrieves historical financial data for reporting.
+ * Access restricted to Admin role.
  */
 export async function fetchArchivedMonthlyRevenues(): Promise<MonthlyRevenue[]> {
   try {

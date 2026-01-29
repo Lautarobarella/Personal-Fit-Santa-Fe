@@ -18,6 +18,10 @@ import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
 import com.personalfit.services.FCMService;
 
+/**
+ * Controller for Firebase Cloud Messaging (FCM).
+ * Handles handling device tokens for push notifications.
+ */
 @RestController
 @RequestMapping("/api/fcm")
 public class FCMController {
@@ -28,6 +32,9 @@ public class FCMController {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Register a new FCM device token for the current user.
+     */
     @PostMapping("/register")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> registerToken(@RequestBody Map<String, String> request) {
@@ -37,11 +44,14 @@ public class FCMController {
         fcmService.registerToken(userId, token);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Token registrado exitosamente");
+        response.put("message", "Token registered successfully");
         response.put("success", true);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Unregister/Remove an FCM device token.
+     */
     @PostMapping("/unregister")
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> unregisterToken(@RequestBody Map<String, String> request) {
@@ -51,11 +61,14 @@ public class FCMController {
         fcmService.unregisterToken(userId, token);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Token eliminado exitosamente");
+        response.put("message", "Token removed successfully");
         response.put("success", true);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Helper to get current authenticated user ID.
+     */
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();

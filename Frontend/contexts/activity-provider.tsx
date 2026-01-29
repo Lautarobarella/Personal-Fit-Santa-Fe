@@ -4,32 +4,27 @@ import { useActivity, type ActivityState } from "@/hooks/activities/use-activity
 import { createContext, useContext, type ReactNode } from "react"
 
 /**
- * Context type - usa exactamente el mismo tipo que retorna el hook
+ * Activity Context Interface
+ * Maps directly to the `useActivity` hook return type.
  */
 type ActivityContextType = ActivityState
 
-/**
- * Creación del contexto
- */
+// Context initialization
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined)
 
-/**
- * Props del provider
- */
 interface ActivityProviderProps {
   children: ReactNode
 }
 
 /**
- * Activity Provider - Wrapper limpio que usa el custom hook
+ * Activity Provider
  * 
- * Este provider es responsable de:
- * - Usar el custom hook useActivityState para obtener toda la lógica
- * - Proveer el estado a través del contexto
- * - Mantener la separación de responsabilidades
+ * Acts as the centralized state container for all Activity-related logic.
+ * It abstracts the `useActivity` hook, ensuring that the state is singleton-scoped 
+ * within the provider tree, preventing unnecessary hook re-instantiations.
  */
 export function ActivityProvider({ children }: ActivityProviderProps) {
-  // Usa el custom hook que maneja toda la lógica
+  // Instantiates the core business logic hook
   const activityState = useActivity()
 
   return (
@@ -40,17 +35,20 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
 }
 
 /**
- * Hook personalizado para usar el contexto de actividades
+ * useActivityContext Hook
  * 
- * @throws Error si se usa fuera del ActivityProvider
- * @returns ActivityState - Todo el estado y funciones de actividades
+ * Accessor for the Activity Context.
+ * Ensures the component is correctly nested within the provider tree.
+ * 
+ * @throws Error if used outside of <ActivityProvider />
+ * @returns The shared ActivityState
  */
 export function useActivityContext(): ActivityContextType {
   const context = useContext(ActivityContext)
-  
+
   if (context === undefined) {
     throw new Error('useActivity debe ser usado dentro de un ActivityProvider')
   }
-  
+
   return context
 }

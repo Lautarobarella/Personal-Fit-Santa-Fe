@@ -16,6 +16,10 @@ import com.personalfit.repository.UserTokensRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Service for handling Firebase Cloud Messaging (FCM) operations.
+ * Manages token registration and sending push notifications.
+ */
 @Service
 @Slf4j
 public class FCMService {
@@ -23,6 +27,11 @@ public class FCMService {
     @Autowired
     private UserTokensRepository userTokensRepository;
 
+    /**
+     * Registers a new FCM token for a user.
+     * Adds the token to the user's existing list if it exists, otherwise creates a
+     * new record.
+     */
     public void registerToken(Long userId, String token) {
         Optional<UserTokens> userTokensOpt = userTokensRepository.findByUserId(userId);
         UserTokens userTokens;
@@ -38,6 +47,9 @@ public class FCMService {
         log.info("✅ FCM Token registered for user: {}", userId);
     }
 
+    /**
+     * Unregisters an FCM token for a user.
+     */
     public void unregisterToken(Long userId, String token) {
         Optional<UserTokens> userTokensOpt = userTokensRepository.findByUserId(userId);
         if (userTokensOpt.isPresent()) {
@@ -48,6 +60,13 @@ public class FCMService {
         }
     }
 
+    /**
+     * Sends a push notification to a specific user.
+     * 
+     * @param userId The ID of the recipient user.
+     * @param title  The title of the notification.
+     * @param body   The body content of the notification.
+     */
     public void sendNotification(Long userId, String title, String body) {
         // Check if Firebase is initialized
         if (FirebaseApp.getApps().isEmpty()) {
@@ -58,7 +77,7 @@ public class FCMService {
         Optional<UserTokens> userTokensOpt = userTokensRepository.findByUserId(userId);
         if (userTokensOpt.isPresent() && !userTokensOpt.get().getTokens().isEmpty()) {
             List<String> tokens = userTokensOpt.get().getTokens();
-            
+
             log.info("📤 Attempting to send notification to user: {} with {} token(s)", userId, tokens.size());
 
             // Send to multiple tokens (Multicast)
@@ -74,7 +93,7 @@ public class FCMService {
                 BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
                 log.info("✅ FCM Notification sent to user: {}. Success: {}, Failure: {}", userId,
                         response.getSuccessCount(), response.getFailureCount());
-                
+
                 if (response.getFailureCount() > 0) {
                     log.warn("⚠️ Some notifications failed. Details: {}", response.getResponses());
                 }
@@ -86,6 +105,10 @@ public class FCMService {
         }
     }
 
+    /**
+     * Sends a push notification to a list of users.
+     * Currently iterates through the list to send individual notifications.
+     */
     public void sendBulkNotification(List<Long> userIds, String title, String body) {
         // This is a simplified approach. For true bulk, we might want to collect all
         // tokens first.
@@ -98,6 +121,10 @@ public class FCMService {
         // Better approach: Find all tokens for these users.
         // However, JPA doesn't easily support "findAllTokensByUserIds".
         // Let's iterate for now as it's safer and simpler.
+        // Implementation note: Ideally, this should collect all tokens and send in a
+        // single batch
+        // if supported and efficient. For now, iteration is used to reuse existing
+        // logic.
         for (Long userId : userIds) {
             sendNotification(userId, title, body);
         }

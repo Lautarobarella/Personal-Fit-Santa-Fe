@@ -18,6 +18,13 @@ import com.personalfit.models.User;
 import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.AttendanceRepository;
 
+/**
+ * Service Layer: Attendance & Enrollment
+ * 
+ * Manages user participation in activities.
+ * Handles enrollment rules (quotas, capacities) and attendance tracking (Start
+ * -> Present/Absent).
+ */
 @Service
 public class AttendanceService {
 
@@ -33,29 +40,37 @@ public class AttendanceService {
     @Autowired
     private SettingsService settingsService;
 
+    /**
+     * Enrolls a user in a specific activity.
+     * Enforces rules:
+     * 1. No double booking.
+     * 2. Activity capacity limits.
+     * 3. Max activities per day limit (from Settings).
+     */
     public AttendanceDTO enrollUser(Long userId, Long activityId) {
         User user = userService.getUserById(userId);
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/enrollUser"));
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + activityId,
+                        "Api/Attendance/enrollUser"));
 
-        // Check if user is already enrolled
+        // Rule 1: Prevent double enrollment
         if (isUserEnrolled(userId, activityId)) {
-            throw new BusinessRuleException("El usuario ya está inscrito en esta actividad", "Api/Attendance/enrollUser");
+            throw new BusinessRuleException("User is already enrolled in this activity", "Api/Attendance/enrollUser");
         }
 
-        // Check if activity has available slots
+        // Rule 2: Check Capacity
         if (activity.getAttendances().size() >= activity.getSlots()) {
-            throw new BusinessRuleException("La actividad está completa", "Api/Attendance/enrollUser");
+            throw new BusinessRuleException("Activity is full", "Api/Attendance/enrollUser");
         }
 
-        // Check maximum activities per day limit
+        // Rule 3: Check Daily Limit
         Integer maxActivitiesPerDay = settingsService.getMaxActivitiesPerDay();
         long activitiesOnSameDay = attendanceRepository.countByUserAndActivityDate(user, activity.getDate());
-        
+
         if (activitiesOnSameDay >= maxActivitiesPerDay) {
             throw new BusinessRuleException(
-                String.format("No se puede inscribir a más de %d actividades por día", maxActivitiesPerDay), 
-                "Api/Attendance/enrollUser");
+                    String.format("Cannot enroll in more than %d activities per day", maxActivitiesPerDay),
+                    "Api/Attendance/enrollUser");
         }
 
         Attendance attendance = new Attendance();
@@ -75,42 +90,59 @@ public class AttendanceService {
                 .build();
     }
 
+    /**
+     * Unenrolls a user from an activity.
+     * Assuming they haven't attended yet (logic for that isn't strictly enforced
+     * here but implied by flow).
+     */
     public void unenrollUser(Long userId, Long activityId) {
         User user = userService.getUserById(userId);
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/unenrollUser"));
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + activityId,
+                        "Api/Attendance/unenrollUser"));
 
         Optional<Attendance> attendance = attendanceRepository.findByUserAndActivity(user, activity);
         if (attendance.isPresent()) {
             attendanceRepository.delete(attendance.get());
         } else {
-            throw new BusinessRuleException("El usuario no está inscrito en esta actividad", "Api/Attendance/unenrollUser");
+            throw new BusinessRuleException("User is not enrolled in this activity", "Api/Attendance/unenrollUser");
         }
     }
 
     public boolean isUserEnrolled(Long userId, Long activityId) {
         User user = userService.getUserById(userId);
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/isUserEnrolled"));
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + activityId,
+                        "Api/Attendance/isUserEnrolled"));
 
         return attendanceRepository.existsByUserAndActivity(user, activity);
     }
 
+    /**
+     * Gets list of attendances for a specific activity.
+     * Used for seeing who is enrolled.
+     */
     public List<AttendanceDTO> getActivityAttendances(Long activityId) {
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/getActivityAttendances"));
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + activityId,
+                        "Api/Attendance/getActivityAttendances"));
 
         return attendanceRepository.findByActivity(activity).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Gets enriched attendance list (with User Names).
+     * Used for Trainer view (Taking system roll call).
+     */
     public List<AttendanceDTO> getActivityAttendancesWithUserInfo(Long activityId) {
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/getActivityAttendancesWithUserInfo"));
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + activityId,
+                        "Api/Attendance/getActivityAttendancesWithUserInfo"));
 
         return attendanceRepository.findByActivity(activity).stream()
-                .map(this::convertToAttendanceDTO)
+                .map(this::convertToAttendanceDTO) // Uses converter that includes User Info
                 .collect(Collectors.toList());
     }
 
@@ -122,28 +154,35 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Updates status (e.g., PENDING -> PRESENT or ABSENT).
+     */
     public void updateAttendanceStatus(Long attendanceId, AttendanceStatus status) {
         Attendance attendance = attendanceRepository.findById(attendanceId)
-                .orElseThrow(() -> new EntityNotFoundException("Asistencia con ID: " + attendanceId + " no encontrada", "Api/Attendance/updateAttendanceStatus"));
+                .orElseThrow(() -> new EntityNotFoundException("Attendance not found with ID: " + attendanceId,
+                        "Api/Attendance/updateAttendanceStatus"));
 
         attendance.setAttendance(status);
         attendanceRepository.save(attendance);
     }
 
     /**
-     * Marca como ausentes a todos los participantes que estén en estado PENDING de una actividad
-     * @param activityId ID de la actividad
+     * Auto-Absent Logic.
+     * Called by ActivityService when an activity concludes.
+     * Any user still 'PENDING' is marked 'ABSENT'.
      */
     public void markPendingAttendancesAsAbsent(Long activityId) {
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new EntityNotFoundException("Actividad con ID: " + activityId + " no encontrada", "Api/Attendance/markPendingAttendancesAsAbsent"));
+                .orElseThrow(() -> new EntityNotFoundException("Activity not found with ID: " + activityId,
+                        "Api/Attendance/markPendingAttendancesAsAbsent"));
 
-        List<Attendance> pendingAttendances = attendanceRepository.findByActivityAndAttendance(activity, AttendanceStatus.PENDING);
-        
+        List<Attendance> pendingAttendances = attendanceRepository.findByActivityAndAttendance(activity,
+                AttendanceStatus.PENDING);
+
         for (Attendance attendance : pendingAttendances) {
             attendance.setAttendance(AttendanceStatus.ABSENT);
         }
-        
+
         if (!pendingAttendances.isEmpty()) {
             attendanceRepository.saveAll(pendingAttendances);
         }
@@ -165,17 +204,17 @@ public class AttendanceService {
                 .id(attendance.getId())
                 .activityId(attendance.getActivity().getId())
                 .userId(attendance.getUser().getId())
-                .firstName(attendance.getUser().getFirstName())
-                .lastName(attendance.getUser().getLastName())
+                .firstName(attendance.getUser().getFirstName()) // Enriched field
+                .lastName(attendance.getUser().getLastName()) // Enriched field
                 .status(attendance.getAttendance())
                 .createdAt(attendance.getCreatedAt())
                 .updatedAt(attendance.getUpdatedAt())
                 .build();
     }
-    
+
     public List<Attendance> getUserAttendancesForDate(Long userId, LocalDate date) {
         User user = userService.getUserById(userId);
-        
+
         return attendanceRepository.findByUser(user).stream()
                 .filter(attendance -> attendance.getActivity().getDate().toLocalDate().equals(date))
                 .collect(Collectors.toList());

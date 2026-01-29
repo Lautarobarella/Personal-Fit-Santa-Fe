@@ -14,6 +14,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Service generic for JWT (JSON Web Token) handling.
+ * Responsible for generating, parsing, and validating access and refresh
+ * tokens.
+ */
 @Service
 @Slf4j
 public class JwtService {
@@ -27,23 +32,38 @@ public class JwtService {
     @Value("${jwt.refresh-token.expiration}")
     private long refreshExpiration;
 
+    /**
+     * Extracts the username (subject) from a JWT token.
+     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
+    /**
+     * Extracts a specific claim from a JWT token using a resolver function.
+     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
+    /**
+     * Generates a new Access Token for a user.
+     */
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
 
+    /**
+     * Generates a new Access Token with extra custom claims.
+     */
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
 
+    /**
+     * Generates a new Refresh Token for a user.
+     */
     public String generateRefreshToken(UserDetails userDetails) {
         return buildToken(new HashMap<>(), userDetails, refreshExpiration);
     }
@@ -62,6 +82,10 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * Validates a JWT token against a user's details.
+     * Checks if the username matches and if the token is not expired.
+     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);

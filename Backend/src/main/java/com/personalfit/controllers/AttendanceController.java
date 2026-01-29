@@ -25,197 +25,238 @@ import com.personalfit.models.User;
 import com.personalfit.services.AttendanceService;
 import com.personalfit.services.UserService;
 
+/**
+ * Controller for Attendance Management.
+ * Handles enrollment in classes and marking attendance (Manual or via NFC).
+ */
 @RestController
 @RequestMapping("/api/attendance")
 public class AttendanceController {
 
     @Autowired
     private AttendanceService attendanceService;
-    
+
     @Autowired
     private UserService userService;
-    
+
+    /**
+     * Enroll a user in an activity.
+     */
     @PostMapping("/enroll/{userId}/{activityId}")
     public ResponseEntity<AttendanceDTO> enrollUser(@PathVariable Long userId, @PathVariable Long activityId) {
         AttendanceDTO attendance = attendanceService.enrollUser(userId, activityId);
         return ResponseEntity.ok(attendance);
     }
-    
+
+    /**
+     * Unenroll a user from an activity.
+     */
     @DeleteMapping("/unenroll/{userId}/{activityId}")
     public ResponseEntity<Map<String, Object>> unenrollUser(@PathVariable Long userId, @PathVariable Long activityId) {
         attendanceService.unenrollUser(userId, activityId);
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Usuario desinscrito exitosamente");
+        response.put("message", "User unenrolled successfully");
         response.put("success", true);
         response.put("userId", userId);
         response.put("activityId", activityId);
         return ResponseEntity.ok(response);
     }
-    
+
+    /**
+     * Get list of attendances for a specific activity (User IDs only).
+     */
     @GetMapping("/activity/{activityId}")
     public ResponseEntity<List<AttendanceDTO>> getActivityAttendances(@PathVariable Long activityId) {
         List<AttendanceDTO> attendances = attendanceService.getActivityAttendances(activityId);
         return ResponseEntity.ok(attendances);
     }
-    
+
+    /**
+     * Get enriched list of attendances for a specific activity (Includes User
+     * Names).
+     * Useful for trainers taking roll call.
+     */
     @GetMapping("/activity/{activityId}/with-user-info")
     public ResponseEntity<List<AttendanceDTO>> getActivityAttendancesWithUserInfo(@PathVariable Long activityId) {
         List<AttendanceDTO> attendances = attendanceService.getActivityAttendancesWithUserInfo(activityId);
         return ResponseEntity.ok(attendances);
     }
-    
+
+    /**
+     * Get a user's attendance history.
+     */
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<AttendanceDTO>> getUserAttendances(@PathVariable Long userId) {
         List<AttendanceDTO> attendances = attendanceService.getUserAttendances(userId);
         return ResponseEntity.ok(attendances);
     }
-    
+
+    /**
+     * Manually update the status of an attendance record (e.g. Trainer marking
+     * someone Present).
+     */
     @PutMapping("/{attendanceId}/status")
     public ResponseEntity<Map<String, Object>> updateAttendanceStatus(
-            @PathVariable Long attendanceId, 
+            @PathVariable Long attendanceId,
             @RequestBody Map<String, String> requestBody) {
         try {
             String statusString = requestBody.get("status");
             AttendanceStatus status = AttendanceStatus.valueOf(statusString.toUpperCase());
-            
+
             attendanceService.updateAttendanceStatus(attendanceId, status);
-            
+
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Estado de asistencia actualizado exitosamente");
+            response.put("message", "Attendance status updated successfully");
             response.put("success", true);
             response.put("attendanceId", attendanceId);
             response.put("status", status);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Estado de asistencia inválido");
+            response.put("message", "Invalid attendance status");
             response.put("success", false);
             return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Error al actualizar la asistencia: " + e.getMessage());
+            response.put("message", "Error updating attendance: " + e.getMessage());
             response.put("success", false);
             return ResponseEntity.internalServerError().body(response);
         }
     }
-    
+
+    /**
+     * Check if a user is enrolled in an activity.
+     */
     @GetMapping("/{activityId}/enrolled/{userId}")
     public ResponseEntity<Boolean> isUserEnrolled(@PathVariable Long activityId, @PathVariable Long userId) {
         boolean isEnrolled = attendanceService.isUserEnrolled(userId, activityId);
         return ResponseEntity.ok(isEnrolled);
     }
-    
+
+    /**
+     * NFC Attendance Endpoint.
+     * Logic:
+     * 1. Receives DNI from NFC scan.
+     * 2. Finds User.
+     * 3. Finds today's classes for that user.
+     * 4. Determines the relevant class (current or upcoming).
+     * 5. Applies Rules:
+     * - Before Start or < 15 mins late -> PRESENT
+     * - > 15 mins late -> LATE
+     * - No relevant class found (ended) -> ABSENT (for the last class of day)
+     */
     @PostMapping("/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30")
     public ResponseEntity<Map<String, Object>> markAttendanceByNFC(@RequestBody Map<String, Integer> requestBody) {
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
             Integer dni = requestBody.get("dni");
             if (dni == null) {
                 response.put("success", false);
-                response.put("message", "DNI es requerido");
+                response.put("message", "DNI is required");
                 return ResponseEntity.badRequest().body(response);
             }
-            
-            // CASO ESPECIAL PARA PRUEBAS - TODO: BORRAR DESPUÉS
+
+            // TEST MODE BACKDOOR - TODO: REMOVE IN PRODUCTION
             if (dni.equals(123456)) {
                 response.put("success", true);
-                response.put("message", "Marcado como presente (TEST MODE)");
+                response.put("message", "Marked as PRESENT (TEST MODE)");
                 response.put("status", "PRESENT");
-                response.put("userName", "Usuario Prueba");
-                response.put("activityName", "Actividad Test");
+                response.put("userName", "Test User");
+                response.put("activityName", "Test Activity");
                 response.put("activityTime", LocalDateTime.now().toString());
                 return ResponseEntity.ok(response);
             }
-            
-            // Buscar usuario por DNI
+
+            // 1. Find User by DNI
             User user;
             try {
                 user = userService.getUserByDni(dni);
             } catch (Exception e) {
                 response.put("success", false);
-                response.put("message", "Usuario con DNI " + dni + " no encontrado");
+                response.put("message", "User with DNI " + dni + " not found");
                 return ResponseEntity.notFound().build();
             }
-            
+
             LocalDate today = LocalDate.now();
             LocalDateTime now = LocalDateTime.now();
-            
-            // Obtener las asistencias del usuario para el día actual
+
+            // 2. Get User's classes for today
             List<Attendance> todayAttendances = attendanceService.getUserAttendancesForDate(user.getId(), today);
-            
+
             if (todayAttendances.isEmpty()) {
                 response.put("success", false);
-                response.put("message", "No hay clases programadas para hoy para el usuario " + user.getFullName());
+                response.put("message", "No classes scheduled for today for " + user.getFullName());
                 return ResponseEntity.notFound().build();
             }
-            
-            // Buscar la actividad relevante (la más próxima o en curso)
+
+            // 3. Find relevant activity (current or upcoming)
             Attendance relevantAttendance = null;
             Activity relevantActivity = null;
-            
+
             for (Attendance attendance : todayAttendances) {
                 Activity activity = attendance.getActivity();
                 LocalDateTime activityStart = activity.getDate();
                 LocalDateTime activityEnd = activityStart.plusMinutes(activity.getDuration());
-                
-                // Si la actividad está en curso o por empezar
+
+                // If activity is currently running or hasn't started yet
                 if (now.isBefore(activityEnd)) {
                     relevantAttendance = attendance;
                     relevantActivity = activity;
                     break;
                 }
             }
-            
-            // Si no encontramos actividad relevante, todas ya terminaron
+
+            // If no relevant activity found, it means all classes for today have ended.
+            // Mark the LAST class as ABSENT if they are scanning now? (Logic seems to imply
+            // they missed it).
             if (relevantAttendance == null) {
-                // Marcar como ausente la última actividad del día
                 Attendance lastAttendance = todayAttendances.get(todayAttendances.size() - 1);
                 attendanceService.updateAttendanceStatus(lastAttendance.getId(), AttendanceStatus.ABSENT);
-                
+
                 response.put("success", true);
-                response.put("message", "Clase ya terminada. Marcado como ausente");
+                response.put("message", "Class already ended. Marked as ABSENT");
                 response.put("status", "ABSENT");
                 response.put("userName", user.getFullName());
                 response.put("activityName", lastAttendance.getActivity().getName());
                 return ResponseEntity.ok(response);
             }
-            
-            // Determinar el estado según las reglas
+
+            // 4. Determine Status based on Time
             LocalDateTime activityStart = relevantActivity.getDate();
             LocalDateTime lateThreshold = activityStart.plusMinutes(15);
             AttendanceStatus newStatus;
             String statusMessage;
-            
+
             if (now.isBefore(activityStart)) {
-                // Clase aún no empezó - presente
+                // Class hasn't started yet -> Present
                 newStatus = AttendanceStatus.PRESENT;
-                statusMessage = "Marcado como presente (clase por empezar)";
+                statusMessage = "Marked as PRESENT (Class starting soon)";
             } else if (now.isBefore(lateThreshold)) {
-                // Clase empezó hace menos de 15 minutos - presente
+                // < 15 mins late -> Present
                 newStatus = AttendanceStatus.PRESENT;
-                statusMessage = "Marcado como presente";
+                statusMessage = "Marked as PRESENT";
             } else {
-                // Clase empezó hace más de 15 minutos - tarde
+                // > 15 mins late -> Late
                 newStatus = AttendanceStatus.LATE;
-                statusMessage = "Marcado como tarde (más de 15 minutos de retraso)";
+                statusMessage = "Marked as LATE (> 15 mins delay)";
             }
-            
-            // Actualizar el estado de asistencia
+
+            // 5. Update Status
             attendanceService.updateAttendanceStatus(relevantAttendance.getId(), newStatus);
-            
+
             response.put("success", true);
             response.put("message", statusMessage);
             response.put("status", newStatus.toString());
             response.put("userName", user.getFullName());
             response.put("activityName", relevantActivity.getName());
             response.put("activityTime", relevantActivity.getDate().toString());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "Error al procesar el marcado por NFC: " + e.getMessage());
+            response.put("message", "Error processing NFC attendance: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
     }

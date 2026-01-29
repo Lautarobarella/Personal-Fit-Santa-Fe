@@ -16,10 +16,18 @@ import com.personalfit.exceptions.FileException;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Global Exception Handler.
+ * Intercepts exceptions thrown by controllers and returns structured JSON
+ * responses.
+ */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionController {
 
+    /**
+     * Handle Authentication Failures (401).
+     */
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ErrorDTO> handleAuthenticationException(AuthException ex) {
         log.error("Authentication error: {}", ex.getMessage());
@@ -33,6 +41,9 @@ public class GlobalExceptionController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    /**
+     * Handle File Processing Errors (400).
+     */
     @ExceptionHandler(FileException.class)
     public ResponseEntity<ErrorDTO> handleFileException(FileException ex) {
         log.error("File error: {}", ex.getMessage());
@@ -46,6 +57,9 @@ public class GlobalExceptionController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    /**
+     * Handle Not Found Errors (404).
+     */
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorDTO> handleEntityNotFoundException(EntityNotFoundException ex) {
         log.error("Entity not found: {}", ex.getMessage());
@@ -59,6 +73,10 @@ public class GlobalExceptionController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    /**
+     * Handle Conflict Errors (409).
+     * e.g., duplicate entries.
+     */
     @ExceptionHandler(EntityAlreadyExistsException.class)
     public ResponseEntity<ErrorDTO> handleEntityAlreadyExistsException(EntityAlreadyExistsException ex) {
         log.error("Entity already exists: {}", ex.getMessage());
@@ -72,6 +90,9 @@ public class GlobalExceptionController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    /**
+     * Handle Business Rule Violations (400).
+     */
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorDTO> handleBusinessRuleException(BusinessRuleException ex) {
         log.error("Business rule violation: {}", ex.getMessage());
@@ -85,6 +106,9 @@ public class GlobalExceptionController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    /**
+     * Handle Unexpected Exceptions (500).
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDTO> handleGenericException(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
@@ -92,7 +116,7 @@ public class GlobalExceptionController {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
-                .message("Error interno del servidor")
+                .message("Internal server error")
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }

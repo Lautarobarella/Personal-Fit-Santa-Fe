@@ -22,6 +22,13 @@ import com.personalfit.repository.NotificationRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Service Layer: Notification Center
+ * 
+ * Central hub for all user alerts and communications.
+ * Orchestrates storing in-app notifications and triggering external Push
+ * Notifications via FCM.
+ */
 @Slf4j
 @Service
 public class NotificationService {
@@ -30,14 +37,15 @@ public class NotificationService {
     private NotificationRepository notificationRepository;
 
     @Autowired
-    @Lazy
+    @Lazy // Circular dependency resolution
     private UserService userService;
 
     @Autowired
     private FCMService fcmService;
 
     /**
-     * Crea una notificación para un usuario específico
+     * Single User Notification.
+     * Creates a database record and triggers an immediate FCM push.
      */
     public void createNotification(NotificationFormTypeDTO notification) {
         User user = userService.getUserById(Long.parseLong(notification.getUserId()));
@@ -52,28 +60,32 @@ public class NotificationService {
 
         try {
             notificationRepository.save(newNotification);
-            log.info("✅ Notification created for user: {} | Title: {}", user.getId(), notification.getTitle());
+            log.info("Notification created for user: {} | Title: {}", user.getId(), notification.getTitle());
 
-            // Send Push Notification
+            // Trigger External Push
             fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
 
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al guardar la notificación: " + e.getMessage(),
+            throw new BusinessRuleException("Failed to create notification: " + e.getMessage(),
                     "Api/Notification/createNotification");
         }
     }
 
     /**
-     * Crea notificaciones masivas para todos los usuarios (excepto admins)
-     * Usado por el admin para enviar notificaciones generales desde /settings
+     * Bulk Announcement.
+     * Broadcasts a message to ALL users (excluding Admins).
+     * Used for general facility announcements (e.g., "Gym closed for holiday").
+     * 
+     * @param title   Notification Title
+     * @param message Notification Body
+     * @return Count of users targeted.
      */
     public int createBulkNotification(String title, String message) {
         try {
-            // Obtener todos los usuarios que NO son ADMIN
             List<User> allUsers = userService.getAllNonAdminUsers();
 
             if (allUsers.isEmpty()) {
-                log.warn("⚠️ No hay usuarios no-admin para enviar notificaciones");
+                log.warn("No non-admin users found for bulk notification");
                 return 0;
             }
 
@@ -91,36 +103,43 @@ public class NotificationService {
 
                 notificationRepository.save(notification);
 
-                // Send Push Notification
+                // Trigger External Push
                 fcmService.sendNotification(user.getId(), title, message);
 
                 count++;
             }
 
-            log.info("✅ Bulk notifications created: {} | Title: '{}' | Recipients: {}", count, title, count);
+            log.info("Bulk dispatch complete. Title: '{}' | Recipients: {}", title, count);
             return count;
 
         } catch (Exception e) {
-            log.error("❌ Error al crear notificaciones masivas: {}", e.getMessage());
-            throw new BusinessRuleException("Error al crear notificaciones masivas: " + e.getMessage(),
+            log.error("Bulk notification failed: {}", e.getMessage());
+            throw new BusinessRuleException("Bulk notification failure: " + e.getMessage(),
                     "Api/Notification/createBulkNotification");
         }
     }
 
+    /**
+     * Deletes a notification by its ID.
+     */
     public void deleteNotification(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Notificación con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Notification ID: " + id + " not found",
                         "Api/Notification/deleteNotification"));
 
         try {
             notificationRepository.delete(notification);
-            log.info("✅ Notification deleted: {}", id);
+            log.info("Notification deleted: {}", id);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al eliminar la notificación: " + e.getMessage(),
+            throw new BusinessRuleException("Delete failed: " + e.getMessage(),
                     "Api/Notification/deleteNotification");
         }
     }
 
+    /**
+     * Inbox Retrieval.
+     * Fetches user notifications ordered by newest first.
+     */
     public List<NotificationTypeDTO> getAllNotificationsTypeDto(Long userId) {
         User user = userService.getUserById(userId);
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(user);
@@ -129,10 +148,13 @@ public class NotificationService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves detailed information for a specific notification.
+     */
     public NotificationDetailInfoDTO getNotificationDetailInfo(Long id) {
         Optional<Notification> notification = notificationRepository.findById(id);
         if (notification.isEmpty()) {
-            throw new EntityNotFoundException("Notificación con ID: " + id + " no encontrada",
+            throw new EntityNotFoundException("Notification ID: " + id + " not found",
                     "Api/Notification/getNotificationDetailInfo");
         }
 
@@ -148,84 +170,101 @@ public class NotificationService {
                 .build();
     }
 
+    /**
+     * Marks a notification as read.
+     */
     public void markAsRead(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Notificación con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Notification ID: " + id + " not found",
                         "Api/Notification/markAsRead"));
 
         notification.setStatus(NotificationStatus.READ);
 
         try {
             notificationRepository.save(notification);
-            log.info("✅ Notification marked as read: {}", id);
+            log.info("Marked as Read: {}", id);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al marcar la notificación como leída: " + e.getMessage(),
+            throw new BusinessRuleException("Status update failed: " + e.getMessage(),
                     "Api/Notification/markAsRead");
         }
     }
 
+    /**
+     * Marks a notification as unread.
+     */
     public void markAsUnread(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Notificación con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Notification ID: " + id + " not found",
                         "Api/Notification/markAsUnread"));
 
         notification.setStatus(NotificationStatus.UNREAD);
 
         try {
             notificationRepository.save(notification);
-            log.info("✅ Notification marked as unread: {}", id);
+            log.info("Marked as Unread: {}", id);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al marcar la notificación como no leída: " + e.getMessage(),
+            throw new BusinessRuleException("Status update failed: " + e.getMessage(),
                     "Api/Notification/markAsUnread");
         }
     }
 
+    /**
+     * Archives a notification, hiding it from the main inbox.
+     */
     public void archiveNotification(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Notificación con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Notification ID: " + id + " not found",
                         "Api/Notification/archiveNotification"));
 
         notification.setStatus(NotificationStatus.ARCHIVED);
 
         try {
             notificationRepository.save(notification);
-            log.info("✅ Notification archived: {}", id);
+            log.info("Archived: {}", id);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al archivar la notificación: " + e.getMessage(),
+            throw new BusinessRuleException("Archive failed: " + e.getMessage(),
                     "Api/Notification/archiveNotification");
         }
     }
 
+    /**
+     * Unarchives a notification, moving it back to the inbox.
+     */
     public void unarchiveNotification(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Notificación con ID: " + id + " no encontrada",
+                .orElseThrow(() -> new EntityNotFoundException("Notification ID: " + id + " not found",
                         "Api/Notification/unarchiveNotification"));
 
         notification.setStatus(NotificationStatus.READ);
 
         try {
             notificationRepository.save(notification);
-            log.info("✅ Notification unarchived: {}", id);
+            log.info("Unarchived: {}", id);
         } catch (Exception e) {
-            throw new BusinessRuleException("Error al desarchivar la notificación: " + e.getMessage(),
+            throw new BusinessRuleException("Unarchive failed: " + e.getMessage(),
                     "Api/Notification/unarchiveNotification");
         }
     }
 
     // ===============================
-    // MÉTODOS PARA NOTIFICACIONES AUTOMÁTICAS DEL SISTEMA
+    // AUTOMATED SYSTEM NOTIFICATIONS
     // ===============================
 
     /**
-     * Crea notificaciones de pago vencido para usuarios
+     * Alert: Payment Expired.
+     * Triggered by PaymentService's daily cron job.
+     * Notifies:
+     * 1. Affected Users (Direct message).
+     * 2. Admins (Summary report).
      */
     public void createPaymentExpiredNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
 
+        // 1. Notify individual users
         for (User user : users) {
             try {
-                String title = "Pago Vencido";
-                String message = "Tu membresía ha vencido. Por favor, realiza el pago para continuar usando los servicios.";
+                String title = "Membership Expired";
+                String message = "Your membership has expired. Please renew to continue using our services.";
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -236,22 +275,20 @@ public class NotificationService {
                         .build();
 
                 notificationRepository.save(notification);
-
-                // Send Push Notification
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("✅ Payment expired notification created for user: {}", user.getId());
+                log.info("Expiration alert sent to user: {}", user.getId());
             } catch (Exception e) {
-                log.error("Error creating payment expired notification for user {}: {}", user.getId(), e.getMessage());
+                log.error("Failed to alert user {}: {}", user.getId(), e.getMessage());
             }
         }
 
-        // Notificar a admins si hay usuarios con pagos vencidos
+        // 2. Notify Admins (Summary)
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
-                    String title = "Pagos Vencidos";
-                    String message = users.size() + " usuario(s) tienen pagos vencidos hoy.";
+                    String title = "Expired Memberships";
+                    String message = users.size() + " user(s) have expired memberships today.";
 
                     Notification notification = Notification.builder()
                             .title(title)
@@ -262,29 +299,28 @@ public class NotificationService {
                             .build();
 
                     notificationRepository.save(notification);
-
-                    // Send Push Notification
                     fcmService.sendNotification(admin.getId(), title, message);
 
-                    log.info("✅ Payment expired notification created for admin: {}", admin.getId());
+                    log.info("Expiration summary sent to admin: {}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Error creating payment expired notification for admin {}: {}", admin.getId(),
-                            e.getMessage());
+                    log.error("Failed to alert admin {}: {}", admin.getId(), e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * Crea notificaciones de cumpleaños
+     * Alert: Birthday.
+     * Triggered daily for users born on "today".
      */
     public void createBirthdayNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
 
+        // 1. Wish the users
         for (User user : users) {
             try {
-                String title = "¡Feliz Cumpleaños!";
-                String message = "¡Feliz cumpleaños " + user.getFirstName() + "! Te deseamos un excelente día. 🎉";
+                String title = "Happy Birthday!";
+                String message = "Happy Birthday " + user.getFirstName() + "! Wishing you a fantastic day! 🎉";
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -295,17 +331,15 @@ public class NotificationService {
                         .build();
 
                 notificationRepository.save(notification);
-
-                // Send Push Notification
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("✅ Birthday notification created for user: {}", user.getId());
+                log.info("Birthday wish sent to user: {}", user.getId());
             } catch (Exception e) {
-                log.error("Error creating birthday notification for user {}: {}", user.getId(), e.getMessage());
+                log.error("Failed to wish user {}: {}", user.getId(), e.getMessage());
             }
         }
 
-        // Notificar a admins sobre cumpleaños
+        // 2. Alert Admins (so they can greet users personally)
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
@@ -313,8 +347,8 @@ public class NotificationService {
                             .map(User::getFullName)
                             .collect(Collectors.joining(", "));
 
-                    String title = "Cumpleaños Hoy";
-                    String message = "Hoy cumplen años: " + userNames;
+                    String title = "Birthdays Today";
+                    String message = "Celebrating today: " + userNames;
 
                     Notification notification = Notification.builder()
                             .title(title)
@@ -325,28 +359,28 @@ public class NotificationService {
                             .build();
 
                     notificationRepository.save(notification);
-
-                    // Send Push Notification
                     fcmService.sendNotification(admin.getId(), title, message);
 
-                    log.info("✅ Birthday notification created for admin: {}", admin.getId());
+                    log.info("Birthday report sent to admin: {}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Error creating birthday notification for admin {}: {}", admin.getId(), e.getMessage());
+                    log.error("Failed to report birthdays to admin {}: {}", admin.getId(), e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * Crea notificaciones de advertencia de asistencia
+     * Alert: Absence Warning.
+     * Triggered when a user hasn't attended for X consecutive days (e.g. 7).
+     * Goal: Retention / Re-engagement.
      */
     public void createAttendanceWarningNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
 
         for (User user : users) {
             try {
-                String title = "Advertencia de Inasistencia";
-                String message = "Hace más de 7 días que no asistes a clases. ¡Te esperamos!";
+                String title = "We Miss You!";
+                String message = "It's been over 7 days since your last visit. Come back and crush your goals!";
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -357,23 +391,20 @@ public class NotificationService {
                         .build();
 
                 notificationRepository.save(notification);
-
-                // Send Push Notification
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("✅ Attendance warning notification created for user: {}", user.getId());
+                log.info("Absence warning sent to user: {}", user.getId());
             } catch (Exception e) {
-                log.error("Error creating attendance warning notification for user {}: {}", user.getId(),
-                        e.getMessage());
+                log.error("Failed to warn user {}: {}", user.getId(), e.getMessage());
             }
         }
 
-        // Notificar a admins sobre usuarios con inasistencias
+        // Notify Admins about at-risk users
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
-                    String title = "Usuarios con Inasistencias";
-                    String message = users.size() + " usuario(s) llevan más de 7 días sin asistir.";
+                    String title = "At-Risk Users (Absent > 7 days)";
+                    String message = users.size() + " user(s) have been absent for over a week.";
 
                     Notification notification = Notification.builder()
                             .title(title)
@@ -384,29 +415,28 @@ public class NotificationService {
                             .build();
 
                     notificationRepository.save(notification);
-
-                    // Send Push Notification
                     fcmService.sendNotification(admin.getId(), title, message);
 
-                    log.info("✅ Attendance warning notification created for admin: {}", admin.getId());
+                    log.info("Absence report sent to admin: {}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Error creating attendance warning notification for admin {}: {}", admin.getId(),
-                            e.getMessage());
+                    log.error("Failed to report absence to admin {}: {}", admin.getId(), e.getMessage());
                 }
             }
         }
     }
 
     /**
-     * Envía recordatorio de pago próximo a vencer
+     * Reminder: Payment Due Soon.
+     * Triggered X days before expiration.
      */
     public void sendPaymentDueReminder(User user, Double amount, LocalDate expiresAt) {
         try {
             long daysUntilExpiration = java.time.temporal.ChronoUnit.DAYS.between(
                     LocalDate.now(), expiresAt);
 
-            String title = "Recordatorio de Pago";
-            String message = "Tu membresía vence en " + daysUntilExpiration + " día(s). Monto: $" + amount;
+            String title = "Payment Reminder";
+            String message = String.format("Your membership expires in %d day(s). Amount due: $%.2f",
+                    daysUntilExpiration, amount);
 
             Notification notification = Notification.builder()
                     .title(title)
@@ -417,18 +447,17 @@ public class NotificationService {
                     .build();
 
             notificationRepository.save(notification);
-
-            // Send Push Notification
             fcmService.sendNotification(user.getId(), title, message);
 
-            log.info("✅ Payment due reminder created for user: {}", user.getId());
+            log.info("Payment reminder sent to user: {}", user.getId());
         } catch (Exception e) {
-            log.error("Error creating payment due reminder for user {}: {}", user.getId(), e.getMessage());
+            log.error("Failed to send payment reminder to user {}: {}", user.getId(), e.getMessage());
         }
     }
 
     /**
-     * Envía recordatorio de clase en lote a múltiples usuarios
+     * Reminder: Upcoming Class.
+     * Batch notification for class participants.
      */
     public void sendBulkClassReminder(List<User> users, String activityName,
             LocalDateTime activityDate, String location) {
@@ -436,8 +465,9 @@ public class NotificationService {
 
         for (User user : users) {
             try {
-                String title = "Recordatorio de Clase";
-                String message = "Tienes la clase '" + activityName + "' próximamente en " + location + ".";
+                String title = "Class Reminder";
+                // Formatting date nicely could be an improvement here
+                String message = String.format("Reminder: '%s' starts soon at %s.", activityName, location);
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -448,18 +478,18 @@ public class NotificationService {
                         .build();
 
                 notificationRepository.save(notification);
-
-                // Send Push Notification
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("✅ Class reminder created for user: {} for activity: {}", user.getId(), activityName);
+                log.info("Class reminder sent to user: {} for activity: {}", user.getId(), activityName);
             } catch (Exception e) {
-                log.error("Error creating class reminder for user {}: {}", user.getId(), e.getMessage());
+                log.error("Failed to send class reminder to user {}: {}", user.getId(), e.getMessage());
             }
         }
     }
 
-    // Métodos de utilidad
+    // ===============================
+    // HELPERS
+    // ===============================
 
     private NotificationTypeDTO convertToNotificationTypeDTO(Notification notification) {
         return NotificationTypeDTO.builder()
