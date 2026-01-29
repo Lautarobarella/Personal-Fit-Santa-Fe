@@ -95,7 +95,7 @@ public class UserService {
         try {
             userRepository.delete(user.get());
         } catch (Exception e) {
-            System.out.println("Error deleting user: " + e.getMessage());
+
             return false;
         }
 
@@ -485,22 +485,23 @@ public class UserService {
         log.info("Updating profile for user ID: {}", updateProfileDTO.getUserId());
 
         User user = userRepository.findById(updateProfileDTO.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + updateProfileDTO.getUserId(),
-                        "UserService/updateProfile"));
+                .orElseThrow(
+                        () -> new EntityNotFoundException("User not found with id: " + updateProfileDTO.getUserId(),
+                                "UserService/updateProfile"));
 
         // Actualizar solo los campos que no sean nulos o vacíos
         if (updateProfileDTO.getAddress() != null && !updateProfileDTO.getAddress().trim().isEmpty()) {
             user.setAddress(updateProfileDTO.getAddress().trim());
         }
-        
+
         if (updateProfileDTO.getPhone() != null && !updateProfileDTO.getPhone().trim().isEmpty()) {
             user.setPhone(updateProfileDTO.getPhone().trim());
         }
-        
+
         if (updateProfileDTO.getEmergencyPhone() != null) {
             // Permitir vacío para borrar el teléfono de emergencia
-            user.setEmergencyPhone(updateProfileDTO.getEmergencyPhone().trim().isEmpty() ? 
-                null : updateProfileDTO.getEmergencyPhone().trim());
+            user.setEmergencyPhone(updateProfileDTO.getEmergencyPhone().trim().isEmpty() ? null
+                    : updateProfileDTO.getEmergencyPhone().trim());
         }
 
         userRepository.save(user);

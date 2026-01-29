@@ -375,11 +375,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         }
 
         try {
-            // Mostrar información del archivo original
-            console.log(`Archivo seleccionado: ${file.name} (${formatFileSize(file.size)})`);
-
             setSelectedFile(file)
-
             // Crear preview optimizado
             const previewUrl = await createOptimizedPreview(file)
             setPreviewUrl(previewUrl)
@@ -655,12 +651,12 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                                     type="number"
                                                     maxLength={11}
                                                     className={`border ${validatedUsers[index]?.isValid
-                                                            ? 'border-green-500 focus:ring-green-500'
-                                                            : validatedUsers[index]?.errorMessage
-                                                                ? 'border-red-500 focus:ring-red-500'
-                                                                : validatedUsers[index]?.isValidating
-                                                                    ? 'border-blue-500 focus:ring-blue-500'
-                                                                    : 'border-gray-300'
+                                                        ? 'border-green-500 focus:ring-green-500'
+                                                        : validatedUsers[index]?.errorMessage
+                                                            ? 'border-red-500 focus:ring-red-500'
+                                                            : validatedUsers[index]?.isValidating
+                                                                ? 'border-blue-500 focus:ring-blue-500'
+                                                                : 'border-gray-300'
                                                         }`}
                                                     placeholder="Ej: 30123456"
                                                     inputMode="numeric"

@@ -14,10 +14,10 @@ interface DatePickerScrollProps {
   disabled?: boolean
 }
 
-export function DatePickerScroll({ 
-  value, 
-  onChange, 
-  placeholder = "dd/mm/aaaa", 
+export function DatePickerScroll({
+  value,
+  onChange,
+  placeholder = "dd/mm/aaaa",
   className,
   disabled = false
 }: DatePickerScrollProps) {
@@ -106,54 +106,36 @@ export function DatePickerScroll({
   }, [tempMonth, tempYear, tempDay])
 
   // Función helper para obtener el valor del centro de un scroll
-  const getCenterValueFromScroll = (containerRef: React.RefObject<HTMLDivElement>, items: { value: number; label: string }[]) => {
+  const getCenterValueFromScroll = (containerRef: React.RefObject<HTMLDivElement | null>, items: { value: number; label: string }[]) => {
     if (!containerRef.current) return items[0]?.value || 0
-    
+
     const container = containerRef.current
     const scrollTop = container.scrollTop
     const itemHeight = 40
     const paddingTop = 80 // py-20 = 20 * 4 = 80px
     const containerHeight = container.clientHeight
-    
+
     // Usar exactamente el mismo cálculo que el resaltado
     const centerPosition = scrollTop + containerHeight / 2
     const rawIndex = (centerPosition - paddingTop) / itemHeight
     const centerIndex = Math.round(rawIndex) - 1  // -1 para bajar una posición
     const clampedIndex = Math.max(0, Math.min(items.length - 1, centerIndex))
-    
-    console.log('DEBUG getCenterValueFromScroll:', {
-      scrollTop,
-      containerHeight,
-      centerPosition,
-      paddingTop,
-      itemHeight,
-      rawIndex,
-      centerIndex,
-      clampedIndex,
-      selectedValue: items[clampedIndex]?.value,
-      selectedLabel: items[clampedIndex]?.label,
-      totalItems: items.length
-    })
-    
+
+
+
     return items[clampedIndex]?.value || items[0]?.value || 0
   }
 
   const handleConfirm = () => {
     // Obtener los valores del centro de cada scroll
-    console.log('=== HANDLE CONFIRM DEBUG ===')
     const centerDay = getCenterValueFromScroll(dayScrollRef, days)
-    console.log('Final centerDay:', centerDay)
-    
+
     const centerMonth = getCenterValueFromScroll(monthScrollRef, months)
-    console.log('Final centerMonth:', centerMonth, '(', monthNames[centerMonth], ')')
-    
+
     const centerYear = getCenterValueFromScroll(yearScrollRef, years)
-    console.log('Final centerYear:', centerYear)
-    
+
     const newDate = new Date(centerYear, centerMonth, centerDay)
-    console.log('Final date created:', newDate)
-    console.log('========================')
-    
+
     setSelectedDate(newDate)
     onChange?.(formatDateToString(newDate))
     setIsOpen(false)
@@ -174,10 +156,10 @@ export function DatePickerScroll({
     setIsOpen(false)
   }
 
-  const ScrollSelector = ({ 
-    items, 
-    value, 
-    onChange, 
+  const ScrollSelector = ({
+    items,
+    value,
+    onChange,
     className: selectorClassName,
     scrollRef
   }: {
@@ -185,7 +167,7 @@ export function DatePickerScroll({
     value: number
     onChange: (value: number) => void
     className?: string
-    scrollRef?: React.RefObject<HTMLDivElement>
+    scrollRef?: React.RefObject<HTMLDivElement | null>
   }) => {
     const containerRef = React.useRef<HTMLDivElement>(null)
     const [centerValue, setCenterValue] = React.useState(value)
@@ -215,18 +197,18 @@ export function DatePickerScroll({
       const container = containerRef.current
       if (!container) return
 
-        const updateCenterValue = () => {
-          const scrollTop = container.scrollTop
-          const containerHeight = container.clientHeight
-          const centerPosition = scrollTop + containerHeight / 2
-          const paddingTop = 80
-          
-          const rawIndex = (centerPosition - paddingTop) / itemHeight
-          const centerIndex = Math.round(rawIndex) - 1  // -1 para bajar una posición
-          const clampedIndex = Math.max(0, Math.min(items.length - 1, centerIndex))
-          
-          setCenterValue(items[clampedIndex]?.value || value)
-        }
+      const updateCenterValue = () => {
+        const scrollTop = container.scrollTop
+        const containerHeight = container.clientHeight
+        const centerPosition = scrollTop + containerHeight / 2
+        const paddingTop = 80
+
+        const rawIndex = (centerPosition - paddingTop) / itemHeight
+        const centerIndex = Math.round(rawIndex) - 1  // -1 para bajar una posición
+        const clampedIndex = Math.max(0, Math.min(items.length - 1, centerIndex))
+
+        setCenterValue(items[clampedIndex]?.value || value)
+      }
 
       const handleScroll = () => {
         updateCenterValue()
@@ -234,7 +216,7 @@ export function DatePickerScroll({
 
       container.addEventListener('scroll', handleScroll, { passive: true })
       updateCenterValue() // Calcular valor inicial
-      
+
       return () => container.removeEventListener('scroll', handleScroll)
     }, [items, value])
 
@@ -252,8 +234,8 @@ export function DatePickerScroll({
                 className={cn(
                   "h-10 flex items-center justify-center transition-all duration-200",
                   "text-base font-medium select-none",
-                  item.value === centerValue 
-                    ? "text-orange-500 font-bold scale-110" 
+                  item.value === centerValue
+                    ? "text-orange-500 font-bold scale-110"
                     : "text-muted-foreground"
                 )}
                 style={{ scrollSnapAlign: 'center' }}
@@ -299,7 +281,7 @@ export function DatePickerScroll({
         <>
           {/* Overlay */}
           <div className="fixed inset-0 bg-black/50 z-40" onClick={handleCancel} />
-          
+
           {/* Modal */}
           <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-card border border-border rounded-2xl shadow-professional-lg z-50 max-w-sm mx-auto">
             {/* Header */}

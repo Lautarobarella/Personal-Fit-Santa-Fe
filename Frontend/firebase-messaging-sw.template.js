@@ -18,12 +18,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-console.log("🔥 Firebase Service Worker initialized");
+
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    
+
+
     const notificationTitle = payload.notification?.title || 'Nueva Notificación';
     const notificationOptions = {
         body: payload.notification?.body || '',
@@ -39,10 +39,10 @@ messaging.onBackgroundMessage((payload) => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-    console.log('[firebase-messaging-sw.js] Notification click received.');
-    
+
+
     event.notification.close();
-    
+
     // Open the app when notification is clicked
     event.waitUntil(
         clients.openWindow('/')

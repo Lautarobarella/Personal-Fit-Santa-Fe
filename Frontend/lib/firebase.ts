@@ -39,12 +39,12 @@ export const getToken = async () => {
             console.error("❌ VAPID key is missing. Check NEXT_PUBLIC_FIREBASE_VAPID_KEY in .env");
             return null;
         }
-        
-        console.log("🔑 Requesting FCM token with VAPID key...");
+
+
         const token = await getToken(msg, { vapidKey });
-        
+
         if (token) {
-            console.log("✅ FCM Token obtained successfully");
+
             return token;
         } else {
             console.warn("⚠️ No registration token available");

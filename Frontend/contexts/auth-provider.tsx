@@ -61,11 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             authLogout()
           }
         } else {
-          console.log("No user ID found in localStorage")
+
           setUser(null)
         }
       } else {
-        console.log("User is not authenticated")
+
         setUser(null)
       }
       setLoading(false)

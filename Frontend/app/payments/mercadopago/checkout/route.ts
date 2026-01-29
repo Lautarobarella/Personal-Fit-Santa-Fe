@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         const { productId, productName, productPrice, userEmail, userDni } = await request.json();
 
         if (!productId || !productName || !productPrice || !userEmail || !userDni) {
-            console.log('Faltan datos requeridos');
+
             return NextResponse.json(
                 { error: 'Faltan datos requeridos: productId, productName, productPrice, userEmail y userDni' },
                 { status: 400 }
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         }
 
         const mpToken = process.env.MP_ACCESS_TOKEN;
-        
+
         if (!mpToken) {
             return NextResponse.json(
                 { error: 'Configuración de MercadoPago incompleta' },
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
         const transactionId = `${userDni}-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         const baseUrl = getBaseUrl();
-        
+
         const preferenceBody = {
             items: [
                 {

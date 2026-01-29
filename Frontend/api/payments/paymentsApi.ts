@@ -101,13 +101,13 @@ export async function createPayment(
         throw new Error(validation.error);
       }
 
-      console.log(`Archivo original: ${formatFileSize(paymentData.file.size)}`);
-      
+
+
       // Comprimir archivo automáticamente
       const { compressedFile, originalSize, compressedSize, compressionRatio } = await compressFile(paymentData.file);
-      
-      console.log(`Archivo comprimido: ${formatFileSize(compressedSize)} (${compressionRatio}% reducción)`);
-      
+
+
+
       // Usar archivo comprimido para upload
       formData.append("file", compressedFile);
     } catch (compressionError) {

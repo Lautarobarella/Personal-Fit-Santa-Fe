@@ -1,10 +1,10 @@
 import {
-    ClientStats,
-    fetchClientStats,
-    fetchCompletedClasses,
-    fetchMembershipStatus,
-    fetchNextClass,
-    fetchWeeklyActivities
+  ClientStats,
+  fetchClientStats,
+  fetchCompletedClasses,
+  fetchMembershipStatus,
+  fetchNextClass,
+  fetchWeeklyActivities
 } from '@/api/clients/clientStatsApi';
 import { UserStatus } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
@@ -34,7 +34,7 @@ export function useClientStats(clientId?: number) {
         return;
       } catch (unifiedError) {
         // Si el endpoint unificado no existe, usar endpoints individuales
-        console.log('Endpoint unificado no disponible, usando endpoints individuales');
+        console.warn('Endpoint unificado no disponible, usando endpoints individuales');
       }
 
       // Intentar cargar estadísticas individualmente
@@ -60,7 +60,7 @@ export function useClientStats(clientId?: number) {
         });
       } catch (individualError) {
         // Si los endpoints individuales tampoco existen, usar datos simulados temporales
-        console.log('Endpoints no disponibles, usando datos temporales simulados');
+
         setStats({
           weeklyActivityCount: Math.floor(Math.random() * 5) + 1, // 1-5 actividades
           nextClass: {

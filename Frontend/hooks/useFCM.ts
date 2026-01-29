@@ -15,7 +15,7 @@ export function useFCM() {
             if ('serviceWorker' in navigator) {
                 try {
                     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                    console.log('✅ Service Worker registered:', registration);
+
                 } catch (error) {
                     console.error('❌ Service Worker registration failed:', error);
                 }
@@ -31,15 +31,15 @@ export function useFCM() {
 
             try {
                 const permission = await Notification.requestPermission();
-                console.log('🔔 Notification permission:', permission);
-                
+
+
                 if (permission === "granted") {
                     const token = await getToken();
                     if (token) {
                         setFcmToken(token);
                         // Register token with backend
                         await jwtPermissionsApi.post("/api/fcm/register", { token });
-                        console.log("✅ FCM Token registered:", token);
+
                     } else {
                         console.warn("⚠️ Failed to get FCM token");
                     }
@@ -57,7 +57,7 @@ export function useFCM() {
     useEffect(() => {
         onMessageListener().then((payload: any) => {
             if (payload) {
-                console.log("📩 Foreground Message received:", payload);
+
                 toast(payload.notification?.title || "Nueva Notificación", {
                     description: payload.notification?.body,
                 });
