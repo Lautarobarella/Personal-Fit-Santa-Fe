@@ -359,7 +359,7 @@ public class ActivityService {
      * Cron Job: Class Reminders (Every 2 mins).
      * Sends push notifications to enrolled users 1 hour before class.
      */
-    @Scheduled(cron = "0 */2 * * * *")
+    @Scheduled(cron = "0 */30 * * * *")
     public void sendClassReminders() {
         try {
             log.info("Running job: Class Reminders");
