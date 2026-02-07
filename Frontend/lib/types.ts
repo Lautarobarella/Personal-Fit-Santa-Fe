@@ -98,6 +98,7 @@ interface UserActivityDetails {
   date: Date | string | null
   activityStatus: ActivityStatus
   clientStatus: AttendanceStatus // esto es la asistencia del cliente
+  summary?: ActivitySummaryType | null
 }
 
 export interface UserType {
@@ -159,7 +160,8 @@ export interface ActivityDetailInfo {
 
 export interface ActivitySummaryType {
   id: number
-  muscleGroup: MuscleGroup
+  muscleGroups: MuscleGroup[]
+  muscleGroup?: MuscleGroup
   effortLevel: number
   trainingDescription: string
   createdAt: Date | string
@@ -167,7 +169,8 @@ export interface ActivitySummaryType {
 }
 
 export interface ActivitySummaryRequest {
-  muscleGroup: MuscleGroup
+  muscleGroups: MuscleGroup[]
+  muscleGroup?: MuscleGroup
   effortLevel: number
   trainingDescription: string
 }

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClients } from "@/hooks/clients/use-client"
+import { getMuscleGroupLabels } from "@/lib/muscle-groups"
 import { ActivityStatus, AttendanceStatus, PaymentStatus, UserRole, UserStatus } from "@/lib/types"
 import {
   Activity,
@@ -32,15 +33,15 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../../contexts/auth-provider"
 
 interface ClientDetailsDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  _open: boolean
+  onOpenChange: (_open: boolean) => void
   userId: number
   onEdit?: () => void
   onDeactivate?: () => void
 }
 
 export function ClientDetailsDialog({
-  open,
+  _open: isOpen,
   onOpenChange,
   userId,
   onEdit,
@@ -50,18 +51,31 @@ export function ClientDetailsDialog({
   const { user } = useAuth()  // los entrenadores van a poder ver los detalles???????????
 
   const [activeTab, setActiveTab] = useState("profile")
+  const [visibleSummaryActivityId, setVisibleSummaryActivityId] = useState<number | null>(null)
   const { loading, error, loadClientDetail, selectedClient } = useClients()
 
   useEffect(() => {
     loadClientDetail(userId)
-  }, [loadClientDetail])
+  }, [loadClientDetail, userId])
 
-  if (loading) return <div>Cargando detalles del cliente...</div>
-  if (error) return <div>{error}</div>
+  useEffect(() => {
+    if (!isOpen) {
+      setVisibleSummaryActivityId(null)
+    }
+  }, [isOpen])
+
+  if (loading) {
+    return <div>Cargando detalles del cliente...</div>
+  }
+  if (error) {
+    return <div>{error}</div>
+  }
 
   const formatDate = (date: Date | string | null | undefined) => {
     try {
-      if (!date) return "N/A";
+      if (!date) {
+        return "N/A";
+      }
 
       let parsedDate: Date;
       
@@ -95,7 +109,9 @@ export function ClientDetailsDialog({
 
   const formatFullDate = (date: Date | string | null | undefined): string => {
     try {
-      if (!date) return "N/A";
+      if (!date) {
+        return "N/A";
+      }
 
       const parsedDate = typeof date === "string" ? new Date(date) : date;
 
@@ -220,7 +236,9 @@ export function ClientDetailsDialog({
   }
 
   // Calculate statistics
-  if (!selectedClient) return null
+  if (!selectedClient) {
+    return null
+  }
 
   const presentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE)
   const absentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.ABSENT)
@@ -239,7 +257,7 @@ export function ClientDetailsDialog({
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
         <div className="flex flex-col h-full overflow-hidden">
           <DialogHeader>
@@ -433,6 +451,42 @@ export function ClientDetailsDialog({
                               {getAttendanceText(activity.clientStatus)}
                             </span>
                           </div>
+                          <div className="mt-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-transparent"
+                              disabled={!activity.summary}
+                              onClick={() => setVisibleSummaryActivityId((currentId) => currentId === activity.id ? null : activity.id)}
+                            >
+                              {visibleSummaryActivityId === activity.id ? "Ocultar resumen" : "Ver resumen"}
+                            </Button>
+                          </div>
+                          {activity.summary && visibleSummaryActivityId === activity.id && (
+                            <div className="mt-3 p-3 rounded-md border bg-muted/40 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                  Resumen
+                                </p>
+                                <Badge variant="outline" className="text-xs">
+                                  Esfuerzo {activity.summary.effortLevel}/10
+                                </Badge>
+                              </div>
+                              <p className="text-sm">
+                                <span className="font-medium">Grupo:</span>{" "}
+                                {getMuscleGroupLabels(
+                                  activity.summary.muscleGroups?.length
+                                    ? activity.summary.muscleGroups
+                                    : activity.summary.muscleGroup
+                                      ? [activity.summary.muscleGroup]
+                                      : [],
+                                ).join(", ") || "No informado"}
+                              </p>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                {activity.summary.trainingDescription}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 

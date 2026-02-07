@@ -842,7 +842,7 @@ export default function ActivitiesPage() {
       )}
       {detailsDialog.activity && (
         <DetailsActivityDialog
-          open={detailsDialog.open}
+          _open={detailsDialog.open}
           onOpenChange={(open) => setDetailsDialog({ open, activity: null })}
           activityId={detailsDialog.activity.id}
           onEdit={() => {

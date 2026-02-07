@@ -661,7 +661,7 @@ function DashboardContent() {
       {/* Dialog de perfil para clientes */}
       {user?.role === UserRole.CLIENT && user.id && (
         <ClientDetailsDialog
-          open={showProfileDialog}
+          _open={showProfileDialog}
           onOpenChange={setShowProfileDialog}
           userId={user.id}
         />

@@ -1,6 +1,9 @@
 package com.personalfit.services;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.personalfit.dto.Activity.ActivitySummaryDTO;
 import com.personalfit.dto.Activity.ActivitySummaryUpsertDTO;
 import com.personalfit.enums.ActivityStatus;
+import com.personalfit.enums.MuscleGroup;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Activity;
@@ -40,6 +44,15 @@ public class ActivitySummaryService {
         Activity activity = getActivityById(activityId);
 
         validateActivitySummaryRules(activity);
+        List<MuscleGroup> muscleGroups = request.resolveMuscleGroups().stream()
+                .filter(muscleGroup -> muscleGroup != null)
+                .distinct()
+                .toList();
+
+        if (muscleGroups.isEmpty()) {
+            throw new BusinessRuleException("At least one muscle group is required",
+                    "Api/ActivitySummary/upsertSummary");
+        }
 
         Attendance attendance = attendanceRepository.findByUserAndActivity(user, activity)
                 .orElseThrow(() -> new BusinessRuleException("User is not enrolled in this activity",
@@ -49,7 +62,9 @@ public class ActivitySummaryService {
                 .orElseGet(ActivitySummary::new);
 
         summary.setAttendance(attendance);
-        summary.setMuscleGroup(request.getMuscleGroup());
+        summary.setMuscleGroups(new LinkedHashSet<>(muscleGroups));
+        // Legacy column kept populated to avoid losing compatibility with previous data model.
+        summary.setMuscleGroup(muscleGroups.get(0));
         summary.setEffortLevel(request.getEffortLevel());
         summary.setTrainingDescription(request.getTrainingDescription().trim());
 
@@ -92,9 +107,17 @@ public class ActivitySummaryService {
     }
 
     private ActivitySummaryDTO convertToDTO(ActivitySummary summary) {
+        List<MuscleGroup> muscleGroups = new ArrayList<>();
+        if (summary.getMuscleGroups() != null && !summary.getMuscleGroups().isEmpty()) {
+            muscleGroups.addAll(summary.getMuscleGroups());
+        } else if (summary.getMuscleGroup() != null) {
+            muscleGroups.add(summary.getMuscleGroup());
+        }
+
         return ActivitySummaryDTO.builder()
                 .id(summary.getId())
-                .muscleGroup(summary.getMuscleGroup())
+                .muscleGroups(muscleGroups)
+                .muscleGroup(muscleGroups.isEmpty() ? null : muscleGroups.get(0))
                 .effortLevel(summary.getEffortLevel())
                 .trainingDescription(summary.getTrainingDescription())
                 .createdAt(summary.getCreatedAt())

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import com.personalfit.dto.Activity.ActivitySummaryDTO;
 import com.personalfit.enums.ActivityStatus;
 import com.personalfit.enums.AttendanceStatus;
 
@@ -22,5 +23,6 @@ public class UserActivityDetailsDTO {
     private LocalDateTime date;
     private ActivityStatus activityStatus;
     private AttendanceStatus clientStatus;
+    private ActivitySummaryDTO summary;
 
 }

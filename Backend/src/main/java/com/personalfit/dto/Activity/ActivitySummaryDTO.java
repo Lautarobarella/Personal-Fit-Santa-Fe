@@ -1,6 +1,7 @@
 package com.personalfit.dto.Activity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.personalfit.enums.MuscleGroup;
 
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ActivitySummaryDTO {
     private Long id;
+    private List<MuscleGroup> muscleGroups;
     private MuscleGroup muscleGroup;
     private Integer effortLevel;
     private String trainingDescription;

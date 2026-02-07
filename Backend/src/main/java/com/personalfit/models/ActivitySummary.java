@@ -1,10 +1,14 @@
 package com.personalfit.models;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import com.personalfit.enums.MuscleGroup;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -40,6 +44,14 @@ public class ActivitySummary {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MuscleGroup muscleGroup;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "activity_summary_muscle_groups", joinColumns = @JoinColumn(name = "activity_summary_id"), uniqueConstraints = {
+            @UniqueConstraint(columnNames = { "activity_summary_id", "muscle_group" })
+    })
+    @Enumerated(EnumType.STRING)
+    @Column(name = "muscle_group", nullable = false)
+    private Set<MuscleGroup> muscleGroups = new LinkedHashSet<>();
 
     @Column(nullable = false)
     private Integer effortLevel;

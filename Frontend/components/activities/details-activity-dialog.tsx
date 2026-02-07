@@ -24,18 +24,20 @@ import {
   MailWarningIcon,
 } from "lucide-react"
 import { useActivityContext } from "@/contexts/activity-provider"
-import { ActivityStatus, AttendanceStatus, MuscleGroup } from "@/lib/types"
+import { getMuscleGroupLabels } from "@/lib/muscle-groups"
+import { ActivityStatus, AttendanceStatus } from "@/lib/types"
 
 interface DetailsActivityDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  _open: boolean
+  onOpenChange: (_open: boolean) => void
   activityId: number
   onEdit?: () => void
   onDelete?: () => void
 }
 
-export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, onDelete }: DetailsActivityDialogProps) {
+export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId, onEdit, onDelete }: DetailsActivityDialogProps) {
   const [activeTab, setActiveTab] = useState("overview")
+  const [visibleSummaryAttendanceId, setVisibleSummaryAttendanceId] = useState<number | null>(null)
   const {
     selectedActivity,
     loadActivityDetail,
@@ -44,6 +46,12 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
   useEffect(() => {
     loadActivityDetail(activityId)
   }, [activityId, loadActivityDetail])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setVisibleSummaryAttendanceId(null)
+    }
+  }, [isOpen])
 
 
   if (!selectedActivity) {
@@ -76,19 +84,6 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
     }).format(new Date(date))
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case ActivityStatus.ACTIVE:
-        return "success"
-      case ActivityStatus.CANCELLED:
-        return "destructive"
-      case ActivityStatus.COMPLETED:
-        return "secondary"
-      default:
-        return "secondary"
-    }
-  }
-
   const getStatusText = (status: string) => {
     switch (status) {
       case ActivityStatus.ACTIVE:
@@ -102,30 +97,12 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
     }
   }
 
-  const getMuscleGroupLabel = (muscleGroup: MuscleGroup) => {
-    const labels: Record<MuscleGroup, string> = {
-      [MuscleGroup.PECHO]: "Pecho",
-      [MuscleGroup.ESPALDA]: "Espalda",
-      [MuscleGroup.BICEP]: "Bíceps",
-      [MuscleGroup.ABDOMINALES]: "Abdominales",
-      [MuscleGroup.ADUCTORES]: "Aductores",
-      [MuscleGroup.CUADRICEPS]: "Cuádriceps",
-      [MuscleGroup.GEMELOS]: "Gemelos",
-      [MuscleGroup.ISQUIOS]: "Isquios",
-      [MuscleGroup.HOMBROS]: "Hombros",
-      [MuscleGroup.TRICEP]: "Tríceps",
-      [MuscleGroup.CARDIO_FUNCIONAL]: "Cardio / Funcional",
-    }
-
-    return labels[muscleGroup] || muscleGroup
-  }
-
   const presentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.PRESENT)
   const absentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.ABSENT)
   const occupancyRate = Math.round((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start justify-between mt-4">
@@ -324,29 +301,6 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                               Inscrito: {formatDateTime(p.createdAt)}
                             </p>
                           )}
-                          {p.summary && (
-                            <div className="mt-2 p-3 rounded-md border bg-muted/40 space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                                  <Dumbbell className="h-3 w-3" />
-                                  Resumen
-                                </p>
-                                <Badge variant="outline" className="text-xs">
-                                  <Gauge className="h-3 w-3 mr-1" />
-                                  {p.summary.effortLevel}/10
-                                </Badge>
-                              </div>
-                              <p className="text-sm">
-                                <span className="font-medium">Grupo:</span> {getMuscleGroupLabel(p.summary.muscleGroup)}
-                              </p>
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                {p.summary.trainingDescription}
-                              </p>
-                            </div>
-                          )}
-                          {!p.summary && selectedActivity.status === ActivityStatus.COMPLETED && (
-                            <p className="text-xs text-muted-foreground mt-2">Sin resumen cargado.</p>
-                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -372,6 +326,44 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                         </>
                       </div>
                     </div>
+                    <div className="mt-3 ml-11">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!p.summary}
+                        className="bg-transparent"
+                        onClick={() => setVisibleSummaryAttendanceId((currentId) => currentId === p.id ? null : p.id)}
+                      >
+                        {visibleSummaryAttendanceId === p.id ? "Ocultar resumen" : "Ver resumen"}
+                      </Button>
+                    </div>
+                    {p.summary && visibleSummaryAttendanceId === p.id && (
+                      <div className="mt-3 ml-11 p-3 rounded-md border bg-muted/40 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                            <Dumbbell className="h-3 w-3" />
+                            Resumen
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            <Gauge className="h-3 w-3 mr-1" />
+                            {p.summary.effortLevel}/10
+                          </Badge>
+                        </div>
+                        <p className="text-sm">
+                          <span className="font-medium">Grupo:</span>{" "}
+                          {getMuscleGroupLabels(
+                            p.summary.muscleGroups?.length
+                              ? p.summary.muscleGroups
+                              : p.summary.muscleGroup
+                                ? [p.summary.muscleGroup]
+                                : [],
+                          ).join(", ") || "No informado"}
+                        </p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {p.summary.trainingDescription}
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -470,3 +462,4 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
     </Dialog>
   )
 }
+

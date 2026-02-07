@@ -20,7 +20,9 @@ import com.personalfit.dto.User.CreateUserDTO;
 import com.personalfit.dto.User.UserActivityDetailsDTO;
 import com.personalfit.dto.User.UserDetailInfoDTO;
 import com.personalfit.dto.User.UserTypeDTO;
+import com.personalfit.dto.Activity.ActivitySummaryDTO;
 import com.personalfit.enums.AttendanceStatus;
+import com.personalfit.enums.MuscleGroup;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
@@ -28,6 +30,7 @@ import com.personalfit.exceptions.EntityAlreadyExistsException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Activity;
 import com.personalfit.models.Attendance;
+import com.personalfit.models.ActivitySummary;
 import com.personalfit.models.Payment;
 import com.personalfit.models.User;
 import com.personalfit.repository.AttendanceRepository;
@@ -233,6 +236,7 @@ public class UserService {
                     .date(attendance.getActivity().getDate())
                     .activityStatus(attendance.getActivity().getStatus())
                     .clientStatus(attendance.getAttendance())
+                    .summary(convertToActivitySummaryDTO(attendance.getActivitySummary()))
                     .build());
         });
 
@@ -240,6 +244,29 @@ public class UserService {
         userDto.setActivitiesCount(user.getAttendances().size());
 
         return userDto;
+    }
+
+    private ActivitySummaryDTO convertToActivitySummaryDTO(ActivitySummary summary) {
+        if (summary == null) {
+            return null;
+        }
+
+        List<MuscleGroup> muscleGroups = new ArrayList<>();
+        if (summary.getMuscleGroups() != null && !summary.getMuscleGroups().isEmpty()) {
+            muscleGroups.addAll(summary.getMuscleGroups());
+        } else if (summary.getMuscleGroup() != null) {
+            muscleGroups.add(summary.getMuscleGroup());
+        }
+
+        return ActivitySummaryDTO.builder()
+                .id(summary.getId())
+                .muscleGroups(muscleGroups)
+                .muscleGroup(muscleGroups.isEmpty() ? null : muscleGroups.get(0))
+                .effortLevel(summary.getEffortLevel())
+                .trainingDescription(summary.getTrainingDescription())
+                .createdAt(summary.getCreatedAt())
+                .updatedAt(summary.getUpdatedAt())
+                .build();
     }
 
     /**

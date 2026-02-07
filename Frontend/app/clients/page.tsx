@@ -252,7 +252,7 @@ export default function ClientsPage() {
       {/* dialog */}
       {clientDetailsDialog.userId && (
         <ClientDetailsDialog
-          open={clientDetailsDialog.open}
+          _open={clientDetailsDialog.open}
           onOpenChange={(open) => setClientDetailsDialog({ open, userId: null })}
           userId={clientDetailsDialog.userId}
         />

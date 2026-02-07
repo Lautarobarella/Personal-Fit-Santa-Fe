@@ -3,16 +3,19 @@
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useToast } from "@/hooks/use-toast"
 import { useRequireAuth } from "@/hooks/use-require-auth"
+import { getMuscleGroupLabel, MUSCLE_GROUP_OPTIONS } from "@/lib/muscle-groups"
 import { ActivityStatus, MuscleGroup, UserRole, type ActivitySummaryRequest } from "@/lib/types"
-import { ClipboardList, Dumbbell, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Check, ChevronsUpDown, ClipboardList, Dumbbell, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { type FormEvent, useEffect, useMemo, useState } from "react"
 
@@ -21,20 +24,6 @@ interface ActivitySummaryPageProps {
     id: string
   }>
 }
-
-const muscleGroupOptions = [
-  { value: MuscleGroup.PECHO, label: "Pecho" },
-  { value: MuscleGroup.ESPALDA, label: "Espalda" },
-  { value: MuscleGroup.BICEP, label: "Biceps" },
-  { value: MuscleGroup.ABDOMINALES, label: "Abdominales" },
-  { value: MuscleGroup.ADUCTORES, label: "Aductores" },
-  { value: MuscleGroup.CUADRICEPS, label: "Cuadriceps" },
-  { value: MuscleGroup.GEMELOS, label: "Gemelos" },
-  { value: MuscleGroup.ISQUIOS, label: "Isquios" },
-  { value: MuscleGroup.HOMBROS, label: "Hombros" },
-  { value: MuscleGroup.TRICEP, label: "Triceps" },
-  { value: MuscleGroup.CARDIO_FUNCIONAL, label: "Cardio / Funcional" },
-]
 
 export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps) {
   const { user } = useRequireAuth()
@@ -51,7 +40,9 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
   const [activityId, setActivityId] = useState<number | null>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [hasExistingSummary, setHasExistingSummary] = useState(false)
+  const [isMuscleGroupComboboxOpen, setIsMuscleGroupComboboxOpen] = useState(false)
   const [summaryForm, setSummaryForm] = useState<ActivitySummaryRequest>({
+    muscleGroups: [MuscleGroup.PECHO],
     muscleGroup: MuscleGroup.PECHO,
     effortLevel: 5,
     trainingDescription: "",
@@ -105,9 +96,16 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
 
         const currentSummary = await getMySummary(activityId)
         if (currentSummary) {
+          const resolvedMuscleGroups = currentSummary.muscleGroups?.length
+            ? currentSummary.muscleGroups
+            : currentSummary.muscleGroup
+              ? [currentSummary.muscleGroup]
+              : [MuscleGroup.PECHO]
+
           setHasExistingSummary(true)
           setSummaryForm({
-            muscleGroup: currentSummary.muscleGroup,
+            muscleGroups: resolvedMuscleGroups,
+            muscleGroup: resolvedMuscleGroups[0],
             effortLevel: currentSummary.effortLevel,
             trainingDescription: currentSummary.trainingDescription,
           })
@@ -156,6 +154,17 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
     }
 
     const normalizedDescription = summaryForm.trainingDescription.trim()
+    const normalizedMuscleGroups = [...new Set(summaryForm.muscleGroups)].filter(Boolean)
+
+    if (normalizedMuscleGroups.length === 0) {
+      toast({
+        title: "Falta grupo muscular",
+        description: "Selecciona al menos un grupo muscular trabajado.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!normalizedDescription) {
       toast({
         title: "Falta descripcion",
@@ -168,6 +177,8 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
     try {
       await saveActivitySummary(activityId, {
         ...summaryForm,
+        muscleGroups: normalizedMuscleGroups,
+        muscleGroup: normalizedMuscleGroups[0],
         trainingDescription: normalizedDescription,
       })
 
@@ -183,6 +194,34 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
         variant: "destructive",
       })
     }
+  }
+
+  const selectedMuscleGroupLabels = useMemo(() => {
+    if (summaryForm.muscleGroups.length === 0) {
+      return "Seleccionar grupo muscular"
+    }
+
+    if (summaryForm.muscleGroups.length <= 2) {
+      return summaryForm.muscleGroups.map(getMuscleGroupLabel).join(", ")
+    }
+
+    return `${summaryForm.muscleGroups.slice(0, 2).map(getMuscleGroupLabel).join(", ")} +${summaryForm.muscleGroups.length - 2}`
+  }, [summaryForm.muscleGroups])
+
+  const toggleMuscleGroup = (group: MuscleGroup) => {
+    setSummaryForm((previous) => {
+      const currentGroups = previous.muscleGroups ?? []
+      const alreadySelected = currentGroups.includes(group)
+      const nextGroups = alreadySelected
+        ? currentGroups.filter((currentGroup) => currentGroup !== group)
+        : [...currentGroups, group]
+
+      return {
+        ...previous,
+        muscleGroups: nextGroups,
+        muscleGroup: nextGroups[0],
+      }
+    })
   }
 
   if (!user || user.role !== UserRole.CLIENT) {
@@ -226,26 +265,49 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label>Grupo muscular trabajado</Label>
-                <Select
-                  value={summaryForm.muscleGroup}
-                  onValueChange={(value) =>
-                    setSummaryForm((previous) => ({
-                      ...previous,
-                      muscleGroup: value as MuscleGroup,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar grupo muscular" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {muscleGroupOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={isMuscleGroupComboboxOpen} onOpenChange={setIsMuscleGroupComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between bg-transparent font-normal"
+                    >
+                      <span className="truncate text-left">{selectedMuscleGroupLabels}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar grupo muscular..." />
+                      <CommandList>
+                        <CommandEmpty>Sin resultados.</CommandEmpty>
+                        <CommandGroup>
+                          {MUSCLE_GROUP_OPTIONS.map((option) => (
+                            <CommandItem
+                              key={option.value}
+                              value={option.label}
+                              onSelect={() => toggleMuscleGroup(option.value)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  summaryForm.muscleGroups.includes(option.value) ? "opacity-100" : "opacity-0",
+                                )}
+                              />
+                              {option.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {summaryForm.muscleGroups.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Seleccionados: {summaryForm.muscleGroups.map(getMuscleGroupLabel).join(", ")}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">

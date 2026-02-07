@@ -24,6 +24,7 @@ import com.personalfit.dto.Attendance.AttendanceDTO;
 import com.personalfit.dto.Attendance.EnrollmentRequestDTO;
 import com.personalfit.dto.Attendance.EnrollmentResponseDTO;
 import com.personalfit.enums.ActivityStatus;
+import com.personalfit.enums.MuscleGroup;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Activity;
@@ -297,9 +298,17 @@ public class ActivityService {
             return null;
         }
 
+        List<MuscleGroup> muscleGroups = new ArrayList<>();
+        if (summary.getMuscleGroups() != null && !summary.getMuscleGroups().isEmpty()) {
+            muscleGroups.addAll(summary.getMuscleGroups());
+        } else if (summary.getMuscleGroup() != null) {
+            muscleGroups.add(summary.getMuscleGroup());
+        }
+
         return ActivitySummaryDTO.builder()
                 .id(summary.getId())
-                .muscleGroup(summary.getMuscleGroup())
+                .muscleGroups(muscleGroups)
+                .muscleGroup(muscleGroups.isEmpty() ? null : muscleGroups.get(0))
                 .effortLevel(summary.getEffortLevel())
                 .trainingDescription(summary.getTrainingDescription())
                 .createdAt(summary.getCreatedAt())
