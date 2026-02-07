@@ -3,13 +3,15 @@
 import { 
   fetchActivities, 
   fetchActivityDetail, 
+  fetchMyActivitySummary,
   fetchTrainers,
   newActivity,
   editActivityBack,
   deleteActivity,
   enrollActivity,
   unenrollActivity,
-  markAttendance
+  markAttendance,
+  upsertMyActivitySummary,
 } from "@/api/activities/activitiesApi"
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
@@ -18,6 +20,8 @@ import {
   ActivityType, 
   ActivityDetailInfo, 
   ActivityFormType, 
+  ActivitySummaryRequest,
+  ActivitySummaryType,
   UserType, 
   AttendanceStatus,
   EnrollmentStatus
@@ -35,6 +39,7 @@ interface ActivityLoadingStates {
   isEnrolling: boolean
   isUnenrolling: boolean
   isMarkingAttendance: boolean
+  isSavingSummary: boolean
 }
 
 interface ActivityMutationResult {
@@ -172,6 +177,15 @@ export function useActivity() {
       attendanceId: number; 
       status: AttendanceStatus 
     }) => markAttendance(attendanceId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      queryClient.invalidateQueries({ queryKey: ['activity-detail'] })
+    },
+  })
+
+  const saveSummaryMutation = useMutation({
+    mutationFn: ({ activityId, summary }: { activityId: number; summary: ActivitySummaryRequest }) =>
+      upsertMyActivitySummary(activityId, summary),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] })
       queryClient.invalidateQueries({ queryKey: ['activity-detail'] })
@@ -475,6 +489,25 @@ export function useActivity() {
     }
   }, [markAttendanceMutation, canManageActivities])
 
+  const getMySummary = useCallback(async (activityId: number): Promise<ActivitySummaryType | null> => {
+    if (!user) {
+      throw new Error("Usuario no autenticado")
+    }
+
+    return fetchMyActivitySummary(activityId)
+  }, [user])
+
+  const saveActivitySummary = useCallback(async (
+    activityId: number,
+    summary: ActivitySummaryRequest,
+  ): Promise<ActivitySummaryType> => {
+    if (!user) {
+      throw new Error("Usuario no autenticado")
+    }
+
+    return saveSummaryMutation.mutateAsync({ activityId, summary })
+  }, [saveSummaryMutation, user])
+
   // ===============================
   // ESTADOS COMPUTADOS
   // ===============================
@@ -499,6 +532,7 @@ export function useActivity() {
     isEnrolling: enrollMutation.isPending,
     isUnenrolling: unenrollMutation.isPending,
     isMarkingAttendance: markAttendanceMutation.isPending,
+    isSavingSummary: saveSummaryMutation.isPending,
   }), [
     createActivityMutation.isPending,
     updateActivityMutation.isPending,
@@ -506,6 +540,7 @@ export function useActivity() {
     enrollMutation.isPending,
     unenrollMutation.isPending,
     markAttendanceMutation.isPending,
+    saveSummaryMutation.isPending,
   ])
 
   // ===============================
@@ -536,6 +571,7 @@ export function useActivity() {
     enrollInActivity,
     unenrollFromActivity,
     markParticipantAttendance,
+    saveActivitySummary,
     
     // Data fetching
     loadActivitiesByWeek,
@@ -544,6 +580,7 @@ export function useActivity() {
     loadTrainers,
     clearSelectedActivity,
     setActivities,
+    getMySummary,
     
     // Utility functions
     isUserEnrolled,

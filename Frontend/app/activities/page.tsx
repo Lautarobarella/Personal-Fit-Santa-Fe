@@ -43,7 +43,6 @@ export default function ActivitiesPage() {
   const {
     activities: allActivities,
     loading,
-    error,
     refreshActivities,
     loadActivitiesByWeek,
     enrollInActivity,
@@ -272,24 +271,6 @@ export default function ActivitiesPage() {
     loadActivitiesByWeek(monday)
   }
 
-  const scrollToToday = () => {
-    const today = new Date()
-    const todayIndex = activitiesByDay.findIndex(day =>
-      day.date.toDateString() === today.toDateString()
-    )
-
-    if (todayIndex !== -1) {
-      const element = document.getElementById(`day-${todayIndex}`)
-      if (element) {
-        element.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-          inline: 'nearest'
-        })
-      }
-    }
-  }
-
   const isToday = (date: Date) => {
     const today = new Date()
     return date.toDateString() === today.toDateString()
@@ -316,6 +297,85 @@ export default function ActivitiesPage() {
     }
   }
 
+  const canSubmitSummary = (activity: ActivityType) => {
+    if (!user || user.role !== UserRole.CLIENT) {
+      return false
+    }
+
+    const isEnrolledInActivity = isUserEnrolled(activity, user.id)
+    if (!isEnrolledInActivity || activity.status === ActivityStatus.CANCELLED) {
+      return false
+    }
+
+    return activity.status === ActivityStatus.COMPLETED || isActivityPast(activity)
+  }
+
+  const hasSubmittedSummary = (activity: ActivityType) => {
+    if (!user) {
+      return false
+    }
+
+    return activity.participantsWithSummary?.includes(user.id) ?? false
+  }
+
+  const getClientActionLabel = (activity: ActivityType) => {
+    if (canSubmitSummary(activity)) {
+      return hasSubmittedSummary(activity) ? "Editar resumen" : "Hacer resumen"
+    }
+
+    if (activity.status === ActivityStatus.COMPLETED) {
+      return "Finalizada"
+    }
+
+    if (activity.status === ActivityStatus.CANCELLED) {
+      return "Cancelada"
+    }
+
+    if (isActivityPast(activity)) {
+      return "Expirada"
+    }
+
+    if (isUserEnrolled(activity, user?.id || 0)) {
+      return "Desinscribir"
+    }
+
+    if (activity.currentParticipants >= activity.maxParticipants) {
+      return "Completo"
+    }
+
+    if (!canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0)) {
+      return "Límite diario"
+    }
+
+    return "Inscribirse"
+  }
+
+  const isClientActionDisabled = (activity: ActivityType) => {
+    if (canSubmitSummary(activity)) {
+      return false
+    }
+
+    return (
+      activity.status === ActivityStatus.COMPLETED ||
+      activity.status === ActivityStatus.CANCELLED ||
+      (isActivityPast(activity) && !isUserEnrolled(activity, user?.id || 0)) ||
+      (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user?.id || 0)) ||
+      (!isUserEnrolled(activity, user?.id || 0) && !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0))
+    )
+  }
+
+  const getClientActionVariant = (activity: ActivityType) => {
+    if (canSubmitSummary(activity)) {
+      return hasSubmittedSummary(activity) ? "outline" : "default"
+    }
+
+    if (activity.status === ActivityStatus.COMPLETED) {
+      return "secondary"
+    }
+
+    return isUserEnrolled(activity, user?.id || 0) ? "outline" : "default"
+  }
+
   const handleDeleteActivity = (activity: ActivityType) => {
     setDeleteDialog({
       open: true,
@@ -340,7 +400,7 @@ export default function ActivitiesPage() {
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Ocurrió un error al eliminar la actividad",
@@ -385,7 +445,7 @@ export default function ActivitiesPage() {
             variant: "default",
           })
         }
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
           description: "No se pudo verificar el estado de tu membresía. Intenta nuevamente.",
@@ -436,7 +496,9 @@ export default function ActivitiesPage() {
   }
 
   const handleConfirmEnroll = async (activity: ActivityType) => {
-    if (!user) return
+    if (!user) {
+      return
+    }
     
     try {
       if (enrollDialog.isEnrolled) {
@@ -469,6 +531,15 @@ export default function ActivitiesPage() {
       open: true,
       activity,
     })
+  }
+
+  const handleClientPrimaryAction = (activity: ActivityType) => {
+    if (canSubmitSummary(activity)) {
+      router.push(`/activities/${activity.id}/summary`)
+      return
+    }
+
+    handleEnrollActivity(activity)
   }
 
   return (
@@ -662,35 +733,12 @@ export default function ActivitiesPage() {
                                   {user?.role === UserRole.CLIENT && (
                                     <Button
                                       size="sm"
-                                      onClick={() => handleEnrollActivity(activity)}
-                                      disabled={
-                                        activity.status === ActivityStatus.COMPLETED ||
-                                        activity.status === ActivityStatus.CANCELLED ||
-                                        (activity.currentParticipants >= activity.maxParticipants && !isUserEnrolled(activity, user?.id || 0)) ||
-                                        (!isUserEnrolled(activity, user?.id || 0) && !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0))
-                                      }
+                                      onClick={() => handleClientPrimaryAction(activity)}
+                                      disabled={isClientActionDisabled(activity)}
                                       className="text-xs"
-                                      variant={
-                                        activity.status === ActivityStatus.COMPLETED
-                                          ? "secondary"
-                                          : isUserEnrolled(activity, user?.id || 0)
-                                            ? "outline"
-                                            : "default"
-                                      }
+                                      variant={getClientActionVariant(activity)}
                                     >
-                                      {activity.status === ActivityStatus.COMPLETED
-                                        ? "Finalizada"
-                                        : activity.status === ActivityStatus.CANCELLED
-                                          ? "Cancelada"
-                                          : isActivityPast(activity)
-                                            ? "Expirada"
-                                            : isUserEnrolled(activity, user?.id || 0)
-                                              ? "Desinscribir"
-                                              : activity.currentParticipants >= activity.maxParticipants
-                                                ? "Completo"
-                                                : !canEnrollInMoreActivitiesForDay(activity.date, user?.id || 0)
-                                                  ? "Límite diario"
-                                                  : "Inscribirse"}
+                                      {getClientActionLabel(activity)}
                                     </Button>
                                   )}
                                   {canManageActivities && (
@@ -832,3 +880,4 @@ export default function ActivitiesPage() {
   //   }
   //   return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200"
   // }
+

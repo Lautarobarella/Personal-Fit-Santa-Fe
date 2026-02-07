@@ -19,10 +19,12 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  Dumbbell,
+  Gauge,
   MailWarningIcon,
 } from "lucide-react"
 import { useActivityContext } from "@/contexts/activity-provider"
-import { ActivityStatus, AttendanceStatus } from "@/lib/types"
+import { ActivityStatus, AttendanceStatus, MuscleGroup } from "@/lib/types"
 
 interface DetailsActivityDialogProps {
   open: boolean
@@ -98,6 +100,24 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
       default:
         return status
     }
+  }
+
+  const getMuscleGroupLabel = (muscleGroup: MuscleGroup) => {
+    const labels: Record<MuscleGroup, string> = {
+      [MuscleGroup.PECHO]: "Pecho",
+      [MuscleGroup.ESPALDA]: "Espalda",
+      [MuscleGroup.BICEP]: "Bíceps",
+      [MuscleGroup.ABDOMINALES]: "Abdominales",
+      [MuscleGroup.ADUCTORES]: "Aductores",
+      [MuscleGroup.CUADRICEPS]: "Cuádriceps",
+      [MuscleGroup.GEMELOS]: "Gemelos",
+      [MuscleGroup.ISQUIOS]: "Isquios",
+      [MuscleGroup.HOMBROS]: "Hombros",
+      [MuscleGroup.TRICEP]: "Tríceps",
+      [MuscleGroup.CARDIO_FUNCIONAL]: "Cardio / Funcional",
+    }
+
+    return labels[muscleGroup] || muscleGroup
   }
 
   const presentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.PRESENT)
@@ -303,6 +323,29 @@ export function DetailsActivityDialog({ open, onOpenChange, activityId, onEdit, 
                             <p className="text-xs text-muted-foreground">
                               Inscrito: {formatDateTime(p.createdAt)}
                             </p>
+                          )}
+                          {p.summary && (
+                            <div className="mt-2 p-3 rounded-md border bg-muted/40 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                                  <Dumbbell className="h-3 w-3" />
+                                  Resumen
+                                </p>
+                                <Badge variant="outline" className="text-xs">
+                                  <Gauge className="h-3 w-3 mr-1" />
+                                  {p.summary.effortLevel}/10
+                                </Badge>
+                              </div>
+                              <p className="text-sm">
+                                <span className="font-medium">Grupo:</span> {getMuscleGroupLabel(p.summary.muscleGroup)}
+                              </p>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                {p.summary.trainingDescription}
+                              </p>
+                            </div>
+                          )}
+                          {!p.summary && selectedActivity.status === ActivityStatus.COMPLETED && (
+                            <p className="text-xs text-muted-foreground mt-2">Sin resumen cargado.</p>
                           )}
                         </div>
                       </div>

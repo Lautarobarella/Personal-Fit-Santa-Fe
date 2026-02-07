@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfit.dto.Activity.ActivityDetailInfoDTO;
 import com.personalfit.dto.Activity.ActivityFormTypeDTO;
+import com.personalfit.dto.Activity.ActivitySummaryDTO;
 import com.personalfit.dto.Activity.ActivityTypeDTO;
 import com.personalfit.dto.Activity.ActivityUserDetailDTO;
 import com.personalfit.dto.Attendance.AttendanceDTO;
@@ -27,6 +28,7 @@ import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.models.Activity;
 import com.personalfit.models.Attendance;
+import com.personalfit.models.ActivitySummary;
 import com.personalfit.models.User;
 import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.AttendanceRepository;
@@ -174,13 +176,15 @@ public class ActivityService {
                 .duration(act.getDuration())
                 .maxParticipants(act.getSlots())
                 .participants(act.getAttendances().stream().map(a -> {
+                    ActivitySummary summary = a.getActivitySummary();
                     return ActivityUserDetailDTO.builder()
                             .id(a.getId())
                             .userId(a.getUser().getId())
                             .firstName(a.getUser().getFirstName())
                             .lastName(a.getUser().getLastName())
-                            .createdAt(act.getDate())
+                            .createdAt(a.getCreatedAt())
                             .status(a.getAttendance())
+                            .summary(convertToActivitySummaryDTO(summary))
                             .build();
                 }).collect(Collectors.toList()))
                 .currentParticipants(act.getAttendances().size())
@@ -276,10 +280,30 @@ public class ActivityService {
                 .duration(activity.getDuration())
                 .participants(
                         activity.getAttendances().stream().map(a -> a.getUser().getId()).collect(Collectors.toList()))
+                .participantsWithSummary(activity.getAttendances().stream()
+                        .filter(attendance -> attendance.getActivitySummary() != null)
+                        .map(attendance -> attendance.getUser().getId())
+                        .distinct()
+                        .collect(Collectors.toList()))
                 .maxParticipants(activity.getSlots())
                 .currentParticipants(activity.getAttendances().size())
                 .status(activity.getStatus())
                 .isRecurring(activity.getIsRecurring())
+                .build();
+    }
+
+    private ActivitySummaryDTO convertToActivitySummaryDTO(ActivitySummary summary) {
+        if (summary == null) {
+            return null;
+        }
+
+        return ActivitySummaryDTO.builder()
+                .id(summary.getId())
+                .muscleGroup(summary.getMuscleGroup())
+                .effortLevel(summary.getEffortLevel())
+                .trainingDescription(summary.getTrainingDescription())
+                .createdAt(summary.getCreatedAt())
+                .updatedAt(summary.getUpdatedAt())
                 .build();
     }
 

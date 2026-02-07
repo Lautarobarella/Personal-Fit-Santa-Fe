@@ -20,4 +20,5 @@ public class ActivityUserDetailDTO {
     private String lastName;
     private LocalDateTime createdAt;
     private AttendanceStatus status;
+    private ActivitySummaryDTO summary;
 }

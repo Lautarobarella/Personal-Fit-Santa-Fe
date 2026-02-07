@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,12 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.personalfit.dto.Activity.ActivityDetailInfoDTO;
 import com.personalfit.dto.Activity.ActivityFormTypeDTO;
+import com.personalfit.dto.Activity.ActivitySummaryDTO;
+import com.personalfit.dto.Activity.ActivitySummaryUpsertDTO;
 import com.personalfit.dto.Activity.ActivityTypeDTO;
 import com.personalfit.dto.Attendance.EnrollmentRequestDTO;
 import com.personalfit.dto.Attendance.EnrollmentResponseDTO;
 import com.personalfit.services.ActivityService;
+import com.personalfit.services.ActivitySummaryService;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 /**
  * API Controller for Activity Management.
@@ -38,6 +43,9 @@ public class ActivityController {
 
     @Autowired
     private ActivityService activityService;
+
+    @Autowired
+    private ActivitySummaryService activitySummaryService;
 
     /**
      * Create a new activity/class.
@@ -106,6 +114,37 @@ public class ActivityController {
     public ResponseEntity<ActivityDetailInfoDTO> getActivityInfo(@PathVariable Long id) {
         ActivityDetailInfoDTO activityInfo = activityService.getActivityDetailInfo(id);
         return ResponseEntity.ok(activityInfo);
+    }
+
+    /**
+     * Create or update the authenticated user's activity summary.
+     */
+    @PostMapping("/{activityId}/summary")
+    public ResponseEntity<ActivitySummaryDTO> upsertActivitySummary(
+            @PathVariable Long activityId,
+            @Valid @RequestBody ActivitySummaryUpsertDTO summaryRequest,
+            Authentication authentication) {
+        ActivitySummaryDTO summary = activitySummaryService.upsertSummary(
+                activityId,
+                authentication.getName(),
+                summaryRequest);
+        return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Get the authenticated user's summary for a specific activity.
+     */
+    @GetMapping("/{activityId}/summary/me")
+    public ResponseEntity<ActivitySummaryDTO> getMyActivitySummary(
+            @PathVariable Long activityId,
+            Authentication authentication) {
+        ActivitySummaryDTO summary = activitySummaryService.getCurrentUserSummary(activityId, authentication.getName());
+
+        if (summary == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(summary);
     }
 
     // ==================

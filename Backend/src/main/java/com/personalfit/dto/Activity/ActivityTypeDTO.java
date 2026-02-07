@@ -24,6 +24,7 @@ public class ActivityTypeDTO {
     private LocalDateTime date;
     private Integer duration;
     private List<Long> participants;
+    private List<Long> participantsWithSummary;
     private Integer maxParticipants;
     private Integer currentParticipants;
     private ActivityStatus status;

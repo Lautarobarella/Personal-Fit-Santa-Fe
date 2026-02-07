@@ -15,6 +15,20 @@ export enum ActivityStatus {
   COMPLETED = "COMPLETED"
 }
 
+export enum MuscleGroup {
+  PECHO = "PECHO",
+  ESPALDA = "ESPALDA",
+  BICEP = "BICEP",
+  ABDOMINALES = "ABDOMINALES",
+  ADUCTORES = "ADUCTORES",
+  CUADRICEPS = "CUADRICEPS",
+  GEMELOS = "GEMELOS",
+  ISQUIOS = "ISQUIOS",
+  HOMBROS = "HOMBROS",
+  TRICEP = "TRICEP",
+  CARDIO_FUNCIONAL = "CARDIO_FUNCIONAL",
+}
+
 export enum AttendanceStatus {
   PRESENT = "PRESENT",
   ABSENT = "ABSENT",
@@ -143,13 +157,29 @@ export interface ActivityDetailInfo {
   isRecurring?: boolean
 }
 
+export interface ActivitySummaryType {
+  id: number
+  muscleGroup: MuscleGroup
+  effortLevel: number
+  trainingDescription: string
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
+export interface ActivitySummaryRequest {
+  muscleGroup: MuscleGroup
+  effortLevel: number
+  trainingDescription: string
+}
+
 interface ActivityUserDetails {
-  id: number // userId
-  attendanceId: number // attendanceId
+  id: number // attendanceId
+  userId: number
   firstName: string
   lastName: string
   createdAt: Date
   status: AttendanceStatus
+  summary?: ActivitySummaryType | null
 }
 
 export interface ActivityType {
@@ -161,6 +191,7 @@ export interface ActivityType {
   date: Date
   duration: number
   participants: number[]
+  participantsWithSummary?: number[]
   maxParticipants: number
   currentParticipants: number
   status: ActivityStatus

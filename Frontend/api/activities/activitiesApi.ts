@@ -1,6 +1,11 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { ActivityFormType, EnrollmentRequest } from "@/lib/types";
+import {
+  ActivityFormType,
+  ActivitySummaryRequest,
+  ActivitySummaryType,
+  EnrollmentRequest,
+} from "@/lib/types";
 
 export async function fetchActivities() {
   try {
@@ -113,6 +118,31 @@ export async function fetchTrainers() {
   } catch (error) {
     handleApiError(error, 'Error al cargar los entrenadores');
     return [];
+  }
+}
+
+export async function fetchMyActivitySummary(activityId: number): Promise<ActivitySummaryType | null> {
+  try {
+    return await jwtPermissionsApi.get(`/api/activities/${activityId}/summary/me`);
+  } catch (error) {
+    handleApiError(error, "Error al cargar el resumen de la actividad");
+    throw error;
+  }
+}
+
+export async function upsertMyActivitySummary(
+  activityId: number,
+  summary: ActivitySummaryRequest,
+): Promise<ActivitySummaryType> {
+  try {
+    return await jwtPermissionsApi.post(`/api/activities/${activityId}/summary`, summary);
+  } catch (error) {
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, "Error al guardar el resumen de la actividad");
+    }
+    throw error;
   }
 }
 
