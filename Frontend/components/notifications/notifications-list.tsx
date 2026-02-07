@@ -11,9 +11,10 @@ import { es } from "date-fns/locale"
 
 interface NotificationsListProps {
   filterStatus?: NotificationStatus | "all"
+  searchTerm?: string
 }
 
-export function NotificationsList({ filterStatus = "all" }: NotificationsListProps) {
+export function NotificationsList({ filterStatus = "all", searchTerm = "" }: NotificationsListProps) {
   const { 
     notifications, 
     isLoadingNotifications: isLoading,
@@ -22,9 +23,18 @@ export function NotificationsList({ filterStatus = "all" }: NotificationsListPro
     deleteNotification 
   } = useNotificationsContext()
 
-  const filteredNotifications = filterStatus === "all" 
+  const statusFilteredNotifications = filterStatus === "all" 
     ? notifications 
     : notifications.filter(n => n.status === filterStatus)
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+
+  const filteredNotifications = normalizedSearchTerm
+    ? statusFilteredNotifications.filter((notification) =>
+        notification.title.toLowerCase().includes(normalizedSearchTerm) ||
+        notification.message.toLowerCase().includes(normalizedSearchTerm),
+      )
+    : statusFilteredNotifications
 
   if (isLoading) {
     return (

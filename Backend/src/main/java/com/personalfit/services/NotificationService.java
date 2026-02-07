@@ -8,7 +8,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfit.dto.Notification.NotificationDetailInfoDTO;
 import com.personalfit.dto.Notification.NotificationFormTypeDTO;
@@ -484,6 +486,23 @@ public class NotificationService {
             } catch (Exception e) {
                 log.error("Failed to send class reminder to user {}: {}", user.getId(), e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Monthly cleanup job.
+     * Deletes every notification that is not archived.
+     * 
+     * Schedule: first day of every month at 00:00.
+     */
+    @Scheduled(cron = "0 0 0 1 * *")
+    @Transactional
+    public void purgeNonArchivedNotificationsMonthly() {
+        try {
+            long deletedCount = notificationRepository.deleteByStatusNot(NotificationStatus.ARCHIVED);
+            log.info("Monthly notification cleanup complete. Deleted {} non-archived notifications.", deletedCount);
+        } catch (Exception e) {
+            log.error("Monthly notification cleanup failed: {}", e.getMessage(), e);
         }
     }
 

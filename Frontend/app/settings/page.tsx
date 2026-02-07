@@ -15,18 +15,16 @@ import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/contexts/auth-provider"
 import { useThemeToggle } from "@/hooks/settings/use-theme"
 import { useRequireAuth } from "@/hooks/use-require-auth"
-import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
 import { BarChart3, Bell, Clock, CreditCard, DollarSign, FileText, Key, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 export default function SettingsPage() {
   const { logout } = useAuth()
   const { user } = useRequireAuth()
   const router = useRouter()
-  const { toast } = useToast()
-  const { theme, toggleTheme, isDark, mounted } = useThemeToggle()
+  const { toggleTheme, isDark, mounted } = useThemeToggle()
 
   const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
   const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
@@ -38,22 +36,6 @@ export default function SettingsPage() {
   const handleLogout = () => {
     logout()
     router.push("/")
-  }
-
-  const handleNotificationsToggle = async (checked: boolean) => {
-    toast({
-      title: "Funcionalidad deshabilitada",
-      description: "Las notificaciones push están temporalmente deshabilitadas",
-      variant: "destructive"
-    })
-  }
-
-  const handleInstallApp = () => {
-    toast({
-      title: "Función en desarrollo",
-      description: "Estamos trabajando en esto",
-      variant: "default"
-    })
   }
 
   const handleShowTerms = () => {
@@ -105,27 +87,10 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5" />
-              Aplicación
+              Apariencia
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Notificaciones Push</p>
-                  <p className="text-sm text-muted-foreground">
-                    Temporalmente deshabilitadas
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={false}
-                onCheckedChange={handleNotificationsToggle}
-                disabled={true}
-              />
-            </div>
-
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Moon className="h-5 w-5 text-muted-foreground" />
@@ -141,19 +106,6 @@ export default function SettingsPage() {
                 onCheckedChange={toggleTheme}
                 disabled={!mounted}
               />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Instalar App</p>
-                  <p className="text-sm text-muted-foreground">Instalar en pantalla de inicio</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleInstallApp}>
-                Instalar
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -302,3 +254,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+

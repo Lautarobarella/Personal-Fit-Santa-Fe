@@ -9,190 +9,144 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { useNotificationsContext } from "@/contexts/notifications-provider"
 import { NotificationStatus } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
-import {
-    Archive,
-    Bell,
-    CheckCheck,
-    Search,
-} from "lucide-react"
-import { useState, useMemo } from "react"
+import { Archive, CheckCheck, Search } from "lucide-react"
+import { useState } from "react"
 import { NotificationsList } from "@/components/notifications/notifications-list"
 import { Button } from "@/components/ui/button"
 
 export default function NotificationsPage() {
-    useRequireAuth()
-    const { toast } = useToast()
+  useRequireAuth()
+  const { toast } = useToast()
 
-    const {
-        notifications,
-        unreadCount,
-        markAsRead,
-        archiveNotification,
-    } = useNotificationsContext()
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    archiveNotification,
+  } = useNotificationsContext()
 
-    const [searchTerm, setSearchTerm] = useState("")
-    const [activeTab, setActiveTab] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeTab, setActiveTab] = useState("all")
 
-    // Filtrar notificaciones por tabs y término de búsqueda
-    const filteredNotifications = useMemo(() => {
-        let filtered = notifications
+  const handleMarkAllAsRead = async () => {
+    const unreadNotifications = notifications.filter((notification) => notification.status === NotificationStatus.UNREAD)
 
-        // Filtrar por tab
-        switch (activeTab) {
-            case "unread":
-                filtered = notifications.filter((n) => n.status === NotificationStatus.UNREAD)
-                break
-            case "read":
-                filtered = notifications.filter((n) => n.status === NotificationStatus.READ)
-                break
-            case "archived":
-                filtered = notifications.filter((n) => n.status === NotificationStatus.ARCHIVED)
-                break
-            default:
-                filtered = notifications
-        }
-
-        // Filtrar por búsqueda
-        if (searchTerm) {
-            filtered = filtered.filter((n) =>
-                n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                n.message.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        }
-
-        return filtered
-    }, [notifications, activeTab, searchTerm])
-
-    const handleMarkAllAsRead = async () => {
-        const unreadNotifications = notifications.filter(n => n.status === NotificationStatus.UNREAD)
-
-        try {
-            await Promise.all(unreadNotifications.map(n => markAsRead(n.id)))
-            toast({
-                title: "Éxito",
-                description: `${unreadNotifications.length} notificaciones marcadas como leídas`,
-            })
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "No se pudieron marcar todas como leídas",
-                variant: "destructive"
-            })
-        }
+    try {
+      await Promise.all(unreadNotifications.map((notification) => markAsRead(notification.id)))
+      toast({
+        title: "Exito",
+        description: `${unreadNotifications.length} notificaciones marcadas como leidas`,
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "No se pudieron marcar todas como leidas",
+        variant: "destructive",
+      })
     }
+  }
 
-    const handleArchiveAll = async () => {
-        const allActiveNotifications = notifications.filter(n => n.status !== NotificationStatus.ARCHIVED)
+  const handleArchiveAll = async () => {
+    const allActiveNotifications = notifications.filter((notification) => notification.status !== NotificationStatus.ARCHIVED)
 
-        try {
-            await Promise.all(allActiveNotifications.map(n => archiveNotification(n.id)))
-            toast({
-                title: "Éxito",
-                description: `${allActiveNotifications.length} notificaciones archivadas`,
-            })
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "No se pudieron archivar todas las notificaciones",
-                variant: "destructive"
-            })
-        }
+    try {
+      await Promise.all(allActiveNotifications.map((notification) => archiveNotification(notification.id)))
+      toast({
+        title: "Exito",
+        description: `${allActiveNotifications.length} notificaciones archivadas`,
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "No se pudieron archivar todas las notificaciones",
+        variant: "destructive",
+      })
     }
+  }
 
-    return (
-        <div className="min-h-screen bg-background pb-32">
-            <MobileHeader
-                title="Notificaciones"
-                showBack
-                onBack={() => window.history.back()}
+  return (
+    <div className="min-h-screen bg-background pb-32">
+      <MobileHeader title="Notificaciones" showBack onBack={() => window.history.back()} />
+
+      <div className="container mx-auto max-w-4xl px-4 pb-24 pt-4">
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar notificaciones..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="pl-9"
             />
-
-            <div className="container mx-auto px-4 pt-4 pb-24 max-w-4xl">
-                {/* Barra de búsqueda */}
-                <div className="mb-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="text"
-                            placeholder="Buscar notificaciones..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
-                </div>
-
-                {/* Tabs de filtros */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="all">
-                            <Bell className="h-4 w-4 mr-1" />
-                            Todas
-                        </TabsTrigger>
-                        <TabsTrigger value="unread">
-                            <div className="flex items-center gap-1">
-                                <Bell className="h-4 w-4" />
-                                {unreadCount > 0 && (
-                                    <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
-                                        {unreadCount}
-                                    </span>
-                                )}
-                            </div>
-                        </TabsTrigger>
-                        <TabsTrigger value="read">Leídas</TabsTrigger>
-                        <TabsTrigger value="archived">
-                            <Archive className="h-4 w-4" />
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <div className="mt-6">
-                        <TabsContent value="all">
-                            <NotificationsList filterStatus="all" />
-                        </TabsContent>
-                        <TabsContent value="unread">
-                            <NotificationsList filterStatus={NotificationStatus.UNREAD} />
-                        </TabsContent>
-                        <TabsContent value="read">
-                            <NotificationsList filterStatus={NotificationStatus.READ} />
-                        </TabsContent>
-                        <TabsContent value="archived">
-                            <NotificationsList filterStatus={NotificationStatus.ARCHIVED} />
-                        </TabsContent>
-                    </div>
-                </Tabs>
-                {/* Card de acciones rápidas */}
-                {notifications.length > 0 && (
-                    <Card className="mt-8 mb-4">
-                        <CardHeader>
-                            <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-3">
-                                <Button
-                                    variant="outline"
-                                    onClick={handleMarkAllAsRead}
-                                    disabled={notifications.filter(n => n.status === NotificationStatus.UNREAD).length === 0}
-                                    className="bg-transparent min-w-[180px]"
-                                >
-                                    <CheckCheck className="h-4 w-4 mr-2" />
-                                    Marcar todas como leídas
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleArchiveAll}
-                                    disabled={notifications.filter(n => n.status !== NotificationStatus.ARCHIVED).length === 0}
-                                    className="bg-transparent min-w-[180px]"
-                                >
-                                    <Archive className="h-4 w-4 mr-2" />
-                                    Archivar todas
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-
-            <BottomNav />
+          </div>
         </div>
-    )
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="all" className="text-sm">Todas</TabsTrigger>
+            <TabsTrigger value="unread" className="text-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Nuevas</span>
+                {unreadCount > 0 && (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] leading-none text-primary-foreground">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="read" className="text-sm">Leidas</TabsTrigger>
+            <TabsTrigger value="archived" className="text-sm">Archivadas</TabsTrigger>
+          </TabsList>
+
+          <div className="mt-6">
+            <TabsContent value="all">
+              <NotificationsList filterStatus="all" searchTerm={searchTerm} />
+            </TabsContent>
+            <TabsContent value="unread">
+              <NotificationsList filterStatus={NotificationStatus.UNREAD} searchTerm={searchTerm} />
+            </TabsContent>
+            <TabsContent value="read">
+              <NotificationsList filterStatus={NotificationStatus.READ} searchTerm={searchTerm} />
+            </TabsContent>
+            <TabsContent value="archived">
+              <NotificationsList filterStatus={NotificationStatus.ARCHIVED} searchTerm={searchTerm} />
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        {notifications.length > 0 && (
+          <Card className="mb-4 mt-8">
+            <CardHeader>
+              <CardTitle className="text-lg">Acciones Rapidas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleMarkAllAsRead}
+                  disabled={notifications.filter((notification) => notification.status === NotificationStatus.UNREAD).length === 0}
+                  className="min-w-[180px] bg-transparent"
+                >
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  Marcar todas como leidas
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleArchiveAll}
+                  disabled={notifications.filter((notification) => notification.status !== NotificationStatus.ARCHIVED).length === 0}
+                  className="min-w-[180px] bg-transparent"
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archivar todas
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <BottomNav />
+    </div>
+  )
 }
