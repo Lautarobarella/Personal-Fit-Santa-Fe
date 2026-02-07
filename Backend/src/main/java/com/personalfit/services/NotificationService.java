@@ -265,8 +265,8 @@ public class NotificationService {
         // 1. Notify individual users
         for (User user : users) {
             try {
-                String title = "Membership Expired";
-                String message = "Your membership has expired. Please renew to continue using our services.";
+                String title = "Membresia vencida";
+                String message = "Tu membresia ha vencido. Renovala para seguir usando nuestros servicios.";
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -289,8 +289,8 @@ public class NotificationService {
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
-                    String title = "Expired Memberships";
-                    String message = users.size() + " user(s) have expired memberships today.";
+                    String title = "Membresias vencidas";
+                    String message = users.size() + " usuario(s) tienen la membresia vencida hoy.";
 
                     Notification notification = Notification.builder()
                             .title(title)
@@ -321,8 +321,8 @@ public class NotificationService {
         // 1. Wish the users
         for (User user : users) {
             try {
-                String title = "Happy Birthday!";
-                String message = "Happy Birthday " + user.getFirstName() + "! Wishing you a fantastic day! 🎉";
+                String title = "Feliz cumpleanos";
+                String message = "Feliz cumpleanos " + user.getFirstName() + ". Te deseamos un gran dia.";
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -349,8 +349,8 @@ public class NotificationService {
                             .map(User::getFullName)
                             .collect(Collectors.joining(", "));
 
-                    String title = "Birthdays Today";
-                    String message = "Celebrating today: " + userNames;
+                    String title = "Cumpleanos de hoy";
+                    String message = "Cumplen hoy: " + userNames;
 
                     Notification notification = Notification.builder()
                             .title(title)
@@ -381,8 +381,8 @@ public class NotificationService {
 
         for (User user : users) {
             try {
-                String title = "We Miss You!";
-                String message = "It's been over 7 days since your last visit. Come back and crush your goals!";
+                String title = "Te extranamos";
+                String message = "Pasaron mas de 7 dias desde tu ultima visita. Volve y segui cumpliendo tus objetivos.";
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -405,8 +405,8 @@ public class NotificationService {
         if (!users.isEmpty() && !admins.isEmpty()) {
             for (User admin : admins) {
                 try {
-                    String title = "At-Risk Users (Absent > 7 days)";
-                    String message = users.size() + " user(s) have been absent for over a week.";
+                    String title = "Usuarios en riesgo (ausentes > 7 dias)";
+                    String message = users.size() + " usuario(s) llevan mas de una semana sin asistir.";
 
                     Notification notification = Notification.builder()
                             .title(title)
@@ -436,8 +436,8 @@ public class NotificationService {
             long daysUntilExpiration = java.time.temporal.ChronoUnit.DAYS.between(
                     LocalDate.now(), expiresAt);
 
-            String title = "Payment Reminder";
-            String message = String.format("Your membership expires in %d day(s). Amount due: $%.2f",
+            String title = "Recordatorio de pago";
+            String message = String.format("Tu membresia vence en %d dia(s). Monto a pagar: $%.2f",
                     daysUntilExpiration, amount);
 
             Notification notification = Notification.builder()
@@ -467,9 +467,9 @@ public class NotificationService {
 
         for (User user : users) {
             try {
-                String title = "Class Reminder";
+                String title = "Recordatorio de clase";
                 // Formatting date nicely could be an improvement here
-                String message = String.format("Reminder: '%s' starts soon at %s.", activityName, location);
+                String message = String.format("Recordatorio: '%s' empieza pronto en %s.", activityName, location);
 
                 Notification notification = Notification.builder()
                         .title(title)
@@ -522,3 +522,4 @@ public class NotificationService {
                 .build();
     }
 }
+
