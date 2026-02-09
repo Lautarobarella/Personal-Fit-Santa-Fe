@@ -133,14 +133,18 @@ public class AttendanceController {
         return ResponseEntity.ok(isEnrolled);
     }
 
+    @Autowired
+    private com.personalfit.services.WorkShiftService workShiftService;
+
     /**
      * NFC Attendance Endpoint.
      * Logic:
      * 1. Receives DNI from NFC scan.
      * 2. Finds User.
-     * 3. Finds today's classes for that user.
-     * 4. Determines the relevant class (current or upcoming).
-     * 5. Applies Rules:
+     * 3. IF TRAINER -> User `WorkShiftService` to Check-in/Check-out.
+     * 4. IF CLIENT -> Finds today's classes for that user.
+     * 5. Determines the relevant class (current or upcoming).
+     * 6. Applies Rules:
      * - Before Start or < 15 mins late -> PRESENT
      * - > 15 mins late -> LATE
      * - No relevant class found (ended) -> ABSENT (for the last class of day)
@@ -177,6 +181,25 @@ public class AttendanceController {
                 response.put("message", "User with DNI " + dni + " not found");
                 return ResponseEntity.notFound().build();
             }
+
+            // --- TRAINER CHECK-IN / CHECK-OUT LOGIC ---
+            if (user.getRole() == com.personalfit.enums.UserRole.TRAINER) {
+                String action = workShiftService.processCheckInCheckOut(user);
+
+                response.put("success", true);
+                response.put("userName", user.getFullName());
+
+                if ("CHECK_IN".equals(action)) {
+                    response.put("message", "Trainer Check-In Successful");
+                    response.put("status", "CHECK_IN");
+                } else {
+                    response.put("message", "Trainer Check-Out Successful");
+                    response.put("status", "CHECK_OUT");
+                }
+
+                return ResponseEntity.ok(response);
+            }
+            // ------------------------------------------
 
             LocalDate today = LocalDate.now();
             LocalDateTime now = LocalDateTime.now();

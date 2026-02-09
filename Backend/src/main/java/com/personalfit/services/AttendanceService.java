@@ -206,6 +206,7 @@ public class AttendanceService {
                 .userId(attendance.getUser().getId())
                 .firstName(attendance.getUser().getFirstName()) // Enriched field
                 .lastName(attendance.getUser().getLastName()) // Enriched field
+                .dni(attendance.getUser().getDni()) // Enriched field
                 .status(attendance.getAttendance())
                 .createdAt(attendance.getCreatedAt())
                 .updatedAt(attendance.getUpdatedAt())

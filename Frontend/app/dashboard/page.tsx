@@ -35,13 +35,15 @@ import {
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import { useTrainer } from "@/hooks/use-trainer"
+
 // Componente que se renderiza solo en el cliente
 function DashboardContent() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  
+
   // Use custom hook to redirect to login if not authenticated
   useRequireAuth()
   const [dashboardStats, setDashboardStats] = useState({
@@ -59,6 +61,7 @@ function DashboardContent() {
   const { clients, loadClients } = useClients()
   const { activities, refreshActivities } = useActivityContext()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
+  const { currentShift, toggleShift, loading: loadingShift, dashboardStats: trainerStats } = useTrainer()
 
   // Usar el contexto unificado de pagos
   const {
@@ -245,36 +248,42 @@ function DashboardContent() {
         },
       ];
     } else if (user.role === UserRole.TRAINER) {
+      if (!trainerStats) return [];
+
+      const nextClassValue = trainerStats.nextClassTime
+        ? new Date(trainerStats.nextClassTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : "Sin clases";
+
       return [
         {
-          title: "Mis Clientes",
-          value: "42",
-          icon: Users,
-          description: "asignados",
+          title: "Horas Semanales",
+          value: `${trainerStats.weeklyHours.toFixed(1)} hs`,
+          icon: Clock,
+          description: "esta semana",
           dynamicFontSize: "text-2xl",
           color: "primary"
         },
         {
           title: "Clases Hoy",
-          value: "6",
+          value: trainerStats.classesToday.toString(),
           icon: Activity,
           description: "programadas",
           dynamicFontSize: "text-2xl",
           color: "primary"
         },
         {
-          title: "Asistencia Promedio",
-          value: "92%",
-          icon: Target,
-          description: "esta semana",
+          title: "Turno Actual",
+          value: `${trainerStats.currentShiftHours.toFixed(1)} hs`,
+          icon: Zap,
+          description: "en curso",
           dynamicFontSize: "text-2xl",
           color: "primary"
         },
         {
           title: "Próxima Clase",
-          value: "2:00 PM",
-          icon: Clock,
-          description: "en 45 min",
+          value: nextClassValue,
+          icon: Calendar,
+          description: trainerStats.nextClassName || "N/A",
           dynamicFontSize: "text-2xl",
           color: "primary"
         },
@@ -392,11 +401,18 @@ function DashboardContent() {
         { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
       ]
     } else if (user.role === UserRole.TRAINER) {
+      const isShiftActive = currentShift?.status === 'ACTIVE';
       return [
+        {
+          title: isShiftActive ? "Finalizar Turno" : "Iniciar Turno",
+          onClick: toggleShift,
+          icon: isShiftActive ? EyeOff : CheckCircle,
+          color: isShiftActive ? "bg-red-500" : "bg-green-500",
+          disabled: loadingShift
+        },
         { title: "Mis Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
         { title: "Tomar Asistencia", route: "/attendance", icon: CheckCircle, color: "bg-gray-500" },
         { title: "Ver Clientes", route: "/clients", icon: Users, color: "bg-gray-500" },
-        { title: "Mi Horario", route: "/schedule", icon: Calendar, color: "bg-orange-500" },
       ]
     } else {
       return [
@@ -419,10 +435,33 @@ function DashboardContent() {
         }]
         : []
     } else if (user.role === UserRole.TRAINER) {
-      return [
-        { type: "info", message: "Clase de Yoga en 45 minutos", action: "Ver detalles", route: "/activities" },
-        { type: "success", message: "Excelente asistencia esta semana (92%)", action: "Ver estadísticas", route: "/stats" },
-      ]
+      const alerts: any[] = [];
+
+      if (trainerStats?.nextClassTime) {
+        const nextClassTime = new Date(trainerStats.nextClassTime);
+        const now = new Date();
+        const diffMinutes = Math.floor((nextClassTime.getTime() - now.getTime()) / (1000 * 60));
+
+        if (diffMinutes > 0 && diffMinutes <= 60) {
+          alerts.push({
+            type: "info",
+            message: `Clase de ${trainerStats.nextClassName || 'Entrenamiento'} en ${diffMinutes} minutos`,
+            action: "Ver detalles",
+            route: "/activities"
+          });
+        }
+      }
+
+      if (trainerStats && trainerStats.weeklyHours > 20) {
+        alerts.push({
+          type: "success",
+          message: `Has acumulado ${trainerStats.weeklyHours.toFixed(1)} horas esta semana`,
+          action: "Ver reporte",
+          route: "/stats"
+        });
+      }
+
+      return alerts;
     } else {
       // Usar el estado de membresía validado por el backend
       const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
@@ -534,14 +573,14 @@ function DashboardContent() {
           {stats.map((stat, index) => {
             // Determinar el span de columnas: primera y última card ocupan 2 columnas
             const colSpan = (index === 0 || index === 3) ? "col-span-2" : "col-span-1";
-            
+
             return (
               <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card min-h-[160px] flex flex-col justify-center ${colSpan}`}>
                 <CardContent className="p-5 flex flex-col justify-center h-full">
                   {/* Icono plano en la esquina */}
                   <div className="absolute top-4 right-4 flex items-center gap-1">
                     <stat.icon className={`h-6 w-6 ${stat.color === "success" ? "text-green-600" : stat.color === "destructive" ? "text-red-600" : "text-foreground"}`} />
-                    {stat.isRevenue && (
+                    {(stat as any).isRevenue && (
                       <button
                         onClick={() => setShowRevenue(!showRevenue)}
                         className="p-1 hover:bg-muted rounded-full transition-colors"
@@ -589,6 +628,7 @@ function DashboardContent() {
                     variant="outline"
                     className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
                     onClick={action.onClick}
+                    disabled={(action as any).disabled}
                   >
                     <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
                       <action.icon className="h-7 w-7 text-white" />
@@ -602,7 +642,7 @@ function DashboardContent() {
                     key={index}
                     variant="outline"
                     className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
-                    onClick={() => handleNavigation(action.route, action.title)}
+                    onClick={() => handleNavigation(action.route!, action.title)}
                   >
                     <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
                       <action.icon className="h-7 w-7 text-white" />

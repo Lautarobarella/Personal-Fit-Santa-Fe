@@ -19,7 +19,8 @@ public class AttendanceDTO {
     private Long userId;
     private String firstName;
     private String lastName;
+    private Integer dni;
     private AttendanceStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-} 
+}

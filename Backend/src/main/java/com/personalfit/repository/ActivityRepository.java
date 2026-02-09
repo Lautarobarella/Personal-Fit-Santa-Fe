@@ -12,15 +12,19 @@ import com.personalfit.models.User;
 
 @Repository
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
+    List<Activity> findByTrainerId(Long trainerId);
+
     List<Activity> findByDateBetween(LocalDateTime dateAfter, LocalDateTime dateBefore);
 
     List<Activity> findByDateBeforeAndStatus(LocalDateTime date, ActivityStatus activityStatus);
-    
+
     List<Activity> findByStatus(ActivityStatus status);
-    
+
     // Métodos para actividades recurrentes
     List<Activity> findByIsRecurringTrueAndStatus(ActivityStatus status);
-    
-    // Método para verificar si ya existe una actividad similar en una fecha específica
-    boolean existsByNameAndTrainerAndDateBetween(String name, User trainer, LocalDateTime startDate, LocalDateTime endDate);
+
+    // Método para verificar si ya existe una actividad similar en una fecha
+    // específica
+    boolean existsByNameAndTrainerAndDateBetween(String name, User trainer, LocalDateTime startDate,
+            LocalDateTime endDate);
 }

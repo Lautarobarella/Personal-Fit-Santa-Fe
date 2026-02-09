@@ -185,6 +185,16 @@ interface ActivityUserDetails {
   summary?: ActivitySummaryType | null
 }
 
+export interface TrainerActivityType {
+  id: number
+  name: string
+  date: Date
+  duration: number
+  maxParticipants: number
+  currentParticipants: number
+  status: ActivityStatus
+}
+
 export interface ActivityType {
   id: number
   name: string
@@ -216,12 +226,13 @@ export interface ActivityFormType {
 
 
 // Interfaz extendida que incluye información del usuario
-export interface Attendance {
+export interface AttendanceType {
   id: number // attendanceId
   activityId: number
   userId: number
   firstName: string
   lastName: string
+  dni?: number
   status: AttendanceStatus
   createdAt: Date
   updatedAt: Date
@@ -317,7 +328,7 @@ export interface EnrollmentRequest {
 export interface EnrollmentResponse {
   success: boolean
   message: string
-  enrollment?: Attendance
+  enrollment?: AttendanceType
 }
 
 export interface WeeklySchedule {
