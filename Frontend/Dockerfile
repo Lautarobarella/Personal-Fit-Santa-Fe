@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Declarar argumentos de build para variables de entorno de Next.js
 ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_IS_DOCKER
 
 # Firebase Configuration arguments
@@ -18,6 +19,7 @@ ARG NEXT_PUBLIC_FIREBASE_VAPID_KEY
 
 # Establecer las variables de entorno para el build
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_IS_DOCKER=$NEXT_PUBLIC_IS_DOCKER
 
 # Firebase Configuration environment variables

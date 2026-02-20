@@ -33,7 +33,7 @@ services:
     depends_on:
       - postgres
     environment:
-      SPRING_DATASOURCE_FILES_PATH: /opt/backups/comprobantes  # Comentado para desarrollo local
+      SPRING_DATASOURCE_FILES_PATH: ${SPRING_DATASOURCE_FILES_PATH:-/opt/backups/comprobantes}
       #SPRING_DATASOURCE_FILES_PATH: /app/uploads/comprobantes
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
       SPRING_DATASOURCE_USERNAME: personalfit_user
@@ -42,10 +42,16 @@ services:
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
       # Configuración de Spring Boot
-      SPRING_PROFILES_ACTIVE: production  # Comentado para desarrollo local
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-production}
       #SPRING_PROFILES_ACTIVE: development
       # Secretos para el backend
       JWT_SECRET: ${JWT_SECRET}
+      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE}
+      APP_COOKIE_SAME_SITE: ${APP_COOKIE_SAME_SITE}
+      APP_COOKIE_DOMAIN: ${APP_COOKIE_DOMAIN}
+      APP_COOKIE_ACCESS_TOKEN_MAX_AGE: ${APP_COOKIE_ACCESS_TOKEN_MAX_AGE}
+      APP_COOKIE_REFRESH_TOKEN_MAX_AGE: ${APP_COOKIE_REFRESH_TOKEN_MAX_AGE}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT}
       
       # Firebase Configuration for Push Notifications
       # Firebase config is now read from mounted file at /opt/firebase/firebase-service-account.json
@@ -56,9 +62,9 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       # Mapeo directo al directorio local de la máquina host (comentado para desarrollo local)
-      - /opt/backups/comprobantes:/opt/backups/comprobantes
+      - ${RECEIPTS_HOST_PATH:-/opt/backups/comprobantes}:/opt/backups/comprobantes
       # Directorio Firebase para la configuración de service account
-      - /opt/firebase:/opt/firebase:ro
+      - ${FIREBASE_HOST_PATH:-/opt/firebase}:/opt/firebase:ro
       # Volumen local para desarrollo
       
       # - uploads_data:/app/uploads/comprobantes
@@ -68,10 +74,11 @@ services:
       context: .
       dockerfile: Frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: https://personalfitsantafe.com
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
         NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
         NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
-        NEXT_PUBLIC_IS_DOCKER: "true"
+        NEXT_PUBLIC_IS_DOCKER: ${NEXT_PUBLIC_IS_DOCKER:-true}
         # Firebase Configuration
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
@@ -94,6 +101,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
       
       # Configuración de Next.js
       NODE_ENV: production
