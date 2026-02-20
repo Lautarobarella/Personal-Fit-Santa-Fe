@@ -41,7 +41,6 @@ export default function PaymentsPage() {
     // Estados básicos
     const [searchTerm, setSearchTerm] = useState("")
     const [showRevenue, setShowRevenue] = useState(true)
-    const [methodFilter, setMethodFilter] = useState<MethodType | "ALL">("ALL")
 
     // Estados para admin
     const currentDate = new Date()
@@ -184,12 +183,12 @@ export default function PaymentsPage() {
     const sourcePayments = user?.role === UserRole.ADMIN ? adminPayments : payments
 
     const filteredPayments = sourcePayments.filter((p: any) => {
-        const matchesSearch = p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        if (user?.role !== UserRole.ADMIN) {
+            return true
+        }
+
+        return p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase())
-
-        const matchesMethod = user?.role === UserRole.ADMIN ? true : (methodFilter === "ALL" || p.method === methodFilter)
-
-        return matchesSearch && matchesMethod
     })
 
     const sortedAllPayments = [...filteredPayments].sort((a: any, b: any) => {
@@ -205,7 +204,10 @@ export default function PaymentsPage() {
         .sort((a: any, b: any) => {
             const dateA = new Date(a.createdAt || 0).getTime()
             const dateB = new Date(b.createdAt || 0).getTime()
-            return dateA - dateB // Ascendente: más viejos primero
+            if (user?.role === UserRole.CLIENT) {
+                return dateB - dateA // Descendente: mas nuevos primero
+            }
+            return dateA - dateB // Ascendente: mas viejos primero para verificacion admin
         })
 
     const totalRevenue = user?.role === UserRole.ADMIN
@@ -368,19 +370,6 @@ export default function PaymentsPage() {
                     </div>
                 )}
 
-                {/* Search solo para clientes */}
-                {user?.role === UserRole.CLIENT && (
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Buscar por cliente o fecha..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
-                )}
-
                 {/* Card informativa para clientes */}
                 {user?.role === UserRole.CLIENT && (
                     <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
@@ -413,7 +402,7 @@ export default function PaymentsPage() {
                                             <h3 className="font-semibold text-red-800">Membresía Vencida</h3>
                                             <p className="text-sm text-yellow-700">
                                                 Tu membresía ha expirado.<br />
-                                                Presiona en <span className="font-semibold text-red-800"> 'Nuevo'</span> para elegir el método de pago.
+                                                Presiona en <span className="font-semibold text-red-800">&apos;Nuevo&apos;</span> para registrar tu pago.
                                             </p>
                                         </div>
                                     </>
@@ -587,4 +576,3 @@ export default function PaymentsPage() {
         </div>
     )
 }
-
