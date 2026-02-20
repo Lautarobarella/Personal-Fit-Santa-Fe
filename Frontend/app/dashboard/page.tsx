@@ -9,12 +9,13 @@ import { MobileHeader } from "@/components/ui/mobile-header"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
+import { fetchActivityDetail } from "@/api/activities/activitiesApi"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
 import { hasAcceptedTerms } from "@/lib/terms-and-conditions-storage"
-import { ActivityStatus, UserRole } from "@/lib/types"
+import { ActivityStatus, AttendanceStatus, UserRole } from "@/lib/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   Activity,
@@ -33,7 +34,7 @@ import {
   Zap
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { useTrainer } from "@/hooks/use-trainer"
 
@@ -59,7 +60,7 @@ function DashboardContent() {
   // Usar hooks de forma segura
   const { checkMembershipStatus } = useClients()
   const { clients, loadClients } = useClients()
-  const { activities, refreshActivities } = useActivityContext()
+  const { activities, refreshActivities, getWeekDates } = useActivityContext()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
   const { currentShift, toggleShift, loading: loadingShift, dashboardStats: trainerStats } = useTrainer()
 
@@ -127,6 +128,59 @@ function DashboardContent() {
     }
   }, [loadClients, refreshActivities, user?.role, queryClient])
 
+  const calculateWeeklyAttendanceRate = useCallback(async (): Promise<number> => {
+    const weekStart = getWeekDates(new Date())[0]
+    weekStart.setHours(0, 0, 0, 0)
+
+    const now = new Date()
+
+    const weekActivities = activities.filter(activity => {
+      const activityDate = new Date(activity.date)
+      return (
+        activity.status !== ActivityStatus.CANCELLED &&
+        activityDate >= weekStart &&
+        activityDate <= now
+      )
+    })
+
+    if (weekActivities.length === 0) {
+      return 0
+    }
+
+    const classRates = await Promise.all(
+      weekActivities.map(async (activity) => {
+        try {
+          const activityDetail = await fetchActivityDetail(activity.id)
+          const totalParticipants = activityDetail.participants.length
+
+          if (totalParticipants === 0) {
+            return null
+          }
+
+          const attendedParticipants = activityDetail.participants.filter(
+            participant =>
+              participant.status === AttendanceStatus.PRESENT ||
+              participant.status === AttendanceStatus.LATE
+          ).length
+
+          return (attendedParticipants / totalParticipants) * 100
+        } catch (error) {
+          console.error(`Error loading attendance for activity ${activity.id}:`, error)
+          return null
+        }
+      })
+    )
+
+    const validRates = classRates.filter((rate): rate is number => rate !== null)
+
+    if (validRates.length === 0) {
+      return 0
+    }
+
+    const weeklyAverage = validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length
+    return Math.round(weeklyAverage)
+  }, [activities, getWeekDates])
+
   // Calcular estadísticas reales
   useEffect(() => {
     if (!user || !mounted) {
@@ -134,46 +188,65 @@ function DashboardContent() {
       return
     }
 
-    try {
-      // 1. Ingresos del mes (usar datos calculados desde usePayment)
-      const monthlyRevenue = currentMonthRevenue?.amount || 0
+    let isCancelled = false
 
-      // 2. Clientes activos
-      const activeClients = clients.filter(c => c.status === "ACTIVE").length
-      // 3. Actividades de hoy (que aún no han terminado)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+    const calculateStats = async () => {
+      try {
+        // 1. Ingresos del mes (usar datos calculados desde usePayment)
+        const monthlyRevenue = currentMonthRevenue?.amount || 0
 
-      const todayActivities = activities.filter(a => {
-        const activityDate = new Date(a.date)
-        return a.status === ActivityStatus.ACTIVE &&
-          activityDate >= today &&
-          activityDate < tomorrow
-      }).length
+        // 2. Clientes activos
+        const activeClients = clients.filter(c => c.status === "ACTIVE").length
+        // 3. Actividades de hoy (que aun no han terminado)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const tomorrow = new Date(today)
+        tomorrow.setDate(tomorrow.getDate() + 1)
 
-      // 4. Tasa de asistencia (simulada por ahora)
-      const attendanceRate = 87 // Esto se puede calcular más adelante con datos reales
+        const todayActivities = activities.filter(a => {
+          const activityDate = new Date(a.date)
+          return a.status === ActivityStatus.ACTIVE &&
+            activityDate >= today &&
+            activityDate < tomorrow
+        }).length
 
-      setDashboardStats({
-        monthlyRevenue,
-        activeClients,
-        todayActivities,
-        attendanceRate
-      })
-    } catch (error) {
-      console.error('Error calculating dashboard stats:', error)
-      setDashboardStats({
-        monthlyRevenue: 0,
-        activeClients: 0,
-        todayActivities: 0,
-        attendanceRate: 87
-      })
-    } finally {
-      setIsLoading(false)
+        // 4. Tasa de asistencia semanal real (solo ADMIN)
+        const attendanceRate = user.role === UserRole.ADMIN
+          ? await calculateWeeklyAttendanceRate()
+          : 0
+
+        if (!isCancelled) {
+          setDashboardStats({
+            monthlyRevenue,
+            activeClients,
+            todayActivities,
+            attendanceRate
+          })
+        }
+      } catch (error) {
+        console.error('Error calculating dashboard stats:', error)
+
+        if (!isCancelled) {
+          setDashboardStats({
+            monthlyRevenue: 0,
+            activeClients: 0,
+            todayActivities: 0,
+            attendanceRate: 0
+          })
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
+      }
     }
-  }, [user, clients, activities, mounted])
+
+    calculateStats()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [user, clients, activities, mounted, currentMonthRevenue, calculateWeeklyAttendanceRate])
 
   // Evitar renderizado durante SSR
   if (!mounted) {
