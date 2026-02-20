@@ -89,16 +89,16 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   // ===============================
 
   const createPaymentMutation = useMutation({
-    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isMercadoPagoPayment: boolean }) =>
-      createPayment(data.paymentData, data.isMercadoPagoPayment),
+    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isAutomaticPayment: boolean }) =>
+      createPayment(data.paymentData, data.isAutomaticPayment),
     onSuccess: async (response, variables) => {
       queryClient.invalidateQueries({ queryKey: ["payments"] })
-      
-      const isAutomaticPayment = variables.isMercadoPagoPayment
+
+      const isAutomaticPayment = variables.isAutomaticPayment
       if (isAutomaticPayment) {
         queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
         queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
-        
+
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
           queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
@@ -282,11 +282,11 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   // ===============================
 
   const createNewPayment = useCallback(async (
-    paymentData: Omit<NewPaymentInput, 'paymentStatus'>, 
-    isMercadoPagoPayment: boolean = false
+    paymentData: Omit<NewPaymentInput, 'paymentStatus'>,
+    isAutomaticPayment: boolean = false
   ): Promise<PaymentMutationResult> => {
     try {
-      await createPaymentMutation.mutateAsync({ paymentData, isMercadoPagoPayment })
+      await createPaymentMutation.mutateAsync({ paymentData, isAutomaticPayment })
       return { success: true, message: "Pago creado exitosamente" }
     } catch (error) {
       return { success: false, message: "Error al crear el pago" }

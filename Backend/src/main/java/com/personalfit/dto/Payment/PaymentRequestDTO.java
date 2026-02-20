@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PaymentRequestDTO {
     
-    // Para compatibilidad con pagos de MercadoPago (único usuario)
+    // Para pagos individuales (único usuario)
     private Long clientId;
     private Integer clientDni;
     
@@ -58,3 +58,4 @@ public class PaymentRequestDTO {
         return List.of();
     }
 }
+

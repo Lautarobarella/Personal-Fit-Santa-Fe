@@ -57,7 +57,7 @@ export default function PaymentsPage() {
     } = usePaymentContext()
 
 
-    // useEffect 1: Refrescar datos al montar y detectar cambios de usuario/MercadoPago
+    // useEffect 1: Refrescar datos al montar y detectar cambios de usuario
     useEffect(() => {
         if (!user?.id && user?.role !== UserRole.ADMIN) return
 
@@ -73,22 +73,7 @@ export default function PaymentsPage() {
         // Actualización inicial
         refreshData()
 
-        // Verificar flag de actualización desde pago nuevo
-        const shouldRefresh = localStorage.getItem('refreshPayments')
-        if (shouldRefresh) {
-            localStorage.removeItem('refreshPayments')
-            setTimeout(refreshData, 1000)
-        }
 
-        // Verificar si viene de resultado MercadoPago
-        const referrer = document.referrer
-        if (referrer && (
-            referrer.includes('/payments/result/success') ||
-            referrer.includes('/payments/result/pending') ||
-            referrer.includes('/payments/result/failure')
-        )) {
-            setTimeout(refreshData, 100)
-        }
     }, [user?.id, user?.role, queryClient])
 
     // useEffect 2: Cargar pagos por mes/año para admin
@@ -190,8 +175,6 @@ export default function PaymentsPage() {
                 return "Tarjeta"
             case MethodType.TRANSFER:
                 return "Transferencia"
-            case MethodType.MERCADOPAGO:
-                return "MercadoPago"
             default:
                 return method
         }
@@ -289,7 +272,7 @@ export default function PaymentsPage() {
                         {user?.role === UserRole.ADMIN ? (
                             <Button
                                 size="sm"
-                                onClick={() => router.push("/payments/method-select")}
+                                onClick={() => router.push("/payments/new")}
                             >
                                 <Plus className="h-4 w-4 mr-1" />
                                 Nuevo
@@ -298,7 +281,7 @@ export default function PaymentsPage() {
                             canCreateNewPayment ? (
                                 <Button
                                     size="sm"
-                                    onClick={() => router.push("/payments/method-select")}
+                                    onClick={() => router.push("/payments/new")}
                                 >
                                     <Plus className="h-4 w-4 mr-1" />
                                     Nuevo
@@ -604,3 +587,4 @@ export default function PaymentsPage() {
         </div>
     )
 }
+

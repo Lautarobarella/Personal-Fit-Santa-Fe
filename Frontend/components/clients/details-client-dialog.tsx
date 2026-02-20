@@ -228,8 +228,6 @@ export function ClientDetailsDialog({
         return "Tarjeta"
       case "TRANSFER":
         return "Transferencia"
-      case "MERCADOPAGO":
-        return "MercadoPago"
       default:
         return method
     }

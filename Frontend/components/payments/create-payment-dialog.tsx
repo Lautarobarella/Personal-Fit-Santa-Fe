@@ -565,13 +565,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
     const handleClose = () => {
         onOpenChange(false)
-        // Redirigir según el rol del usuario
-        if (user?.role === UserRole.CLIENT) {
-            // router.push("/payments/method-select") DESCOMENTAR PARA DEJAR ELEGIR EL METODO DE PAGO
-            router.push("/payments")
-        } else {
-            router.push("/payments")
-        }
+        router.push("/payments")
     }
 
     const handleSuccessfulPayment = () => {
@@ -594,7 +588,8 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         setPaymentMethod("") // Reset método de pago
         setPaymentMethod(MethodType.TRANSFER) // Reset payment method
 
-        // Mensaje según el rol del usuario
+
+        // Mensaje segun el rol del usuario
         const isAutomaticPayment = user?.role === UserRole.ADMIN
         const message = isAutomaticPayment
             ? "El pago se ha registrado y el cliente ha sido activado automáticamente"
@@ -731,7 +726,6 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                             <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
                                             <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
                                             <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
-                                            <SelectItem value={MethodType.MERCADOPAGO}>MercadoPago</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 ) : (
@@ -955,4 +949,5 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         </Dialog >
     )
 }
+
 

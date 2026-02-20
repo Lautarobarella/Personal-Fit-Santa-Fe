@@ -1,6 +1,5 @@
 package com.personalfit.controllers;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,39 +91,6 @@ public class PaymentController {
         response.put("requestedCount", paymentRequests.size());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    /**
-     * Webhook Endpoint for MercadoPago Integration.
-     * Receives payment notifications automatically.
-     */
-    @PostMapping("/webhook/mercadopago")
-    public ResponseEntity<Map<String, Object>> createPaymentFromWebhook(
-            @RequestBody PaymentRequestDTO paymentRequest) {
-
-        log.info("Webhook received: DNI={}, Amount={}",
-                paymentRequest.getClientDni(), paymentRequest.getAmount());
-
-        try {
-            paymentService.createWebhookPayment(paymentRequest);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Payment registered via webhook");
-            response.put("timestamp", LocalDateTime.now());
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Webhook processing error: {}", e.getMessage());
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "Error registering payment: " + e.getMessage());
-            response.put("timestamp", LocalDateTime.now());
-
-            return ResponseEntity.badRequest().body(response);
-        }
     }
 
     /**

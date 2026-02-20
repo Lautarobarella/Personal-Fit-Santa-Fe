@@ -1,14 +1,14 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { compressFile, formatFileSize, validatePaymentFile } from "@/lib/file-compression";
+import { compressFile, validatePaymentFile } from "@/lib/file-compression";
 import { MonthlyRevenue, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
 
 /**
  * Unified Payment API Wrapper
  * 
- * Centralizes all payment-related HTTP requests, bridging the frontend with the 
- * backend standard payments controller and MercadoPago integrations.
+ * Centralizes all payment-related HTTP requests for the standard backend
+ * payment controller.
  * 
  * Features:
  * - Error standardization (handleApiError)
@@ -91,9 +91,7 @@ export async function fetchPaymentDetails(paymentId: number): Promise<PaymentTyp
 
 /**
  * Proxy function for Payment Creation.
- * Handles both:
- * 1. Manual Cash/Transfer payments (with optional receipt file upload)
- * 2. Automated MercadoPago callbacks (no file, auto-approved)
+ * Handles both manual uploads and automatic admin registrations.
  * 
  * Includes client-side compression logic to optimize upload bandwidth usage.
  * 
@@ -104,7 +102,6 @@ export async function createPayment(
   paymentData: Omit<NewPaymentInput, 'paymentStatus'>,
   isAutomaticPayment: boolean = false
 ) {
-  // Automatic payments (MP) default to PAID, manual uploads must be verified by Admin (PENDING)
   const paymentStatus = isAutomaticPayment ? PaymentStatus.PAID : PaymentStatus.PENDING;
   const formData = new FormData();
 
@@ -187,37 +184,6 @@ export async function updatePaymentStatus(
     } else {
       handleApiError(error, 'Error al actualizar el pago');
     }
-    throw error;
-  }
-}
-
-// ==========================================
-// MERCADOPAGO INTEGRATION
-// ==========================================
-
-/**
- * Preference Generator
- * 
- * Initializes a transaction intent with MercadoPago's API.
- * The returned ID is used to mount the Checkout Pro widget.
- */
-export async function createCheckoutPreference(
-  productId: string,
-  productName: string,
-  productPrice: number,
-  userEmail: string,
-  userDni: string
-): Promise<any> {
-  try {
-    return await jwtPermissionsApi.post('/payments/mercadopago/checkout', {
-      productId,
-      productName,
-      productPrice,
-      userEmail,
-      userDni
-    });
-  } catch (error) {
-    handleApiError(error, 'Error al crear la preferencia de pago');
     throw error;
   }
 }

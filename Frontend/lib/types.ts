@@ -303,7 +303,7 @@ export interface NotificationFormType {
 }
 
 export interface NewPaymentInput {
-  // Para compatibilidad con pagos de MercadoPago (único DNI)
+  // Para pagos individuales (único DNI)
   clientDni?: number
   // Para pagos manuales múltiples (lista de DNIs)
   clientDnis?: number[]

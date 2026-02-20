@@ -161,16 +161,6 @@ public class PaymentService {
     }
 
     /**
-     * Webhook Entry Point.
-     * Facade for creating payments triggered by external providers (MercadoPago).
-     * Does not require a file attachment.
-     */
-    @Transactional
-    public Payment createWebhookPayment(PaymentRequestDTO paymentRequest) {
-        return createPayment(paymentRequest, null);
-    }
-
-    /**
      * Batch Creation via Admin Panel.
      * Optimized for processing multiple distinct payments in a single request.
      * 
@@ -409,7 +399,7 @@ public class PaymentService {
     }
 
     private void validatePaymentCreation(User user) {
-        // Validation Scope: Only applicable for manual Client payments (not Webhooks)
+        // Validation Scope: Only applicable for manual Client payments
         if (user.getRole().name().equals("CLIENT")) {
             Optional<Payment> lastPayment = paymentRepository.findTopByUserOrderByCreatedAtDesc(user);
 
