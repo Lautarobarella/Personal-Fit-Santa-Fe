@@ -41,7 +41,7 @@ docker info >/dev/null 2>&1 || fail "Docker daemon no responde. Inicia Docker De
 docker compose version >/dev/null 2>&1 || fail "docker compose no esta disponible"
 
 step "Preparando directorios locales"
-mkdir -p local-data/comprobantes local-data/firebase
+mkdir -p local-data/firebase
 
 step "Levantando servicios con docker compose"
 if [[ "$NO_BUILD" == "true" ]]; then

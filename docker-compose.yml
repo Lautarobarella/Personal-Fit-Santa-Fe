@@ -1,10 +1,3 @@
-version: '3.8'
-
-networks:
-  personalfit-network:
-    driver: bridge
-    name: personalfit-network
-
 services:
   postgres:
     image: postgres:15
@@ -13,11 +6,10 @@ services:
     networks:
       - personalfit-network
     environment:
-      POSTGRES_DB: personalfit
-      POSTGRES_USER: personalfit_user
+      POSTGRES_DB: ${POSTGRES_DB:-personalfit_db}
+      POSTGRES_USER: ${POSTGRES_USER:-personalfit_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      # Volumen persistente para la base de datos - los datos se conservan entre deployments
       - pgdata:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5432:5432"
@@ -33,41 +25,27 @@ services:
     depends_on:
       - postgres
     environment:
-      SPRING_DATASOURCE_FILES_PATH: ${SPRING_DATASOURCE_FILES_PATH:-/opt/backups/comprobantes}
-      #SPRING_DATASOURCE_FILES_PATH: /app/uploads/comprobantes
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personalfit
-      SPRING_DATASOURCE_USERNAME: personalfit_user
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      # Configuración de conexión de base de datos
+      SPRING_DATASOURCE_FILES_PATH: ${SPRING_DATASOURCE_FILES_PATH:-/app/uploads}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/personalfit_db}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-personalfit_user}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-personalfit_local_db_password}
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
-      # Configuración de Spring Boot
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-production}
-      #SPRING_PROFILES_ACTIVE: development
-      # Secretos para el backend
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-development}
       JWT_SECRET: ${JWT_SECRET}
-      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE}
-      APP_COOKIE_SAME_SITE: ${APP_COOKIE_SAME_SITE}
-      APP_COOKIE_DOMAIN: ${APP_COOKIE_DOMAIN}
-      APP_COOKIE_ACCESS_TOKEN_MAX_AGE: ${APP_COOKIE_ACCESS_TOKEN_MAX_AGE}
-      APP_COOKIE_REFRESH_TOKEN_MAX_AGE: ${APP_COOKIE_REFRESH_TOKEN_MAX_AGE}
-      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT}
-      
-      # Firebase Configuration for Push Notifications
-      # Firebase config is now read from mounted file at /opt/firebase/firebase-service-account.json
-      
-      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE:-false}
+      APP_COOKIE_SAME_SITE: ${APP_COOKIE_SAME_SITE:-Lax}
+      APP_COOKIE_DOMAIN: ${APP_COOKIE_DOMAIN:-localhost}
+      APP_COOKIE_ACCESS_TOKEN_MAX_AGE: ${APP_COOKIE_ACCESS_TOKEN_MAX_AGE:-86400}
+      APP_COOKIE_REFRESH_TOKEN_MAX_AGE: ${APP_COOKIE_REFRESH_TOKEN_MAX_AGE:-604800}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-disabled-local}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-disabled-local}
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
-      # Mapeo directo al directorio local de la máquina host (comentado para desarrollo local)
-      - ${RECEIPTS_HOST_PATH:-/opt/backups/comprobantes}:/opt/backups/comprobantes
-      # Directorio Firebase para la configuración de service account
-      - ${FIREBASE_HOST_PATH:-/opt/firebase}:/opt/firebase:ro
-      # Volumen local para desarrollo
-      
-      # - uploads_data:/app/uploads/comprobantes
+      - receipts_data:${SPRING_DATASOURCE_FILES_PATH:-/app/uploads}
+      - ./local-data/firebase:/opt/firebase:ro
 
   personalfit-frontend:
     build:
@@ -76,10 +54,9 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-        NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
+        NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY:-disabled-local}
         NEXT_PUBLIC_MP_ENVIRONMENT: sandbox
         NEXT_PUBLIC_IS_DOCKER: ${NEXT_PUBLIC_IS_DOCKER:-true}
-        # Firebase Configuration
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
@@ -97,14 +74,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Variables para el runtime (aunque las NEXT_PUBLIC ya están compiladas)
       JWT_SECRET: ${JWT_SECRET}
-      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-disabled-local}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-disabled-local}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://personalfit-backend:8080}
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-      
-      # Configuración de Next.js
       NODE_ENV: production
 
   pgadmin:
@@ -121,9 +96,11 @@ services:
     depends_on:
       - postgres
 
+networks:
+  personalfit-network:
+    driver: bridge
+    name: personalfit-network
+
 volumes:
-  # Volúmenes persistentes que conservan los datos entre deployments
   pgdata:
-  # Datos de PostgreSQL
-  uploads_data:
-    # Archivos de comprobantes de pago para desarrollo local
+  receipts_data:

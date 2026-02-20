@@ -40,4 +40,7 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local runtime data
+local-data/
+
 *.md

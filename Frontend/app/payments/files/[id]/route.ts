@@ -8,10 +8,13 @@ export async function GET(
         const resolvedParams = await params;
         const fileId = resolvedParams.id;
 
-        // Hacer la petición al backend (ahora sin autenticación requerida)
-        // Usar la URL del backend directamente, no la del frontend
-        // descomentar para produccion
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://personalfitsantafe.com';
+        // Server-side route handler: prefer internal Docker URL.
+        const backendUrl =
+            process.env.BACKEND_INTERNAL_URL ||
+            process.env.NEXT_PUBLIC_API_URL ||
+            process.env.NEXT_PUBLIC_API_BASE_URL ||
+            'http://localhost:8080';
+
         const response = await fetch(`${backendUrl}/api/payments/files/${fileId}`);
 
         if (!response.ok) {
@@ -25,24 +28,20 @@ export async function GET(
             );
         }
 
-        // Obtener el contenido del archivo
         const fileBuffer = await response.arrayBuffer();
 
-        // Obtener los headers de la respuesta del backend
         const contentType = response.headers.get('content-type');
         const contentDisposition = response.headers.get('content-disposition');
 
-        // Crear la respuesta con los headers apropiados
         const headers = new Headers();
         if (contentType) headers.set('content-type', contentType);
         if (contentDisposition) headers.set('content-disposition', contentDisposition);
-        headers.set('cache-control', 'public, max-age=3600'); // Cache por 1 hora
+        headers.set('cache-control', 'public, max-age=3600');
 
         return new NextResponse(fileBuffer, {
             status: 200,
             headers,
         });
-
     } catch (error) {
         console.error('Error serving file:', error);
         return NextResponse.json(
