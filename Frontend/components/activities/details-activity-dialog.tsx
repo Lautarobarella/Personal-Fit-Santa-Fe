@@ -654,7 +654,7 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
                             }
                           >
                             {updatingAttendanceId === participant.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                            Asistio
+                            Asistió
                           </Button>
                           <Button
                             size="sm"
@@ -669,7 +669,7 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
                             }
                           >
                             {updatingAttendanceId === participant.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                            No asistio
+                            No asistió
                           </Button>
                         </div>
                       </div>

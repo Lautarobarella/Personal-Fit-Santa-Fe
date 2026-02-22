@@ -78,9 +78,8 @@ public class SettingsService {
     }
 
     public Integer setRegistrationTimeHours(Integer hours) {
-
-        if (hours == null || hours <= 0) {
-            throw new BusinessRuleException("Registration time must be a positive number",
+        if (hours == null || hours < 0) {
+            throw new BusinessRuleException("Registration time must be a non-negative number",
                     "Api/Settings/setRegistrationTimeHours");
         }
 
@@ -101,9 +100,8 @@ public class SettingsService {
     }
 
     public Integer setUnregistrationTimeHours(Integer hours) {
-
-        if (hours == null || hours <= 0) {
-            throw new BusinessRuleException("Unregistration time must be a positive number",
+        if (hours == null || hours < 0) {
+            throw new BusinessRuleException("Unregistration time must be a non-negative number",
                     "Api/Settings/setUnregistrationTimeHours");
         }
 

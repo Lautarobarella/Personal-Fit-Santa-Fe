@@ -294,6 +294,10 @@ export function useActivity() {
 
   // Función para verificar si se puede inscribir basándose en el tiempo límite
   const canEnrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
+    if (registrationTime === 0) {
+      return true
+    }
+
     const now = new Date()
     const activityDate = new Date(activity.date)
     const timeDifferenceInHours = (activityDate.getTime() - now.getTime()) / (1000 * 60 * 60)
@@ -303,6 +307,10 @@ export function useActivity() {
 
   // Función para verificar si se puede desinscribir basándose en el tiempo límite
   const canUnenrollBasedOnTime = useCallback((activity: ActivityType): boolean => {
+    if (unregistrationTime === 0) {
+      return true
+    }
+
     const now = new Date()
     const activityDate = new Date(activity.date)
     const timeDifferenceInHours = (activityDate.getTime() - now.getTime()) / (1000 * 60 * 60)
