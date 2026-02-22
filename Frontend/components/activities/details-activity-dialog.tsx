@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Calendar,
   Users,
@@ -21,11 +22,14 @@ import {
   CheckCircle,
   Dumbbell,
   Gauge,
+  Loader2,
   MailWarningIcon,
 } from "lucide-react"
 import { useActivityContext } from "@/contexts/activity-provider"
+import { useAuth } from "@/contexts/auth-provider"
+import { useToast } from "@/hooks/use-toast"
 import { getMuscleGroupLabels } from "@/lib/muscle-groups"
-import { ActivityStatus, AttendanceStatus } from "@/lib/types"
+import { ActivityStatus, AttendanceStatus, UserRole } from "@/lib/types"
 
 interface DetailsActivityDialogProps {
   _open: boolean
@@ -38,9 +42,15 @@ interface DetailsActivityDialogProps {
 export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId, onEdit, onDelete }: DetailsActivityDialogProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const [visibleSummaryAttendanceId, setVisibleSummaryAttendanceId] = useState<number | null>(null)
+  const [isTakeAttendanceOpen, setIsTakeAttendanceOpen] = useState(false)
+  const [attendanceQueueIds, setAttendanceQueueIds] = useState<number[]>([])
+  const [updatingAttendanceId, setUpdatingAttendanceId] = useState<number | null>(null)
+  const { user } = useAuth()
+  const { toast } = useToast()
   const {
     selectedActivity,
     loadActivityDetail,
+    markParticipantAttendance,
   } = useActivityContext()
 
   useEffect(() => {
@@ -49,7 +59,10 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
 
   useEffect(() => {
     if (!isOpen) {
+      setActiveTab("overview")
       setVisibleSummaryAttendanceId(null)
+      setIsTakeAttendanceOpen(false)
+      setAttendanceQueueIds([])
     }
   }, [isOpen])
 
@@ -96,6 +109,137 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
         return status
     }
   }
+
+  const canTakeAttendance = user?.role === UserRole.ADMIN
+  const attendanceStatusOptions: AttendanceStatus[] = [
+    AttendanceStatus.PRESENT,
+    AttendanceStatus.ABSENT,
+    AttendanceStatus.LATE,
+    AttendanceStatus.PENDING,
+  ]
+
+  const getAttendanceStatusLabel = (status: AttendanceStatus) => {
+    switch (status) {
+      case AttendanceStatus.PRESENT:
+        return "Presente"
+      case AttendanceStatus.ABSENT:
+        return "Ausente"
+      case AttendanceStatus.LATE:
+        return "Tarde"
+      case AttendanceStatus.PENDING:
+      default:
+        return "Pendiente"
+    }
+  }
+
+  const getAttendanceStatusSelectClass = (status: AttendanceStatus) => {
+    switch (status) {
+      case AttendanceStatus.PRESENT:
+        return "border-green-200 bg-green-50 text-green-700"
+      case AttendanceStatus.ABSENT:
+        return "border-red-200 bg-red-50 text-red-700"
+      case AttendanceStatus.LATE:
+        return "border-slate-300 bg-slate-100 text-slate-700"
+      case AttendanceStatus.PENDING:
+      default:
+        return "border-yellow-200 bg-yellow-50 text-yellow-700"
+    }
+  }
+
+  const getAttendanceBadge = (status: AttendanceStatus) => {
+    switch (status) {
+      case AttendanceStatus.PRESENT:
+        return (
+          <Badge variant={"success"}>
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Presente
+          </Badge>
+        )
+      case AttendanceStatus.ABSENT:
+        return (
+          <Badge variant={"destructive"}>
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Ausente
+          </Badge>
+        )
+      case AttendanceStatus.LATE:
+        return (
+          <Badge variant={"secondary"}>
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Tarde
+          </Badge>
+        )
+      case AttendanceStatus.PENDING:
+      default:
+        return (
+          <Badge variant={"warning"}>
+            <MailWarningIcon className="h-3 w-3 mr-1" />
+            Pendiente
+          </Badge>
+        )
+    }
+  }
+
+  const updateAttendanceStatus = async (
+    attendanceId: number,
+    status: AttendanceStatus,
+    options?: { removeFromQueue?: boolean; successMessage?: string },
+  ) => {
+    if (!canTakeAttendance) {
+      return
+    }
+
+    setUpdatingAttendanceId(attendanceId)
+    try {
+      const result = await markParticipantAttendance(attendanceId, status)
+
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+        return
+      }
+
+      await loadActivityDetail(activityId)
+      if (options?.removeFromQueue) {
+        setAttendanceQueueIds((currentQueue) => currentQueue.filter((id) => id !== attendanceId))
+      }
+
+      toast({
+        title: "Asistencia actualizada",
+        description: options?.successMessage || "El estado de asistencia fue actualizado.",
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la asistencia.",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdatingAttendanceId(null)
+    }
+  }
+
+  const participantsNotPresent = selectedActivity.participants.filter(
+    (participant) => participant.status !== AttendanceStatus.PRESENT,
+  )
+
+  const openTakeAttendanceDialog = () => {
+    if (!canTakeAttendance) {
+      return
+    }
+
+    const pendingAttendanceIds = participantsNotPresent.map((participant) => participant.id)
+
+    setAttendanceQueueIds(pendingAttendanceIds)
+    setIsTakeAttendanceOpen(true)
+  }
+
+  const participantsToProcess = selectedActivity.participants.filter((participant) =>
+    attendanceQueueIds.includes(participant.id),
+  )
 
   const presentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.PRESENT)
   const absentParticipants = selectedActivity.participants.filter((p) => p.status === AttendanceStatus.ABSENT)
@@ -274,12 +418,26 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
 
           {/* Participants Tab */}
           <TabsContent value="attendance" className="space-y-4 mt-4">
-            <div className="m-2">
+            <div className="m-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-semibold text-left">Lista de Participantes</h3>
+                {canTakeAttendance && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="bg-transparent"
+                    disabled={participantsNotPresent.length === 0}
+                    onClick={openTakeAttendanceDialog}
+                  >
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Tomar Asistencia
+                  </Button>
+                )}
+              </div>
               <div className="flex justify-end gap-2">
-                <Badge variant={'success'}>{presentParticipants.length} Presentes</Badge>
+                <Badge variant={"success"}>{presentParticipants.length} Presentes</Badge>
                 <Badge variant="destructive">{absentParticipants.length} Ausentes</Badge>
               </div>
-              <h3 className="text-lg font-semibold mt-2 text-left">Lista de Participantes</h3>
             </div>
 
             <div className="space-y-2">
@@ -304,26 +462,35 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <>
-                          {p.status === AttendanceStatus.PRESENT && (
-                            <Badge variant={'success'}>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Presente
-                            </Badge>
-                          )}
-                          {p.status === AttendanceStatus.ABSENT && (
-                            <Badge variant={'destructive'}>
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Ausente
-                            </Badge>
-                          )}
-                          {p.status === AttendanceStatus.PENDING && (
-                            <Badge variant={'warning'}>
-                              <MailWarningIcon className="h-3 w-3 mr-1" />
-                              Pendiente
-                            </Badge>
-                          )}
-                        </>
+                        {canTakeAttendance ? (
+                          <Select
+                            key={`${p.id}-${p.status}`}
+                            disabled={updatingAttendanceId !== null}
+                            onValueChange={(value) => {
+                              const nextStatus = value as AttendanceStatus
+                              updateAttendanceStatus(p.id, nextStatus, {
+                                successMessage: `${p.firstName} ${p.lastName} fue marcado como ${getAttendanceStatusLabel(nextStatus).toLowerCase()}.`,
+                              })
+                            }}
+                          >
+                            <SelectTrigger
+                              className={`h-8 min-w-[132px] rounded-full px-3 text-xs font-medium ${getAttendanceStatusSelectClass(p.status)}`}
+                            >
+                              <SelectValue placeholder={getAttendanceStatusLabel(p.status)} />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                              {attendanceStatusOptions
+                                .filter((status) => status !== p.status)
+                                .map((status) => (
+                                  <SelectItem key={`${p.id}-${status}`} value={status}>
+                                    {getAttendanceStatusLabel(status)}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          getAttendanceBadge(p.status)
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 ml-11">
@@ -437,29 +604,99 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
                 </div>
               </CardContent>
             </Card>
-
-            {/* Quick Actions */}
-            <Card className="m-2 mb-2">
-              <CardHeader>
-                <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" className="bg-transparent">
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    Tomar Asistencia
-                  </Button>
-                  <Button size="sm" variant="outline" className="bg-transparent">
-                    <Users className="h-4 w-4 mr-2" />
-                    Exportar Lista
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog
+          open={isTakeAttendanceOpen}
+          onOpenChange={(open) => {
+            setIsTakeAttendanceOpen(open)
+            if (!open) {
+              setAttendanceQueueIds([])
+            }
+          }}
+        >
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="mt-4">Tomar Asistencia</DialogTitle>
+              <DialogDescription>
+                Marca asistencia cliente por cliente. Solo se listan quienes no estan en estado Presente.
+              </DialogDescription>
+            </DialogHeader>
+
+            {participantsToProcess.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <Badge variant="outline">{participantsToProcess.length} pendientes</Badge>
+                </div>
+                {participantsToProcess.map((participant) => (
+                  <Card key={participant.id}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs">
+                              {`${participant.firstName[0] ?? ""}${participant.lastName[0] ?? ""}`}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="font-medium truncate">{participant.firstName} {participant.lastName}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            className="h-7 px-2.5 text-xs"
+                            disabled={updatingAttendanceId !== null}
+                            onClick={() =>
+                              updateAttendanceStatus(participant.id, AttendanceStatus.PRESENT, {
+                                removeFromQueue: true,
+                                successMessage: `${participant.firstName} ${participant.lastName} fue marcado como presente.`,
+                              })
+                            }
+                          >
+                            {updatingAttendanceId === participant.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            Asistio
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 px-2.5 text-xs"
+                            disabled={updatingAttendanceId !== null}
+                            onClick={() =>
+                              updateAttendanceStatus(participant.id, AttendanceStatus.ABSENT, {
+                                removeFromQueue: true,
+                                successMessage: `${participant.firstName} ${participant.lastName} fue marcado como ausente.`,
+                              })
+                            }
+                          >
+                            {updatingAttendanceId === participant.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            No asistio
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <CheckCircle className="h-10 w-10 mx-auto mb-2 text-success" />
+                  <p className="font-medium">No quedan clientes pendientes</p>
+                  <p className="text-sm text-muted-foreground">Todas las asistencias de esta ronda ya fueron marcadas.</p>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setIsTakeAttendanceOpen(false)}>
+                Cerrar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   )
 }
+
 
