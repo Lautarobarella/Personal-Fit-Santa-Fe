@@ -1,4 +1,5 @@
-import { checkUserMembershipStatus, createUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
+import { checkUserMembershipStatus, createUser, deleteUser, fetchUserDetail, fetchUsers } from "@/api/clients/usersApi"
+import { updateUserProfile } from "@/api/clients/usersApi"
 import { fetchUserPayments } from "@/api/payments/paymentsApi"
 import { UserRole, type UserDetailInfo, type UserFormType, type UserType } from "@/lib/types"
 import { useCallback, useState } from "react"
@@ -66,6 +67,34 @@ export function useClients() {
     }
   }, [])
 
+  const deleteClient = useCallback(async (id: number) => {
+    setLoading(true)
+    setError(null)
+    try {
+      await deleteUser(id)
+      setClients((prev) => prev.filter((c) => c.id !== id))
+    } catch (err) {
+      setError("Error al eliminar el cliente")
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const updateClientProfile = useCallback(async (data: { userId: number; address?: string; phone?: string; emergencyPhone?: string }) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await updateUserProfile(data)
+      return response
+    } catch (err) {
+      setError("Error al actualizar el cliente")
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // Limpiar cliente seleccionado
   const clearSelectedClient = () => setSelectedClient(null)
 
@@ -91,6 +120,8 @@ export function useClients() {
     loadClientDetail,
     clearSelectedClient,
     checkMembershipStatus,
+    deleteClient,
+    updateClientProfile,
     setClients, // opcional, por si quieres manipular manualmente
   }
 }

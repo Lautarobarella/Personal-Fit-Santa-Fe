@@ -54,6 +54,15 @@ export async function fetchCurrentUserById(userId: number) {
   }
 }
 
+export async function deleteUser(id: number) {
+  try {
+    return await jwtPermissionsApi.delete(`/api/users/delete/${id}`);
+  } catch (error) {
+    handleApiError(error, 'Error al eliminar el usuario');
+    throw error;
+  }
+}
+
 export async function createUser(user: UserFormType) {
   try {
     return await jwtPermissionsApi.post('/api/users/new', user);

@@ -8,18 +8,32 @@ import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useClients } from "@/hooks/clients/use-client"
+import { useToast } from "@/hooks/use-toast"
 import { UserRole } from "@/lib/types"
 import { Calendar, Loader2, Mail, MoreVertical, Phone, Plus, Search } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export default function ClientsPage() {
 
   const { user } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
   
   // Use custom hook to redirect to login if not authenticated
   useRequireAuth()
@@ -28,6 +42,7 @@ export default function ClientsPage() {
     loading,
     error,
     loadClients,
+    deleteClient,
   } = useClients()
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -37,6 +52,14 @@ export default function ClientsPage() {
     open: boolean
     userId: number | null
   }>({ open: false, userId: null })
+
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean
+    clientId: number | null
+    clientName: string
+  }>({ open: false, clientId: null, clientName: "" })
+
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadClients()
@@ -86,6 +109,24 @@ export default function ClientsPage() {
   }
 
   const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
+
+  const handleOpenDeleteDialog = (clientId: number, clientName: string) => {
+    setDeleteDialog({ open: true, clientId, clientName })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.clientId) return
+    setIsDeleting(true)
+    try {
+      await deleteClient(deleteDialog.clientId)
+      toast({ title: "Cliente eliminado", description: `${deleteDialog.clientName} fue eliminado exitosamente.` })
+      setDeleteDialog({ open: false, clientId: null, clientName: "" })
+    } catch {
+      toast({ title: "Error", description: "No se pudo eliminar el cliente.", variant: "destructive" })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -219,8 +260,13 @@ export default function ClientsPage() {
                       <DropdownMenuItem onClick={() => handleClientDetails(client.id)}>Ver Detalles</DropdownMenuItem>
                       {user.role === UserRole.ADMIN && (
                         <>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/clients/${client.id}`)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleOpenDeleteDialog(client.id, `${client.firstName} ${client.lastName}`)}
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
                         </>
                       )}
                     </DropdownMenuContent>
@@ -257,6 +303,35 @@ export default function ClientsPage() {
           userId={clientDetailsDialog.userId}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => !isDeleting && setDeleteDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar a <strong>{deleteDialog.clientName}</strong>. Esta acción no se puede deshacer y{" "}
+              <strong>se perderán todos los datos asociados al cliente</strong>, incluyendo pagos, asistencias y cualquier
+              historial registrado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BottomNav />
     </div>
   )
