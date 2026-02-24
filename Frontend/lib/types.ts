@@ -195,6 +195,37 @@ export interface TrainerActivityType {
   status: ActivityStatus
 }
 
+export type WorkShiftStatus = 'ACTIVE' | 'COMPLETED' | 'AUTO_CLOSED'
+
+export interface WorkShift {
+  id: number
+  startTime: string
+  endTime: string | null
+  totalHours: number | null
+  status: WorkShiftStatus
+}
+
+export interface TodayShiftInfo {
+  checkInTime: string | null
+  checkOutTime: string | null
+  hasCheckedIn: boolean
+  hasCheckedOut: boolean
+}
+
+export interface MonthlyDayHours {
+  date: string
+  totalHours: number
+  shifts: WorkShift[]
+}
+
+export interface TrainerDashboardStats {
+  classesToday: number
+  nextClassName: string | null
+  nextClassTime: string | null
+  currentShiftHours: number
+  weeklyHours: number
+}
+
 export interface ActivityType {
   id: number
   name: string

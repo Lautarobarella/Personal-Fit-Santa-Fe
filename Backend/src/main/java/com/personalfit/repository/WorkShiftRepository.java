@@ -20,4 +20,7 @@ public interface WorkShiftRepository extends JpaRepository<WorkShift, Long> {
 
     // Find all active shifts (for auto-close job)
     List<WorkShift> findByStatus(WorkShiftStatus status);
+
+    // Find shifts for a trainer within a date range (e.g. today)
+    Optional<WorkShift> findFirstByTrainerIdAndStartTimeBetweenOrderByStartTimeAsc(Long trainerId, java.time.LocalDateTime start, java.time.LocalDateTime end);
 }

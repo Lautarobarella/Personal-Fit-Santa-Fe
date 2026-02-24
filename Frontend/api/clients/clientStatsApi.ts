@@ -7,7 +7,7 @@ export interface ClientStats {
   nextClass: {
     id: number;
     name: string;
-    date: Date;
+    date: string;
     time: string;
   } | null;
   completedClassesCount: number;
@@ -22,7 +22,22 @@ export interface ClientStats {
  */
 export async function fetchClientStats(clientId: number): Promise<ClientStats> {
   try {
-    return await jwtPermissionsApi.get(`/api/users/stats/${clientId}`);
+    const data = await jwtPermissionsApi.get(`/api/users/stats/${clientId}`);
+    if (!data || typeof data !== 'object') {
+      return { weeklyActivityCount: 0, nextClass: null, completedClassesCount: 0, membershipStatus: UserStatus.INACTIVE, remainingDays: 0 };
+    }
+    return {
+      weeklyActivityCount: Number(data.weeklyActivityCount) || 0,
+      nextClass: data.nextClass && typeof data.nextClass === 'object' ? {
+        id: Number(data.nextClass.id) || 0,
+        name: String(data.nextClass.name ?? ''),
+        date: typeof data.nextClass.date === 'string' ? data.nextClass.date : new Date(data.nextClass.date).toISOString(),
+        time: String(data.nextClass.time ?? ''),
+      } : null,
+      completedClassesCount: Number(data.completedClassesCount) || 0,
+      membershipStatus: data.membershipStatus ?? UserStatus.INACTIVE,
+      remainingDays: Number(data.remainingDays) || 0,
+    };
   } catch (error) {
     handleApiError(error, 'Error al cargar las estadísticas del cliente');
     // Retornar datos por defecto en caso de error

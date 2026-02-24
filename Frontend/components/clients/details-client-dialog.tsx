@@ -55,8 +55,10 @@ export function ClientDetailsDialog({
   const { loading, error, loadClientDetail, selectedClient } = useClients()
 
   useEffect(() => {
-    loadClientDetail(userId)
-  }, [loadClientDetail, userId])
+    if (isOpen) {
+      loadClientDetail(userId)
+    }
+  }, [loadClientDetail, userId, isOpen])
 
   useEffect(() => {
     if (!isOpen) {
@@ -65,10 +67,25 @@ export function ClientDetailsDialog({
   }, [isOpen])
 
   if (loading) {
-    return <div>Cargando detalles del cliente...</div>
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="flex items-center justify-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Cargando detalles del cliente...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
   }
   if (error) {
-    return <div>{error}</div>
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="text-destructive p-4">{String(error)}</div>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   const formatDate = (date: Date | string | null | undefined) => {

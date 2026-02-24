@@ -1,11 +1,14 @@
 "use client"
 
+import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { Separator } from "@/components/ui/separator"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
@@ -28,7 +31,10 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  LogIn,
+  LogOut,
   Target,
+  Timer,
   TrendingUp,
   Users,
   Zap
@@ -36,7 +42,7 @@ import {
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 
-import { useTrainer } from "@/hooks/use-trainer"
+import { useTrainer } from "@/hooks/clients/use-trainer"
 
 // Componente que se renderiza solo en el cliente
 function DashboardContent() {
@@ -62,7 +68,10 @@ function DashboardContent() {
   const { clients, loadClients } = useClients()
   const { activities, refreshActivities, getWeekDates } = useActivityContext()
   const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
-  const { currentShift, toggleShift, loading: loadingShift, dashboardStats: trainerStats } = useTrainer()
+  const { currentShift, toggleShift, loading: loadingShift, dashboardStats: trainerStats, todayShift, getMonthlyHours } = useTrainer()
+
+  // Estado para dialog de horas mensuales
+  const [showMonthlyHours, setShowMonthlyHours] = useState(false)
 
   // Usar el contexto unificado de pagos
   const {
@@ -80,6 +89,12 @@ function DashboardContent() {
 
   // Estado para términos y condiciones
   const [showTermsDialog, setShowTermsDialog] = useState(false)
+
+  // Estado para dialog de asistencia desde el dashboard (debe estar antes de los early returns)
+  const [trainerAttendanceDialog, setTrainerAttendanceDialog] = useState<{
+    open: boolean
+    activityId: number | null
+  }>({ open: false, activityId: null })
 
   // Verificar términos y condiciones al montar (solo para usuarios no ADMIN)
   useEffect(() => {
@@ -128,6 +143,41 @@ function DashboardContent() {
     }
   }, [loadClients, refreshActivities, user?.role, queryClient])
 
+  // Encontrar la próxima actividad del entrenador (debe estar antes de los early returns)
+  const getNextTrainerActivity = useCallback(() => {
+    if (!user || user.role !== UserRole.TRAINER) return null
+    const now = new Date()
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const todayActivities = activities
+      .filter(a => {
+        const actDate = new Date(a.date)
+        return actDate >= today && actDate < tomorrow &&
+          a.status === ActivityStatus.ACTIVE
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const inProgress = todayActivities.find(a => {
+      const start = new Date(a.date)
+      const end = new Date(start.getTime() + a.duration * 60000)
+      return start <= now && now <= end
+    })
+    if (inProgress) return inProgress
+
+    const upcoming = todayActivities.find(a => new Date(a.date) > now)
+    if (upcoming) return upcoming
+
+    const futureActivities = activities
+      .filter(a => new Date(a.date) > now && a.status === ActivityStatus.ACTIVE)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    return futureActivities[0] || null
+  }, [activities, user])
+
   const calculateWeeklyAttendanceRate = useCallback(async (): Promise<number> => {
     const weekStart = getWeekDates(new Date())[0]
     weekStart.setHours(0, 0, 0, 0)
@@ -158,7 +208,7 @@ function DashboardContent() {
           }
 
           const attendedParticipants = activityDetail.participants.filter(
-            participant =>
+            (participant: { status: string }) =>
               participant.status === AttendanceStatus.PRESENT ||
               participant.status === AttendanceStatus.LATE
           ).length
@@ -253,7 +303,7 @@ function DashboardContent() {
     return null
   }
 
-  if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading) || (user.role === UserRole.ADMIN && pendingPaymentsLoading)) {
+  if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading) || (user.role === UserRole.ADMIN && pendingPaymentsLoading) || (user.role === UserRole.TRAINER && loadingShift)) {
     return (
       <div className="min-h-screen bg-background pb-32">
         <MobileHeader title="Cargando..." />
@@ -323,32 +373,37 @@ function DashboardContent() {
     } else if (user.role === UserRole.TRAINER) {
       if (!trainerStats) return [];
 
+      const formatShiftTime = (isoStr: string | null) => {
+        if (!isoStr) return "--:--";
+        return new Date(isoStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      };
+
       const nextClassValue = trainerStats.nextClassTime
-        ? new Date(trainerStats.nextClassTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        ? new Date(String(trainerStats.nextClassTime)).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
         : "Sin clases";
 
       return [
         {
-          title: "Horas Semanales",
-          value: `${trainerStats.weeklyHours.toFixed(1)} hs`,
-          icon: Clock,
-          description: "esta semana",
+          title: "Check-in",
+          value: formatShiftTime(todayShift.checkInTime),
+          icon: LogIn,
+          description: todayShift.hasCheckedIn ? "Registrado hoy" : "No registrado",
           dynamicFontSize: "text-2xl",
-          color: "primary"
+          color: todayShift.hasCheckedIn ? "success" : "destructive"
+        },
+        {
+          title: "Check-out",
+          value: formatShiftTime(todayShift.checkOutTime),
+          icon: LogOut,
+          description: todayShift.hasCheckedOut ? "Registrado hoy" : "No registrado",
+          dynamicFontSize: "text-2xl",
+          color: todayShift.hasCheckedOut ? "success" : "destructive"
         },
         {
           title: "Clases Hoy",
-          value: trainerStats.classesToday.toString(),
+          value: String(trainerStats.classesToday ?? 0),
           icon: Activity,
           description: "programadas",
-          dynamicFontSize: "text-2xl",
-          color: "primary"
-        },
-        {
-          title: "Turno Actual",
-          value: `${trainerStats.currentShiftHours.toFixed(1)} hs`,
-          icon: Zap,
-          description: "en curso",
           dynamicFontSize: "text-2xl",
           color: "primary"
         },
@@ -356,7 +411,7 @@ function DashboardContent() {
           title: "Próxima Clase",
           value: nextClassValue,
           icon: Calendar,
-          description: trainerStats.nextClassName || "N/A",
+          description: typeof trainerStats.nextClassName === 'string' ? trainerStats.nextClassName : "N/A",
           dynamicFontSize: "text-2xl",
           color: "primary"
         },
@@ -465,6 +520,33 @@ function DashboardContent() {
     router.push(route)
   }
 
+  const navigateToNextTrainerActivity = () => {
+    const next = getNextTrainerActivity()
+    if (next) {
+      // Navigate to activities page (it will scroll to today)
+      router.push('/activities')
+    } else {
+      toast({
+        title: "Sin actividades",
+        description: "No tenés actividades próximas programadas.",
+        variant: "default"
+      })
+    }
+  }
+
+  const openNextActivityAttendance = () => {
+    const next = getNextTrainerActivity()
+    if (next) {
+      setTrainerAttendanceDialog({ open: true, activityId: next.id })
+    } else {
+      toast({
+        title: "Sin actividades",
+        description: "No tenés actividades próximas para tomar asistencia.",
+        variant: "default"
+      })
+    }
+  }
+
   const getQuickActions = () => {
     if (user.role === UserRole.ADMIN) {
       return [
@@ -474,18 +556,25 @@ function DashboardContent() {
         { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
       ]
     } else if (user.role === UserRole.TRAINER) {
-      const isShiftActive = currentShift?.status === 'ACTIVE';
       return [
         {
-          title: isShiftActive ? "Finalizar Turno" : "Iniciar Turno",
-          onClick: toggleShift,
-          icon: isShiftActive ? EyeOff : CheckCircle,
-          color: isShiftActive ? "bg-red-500" : "bg-green-500",
-          disabled: loadingShift
+          title: "Mis Actividades",
+          onClick: () => navigateToNextTrainerActivity(),
+          icon: Activity,
+          color: "bg-orange-500"
         },
-        { title: "Mis Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
-        { title: "Tomar Asistencia", route: "/attendance", icon: CheckCircle, color: "bg-gray-500" },
-        { title: "Ver Clientes", route: "/clients", icon: Users, color: "bg-gray-500" },
+        {
+          title: "Tomar Asistencia",
+          onClick: () => openNextActivityAttendance(),
+          icon: CheckCircle,
+          color: "bg-gray-500"
+        },
+        {
+          title: "Horas del Mes",
+          onClick: () => setShowMonthlyHours(true),
+          icon: Timer,
+          color: "bg-gray-500"
+        },
       ]
     } else {
       return [
@@ -510,6 +599,23 @@ function DashboardContent() {
     } else if (user.role === UserRole.TRAINER) {
       const alerts: any[] = [];
 
+      // Banner de check-in / check-out faltante
+      if (!todayShift.hasCheckedIn) {
+        alerts.push({
+          type: "warning",
+          message: "No registraste tu check-in hoy. Es importante para computar tus horas de trabajo.",
+          action: "Registrar",
+          onClick: toggleShift
+        });
+      } else if (!todayShift.hasCheckedOut) {
+        alerts.push({
+          type: "warning",
+          message: "No olvides registrar tu check-out al finalizar tu jornada.",
+          action: "Registrar check-out",
+          onClick: toggleShift
+        });
+      }
+
       if (trainerStats?.nextClassTime) {
         const nextClassTime = new Date(trainerStats.nextClassTime);
         const now = new Date();
@@ -523,15 +629,6 @@ function DashboardContent() {
             route: "/activities"
           });
         }
-      }
-
-      if (trainerStats && trainerStats.weeklyHours > 20) {
-        alerts.push({
-          type: "success",
-          message: `Has acumulado ${trainerStats.weeklyHours.toFixed(1)} horas esta semana`,
-          action: "Ver reporte",
-          route: "/stats"
-        });
       }
 
       return alerts;
@@ -623,15 +720,15 @@ function DashboardContent() {
                       {alert.type === "warning" && <AlertTriangle className="h-4 w-4 text-primary flex-shrink-0" />}
                       {alert.type === "info" && <Bell className="h-4 w-4 text-primary flex-shrink-0" />}
                       {alert.type === "success" && <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />}
-                      <span className="text-sm font-semibold text-foreground flex-1">{alert.message}</span>
+                      <span className="text-sm font-semibold text-foreground flex-1">{String(alert.message ?? '')}</span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs font-medium hover:bg-background/50 rounded-xl"
-                      onClick={() => handleNavigation(alert.route, alert.action)}
+                      className="text-xs font-medium hover:bg-background/50 rounded-xl flex-shrink-0"
+                      onClick={() => alert.onClick ? alert.onClick() : handleNavigation(alert.route, alert.action)}
                     >
-                      {alert.action}
+                      {String(alert.action ?? '')}
                       <ArrowUpRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
@@ -669,9 +766,9 @@ function DashboardContent() {
                   </div>
 
                   <div className="pr-16">
-                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{stat.title}</p>
-                    <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-foreground"} mb-2 tracking-tight`}>{stat.value}</p>
-                    <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-muted-foreground"}`}>{stat.description}</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{String(stat.title ?? '')}</p>
+                    <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-foreground"} mb-2 tracking-tight`}>{String(stat.value ?? '')}</p>
+                    <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-muted-foreground"}`}>{String(stat.description ?? '')}</p>
                   </div>
 
                   {/* Elemento decorativo */}
@@ -706,7 +803,7 @@ function DashboardContent() {
                     <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
                       <action.icon className="h-7 w-7 text-white" />
                     </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
+                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
                   </Button>
                 )
               } else {
@@ -720,7 +817,7 @@ function DashboardContent() {
                     <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
                       <action.icon className="h-7 w-7 text-white" />
                     </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{action.title}</span>
+                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
                   </Button>
                 )
               }
@@ -786,6 +883,60 @@ function DashboardContent() {
         onAccept={handleAcceptTerms}
         onReject={handleRejectTerms}
       />
+
+      {/* Dialog de asistencia para entrenador */}
+      {trainerAttendanceDialog.activityId && (
+        <AttendanceActivityDialog
+          open={trainerAttendanceDialog.open}
+          onOpenChange={(open) => setTrainerAttendanceDialog({ open, activityId: open ? trainerAttendanceDialog.activityId : null })}
+          activityId={trainerAttendanceDialog.activityId}
+        />
+      )}
+
+      {/* Dialog de horas mensuales */}
+      {showMonthlyHours && (
+        <Dialog open={showMonthlyHours} onOpenChange={setShowMonthlyHours}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Timer className="h-5 w-5" />
+                Horas del mes - {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 mt-2">
+              {(() => {
+                const monthlyData = getMonthlyHours();
+                const totalMonth = monthlyData.reduce((sum, d) => sum + d.totalHours, 0);
+                const daysWithHours = monthlyData.filter(d => d.totalHours > 0);
+                return (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-primary/10 rounded-xl">
+                      <span className="text-sm font-semibold">Total del mes</span>
+                      <span className="text-lg font-bold">{totalMonth.toFixed(1)} hs</span>
+                    </div>
+                    <Separator />
+                    {daysWithHours.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">No hay horas registradas este mes.</p>
+                    ) : (
+                      daysWithHours.map((day) => {
+                        const [y, m, d] = day.date.split('-').map(Number);
+                        const dateObj = new Date(y, m - 1, d);
+                        const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+                        return (
+                          <div key={day.date} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
+                            <span className="text-sm capitalize">{dayName}</span>
+                            <span className="text-sm font-semibold">{day.totalHours.toFixed(1)} hs</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

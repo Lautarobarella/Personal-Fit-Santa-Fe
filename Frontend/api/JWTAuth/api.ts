@@ -35,16 +35,11 @@ class JWTPermissionsApi {
 
     if (!response.ok) {
       // Try to parse error response from backend
+      let errorData: any = null
       try {
-        const errorData = await response.json()
-        throw new ApiError(
-          errorData.message || 'Error desconocido',
-          response.status,
-          errorData.error || 'Error',
-          errorData.details
-        )
-      } catch (parseError) {
-        // If we can't parse the error response, throw a generic error
+        errorData = await response.json()
+      } catch {
+        // JSON parse failed, use generic error
         throw new ApiError(
           `Error ${response.status}: ${response.statusText}`,
           response.status,
@@ -52,6 +47,12 @@ class JWTPermissionsApi {
           undefined
         )
       }
+      throw new ApiError(
+        errorData?.message || 'Error desconocido',
+        response.status,
+        errorData?.error || 'Error',
+        errorData?.details
+      )
     }
 
     // Check if response has content before trying to parse JSON

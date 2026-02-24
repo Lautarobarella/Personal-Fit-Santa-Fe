@@ -1,6 +1,6 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { UserFormType } from "@/lib/types";
+import { TrainerDashboardStats, UserFormType, WorkShift } from "@/lib/types";
 
 export async function fetchUsers() {
   try {
@@ -115,5 +115,78 @@ export async function checkUserMembershipStatus(userId: number): Promise<boolean
   } catch (error) {
     console.error("Error checking membership status:", error);
     return false;
+  }
+}
+
+// ─── Trainer / Work-Shift API ───────────────────────────────────────────────
+
+export async function fetchCurrentShift(trainerId: number): Promise<WorkShift | null> {
+  try {
+    const response = await jwtPermissionsApi.get(`/api/work-shifts/current/${trainerId}`);
+    if (!response || typeof response !== 'object') return null;
+    // Validate essential fields to avoid rendering objects in React
+    return {
+      id: Number(response.id) || 0,
+      startTime: typeof response.startTime === 'string' ? response.startTime : '',
+      endTime: typeof response.endTime === 'string' ? response.endTime : null,
+      totalHours: response.totalHours != null ? Number(response.totalHours) : null,
+      status: typeof response.status === 'string' ? response.status as WorkShift['status'] : 'ACTIVE',
+    };
+  } catch (error) {
+    handleApiError(error, 'Error al obtener el turno actual');
+    return null;
+  }
+}
+
+export async function fetchShiftHistory(trainerId: number): Promise<WorkShift[]> {
+  try {
+    const response = await jwtPermissionsApi.get(`/api/work-shifts/history/${trainerId}`);
+    if (!Array.isArray(response)) return [];
+    // Validate each shift to avoid rendering objects in React
+    return response.map((s: any) => ({
+      id: Number(s.id) || 0,
+      startTime: typeof s.startTime === 'string' ? s.startTime : '',
+      endTime: typeof s.endTime === 'string' ? s.endTime : null,
+      totalHours: s.totalHours != null ? Number(s.totalHours) : null,
+      status: typeof s.status === 'string' ? s.status as WorkShift['status'] : 'COMPLETED',
+    }));
+  } catch (error) {
+    handleApiError(error, 'Error al obtener el historial de turnos');
+    return [];
+  }
+}
+
+export async function fetchTrainerDashboardStats(trainerId: number): Promise<TrainerDashboardStats | null> {
+  try {
+    const data = await jwtPermissionsApi.get(`/api/trainer/${trainerId}/dashboard-stats`);
+    if (!data) return null;
+    return {
+      classesToday: Number(data.classesToday) || 0,
+      nextClassName: typeof data.nextClassName === 'string' ? data.nextClassName : null,
+      nextClassTime: typeof data.nextClassTime === 'string' ? data.nextClassTime : null,
+      currentShiftHours: Number(data.currentShiftHours) || 0,
+      weeklyHours: Number(data.weeklyHours) || 0,
+    };
+  } catch (error) {
+    handleApiError(error, 'Error al obtener estadísticas del entrenador');
+    return null;
+  }
+}
+
+export async function toggleTrainerShift(dni: number): Promise<{ success: boolean; status?: string; message?: string }> {
+  try {
+    const data = await jwtPermissionsApi.post(
+      '/api/attendance/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30',
+      { dni }
+    );
+    if (!data || typeof data !== 'object') return { success: false, message: 'Sin respuesta del servidor' };
+    return {
+      success: !!data.success,
+      status: typeof data.status === 'string' ? data.status : undefined,
+      message: typeof data.message === 'string' ? data.message : undefined,
+    };
+  } catch (error) {
+    console.error('Error toggling shift:', error);
+    return { success: false, message: 'No se pudo conectar con el servidor' };
   }
 }

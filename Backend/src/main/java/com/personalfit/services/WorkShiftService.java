@@ -1,7 +1,9 @@
 package com.personalfit.services;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,16 +23,20 @@ public class WorkShiftService {
     private WorkShiftRepository workShiftRepository;
 
     /**
-     * Handles Check-in and Check-out logic.
-     * If no active shift -> Check-in
-     * If active shift -> Check-out
+     * Handles Check-in and Check-out logic per day.
+     * First scan of the day  -> CHECK_IN (creates a new shift)
+     * All subsequent scans   -> CHECK_OUT (overwrites the endTime of today's shift)
      */
     public String processCheckInCheckOut(User trainer) {
-        Optional<WorkShift> activeShiftOpt = workShiftRepository.findByTrainerIdAndStatus(trainer.getId(),
-                WorkShiftStatus.ACTIVE);
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay   = LocalDate.now().atTime(LocalTime.MAX);
 
-        if (activeShiftOpt.isPresent()) {
-            return checkOut(activeShiftOpt.get());
+        Optional<WorkShift> todayShiftOpt = workShiftRepository
+                .findFirstByTrainerIdAndStartTimeBetweenOrderByStartTimeAsc(
+                        trainer.getId(), startOfDay, endOfDay);
+
+        if (todayShiftOpt.isPresent()) {
+            return checkOut(todayShiftOpt.get());
         } else {
             return checkIn(trainer);
         }

@@ -10,7 +10,7 @@ import {
   enrollUserInActivity, 
   unenrollUserFromActivity 
 } from "@/api/attendance/attendanceApi"
-import { Attendance, AttendanceStatus } from "@/lib/types"
+import { AttendanceType, AttendanceStatus } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-provider"
 
 /**
@@ -54,7 +54,7 @@ export function useAttendance() {
     isLoading: isLoadingActivityAttendances,
     error: attendancesError,
     refetch: refetchActivityAttendances,
-  } = useQuery<Attendance[]>({
+  } = useQuery<AttendanceType[]>({
     queryKey: ['activity-attendances', selectedActivityId],
     queryFn: () => selectedActivityId ? fetchActivityAttendancesWithUserInfo(selectedActivityId) : Promise.resolve([]),
     enabled: !!selectedActivityId,
@@ -67,7 +67,7 @@ export function useAttendance() {
     data: userAttendances = [],
     isLoading: isLoadingUserAttendances,
     refetch: refetchUserAttendances,
-  } = useQuery<Attendance[]>({
+  } = useQuery<AttendanceType[]>({
     queryKey: ['user-attendances', user?.id],
     queryFn: () => user?.id ? fetchUserAttendances(user.id) : Promise.resolve([]),
     enabled: !!user?.id,
@@ -139,7 +139,7 @@ export function useAttendance() {
   }, [activityAttendances])
 
   // Función para obtener la asistencia de un usuario específico
-  const getUserAttendance = useCallback((userId: number): Attendance | undefined => {
+  const getUserAttendance = useCallback((userId: number): AttendanceType | undefined => {
     return activityAttendances.find(attendance => attendance.userId === userId)
   }, [activityAttendances])
 

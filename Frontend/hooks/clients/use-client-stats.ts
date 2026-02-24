@@ -66,7 +66,7 @@ export function useClientStats(clientId?: number) {
           nextClass: {
             id: 1,
             name: "Yoga Matutino",
-            date: new Date(Date.now() + 24 * 60 * 60 * 1000), // Mañana
+            date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mañana
             time: "10:00"
           },
           completedClassesCount: Math.floor(Math.random() * 50) + 10, // 10-60 clases

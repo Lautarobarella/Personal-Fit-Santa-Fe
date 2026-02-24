@@ -171,6 +171,8 @@ export default function ActivitiesPage() {
   }
 
   const canManageActivities = user?.role === UserRole.ADMIN
+  const isTrainer = user?.role === UserRole.TRAINER
+  const trainerFullName = user ? `${user.firstName} ${user.lastName}` : ''
   const weekDates = getWeekDates(currentWeek)
   const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
@@ -686,6 +688,23 @@ export default function ActivitiesPage() {
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               )}
+                              {isTrainer && activity.trainerName === trainerFullName && activity.status !== ActivityStatus.COMPLETED && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-8 w-8 p-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
+                                      Ver Detalles
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
+                                      Tomar asistencia
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                               
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1 pr-10">
@@ -742,6 +761,16 @@ export default function ActivitiesPage() {
                                     </Button>
                                   )}
                                   {canManageActivities && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDetailsClick(activity)}
+                                      className="text-xs bg-transparent"
+                                    >
+                                      Ver Detalles
+                                    </Button>
+                                  )}
+                                  {isTrainer && activity.trainerName === trainerFullName && (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -845,18 +874,20 @@ export default function ActivitiesPage() {
           _open={detailsDialog.open}
           onOpenChange={(open) => setDetailsDialog({ open, activity: null })}
           activityId={detailsDialog.activity.id}
-          onEdit={() => {
-            setDetailsDialog({ open: false, activity: null })
-            if (detailsDialog.activity) {
-              router.push('/activities/edit/' + detailsDialog.activity.id)
+          {...(canManageActivities ? {
+            onEdit: () => {
+              setDetailsDialog({ open: false, activity: null })
+              if (detailsDialog.activity) {
+                router.push('/activities/edit/' + detailsDialog.activity.id)
+              }
+            },
+            onDelete: () => {
+              setDetailsDialog({ open: false, activity: null })
+              if (detailsDialog.activity) {
+                handleDeleteActivity(detailsDialog.activity)
+              }
             }
-          }}
-          onDelete={() => {
-            setDetailsDialog({ open: false, activity: null })
-            if (detailsDialog.activity) {
-              handleDeleteActivity(detailsDialog.activity)
-            }
-          }}
+          } : {})}
         />
       )}
 
