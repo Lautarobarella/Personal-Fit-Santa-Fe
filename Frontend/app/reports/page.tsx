@@ -11,38 +11,46 @@ import {
   ActivityStatus,
   AttendanceStatus,
   MethodType,
+  MuscleGroup,
   PaymentStatus,
   UserRole,
+  type ActivitySummaryType,
   type ActivityType,
   type PaymentType,
+  type UserDetailInfo,
   type UserType,
   type WorkShift,
 } from "@/lib/types"
+import { getMuscleGroupLabel } from "@/lib/muscle-groups"
 import {
-  ArrowLeft,
+  Activity,
   BarChart3,
   Calendar,
+  CheckCircle,
   ChevronDown,
   ChevronUp,
   Clock,
   CreditCard,
+  Dumbbell,
   DollarSign,
+  Flame,
   Target,
   TrendingUp,
   UserCheck,
   Users,
+  XCircle,
+  Zap,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 // API imports
-import { fetchActivities, fetchActivityDetail, fetchTrainers } from "@/api/activities/activitiesApi"
+import { fetchActivities, fetchTrainers } from "@/api/activities/activitiesApi"
 import { fetchAllPayments } from "@/api/payments/paymentsApi"
-import { fetchUsers } from "@/api/clients/usersApi"
-import { fetchShiftHistory } from "@/api/clients/usersApi"
-
+import { fetchUsers, fetchUserDetail, fetchShiftHistory } from "@/api/clients/usersApi"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
 interface TrainerHours {
   id: number
   name: string
@@ -59,17 +67,17 @@ interface PaymentMethodBreakdown {
   percentage: number
 }
 
-interface TopActivity {
-  name: string
-  totalClasses: number
-  avgParticipants: number
-  trainerName: string
-}
-
 interface MonthOption {
   label: string
   month: number
   year: number
+}
+
+interface MuscleGroupStat {
+  group: MuscleGroup
+  label: string
+  count: number
+  percentage: number
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -82,14 +90,17 @@ export default function ReportsPage() {
   const [mounted, setMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Raw data
+  // ─── Admin data ─────────────────────────────────────────────────────────
   const [payments, setPayments] = useState<PaymentType[]>([])
   const [allUsers, setAllUsers] = useState<UserType[]>([])
   const [activities, setActivities] = useState<ActivityType[]>([])
   const [trainers, setTrainers] = useState<UserType[]>([])
   const [trainerShifts, setTrainerShifts] = useState<Map<number, WorkShift[]>>(new Map())
 
-  // Month selector
+  // ─── Client data ────────────────────────────────────────────────────────
+  const [clientDetail, setClientDetail] = useState<UserDetailInfo | null>(null)
+
+  // ─── Month selector ─────────────────────────────────────────────────────
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return { month: now.getMonth(), year: now.getFullYear() }
@@ -98,6 +109,7 @@ export default function ReportsPage() {
 
   // Expanded sections
   const [expandedTrainers, setExpandedTrainers] = useState(false)
+  const [expandedMuscles, setExpandedMuscles] = useState(false)
 
   // Generate month options (last 12 months)
   const monthOptions: MonthOption[] = useMemo(() => {
@@ -177,6 +189,29 @@ export default function ReportsPage() {
     }
 
     loadData()
+    return () => { cancelled = true }
+  }, [mounted, user])
+
+  // ─── Client data loading ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!mounted || !user || user.role !== UserRole.CLIENT) return
+
+    let cancelled = false
+
+    const loadClientData = async () => {
+      setIsLoading(true)
+      try {
+        const detail = await fetchUserDetail(user.id)
+        if (!cancelled) setClientDetail(detail)
+      } catch (error) {
+        console.error("Error loading client report data:", error)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    loadClientData()
     return () => { cancelled = true }
   }, [mounted, user])
 
@@ -394,18 +429,163 @@ export default function ReportsPage() {
     return Math.round(((totalRevenue - prevMonthRevenue) / prevMonthRevenue) * 100)
   }, [totalRevenue, prevMonthRevenue])
 
+  // ─── Client computed metrics ──────────────────────────────────────────────
+
+  const clientMonthActivities = useMemo(() => {
+    if (!clientDetail) return []
+    return clientDetail.listActivity.filter((a) => {
+      const d = a.date ? new Date(a.date) : null
+      return d && d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year
+    })
+  }, [clientDetail, selectedMonth])
+
+  const clientAttended = useMemo(
+    () => clientMonthActivities.filter(
+      (a) => a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE
+    ).length,
+    [clientMonthActivities]
+  )
+
+  const clientAbsences = useMemo(
+    () => clientMonthActivities.filter((a) => a.clientStatus === AttendanceStatus.ABSENT).length,
+    [clientMonthActivities]
+  )
+
+  const clientLateArrivals = useMemo(
+    () => clientMonthActivities.filter((a) => a.clientStatus === AttendanceStatus.LATE).length,
+    [clientMonthActivities]
+  )
+
+  const clientAttendanceRate = useMemo(() => {
+    const total = clientMonthActivities.filter(
+      (a) => a.clientStatus !== AttendanceStatus.PENDING
+    ).length
+    if (total === 0) return 0
+    return Math.round((clientAttended / total) * 100)
+  }, [clientMonthActivities, clientAttended])
+
+  // Muscle group stats
+  const clientMuscleGroups = useMemo((): MuscleGroupStat[] => {
+    const map = new Map<MuscleGroup, number>()
+
+    clientMonthActivities.forEach((a) => {
+      if (a.summary?.muscleGroups) {
+        a.summary.muscleGroups.forEach((mg) => {
+          map.set(mg, (map.get(mg) || 0) + 1)
+        })
+      }
+      // fallback single muscleGroup
+      if (a.summary?.muscleGroup && !a.summary.muscleGroups?.length) {
+        map.set(a.summary.muscleGroup, (map.get(a.summary.muscleGroup) || 0) + 1)
+      }
+    })
+
+    const total = Array.from(map.values()).reduce((s, v) => s + v, 0) || 1
+    return Array.from(map.entries())
+      .map(([group, count]) => ({
+        group,
+        label: getMuscleGroupLabel(group),
+        count,
+        percentage: Math.round((count / total) * 100),
+      }))
+      .sort((a, b) => b.count - a.count)
+  }, [clientMonthActivities])
+
+  // Average effort level
+  const clientAvgEffort = useMemo(() => {
+    const withEffort = clientMonthActivities.filter(
+      (a) => a.summary && a.summary.effortLevel > 0
+    )
+    if (withEffort.length === 0) return 0
+    const total = withEffort.reduce((s, a) => s + (a.summary?.effortLevel || 0), 0)
+    return Math.round((total / withEffort.length) * 10) / 10
+  }, [clientMonthActivities])
+
+  // How many activities have a filled summary
+  const clientSummariesFilled = useMemo(
+    () => clientMonthActivities.filter((a) => a.summary != null).length,
+    [clientMonthActivities]
+  )
+
+  // Unique activity names
+  const clientUniqueActivities = useMemo(() => {
+    const names = new Set(clientMonthActivities.map((a) => a.name))
+    return names.size
+  }, [clientMonthActivities])
+
+  // Best attendance streak
+  const clientBestStreak = useMemo(() => {
+    if (!clientDetail) return 0
+    const sorted = [...clientDetail.listActivity]
+      .filter((a) => a.date)
+      .sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime())
+
+    let best = 0
+    let current = 0
+    sorted.forEach((a) => {
+      if (a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE) {
+        current++
+        if (current > best) best = current
+      } else if (a.clientStatus === AttendanceStatus.ABSENT) {
+        current = 0
+      }
+    })
+    return best
+  }, [clientDetail])
+
+  // Week day distribution
+  const clientWeekDistribution = useMemo(() => {
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+    const counts = new Array(7).fill(0)
+
+    clientMonthActivities.forEach((a) => {
+      if (
+        a.clientStatus === AttendanceStatus.PRESENT ||
+        a.clientStatus === AttendanceStatus.LATE
+      ) {
+        const d = a.date ? new Date(a.date) : null
+        if (d) counts[d.getDay()]++
+      }
+    })
+
+    const max = Math.max(...counts, 1)
+    return days.map((day, i) => ({ day, count: counts[i], percentage: Math.round((counts[i] / max) * 100) }))
+  }, [clientMonthActivities])
+
+  // Previous month client comparison
+  const prevMonthClientAttended = useMemo(() => {
+    if (!clientDetail) return 0
+    const prevMonth = selectedMonth.month === 0 ? 11 : selectedMonth.month - 1
+    const prevYear = selectedMonth.month === 0 ? selectedMonth.year - 1 : selectedMonth.year
+
+    return clientDetail.listActivity.filter((a) => {
+      const d = a.date ? new Date(a.date) : null
+      return (
+        d &&
+        d.getMonth() === prevMonth &&
+        d.getFullYear() === prevYear &&
+        (a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE)
+      )
+    }).length
+  }, [clientDetail, selectedMonth])
+
+  const clientActivityChange = useMemo(() => {
+    if (prevMonthClientAttended === 0) return null
+    return Math.round(((clientAttended - prevMonthClientAttended) / prevMonthClientAttended) * 100)
+  }, [clientAttended, prevMonthClientAttended])
+
   // ─── Guards ───────────────────────────────────────────────────────────────
 
   if (!mounted) return null
 
-  if (!user || user.role !== UserRole.ADMIN) {
+  if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.CLIENT)) {
     return (
       <div className="min-h-screen bg-background pb-32">
         <MobileHeader title="Sin acceso" showBack onBack={() => router.push("/dashboard")} />
         <div className="container-centered py-6">
           <Card>
             <CardContent className="p-6 text-center">
-              <p className="text-muted-foreground">Solo los administradores pueden ver reportes.</p>
+              <p className="text-muted-foreground">No tenés acceso a esta sección.</p>
               <Button className="mt-4" onClick={() => router.push("/dashboard")}>
                 Volver al inicio
               </Button>
@@ -436,7 +616,282 @@ export default function ReportsPage() {
     )
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Render: Month Selector (shared) ────────────────────────────────────
+
+  const monthSelector = (
+    <Card className="shadow-professional border-0">
+      <CardContent className="p-4">
+        <button
+          className="w-full flex items-center justify-between"
+          onClick={() => setShowMonthPicker(!showMonthPicker)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                Período
+              </p>
+              <p className="text-lg font-bold capitalize">{currentMonthLabel}</p>
+            </div>
+          </div>
+          {showMonthPicker ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
+        </button>
+
+        {showMonthPicker && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {monthOptions.map((opt) => (
+              <button
+                key={`${opt.year}-${opt.month}`}
+                className={`p-3 rounded-xl text-sm font-medium capitalize transition-all ${
+                  opt.month === selectedMonth.month && opt.year === selectedMonth.year
+                    ? "bg-primary text-primary-foreground shadow-professional"
+                    : "bg-muted/50 hover:bg-muted text-foreground"
+                }`}
+                onClick={() => {
+                  setSelectedMonth({ month: opt.month, year: opt.year })
+                  setShowMonthPicker(false)
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+
+  // ─── Render: CLIENT view ──────────────────────────────────────────────────
+
+  if (user.role === UserRole.CLIENT) {
+    return (
+      <div className="min-h-screen bg-background pb-32">
+        <MobileHeader
+          title="Mi Resumen"
+          showBack
+          onBack={() => router.push("/dashboard")}
+        />
+
+        <div className="container-centered py-6 space-y-6">
+          {monthSelector}
+
+          {/* ─── Attendance Overview ────────────────────────────────────────── */}
+          <Card className="shadow-professional border-0 overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                Asistencia del Mes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center py-4">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                  Actividades asistidas
+                </p>
+                <p className="text-4xl font-bold text-foreground tracking-tight">
+                  {clientAttended}
+                </p>
+                {clientActivityChange !== null && (
+                  <p
+                    className={`text-sm font-medium mt-1 ${
+                      clientActivityChange >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {clientActivityChange >= 0 ? "+" : ""}
+                    {clientActivityChange}% vs mes anterior
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-xl text-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-400">{clientAttended}</p>
+                  <p className="text-xs text-muted-foreground">Presentes</p>
+                </div>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-xl text-center">
+                  <XCircle className="h-5 w-5 text-red-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-red-700 dark:text-red-400">{clientAbsences}</p>
+                  <p className="text-xs text-muted-foreground">Ausencias</p>
+                </div>
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-xl text-center">
+                  <Clock className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{clientLateArrivals}</p>
+                  <p className="text-xs text-muted-foreground">Llegadas tarde</p>
+                </div>
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-xl text-center">
+                  <Target className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{clientAttendanceRate}%</p>
+                  <p className="text-xs text-muted-foreground">Tasa asistencia</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ─── Training Stats ─────────────────────────────────────────────── */}
+          <Card className="shadow-professional border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Entrenamiento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-muted/50 rounded-xl text-center">
+                  <Zap className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold">{clientBestStreak}</p>
+                  <p className="text-xs text-muted-foreground">Mejor racha</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-xl text-center">
+                  <Flame className="h-5 w-5 text-red-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold">{clientAvgEffort}/10</p>
+                  <p className="text-xs text-muted-foreground">Esfuerzo promedio</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-xl text-center">
+                  <BarChart3 className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold">{clientSummariesFilled}</p>
+                  <p className="text-xs text-muted-foreground">Resúmenes cargados</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-xl text-center">
+                  <Dumbbell className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                  <p className="text-2xl font-bold">{clientUniqueActivities}</p>
+                  <p className="text-xs text-muted-foreground">Actividades distintas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ─── Week Distribution ──────────────────────────────────────────── */}
+          <Card className="shadow-professional border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                Distribución Semanal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between gap-1 h-32">
+                {clientWeekDistribution.map((d) => (
+                  <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex flex-col justify-end h-20">
+                      <div
+                        className="w-full bg-primary rounded-t-md transition-all duration-500 min-h-[4px]"
+                        style={{ height: `${Math.max(d.percentage, 5)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-medium">{d.day}</span>
+                    <span className="text-xs font-bold">{d.count}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ─── Muscle Group Breakdown ─────────────────────────────────────── */}
+          {clientMuscleGroups.length > 0 && (
+            <Card className="shadow-professional border-0">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Dumbbell className="h-5 w-5 text-primary" />
+                  Grupos Musculares
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(expandedMuscles ? clientMuscleGroups : clientMuscleGroups.slice(0, 5)).map((mg) => (
+                  <div key={mg.group} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{mg.label}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {mg.count} {mg.count === 1 ? "vez" : "veces"} · {mg.percentage}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary rounded-full h-2 transition-all duration-500"
+                        style={{ width: `${mg.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {clientMuscleGroups.length > 5 && (
+                  <Button
+                    variant="ghost"
+                    className="w-full text-sm"
+                    onClick={() => setExpandedMuscles(!expandedMuscles)}
+                  >
+                    {expandedMuscles
+                      ? "Ver menos"
+                      : `Ver todos (${clientMuscleGroups.length})`}
+                    {expandedMuscles ? (
+                      <ChevronUp className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─── Client KPIs ───────────────────────────────────────────────── */}
+          <Card className="shadow-professional border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Indicadores del Mes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Total inscripciones</span>
+                <span className="text-sm font-bold">{clientMonthActivities.length}</span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Tasa de asistencia</span>
+                <span className="text-sm font-bold">{clientAttendanceRate}%</span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Actividades por semana (prom.)</span>
+                <span className="text-sm font-bold">
+                  {clientAttended > 0 ? (clientAttended / 4.3).toFixed(1) : 0}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Resúmenes completados</span>
+                <span className="text-sm font-bold">
+                  {clientAttended > 0
+                    ? `${clientSummariesFilled}/${clientAttended} (${Math.round((clientSummariesFilled / clientAttended) * 100)}%)`
+                    : "0/0"}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Grupos musculares trabajados</span>
+                <span className="text-sm font-bold">{clientMuscleGroups.length}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <BottomNav />
+      </div>
+    )
+  }
+
+  // ─── Render: ADMIN view ───────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -447,53 +902,7 @@ export default function ReportsPage() {
       />
 
       <div className="container-centered py-6 space-y-6">
-        {/* Month Selector */}
-        <Card className="shadow-professional border-0">
-          <CardContent className="p-4">
-            <button
-              className="w-full flex items-center justify-between"
-              onClick={() => setShowMonthPicker(!showMonthPicker)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                    Período
-                  </p>
-                  <p className="text-lg font-bold capitalize">{currentMonthLabel}</p>
-                </div>
-              </div>
-              {showMonthPicker ? (
-                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-              )}
-            </button>
-
-            {showMonthPicker && (
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {monthOptions.map((opt) => (
-                  <button
-                    key={`${opt.year}-${opt.month}`}
-                    className={`p-3 rounded-xl text-sm font-medium capitalize transition-all ${
-                      opt.month === selectedMonth.month && opt.year === selectedMonth.year
-                        ? "bg-primary text-primary-foreground shadow-professional"
-                        : "bg-muted/50 hover:bg-muted text-foreground"
-                    }`}
-                    onClick={() => {
-                      setSelectedMonth({ month: opt.month, year: opt.year })
-                      setShowMonthPicker(false)
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {monthSelector}
 
         {/* ─── Revenue Overview ───────────────────────────────────────────── */}
         <Card className="shadow-professional border-0 overflow-hidden">

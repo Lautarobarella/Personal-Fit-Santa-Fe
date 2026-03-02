@@ -24,6 +24,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowUpRight,
+  BarChart3,
   Bell,
   Calendar,
   CheckCircle,
@@ -145,7 +146,7 @@ function DashboardContent() {
 
   // Encontrar la próxima actividad del entrenador (debe estar antes de los early returns)
   const getNextTrainerActivity = useCallback(() => {
-    if (!user || user.role !== UserRole.TRAINER) return null
+    if (!user || (user.role !== UserRole.TRAINER && user.role !== UserRole.ADMIN)) return null
     const now = new Date()
 
     const today = new Date()
@@ -260,10 +261,8 @@ function DashboardContent() {
             activityDate < tomorrow
         }).length
 
-        // 4. Tasa de asistencia semanal real (solo ADMIN)
-        const attendanceRate = user.role === UserRole.ADMIN
-          ? await calculateWeeklyAttendanceRate()
-          : 0
+        // 4. Tasa de asistencia (desactivada para admin)
+        const attendanceRate = 0
 
         if (!isCancelled) {
           setDashboardStats({
@@ -335,6 +334,13 @@ function DashboardContent() {
   const getDashboardStats = () => {
     if (user.role === UserRole.ADMIN) {
       const revenueValue = showRevenue ? `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}` : "••••••";
+
+      const nextActivity = getNextTrainerActivity();
+      const nextClassValue = nextActivity
+        ? new Date(nextActivity.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : "Sin clases";
+      const nextClassName = nextActivity?.name ?? "N/A";
+
       return [
         {
           title: "Ingresos del Mes",
@@ -354,19 +360,19 @@ function DashboardContent() {
           color: "primary"
         },
         {
-          title: "Actividades Hoy",
+          title: "Clases Hoy",
           value: dashboardStats.todayActivities.toString(),
           icon: Activity,
-          description: "en progreso",
-          dynamicFontSize: getDynamicFontSize(dashboardStats.todayActivities.toString()),
+          description: "programadas",
+          dynamicFontSize: "text-2xl",
           color: "primary"
         },
         {
-          title: "Tasa de Asistencia",
-          value: `${dashboardStats.attendanceRate}%`,
-          icon: Target,
-          description: "promedio semanal",
-          dynamicFontSize: getDynamicFontSize(`${dashboardStats.attendanceRate}%`),
+          title: "Próxima Clase",
+          value: nextClassValue,
+          icon: Calendar,
+          description: nextClassName,
+          dynamicFontSize: "text-2xl",
           color: "primary"
         },
       ];
@@ -540,8 +546,18 @@ function DashboardContent() {
   const getQuickActions = () => {
     if (user.role === UserRole.ADMIN) {
       return [
-        { title: "Nueva Actividad", route: "/activities/new", icon: Activity, color: "bg-orange-500" },
-        { title: "Gestionar Clientes", route: "/clients", icon: Users, color: "bg-gray-500" },
+        {
+          title: "Tomar Asistencia",
+          onClick: () => openNextActivityAttendance(),
+          icon: CheckCircle,
+          color: "bg-orange-500"
+        },
+        {
+          title: "Mis Actividades",
+          onClick: () => navigateToNextTrainerActivity(),
+          icon: Activity,
+          color: "bg-gray-500"
+        },
         { title: "Verificar Pagos", route: "/payments/verify", icon: CreditCard, color: "bg-gray-500" },
         { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
       ]
@@ -569,9 +585,10 @@ function DashboardContent() {
     } else {
       return [
         { title: "Ver Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
+        { title: "Mi Resumen", route: "/reports", icon: BarChart3, color: "bg-orange-500" },
         { title: "Mi Progreso", route: "/progress", icon: TrendingUp, color: "bg-gray-500" },
         { title: "Realizar Pago", route: "/payments", icon: CreditCard, color: "bg-gray-500" },
-        { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-orange-500" },
+        { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-gray-500" },
       ]
     }
   }
@@ -810,46 +827,6 @@ function DashboardContent() {
             })}
           </CardContent>
         </Card>
-
-        {/* Recent Activity - Diseño profesional */}
-        {/* <Card className="shadow-professional border-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-bold flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <Activity className="h-6 w-6 text-primary" />
-              </div>
-              Actividad Reciente
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-2xl border border-border/30 hover:border-primary/30 transition-all duration-200">
-              <div className="w-3 h-3 bg-success rounded-full shadow-professional"></div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">Nueva inscripción</p>
-                <p className="text-xs text-muted-foreground font-medium">María se inscribió a Yoga Matutino</p>
-              </div>
-              <span className="text-xs text-muted-foreground bg-background/50 px-2 py-1 rounded-full font-medium">Hace 5 min</span>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-2xl border border-border/30 hover:border-primary/30 transition-all duration-200">
-              <div className="w-3 h-3 bg-secondary rounded-full shadow-professional"></div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">Pago recibido</p>
-                <p className="text-xs text-muted-foreground font-medium">Juan completó el pago de $150</p>
-              </div>
-              <span className="text-xs text-muted-foreground bg-background/50 px-2 py-1 rounded-full font-medium">Hace 15 min</span>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-2xl border border-border/30 hover:border-primary/30 transition-all duration-200">
-              <div className="w-3 h-3 bg-primary rounded-full shadow-professional"></div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">Clase completada</p>
-                <p className="text-xs text-muted-foreground font-medium">CrossFit Avanzado - 12 asistentes</p>
-              </div>
-              <span className="text-xs text-muted-foreground bg-background/50 px-2 py-1 rounded-full font-medium">Hace 1 hora</span>
-            </div>
-          </CardContent>
-        </Card> */}
       </div>
 
       <BottomNav />
