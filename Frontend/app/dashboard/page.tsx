@@ -494,16 +494,6 @@ function DashboardContent() {
 
   // Función para manejar navegación con validaciones especiales
   const handleNavigation = (route: string, title: string) => {
-    // Para reportes - mostrar toast en desarrollo
-    if (route === "/reports") {
-      toast({
-        title: "Función en desarrollo",
-        description: "Estamos trabajando en generar reportes",
-        variant: "default"
-      })
-      return
-    }
-
     // Para verificar pagos - validar si hay pagos pendientes
     if (route === "/payments/verify" && user?.role === UserRole.ADMIN) {
       if (totalPendingPayments === 0) {
@@ -599,20 +589,16 @@ function DashboardContent() {
     } else if (user.role === UserRole.TRAINER) {
       const alerts: any[] = [];
 
-      // Banner de check-in / check-out faltante
+      // Banner informativo de check-in / check-out faltante
       if (!todayShift.hasCheckedIn) {
         alerts.push({
           type: "warning",
-          message: "No registraste tu check-in hoy. Es importante para computar tus horas de trabajo.",
-          action: "Registrar",
-          onClick: toggleShift
+          message: "No registraste tu check-in hoy. Recordá usar el módulo físico para fichar.",
         });
       } else if (!todayShift.hasCheckedOut) {
         alerts.push({
           type: "warning",
-          message: "No olvides registrar tu check-out al finalizar tu jornada.",
-          action: "Registrar check-out",
-          onClick: toggleShift
+          message: "No olvides registrar tu check-out con el módulo físico al finalizar tu jornada.",
         });
       }
 
@@ -725,7 +711,7 @@ function DashboardContent() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs font-medium hover:bg-background/50 rounded-xl flex-shrink-0"
+                      className={`text-xs font-medium hover:bg-background/50 rounded-xl flex-shrink-0 ${!alert.action ? 'hidden' : ''}`}
                       onClick={() => alert.onClick ? alert.onClick() : handleNavigation(alert.route, alert.action)}
                     >
                       {String(alert.action ?? '')}

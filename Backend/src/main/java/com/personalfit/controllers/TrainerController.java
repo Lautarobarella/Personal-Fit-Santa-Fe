@@ -26,14 +26,10 @@ import com.personalfit.models.Activity;
 import com.personalfit.models.WorkShift;
 import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.WorkShiftRepository;
-import com.personalfit.services.ActivityService;
 
 @RestController
 @RequestMapping("/api/trainer")
 public class TrainerController {
-
-    @Autowired
-    private ActivityService activityService; // Assuming exists
 
     @Autowired
     private ActivityRepository activityRepository; // Direct access for custom queries if needed
