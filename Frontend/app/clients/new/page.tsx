@@ -4,7 +4,7 @@ import { useClientForm } from "@/hooks/clients/use-client-form"
 import { UserRole } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DatePickerScroll } from "@/components/ui/date-picker-scroll"
+import { DatePickerBirthdate } from "@/components/ui/date-picker-birthdate"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -124,7 +124,7 @@ export default function NewClientPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                  <DatePickerScroll
+                  <DatePickerBirthdate
                     value={form.birthDate}
                     onChange={(date) => handleInputChange("birthDate", date)}
                   />
