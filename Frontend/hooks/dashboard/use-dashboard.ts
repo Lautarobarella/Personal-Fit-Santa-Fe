@@ -248,7 +248,7 @@ export function useDashboard() {
     const calculateStats = async () => {
       try {
         const monthlyRevenue = currentMonthRevenue?.amount || 0
-        const activeClients = clients.filter(c => c.status === "ACTIVE").length
+        const activeClients = clients.filter(c => c.status === "ACTIVE" && c.role === UserRole.CLIENT).length
         const today = new Date()
         today.setHours(0, 0, 0, 0)
         const tomorrow = new Date(today)

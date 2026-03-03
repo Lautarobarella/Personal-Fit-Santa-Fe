@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -119,5 +121,33 @@ public class GlobalExceptionController {
                 .message("Internal server error")
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+    /**
+     * Handle Validation Errors (400).
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorDTO> handleValidationException(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .reduce((a, b) -> a + "; " + b)
+                .orElse("Validation failed");
+        log.error("Validation error: {}", message);
+        ErrorDTO error = ErrorDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Validation Error")
+                .message(message)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
+     * Handle Access Denied (403).
+     * Re-throw so Spring Security's ExceptionTranslationFilter handles it.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public void handleAccessDeniedException(AccessDeniedException ex) throws AccessDeniedException {
+        throw ex;
     }
 }

@@ -5,12 +5,14 @@ import com.personalfit.enums.UserStatus;
 import com.personalfit.models.User;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class UserTypeDTO {
     private Long id;
     private String firstName;

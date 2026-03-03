@@ -2,6 +2,7 @@ package com.personalfit.models;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -24,7 +25,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "monthly_revenue", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"year", "month"})
+    @UniqueConstraint(columnNames = {"\"year\"", "\"month\""})
 })
 public class MonthlyRevenue {
 
@@ -32,7 +33,9 @@ public class MonthlyRevenue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "\"year\"")
     private Integer year;
+    @Column(name = "\"month\"")
     private Integer month;
     private Double totalRevenue;
     private Integer totalPayments;

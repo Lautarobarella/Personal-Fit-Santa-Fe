@@ -1,5 +1,4 @@
 import PaymentsPage from '@/app/payments/page'
-import { AuthProvider } from '@/contexts/auth-provider'
 import { act, render, screen } from '@testing-library/react'
 
 // Mock router
@@ -8,24 +7,30 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/payments',
 }))
 
-// Mock Payment provider wrapper
-const PaymentProvider = ({ children }: { children: React.ReactNode }) => {
-  const { QueryClient, QueryClientProvider } = require('@tanstack/react-query')
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>
-}
-
-// Mock usePayment hook to control data
-jest.mock('@/hooks/use-payment', () => ({
-  usePayment: () => ({
-    payments: [
+// Mock the composite page hook that the component actually uses
+jest.mock('@/hooks/payments/use-payments-page', () => ({
+  usePaymentsPage: () => ({
+    user: { id: 1, firstName: 'Admin', role: 'ADMIN' },
+    router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+    searchTerm: '',
+    setSearchTerm: jest.fn(),
+    showRevenue: true,
+    setShowRevenue: jest.fn(),
+    selectedYear: 2026,
+    selectedMonth: 3,
+    isLoadingAdminPayments: false,
+    verificationDialog: { open: false, paymentId: null },
+    setVerificationDialog: jest.fn(),
+    detailsDialog: { open: false, paymentId: null },
+    setDetailsDialog: jest.fn(),
+    sortedAllPayments: [
       {
         id: 1,
         clientId: 10,
         clientName: 'Juan Perez',
         amount: 25000,
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'PENDING',
         method: 'CASH',
       },
@@ -35,76 +40,66 @@ jest.mock('@/hooks/use-payment', () => ({
         clientName: 'Ana Gomez',
         amount: 25000,
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'PAID',
         method: 'CARD',
       },
     ],
-    updatePaymentStatus: jest.fn(),
-    isLoading: false,
-  })
+    pendingPayments: [
+      {
+        id: 1,
+        clientId: 10,
+        clientName: 'Juan Perez',
+        amount: 25000,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'PENDING',
+        method: 'CASH',
+      },
+    ],
+    totalRevenue: 50000,
+    activePayment: null,
+    pendingPayment: null,
+    canCreateNewPayment: true,
+    formatDate: (date: Date | string | null) => {
+      if (!date) return ''
+      return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+        new Date(date),
+      )
+    },
+    getStatusColor: (status: string) => (status === 'PAID' ? 'success' : 'warning'),
+    getStatusText: (status: string) => (status === 'PAID' ? 'Pagado' : 'Pendiente'),
+    formatCurrency: (amount: number) =>
+      new Intl.NumberFormat('es-AR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+        amount,
+      ),
+    getMethodText: (method: string) => (method === 'CASH' ? 'Efectivo' : 'Tarjeta'),
+    handleVerificationClick: jest.fn(),
+    handleDetailsClick: jest.fn(),
+    handleMonthChange: jest.fn(),
+    handleYearChange: jest.fn(),
+    getCurrentDateInfo: () => ({ currentYear: 2026, currentMonth: 3 }),
+  }),
 }))
 
-// Mock useMonthlyRevenue hook
-jest.mock('@/hooks/use-monthly-revenue', () => ({
-  useMonthlyRevenue: (enabled: boolean = false) => ({
-    currentMonthRevenue: enabled ? {
-      id: 1,
-      year: 2025,
-      month: 8,
-      monthName: 'agosto',
-      totalRevenue: 50000,
-      totalPayments: 2,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      archivedAt: null,
-      isCurrentMonth: true,
-    } : undefined,
-    archivedRevenues: enabled ? [] : [],
-    isLoading: false,
-  })
+// Mock sub-components that have their own complex dependencies
+jest.mock('@/components/payments/payment-details-dialog', () => ({
+  PaymentDetailsDialog: () => null,
 }))
-
-// Minimal mock auth context
-jest.mock('@/components/providers/auth-provider', () => {
-  const actual = jest.requireActual('@/components/providers/auth-provider')
-  return {
-    ...actual,
-    useAuth: () => ({ user: { id: 1, firstName: 'Admin', role: 'ADMIN' } }),
-    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  }
-})
-
-// Mock notifications provider
-jest.mock('@/components/providers/notifications-provider', () => {
-  const actual = jest.requireActual('@/components/providers/notifications-provider')
-  return {
-    ...actual,
-    useNotifications: () => ({
-      notifications: [],
-      loading: false,
-      error: null,
-      unreadCount: 0,
-      loadNotifications: jest.fn(),
-      markAsRead: jest.fn(),
-      markAsUnread: jest.fn(),
-      archiveNotification: jest.fn(),
-      deleteNotification: jest.fn(),
-      markAllAsRead: jest.fn(),
-    }),
-  }
-})
+jest.mock('@/components/payments/payment-verification-dialog', () => ({
+  PaymentVerificationDialog: () => null,
+}))
+jest.mock('@/components/ui/bottom-nav', () => ({
+  BottomNav: () => null,
+}))
+jest.mock('@/components/ui/mobile-header', () => ({
+  MobileHeader: ({ title }: { title: string }) => <div data-testid="mobile-header">{title}</div>,
+}))
 
 describe('PaymentsPage', () => {
   it('muestra conteos de pagos pendientes y lista elementos clave', async () => {
     await act(async () => {
-      render(
-        <PaymentProvider>
-          <AuthProvider>
-            <PaymentsPage />
-          </AuthProvider>
-        </PaymentProvider>
-      )
+      render(<PaymentsPage />)
     })
 
     // Tab headers
@@ -119,4 +114,3 @@ describe('PaymentsPage', () => {
     expect(screen.getAllByText(/Pendiente|Pagado/).length).toBeGreaterThan(0)
   })
 })
-
