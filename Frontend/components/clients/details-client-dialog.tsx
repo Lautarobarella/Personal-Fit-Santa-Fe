@@ -7,9 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useClients } from "@/hooks/clients/use-client"
 import { getMuscleGroupLabels } from "@/lib/muscle-groups"
-import { ActivityStatus, AttendanceStatus, PaymentStatus, UserRole, UserStatus } from "@/lib/types"
+import { ActivityStatus, AttendanceStatus, UserRole, UserStatus } from "@/lib/types"
 import {
   Activity,
   AlertTriangle,
@@ -29,8 +28,7 @@ import {
   UserX,
   Ambulance
 } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useAuth } from "../../contexts/auth-provider"
+import { useClientDetailsDialog } from "@/hooks/clients/use-client-details-dialog"
 
 interface ClientDetailsDialogProps {
   _open: boolean
@@ -48,23 +46,30 @@ export function ClientDetailsDialog({
   onDeactivate,
 }: ClientDetailsDialogProps) {
 
-  const { user } = useAuth()  // los entrenadores van a poder ver los detalles???????????
-
-  const [activeTab, setActiveTab] = useState("profile")
-  const [visibleSummaryActivityId, setVisibleSummaryActivityId] = useState<number | null>(null)
-  const { loading, error, loadClientDetail, selectedClient } = useClients()
-
-  useEffect(() => {
-    if (isOpen) {
-      loadClientDetail(userId)
-    }
-  }, [loadClientDetail, userId, isOpen])
-
-  useEffect(() => {
-    if (!isOpen) {
-      setVisibleSummaryActivityId(null)
-    }
-  }, [isOpen])
+  const {
+    user,
+    activeTab,
+    setActiveTab,
+    visibleSummaryActivityId,
+    toggleSummaryVisibility,
+    loading,
+    error,
+    selectedClient,
+    formatDate,
+    formatFullDate,
+    getActivityStatusColor,
+    getActivityStatusText,
+    getAttendanceColor,
+    getAttendanceText,
+    getPaymentStatusColor,
+    getPaymentStatusText,
+    getMethodText,
+    presentActivities,
+    enrolledActivities,
+    attendanceRate,
+    totalPaid,
+    totalPending,
+  } = useClientDetailsDialog(userId, isOpen)
 
   if (loading) {
     return (
@@ -88,188 +93,9 @@ export function ClientDetailsDialog({
     )
   }
 
-  const formatDate = (date: Date | string | null | undefined) => {
-    try {
-      if (!date) {
-        return "N/A";
-      }
-
-      let parsedDate: Date;
-      
-      if (typeof date === "string") {
-        // Si es una fecha en formato YYYY-MM-DD (fecha de nacimiento), parseamos sin zona horaria
-        if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [year, month, day] = date.split('-').map(Number);
-          parsedDate = new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
-        } else {
-          parsedDate = new Date(date);
-        }
-      } else {
-        parsedDate = date;
-      }
-
-      if (isNaN(parsedDate.getTime())) {
-        console.warn("Fecha inválida:", date);
-        return "N/A";
-      }
-
-      return new Intl.DateTimeFormat("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(parsedDate);
-    } catch (err) {
-      console.error("Error al formatear fecha:", err, date);
-      return "N/A";
-    }
-  }
-
-  const formatFullDate = (date: Date | string | null | undefined): string => {
-    try {
-      if (!date) {
-        return "N/A";
-      }
-
-      const parsedDate = typeof date === "string" ? new Date(date) : date;
-
-      if (isNaN(parsedDate.getTime())) {
-        console.warn("Fecha inválida:", date);
-        return "N/A";
-      }
-
-      return new Intl.DateTimeFormat("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(parsedDate);
-    } catch (err) {
-      console.error("Error al formatear fecha:", err, date);
-      return "N/A";
-    }
-  };
-
-
-  const getActivityStatusColor = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "success"
-      case "ACTIVE":
-        return "default"
-      case "CANCELLED":
-        return "destructive"
-      default:
-        return "secondary"
-    }
-  }
-
-  const getActivityStatusText = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "Completada"
-      case "ACTIVE":
-        return "Activa"
-      case "CANCELLED":
-        return "Cancelada"
-      default:
-        return status
-    }
-  }
-
-  const getAttendanceColor = (attendance: string | undefined) => {
-    switch (attendance) {
-      case "PRESENT":
-        return "text-green-600"
-      case "ABSENT":
-        return "text-red-600"
-      case "LATE":
-        return "text-yellow-600"
-      case "PENDING":
-        return "text-blue-600"
-      default:
-        return "text-muted-foreground"
-    }
-  }
-
-  const getAttendanceText = (attendance: string | undefined) => {
-    switch (attendance) {
-      case "PRESENT":
-        return "Presente"
-      case "ABSENT":
-        return "Ausente"
-      case "LATE":
-        return "Tarde"
-      case "PENDING":
-        return "Pendiente"
-      default:
-        return "N/A"
-    }
-  }
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case "PAID":
-        return "success"
-      case "PENDING":
-        return "warning"
-      case "REJECTED":
-        return "destructive"
-      case "EXPIRED":
-        return "destructive"
-      default:
-        return "secondary"
-    }
-  }
-
-  const getPaymentStatusText = (status: string) => {
-    switch (status) {
-      case "PAID":
-        return "Pagado"
-      case "PENDING":
-        return "Pendiente"
-      case "REJECTED":
-        return "Rechazado"
-      case "EXPIRED":
-        return "Vencido"
-      default:
-        return status
-    }
-  }
-
-  const getMethodText = (method: string) => {
-    switch (method) {
-      case "CASH":
-        return "Efectivo"
-      case "CARD":
-        return "Tarjeta"
-      case "TRANSFER":
-        return "Transferencia"
-      default:
-        return method
-    }
-  }
-
-  // Calculate statistics
   if (!selectedClient) {
     return null
   }
-
-  const presentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE)
-  const absentActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.ABSENT)
-  const enrolledActivities = selectedClient.listActivity.filter((a) => a.clientStatus === AttendanceStatus.PENDING)
-
-  const attendanceRate =
-    presentActivities.length > 0
-      ? Math.round(
-        (presentActivities.length / presentActivities.length + absentActivities.length) * 100,
-      )
-      : 0
-
-  const completedPayments = selectedClient.listPayments.filter((p) => p.status === PaymentStatus.PAID)
-  const pendingPayments = selectedClient.listPayments.filter((p) => p.status === PaymentStatus.PENDING)
-  const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
-  const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0)
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -472,7 +298,7 @@ export function ClientDetailsDialog({
                               variant="outline"
                               className="bg-transparent"
                               disabled={!activity.summary}
-                              onClick={() => setVisibleSummaryActivityId((currentId) => currentId === activity.id ? null : activity.id)}
+                              onClick={() => toggleSummaryVisibility(activity.id)}
                             >
                               {visibleSummaryActivityId === activity.id ? "Ocultar resumen" : "Ver resumen"}
                             </Button>

@@ -1,132 +1,28 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { UserRole, TrainerActivityType, AttendanceType, AttendanceStatus } from "@/lib/types"
+import { useAttendancePage } from "@/hooks/attendance/use-attendance-page"
+import { UserRole, AttendanceStatus } from "@/types"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
-import { es } from "date-fns/locale"
 import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, Loader2 } from "lucide-react"
 
 export default function AttendancePage() {
-    const { user } = useAuth()
-    const { toast } = useToast()
-    useRequireAuth()
-
-    const [activities, setActivities] = useState<TrainerActivityType[]>([])
-    const [selectedActivityId, setSelectedActivityId] = useState<string>("")
-    const [participants, setParticipants] = useState<AttendanceType[]>([])
-    const [loadingActivities, setLoadingActivities] = useState(false)
-    const [loadingParticipants, setLoadingParticipants] = useState(false)
-    const [updating, setUpdating] = useState<number | null>(null)
-
-    // Fetch activities for today
-    useEffect(() => {
-        const fetchActivities = async () => {
-            if (!user || user.role !== UserRole.TRAINER) return
-
-            try {
-                setLoadingActivities(true)
-                const dateStr = format(new Date(), 'yyyy-MM-dd')
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/trainer/${user.id}/activities?date=${dateStr}`, {
-                    credentials: 'include'
-                })
-
-                if (response.ok) {
-                    const data = await response.json()
-                    setActivities(data)
-                    if (data.length > 0) {
-                        // Auto-select first activity if available
-                        // But maybe let user choose? 
-                        // Let's not auto-select to avoid confusion if multiple classes
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching activities:", error)
-                toast({
-                    title: "Error",
-                    description: "No se pudieron cargar las clases asignadas.",
-                    variant: "destructive"
-                })
-            } finally {
-                setLoadingActivities(false)
-            }
-        }
-
-        fetchActivities()
-    }, [user, toast])
-
-    // Fetch participants when activity is selected
-    useEffect(() => {
-        const fetchParticipants = async () => {
-            if (!selectedActivityId) return
-
-            try {
-                setLoadingParticipants(true)
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/activity/${selectedActivityId}/with-user-info`, {
-                    credentials: 'include'
-                })
-
-                if (response.ok) {
-                    const data = await response.json()
-                    setParticipants(data)
-                }
-            } catch (error) {
-                console.error("Error fetching participants:", error)
-                toast({
-                    title: "Error",
-                    description: "No se pudo cargar la lista de alumnos.",
-                    variant: "destructive"
-                })
-            } finally {
-                setLoadingParticipants(false)
-            }
-        }
-
-        fetchParticipants()
-    }, [selectedActivityId, toast])
-
-    const handleStatusUpdate = async (attendanceId: number, newStatus: AttendanceStatus) => {
-        try {
-            setUpdating(attendanceId)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/${attendanceId}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ status: newStatus })
-            })
-
-            if (response.ok) {
-                // Optimistic update
-                setParticipants(prev => prev.map(p =>
-                    p.id === attendanceId ? { ...p, status: newStatus } : p
-                ))
-                toast({
-                    title: "Asistencia actualizada",
-                    description: `Estado cambiado a ${newStatus === AttendanceStatus.PRESENT ? 'Presente' : 'Ausente'}`,
-                    variant: "default"
-                })
-            } else {
-                throw new Error("Failed to update")
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "No se pudo actualizar la asistencia.",
-                variant: "destructive"
-            })
-        } finally {
-            setUpdating(null)
-        }
-    }
+    const {
+        user,
+        activities,
+        selectedActivityId,
+        setSelectedActivityId,
+        participants,
+        loadingActivities,
+        loadingParticipants,
+        updating,
+        todayFormatted,
+        handleStatusUpdate,
+    } = useAttendancePage()
 
     if (!user || user.role !== UserRole.TRAINER) {
         return (
@@ -146,7 +42,7 @@ export default function AttendancePage() {
                 <Card className="border-0 shadow-professional">
                     <CardHeader>
                         <CardTitle className="text-lg">Seleccionar Clase</CardTitle>
-                        <CardDescription>Clases programadas para hoy ({format(new Date(), "d 'de' MMMM", { locale: es })})</CardDescription>
+                        <CardDescription>Clases programadas para hoy ({todayFormatted})</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {loadingActivities ? (

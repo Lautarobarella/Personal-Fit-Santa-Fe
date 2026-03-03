@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useDeleteActivityDialog } from "@/hooks/activities/use-delete-activity-dialog"
 import { ActivityType } from "@/lib/types"
 
 interface DeleteActivityDialogProps {
@@ -23,24 +23,12 @@ interface DeleteActivityDialogProps {
 }
 
 export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }: DeleteActivityDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const handleDelete = async () => {
-    setIsDeleting(true)
-
-    try {
-      await onDelete(activity.id)
-      onOpenChange(false)
-    } catch (error) {
-      // Error handling is done in the parent component
-      console.error("Error in delete dialog:", error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const hasParticipants = activity.currentParticipants > 0
-  const isPastActivity = new Date(activity.date) < new Date()
+  const {
+    isDeleting,
+    handleDelete,
+    hasParticipants,
+    isPastActivity,
+  } = useDeleteActivityDialog(activity, onDelete, onOpenChange)
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

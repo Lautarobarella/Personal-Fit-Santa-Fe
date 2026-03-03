@@ -11,10 +11,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { useSettingsContext } from "@/contexts/settings-provider"
-import { useState, useEffect } from "react"
 import { Users, Save } from "lucide-react"
+import { useMaxActivitiesDialog } from "@/hooks/settings/use-max-activities-dialog"
 
 interface MaxActivitiesDialogProps {
   open: boolean
@@ -22,71 +20,15 @@ interface MaxActivitiesDialogProps {
 }
 
 export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogProps) {
-  const { toast } = useToast()
-  const { 
-    maxActivitiesPerDay, 
-    updateMaxActivitiesPerDayValue, 
+  const {
+    inputValue,
+    setInputValue,
+    saving,
     loading,
-    isUpdatingMaxActivitiesPerDay 
-  } = useSettingsContext()
-  
-  const [inputValue, setInputValue] = useState<string>("1")
-  const [saving, setSaving] = useState(false)
-
-  // Sincronizar con el valor del contexto cuando se abre el diálogo
-  useEffect(() => {
-    if (open && maxActivitiesPerDay) {
-      setInputValue(maxActivitiesPerDay.toString())
-    }
-  }, [open, maxActivitiesPerDay])
-
-  const handleSave = async () => {
-    try {
-      setSaving(true)
-      
-      const maxActivities = parseInt(inputValue)
-
-      if (isNaN(maxActivities) || maxActivities <= 0) {
-        toast({
-          title: "Error",
-          description: "El máximo de actividades debe ser mayor a 0",
-          variant: "destructive"
-        })
-        return
-      }
-
-      const result = await updateMaxActivitiesPerDayValue(maxActivities)
-      
-      if (result.success) {
-        toast({
-          title: "Éxito",
-          description: result.message,
-          variant: "default"
-        })
-        onOpenChange(false)
-      } else {
-        toast({
-          title: "Error",
-          description: result.message,
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el máximo de actividades por día",
-        variant: "destructive"
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCancel = () => {
-    // Resetear valor al original
-    setInputValue(maxActivitiesPerDay?.toString() || "1")
-    onOpenChange(false)
-  }
+    isUpdatingMaxActivitiesPerDay,
+    handleSave,
+    handleCancel,
+  } = useMaxActivitiesDialog(open, onOpenChange)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

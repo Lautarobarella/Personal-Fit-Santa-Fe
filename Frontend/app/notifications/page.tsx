@@ -1,68 +1,29 @@
 "use client"
 
-import { useRequireAuth } from "@/hooks/use-require-auth"
+import { useNotificationsPage } from "@/hooks/notifications/use-notifications-page"
+import { NotificationStatus } from "@/types"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useNotificationsContext } from "@/contexts/notifications-provider"
-import { NotificationStatus } from "@/lib/types"
-import { useToast } from "@/hooks/use-toast"
 import { Archive, CheckCheck, Search } from "lucide-react"
-import { useState } from "react"
 import { NotificationsList } from "@/components/notifications/notifications-list"
 import { Button } from "@/components/ui/button"
 
 export default function NotificationsPage() {
-  useRequireAuth()
-  const { toast } = useToast()
-
   const {
     notifications,
     unreadCount,
-    markAsRead,
-    archiveNotification,
-  } = useNotificationsContext()
-
-  const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
-
-  const handleMarkAllAsRead = async () => {
-    const unreadNotifications = notifications.filter((notification) => notification.status === NotificationStatus.UNREAD)
-
-    try {
-      await Promise.all(unreadNotifications.map((notification) => markAsRead(notification.id)))
-      toast({
-        title: "Exito",
-        description: `${unreadNotifications.length} notificaciones marcadas como leidas`,
-      })
-    } catch {
-      toast({
-        title: "Error",
-        description: "No se pudieron marcar todas como leidas",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleArchiveAll = async () => {
-    const allActiveNotifications = notifications.filter((notification) => notification.status !== NotificationStatus.ARCHIVED)
-
-    try {
-      await Promise.all(allActiveNotifications.map((notification) => archiveNotification(notification.id)))
-      toast({
-        title: "Exito",
-        description: `${allActiveNotifications.length} notificaciones archivadas`,
-      })
-    } catch {
-      toast({
-        title: "Error",
-        description: "No se pudieron archivar todas las notificaciones",
-        variant: "destructive",
-      })
-    }
-  }
+    searchTerm,
+    setSearchTerm,
+    activeTab,
+    setActiveTab,
+    handleMarkAllAsRead,
+    handleArchiveAll,
+    hasUnread,
+    hasActive,
+  } = useNotificationsPage()
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -125,7 +86,7 @@ export default function NotificationsPage() {
                 <Button
                   variant="outline"
                   onClick={handleMarkAllAsRead}
-                  disabled={notifications.filter((notification) => notification.status === NotificationStatus.UNREAD).length === 0}
+                  disabled={!hasUnread}
                   className="min-w-[180px] bg-transparent"
                 >
                   <CheckCheck className="mr-2 h-4 w-4" />
@@ -134,7 +95,7 @@ export default function NotificationsPage() {
                 <Button
                   variant="outline"
                   onClick={handleArchiveAll}
-                  disabled={notifications.filter((notification) => notification.status !== NotificationStatus.ARCHIVED).length === 0}
+                  disabled={!hasActive}
                   className="min-w-[180px] bg-transparent"
                 >
                   <Archive className="mr-2 h-4 w-4" />

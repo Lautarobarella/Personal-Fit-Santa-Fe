@@ -1,13 +1,5 @@
 "use client"
 
-import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
-import { usePaymentContext } from "@/contexts/payment-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
-import { useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-
 import { PaymentDetailsDialog } from "@/components/payments/payment-details-dialog"
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { usePaymentsPage } from "@/hooks/payments/use-payments-page"
+import { UserRole } from "@/types"
 
 import {
     AlertCircle,
@@ -34,235 +28,40 @@ import {
 } from "lucide-react"
 
 export default function PaymentsPage() {
-    const { user } = useRequireAuth()
-    const router = useRouter()
-    const queryClient = useQueryClient()
-
-    // Estados básicos
-    const [searchTerm, setSearchTerm] = useState("")
-    const [showRevenue, setShowRevenue] = useState(true)
-
-    // Estados para admin
-    const currentDate = new Date()
-    const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
-    const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
-    const [adminPayments, setAdminPayments] = useState<any[]>([])
-    const [isLoadingAdminPayments, setIsLoadingAdminPayments] = useState(false)
-
     const {
-        payments,
-        updatePaymentStatus,
-        isLoading,
-    } = usePaymentContext()
-
-
-    // useEffect 1: Refrescar datos al montar y detectar cambios de usuario
-    useEffect(() => {
-        if (!user?.id && user?.role !== UserRole.ADMIN) return
-
-        const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
-
-        const refreshData = () => {
-            queryClient.invalidateQueries({ queryKey })
-            if (user?.role === UserRole.ADMIN) {
-                queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-            }
-        }
-
-        // Actualización inicial
-        refreshData()
-
-
-    }, [user?.id, user?.role, queryClient])
-
-    // useEffect 2: Cargar pagos por mes/año para admin
-    useEffect(() => {
-        if (user?.role !== UserRole.ADMIN) return
-
-        setIsLoadingAdminPayments(true)
-        fetchPaymentsByMonthAndYear(selectedYear, selectedMonth)
-            .then(paymentsData => setAdminPayments(paymentsData))
-            .catch(error => {
-                console.error('Error cargando pagos por mes:', error)
-                setAdminPayments([])
-            })
-            .finally(() => setIsLoadingAdminPayments(false))
-    }, [user?.role, selectedYear, selectedMonth])
-
-    // useEffect 3: Validar fechas para evitar fechas futuras
-    useEffect(() => {
-        const currentDate = new Date()
-        const currentYear = currentDate.getFullYear()
-        const currentMonth = currentDate.getMonth() + 1
-
-        if (selectedYear > currentYear) {
-            setSelectedYear(currentYear)
-            setSelectedMonth(currentMonth)
-            return
-        }
-
-        if (selectedYear === currentYear && selectedMonth > currentMonth) {
-            setSelectedMonth(currentMonth)
-        }
-    }, [selectedYear, selectedMonth])
-
-    const [verificationDialog, setVerificationDialog] = useState({
-        open: false,
-        paymentId: null as number | null,
-    })
-
-    const [detailsDialog, setDetailsDialog] = useState({
-        open: false,
-        paymentId: null as number | null,
-    })
+        user,
+        router,
+        searchTerm,
+        setSearchTerm,
+        showRevenue,
+        setShowRevenue,
+        selectedYear,
+        selectedMonth,
+        isLoadingAdminPayments,
+        verificationDialog,
+        setVerificationDialog,
+        detailsDialog,
+        setDetailsDialog,
+        sortedAllPayments,
+        pendingPayments,
+        totalRevenue,
+        activePayment,
+        pendingPayment,
+        canCreateNewPayment,
+        formatDate,
+        getStatusColor,
+        getStatusText,
+        formatCurrency,
+        getMethodText,
+        handleVerificationClick,
+        handleDetailsClick,
+        handleMonthChange,
+        handleYearChange,
+        getCurrentDateInfo,
+    } = usePaymentsPage()
 
     if (user?.role === UserRole.TRAINER) {
         return <div>No tienes permisos para ver esta página</div>
-    }
-
-    const formatDate = (date: Date | string | null) => {
-        if (!date) return ""
-        return new Intl.DateTimeFormat("es-ES", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        }).format(new Date(date))
-    }
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case PaymentStatus.PAID:
-                return "success"
-            case PaymentStatus.PENDING:
-                return "warning"
-            case PaymentStatus.REJECTED:
-            case PaymentStatus.EXPIRED:
-                return "destructive"
-            default:
-                return "secondary"
-        }
-    }
-
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case PaymentStatus.PAID:
-                return "Pagado"
-            case PaymentStatus.PENDING:
-                return "Pendiente"
-            case PaymentStatus.REJECTED:
-                return "Rechazado"
-            case PaymentStatus.EXPIRED:
-                return "Vencido"
-            default:
-                return status
-        }
-    }
-
-    function formatCurrency(amount: number): string {
-        return new Intl.NumberFormat("es-AR", {
-            style: "decimal",
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(amount)
-    }
-
-    const getMethodText = (method: MethodType) => {
-        switch (method) {
-            case MethodType.CASH:
-                return "Efectivo"
-            case MethodType.CARD:
-                return "Tarjeta"
-            case MethodType.TRANSFER:
-                return "Transferencia"
-            default:
-                return method
-        }
-    }
-
-    // Cálculos simples y directos (sin useMemo innecesario)
-    const sourcePayments = user?.role === UserRole.ADMIN ? adminPayments : payments
-
-    const filteredPayments = sourcePayments.filter((p: any) => {
-        if (user?.role !== UserRole.ADMIN) {
-            return true
-        }
-
-        return p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase())
-    })
-
-    const sortedAllPayments = [...filteredPayments].sort((a: any, b: any) => {
-        const dateA = new Date(a.createdAt || 0).getTime()
-        const dateB = new Date(b.createdAt || 0).getTime()
-        return dateB - dateA // Descendente: más nuevos primero
-    })
-
-    const paidPayments = filteredPayments.filter((p: any) => p.status === PaymentStatus.PAID)
-
-    const pendingPayments = filteredPayments
-        .filter((p: any) => p.status === PaymentStatus.PENDING)
-        .sort((a: any, b: any) => {
-            const dateA = new Date(a.createdAt || 0).getTime()
-            const dateB = new Date(b.createdAt || 0).getTime()
-            if (user?.role === UserRole.CLIENT) {
-                return dateB - dateA // Descendente: mas nuevos primero
-            }
-            return dateA - dateB // Ascendente: mas viejos primero para verificacion admin
-        })
-
-    const totalRevenue = user?.role === UserRole.ADMIN
-        ? adminPayments
-            .filter((p: any) => p.status === PaymentStatus.EXPIRED || p.status === PaymentStatus.PAID)
-            .reduce((sum: number, p: any) => sum + p.amount, 0)
-        : paidPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
-
-    const activePayment = paidPayments.find((p: any) => {
-        const now = new Date()
-        const expiresAt = p.expiresAt ? new Date(p.expiresAt) : null
-        return p.status === PaymentStatus.PAID && expiresAt && expiresAt > now
-    })
-
-    const pendingPayment = pendingPayments.find((p: any) => p.status === PaymentStatus.PENDING)
-
-    // Lógica para determinar si el cliente puede crear un nuevo pago
-    const canCreateNewPayment = user?.role === UserRole.ADMIN || (
-        user?.role === UserRole.CLIENT && !activePayment && !pendingPayment
-    )
-
-    // Handlers simples para diálogos
-    const handleVerificationClick = (id: number) => {
-        setVerificationDialog({ open: true, paymentId: id })
-    }
-
-    const handleDetailsClick = (id: number) => {
-        setDetailsDialog({ open: true, paymentId: id })
-    }
-
-    // Handlers simples para selectores
-    const handleMonthChange = (value: string) => {
-        setSelectedMonth(parseInt(value))
-    }
-
-    const handleYearChange = (value: string) => {
-        const newYear = parseInt(value)
-        setSelectedYear(newYear)
-
-        const currentDate = new Date()
-        const currentYear = currentDate.getFullYear()
-        const currentMonth = currentDate.getMonth() + 1
-
-        if (newYear === currentYear && selectedMonth > currentMonth) {
-            setSelectedMonth(currentMonth)
-        }
-    }
-
-    // Datos simples para selectores (calculados en línea)
-    const getCurrentDateInfo = () => {
-        const currentDate = new Date()
-        return {
-            currentYear: currentDate.getFullYear(),
-            currentMonth: currentDate.getMonth() + 1
-        }
     }
 
     return (

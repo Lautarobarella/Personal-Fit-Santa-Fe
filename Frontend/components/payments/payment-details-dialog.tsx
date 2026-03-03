@@ -13,10 +13,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { usePaymentContext } from "@/contexts/payment-provider"
-import { MethodType, PaymentStatus, PaymentType } from "@/lib/types"
+import { usePaymentDetailsDialog } from "@/hooks/payments/use-payment-details-dialog"
+import { MethodType, PaymentStatus } from "@/lib/types"
 import { Calendar, Clock, DollarSign, FileImage, User } from "lucide-react"
-import { useEffect, useState } from "react"
 
 interface PaymentDetailsDialogProps {
   open: boolean
@@ -25,50 +24,12 @@ interface PaymentDetailsDialogProps {
 }
 
 export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentDetailsDialogProps) {
-  const [selectedPayment, setSelectedPayment] = useState<PaymentType | null>(null)
-  const { fetchSinglePayment } = usePaymentContext()
-
-  useEffect(() => {
-    if (!open) return
-
-    fetchSinglePayment(paymentId).then(setSelectedPayment)
-  }, [open, paymentId, fetchSinglePayment])
-
-  const formatDateTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case PaymentStatus.PAID:
-        return "success"
-      case PaymentStatus.REJECTED:
-        return "destructive"
-      case PaymentStatus.PENDING:
-        return "warning"
-      default:
-        return "secondary"
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case PaymentStatus.PAID:
-        return "Pagado"
-      case PaymentStatus.REJECTED:
-        return "Rechazado"
-      case PaymentStatus.PENDING:
-        return "Pendiente"
-      default:
-        return status
-    }
-  }
+  const {
+    selectedPayment,
+    formatDateTime,
+    getStatusColor,
+    getStatusText,
+  } = usePaymentDetailsDialog(paymentId, open)
 
   if (!selectedPayment) {
     return null

@@ -1,14 +1,8 @@
-
-
-
 "use client"
 
-import { useAttendance } from "@/hooks/activities/use-attendance"
-import { useToast } from "@/hooks/use-toast"
+import { useAttendanceActivityDialog } from "@/hooks/activities/use-attendance-activity-dialog"
 import { AttendanceStatus } from "@/lib/types"
 import { AlertCircle, CheckCircle, Loader2, MailWarningIcon, Users } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useAuth } from "../../contexts/auth-provider"
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
@@ -30,23 +24,16 @@ interface AttendanceActivityDialogProps {
 }
 
 export function AttendanceActivityDialog({ open, onOpenChange, activityId }: AttendanceActivityDialogProps) {
-  const { user } = useAuth()
-  const [isAttending, setIsAttending] = useState(false)
-  const { toast } = useToast()
-  const { 
-    activityAttendances, 
-    isLoading, 
-    error, 
-    loadActivityAttendances, 
-    markAttendance,
-    getAttendanceStats 
-  } = useAttendance()
-
-  useEffect(() => {
-    if (open && activityId) {
-      loadActivityAttendances(activityId)
-    }
-  }, [activityId, open, loadActivityAttendances])
+  const {
+    activityAttendances,
+    isLoading,
+    error,
+    isAttending,
+    stats,
+    formatDateTime,
+    handleMarkStatus,
+    handleClose,
+  } = useAttendanceActivityDialog(activityId, open, onOpenChange)
   
   if (isLoading) {
     return (
@@ -72,112 +59,6 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
         </DialogContent>
       </Dialog>
     )
-  }
-
-  const formatDateTime = (date: Date | string) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
-  }
-
-  const stats = getAttendanceStats()
-
-  const handleMarkPresent = async (attendanceId: number) => {
-    setIsAttending(true)
-    
-    try {
-      const result = await markAttendance(attendanceId, AttendanceStatus.PRESENT)
-      
-      if (result.success) {
-        toast({
-          title: "Asistencia marcada",
-          description: result.message,
-          variant: "default",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al marcar la asistencia",
-        variant: "destructive",
-      })
-    } finally {
-      setIsAttending(false)
-    }
-  }
-
-  const handleMarkAbsent = async (attendanceId: number) => {
-    setIsAttending(true)
-    
-    try {
-      const result = await markAttendance(attendanceId, AttendanceStatus.ABSENT)
-      
-      if (result.success) {
-        toast({
-          title: "Ausencia marcada",
-          description: result.message,
-          variant: "default",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al marcar la ausencia",
-        variant: "destructive",
-      })
-    } finally {
-      setIsAttending(false)
-    }
-  }
-
-  const handleMarkLate = async (attendanceId: number) => {
-    setIsAttending(true)
-    
-    try {
-      const result = await markAttendance(attendanceId, AttendanceStatus.LATE)
-      
-      if (result.success) {
-        toast({
-          title: "Tardanza marcada",
-          description: result.message,
-          variant: "default",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al marcar la tardanza",
-        variant: "destructive",
-      })
-    } finally {
-      setIsAttending(false)
-    }
-  }
-
-  const handleClose = () => {
-    onOpenChange(false)
   }
   
   return (
@@ -259,7 +140,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkAbsent(attendance.id)}
+                        onClick={() => handleMarkStatus(attendance.id, AttendanceStatus.ABSENT)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -268,7 +149,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkLate(attendance.id)}
+                        onClick={() => handleMarkStatus(attendance.id, AttendanceStatus.LATE)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -281,7 +162,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkPresent(attendance.id)}
+                        onClick={() => handleMarkStatus(attendance.id, AttendanceStatus.PRESENT)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -290,7 +171,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkLate(attendance.id)}
+                        onClick={() => handleMarkStatus(attendance.id, AttendanceStatus.LATE)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -303,7 +184,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkPresent(attendance.id)}
+                        onClick={() => handleMarkStatus(attendance.id, AttendanceStatus.PRESENT)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
@@ -312,7 +193,7 @@ export function AttendanceActivityDialog({ open, onOpenChange, activityId }: Att
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleMarkAbsent(attendance.id)}
+                        onClick={() => handleMarkStatus(attendance.id, AttendanceStatus.ABSENT)}
                         disabled={isAttending}
                       >
                         {isAttending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}

@@ -1,8 +1,6 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -21,49 +19,33 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useClients } from "@/hooks/clients/use-client"
-import { useToast } from "@/hooks/use-toast"
-import { UserRole } from "@/lib/types"
+import { useClientsPage } from "@/hooks/clients/use-clients-page"
+import { UserRole } from "@/types"
 import { Calendar, Loader2, Mail, MoreVertical, Phone, Plus, Search } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 
 export default function ClientsPage() {
-
-  const { user } = useAuth()
-  const router = useRouter()
-  const { toast } = useToast()
-  
-  // Use custom hook to redirect to login if not authenticated
-  useRequireAuth()
   const {
+    user,
+    router,
     clients,
     loading,
     error,
-    loadClients,
-    deleteClient,
-  } = useClients()
-  const [searchTerm, setSearchTerm] = useState("")
-
-  const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "INACTIVE" | "all">("ACTIVE")
-
-  const [clientDetailsDialog, setClientDetailsDialog] = useState<{
-    open: boolean
-    userId: number | null
-  }>({ open: false, userId: null })
-
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean
-    clientId: number | null
-    clientName: string
-  }>({ open: false, clientId: null, clientName: "" })
-
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  useEffect(() => {
-    loadClients()
-  }, [loadClients])
+    filteredClients,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    clientDetailsDialog,
+    setClientDetailsDialog,
+    deleteDialog,
+    setDeleteDialog,
+    isDeleting,
+    formatDate,
+    handleClientDetails,
+    handleOpenDeleteDialog,
+    handleConfirmDelete,
+  } = useClientsPage()
 
   if (!user || user.role === UserRole.CLIENT || user.role === UserRole.TRAINER) {
     return <div>No tienes permisos para ver esta página</div>
@@ -79,54 +61,6 @@ export default function ClientsPage() {
 
   if (error) return <div>{error}</div>
   if (!clients) return null
-
-  const normalizeText = (text: string) => {
-    return text
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-  }
-
-  const filteredClients = clients
-    .filter((c) => {
-      const normalizedSearchTerm = normalizeText(searchTerm)
-      return (statusFilter === "all" ? true : c.status === statusFilter) &&
-        (
-          normalizeText(c.firstName).includes(normalizedSearchTerm) ||
-          normalizeText(c.lastName).includes(normalizedSearchTerm) ||
-          normalizeText(c.email).includes(normalizedSearchTerm)
-        )
-    })
-
-
-  const formatDate = (date: Date | string | null) => {
-
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(date ?? "N/A"))
-  }
-
-  const handleClientDetails = (userId: number) => setClientDetailsDialog({ open: true, userId })
-
-  const handleOpenDeleteDialog = (clientId: number, clientName: string) => {
-    setDeleteDialog({ open: true, clientId, clientName })
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!deleteDialog.clientId) return
-    setIsDeleting(true)
-    try {
-      await deleteClient(deleteDialog.clientId)
-      toast({ title: "Cliente eliminado", description: `${deleteDialog.clientName} fue eliminado exitosamente.` })
-      setDeleteDialog({ open: false, clientId: null, clientName: "" })
-    } catch {
-      toast({ title: "Error", description: "No se pudo eliminar el cliente.", variant: "destructive" })
-    } finally {
-      setIsDeleting(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -189,7 +123,7 @@ export default function ClientsPage() {
           >
             <Card className="border-0 bg-transparent shadow-none">
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{clients.length}</div>
+                <div className="text-2xl font-bold">{clients.length}</div>
                 <div className="text-sm text-muted-foreground">Total</div>
               </CardContent>
             </Card>

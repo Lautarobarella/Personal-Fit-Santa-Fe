@@ -9,300 +9,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Separator } from "@/components/ui/separator"
-import { useActivityContext } from "@/contexts/activity-provider"
-import { useAuth } from "@/contexts/auth-provider"
-import { usePaymentContext } from "@/contexts/payment-provider"
-import { fetchActivityDetail } from "@/api/activities/activitiesApi"
-import { useClients } from "@/hooks/clients/use-client"
-import { useClientStats } from "@/hooks/clients/use-client-stats"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { useToast } from "@/hooks/use-toast"
-import { hasAcceptedTerms } from "@/lib/terms-and-conditions-storage"
-import { ActivityStatus, AttendanceStatus, UserRole } from "@/lib/types"
-import { useQueryClient } from "@tanstack/react-query"
+import { useDashboard } from "@/hooks/dashboard/use-dashboard"
+import { UserRole } from "@/types"
 import {
-  Activity,
   AlertTriangle,
   ArrowUpRight,
-  BarChart3,
   Bell,
-  Calendar,
   CheckCircle,
-  Clock,
-  CreditCard,
   Eye,
   EyeOff,
-  LogIn,
-  LogOut,
-  Target,
   Timer,
-  TrendingUp,
-  Users,
   Zap
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 
-import { useTrainer } from "@/hooks/clients/use-trainer"
-
-// Componente que se renderiza solo en el cliente
 function DashboardContent() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-
-  // Use custom hook to redirect to login if not authenticated
-  useRequireAuth()
-  const [dashboardStats, setDashboardStats] = useState({
-    monthlyRevenue: 0,
-    activeClients: 0,
-    todayActivities: 0,
-    attendanceRate: 0
-  })
-  const [isLoading, setIsLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
-  const [showRevenue, setShowRevenue] = useState(true)
-
-  // Usar hooks de forma segura
-  const { checkMembershipStatus } = useClients()
-  const { clients, loadClients } = useClients()
-  const { activities, refreshActivities, getWeekDates } = useActivityContext()
-  const { stats: clientStats, loading: clientStatsLoading } = useClientStats(user?.role === UserRole.CLIENT ? user?.id : undefined)
-  const { currentShift, toggleShift, loading: loadingShift, dashboardStats: trainerStats, todayShift, getMonthlyHours } = useTrainer()
-
-  // Estado para dialog de horas mensuales
-  const [showMonthlyHours, setShowMonthlyHours] = useState(false)
-
-  // Usar el contexto unificado de pagos
   const {
-    totalPendingPayments,
-    currentMonthRevenue,
-    isLoading: isLoadingPayments
-  } = usePaymentContext()
-  const pendingPaymentsLoading = isLoadingPayments
+    user,
+    mounted,
+    isLoading,
+    showRevenue,
+    setShowRevenue,
+    showMonthlyHours,
+    setShowMonthlyHours,
+    showProfileDialog,
+    setShowProfileDialog,
+    showTermsDialog,
+    trainerAttendanceDialog,
+    setTrainerAttendanceDialog,
+    stats,
+    quickActions,
+    alerts,
+    handleAcceptTerms,
+    handleRejectTerms,
+    handleNavigation,
+    getMonthlyHours,
+  } = useDashboard()
 
-  // Estado para cachear el estado de membresía
-  const [membershipStatus, setMembershipStatus] = useState<boolean | null>(null)
-
-  // Estado para el dialog de perfil del cliente
-  const [showProfileDialog, setShowProfileDialog] = useState(false)
-
-  // Estado para términos y condiciones
-  const [showTermsDialog, setShowTermsDialog] = useState(false)
-
-  // Estado para dialog de asistencia desde el dashboard (debe estar antes de los early returns)
-  const [trainerAttendanceDialog, setTrainerAttendanceDialog] = useState<{
-    open: boolean
-    activityId: number | null
-  }>({ open: false, activityId: null })
-
-  // Verificar términos y condiciones al montar (solo para usuarios no ADMIN)
-  useEffect(() => {
-    if (user?.id && mounted && user?.role !== UserRole.ADMIN) {
-      const hasAccepted = hasAcceptedTerms(user.id)
-      if (!hasAccepted) {
-        setShowTermsDialog(true)
-      }
-    }
-  }, [user?.id, user?.role, mounted])
-
-  // Handlers para términos y condiciones
-  const handleAcceptTerms = () => {
-    setShowTermsDialog(false)
-    toast({
-      title: "Términos aceptados",
-      description: "Bienvenido a Personal Fit Santa Fe",
-    })
-  }
-
-  const handleRejectTerms = () => {
-    setShowTermsDialog(false)
-    toast({
-      title: "Términos rechazados",
-      description: "Has sido desconectado de la aplicación",
-      variant: "destructive"
-    })
-    // Usar el método logout del contexto de autenticación
-    logout()
-    router.push('/login')
-  }
-
-  // Marcar como montado para evitar SSR e invalidar queries para datos frescos
-  useEffect(() => {
-    setMounted(true)
-    loadClients()
-    refreshActivities()
-
-    // Para clientes, verificar estado de membresía
-    if (user?.role === UserRole.CLIENT && user.id) {
-      checkMembershipStatus(user.id).then(setMembershipStatus)
-    }
-
-    // Invalidar queries para asegurar datos frescos al entrar al dashboard
-    if (user?.role === UserRole.ADMIN) {
-    }
-  }, [loadClients, refreshActivities, user?.role, queryClient])
-
-  // Encontrar la próxima actividad del entrenador (debe estar antes de los early returns)
-  const getNextTrainerActivity = useCallback(() => {
-    if (!user || (user.role !== UserRole.TRAINER && user.role !== UserRole.ADMIN)) return null
-    const now = new Date()
-
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    const todayActivities = activities
-      .filter(a => {
-        const actDate = new Date(a.date)
-        return actDate >= today && actDate < tomorrow &&
-          a.status === ActivityStatus.ACTIVE
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
-    const inProgress = todayActivities.find(a => {
-      const start = new Date(a.date)
-      const end = new Date(start.getTime() + a.duration * 60000)
-      return start <= now && now <= end
-    })
-    if (inProgress) return inProgress
-
-    const upcoming = todayActivities.find(a => new Date(a.date) > now)
-    if (upcoming) return upcoming
-
-    const futureActivities = activities
-      .filter(a => new Date(a.date) > now && a.status === ActivityStatus.ACTIVE)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
-    return futureActivities[0] || null
-  }, [activities, user])
-
-  const calculateWeeklyAttendanceRate = useCallback(async (): Promise<number> => {
-    const weekStart = getWeekDates(new Date())[0]
-    weekStart.setHours(0, 0, 0, 0)
-
-    const now = new Date()
-
-    const weekActivities = activities.filter(activity => {
-      const activityDate = new Date(activity.date)
-      return (
-        activity.status !== ActivityStatus.CANCELLED &&
-        activityDate >= weekStart &&
-        activityDate <= now
-      )
-    })
-
-    if (weekActivities.length === 0) {
-      return 0
-    }
-
-    const classRates = await Promise.all(
-      weekActivities.map(async (activity) => {
-        try {
-          const activityDetail = await fetchActivityDetail(activity.id)
-          const totalParticipants = activityDetail.participants.length
-
-          if (totalParticipants === 0) {
-            return null
-          }
-
-          const attendedParticipants = activityDetail.participants.filter(
-            (participant: { status: string }) =>
-              participant.status === AttendanceStatus.PRESENT ||
-              participant.status === AttendanceStatus.LATE
-          ).length
-
-          return (attendedParticipants / totalParticipants) * 100
-        } catch (error) {
-          console.error(`Error loading attendance for activity ${activity.id}:`, error)
-          return null
-        }
-      })
-    )
-
-    const validRates = classRates.filter((rate): rate is number => rate !== null)
-
-    if (validRates.length === 0) {
-      return 0
-    }
-
-    const weeklyAverage = validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length
-    return Math.round(weeklyAverage)
-  }, [activities, getWeekDates])
-
-  // Calcular estadísticas reales
-  useEffect(() => {
-    if (!user || !mounted) {
-      setIsLoading(false)
-      return
-    }
-
-    let isCancelled = false
-
-    const calculateStats = async () => {
-      try {
-        // 1. Ingresos del mes (usar datos calculados desde usePayment)
-        const monthlyRevenue = currentMonthRevenue?.amount || 0
-
-        // 2. Clientes activos
-        const activeClients = clients.filter(c => c.status === "ACTIVE").length
-        // 3. Actividades de hoy (que aun no han terminado)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const tomorrow = new Date(today)
-        tomorrow.setDate(tomorrow.getDate() + 1)
-
-        const todayActivities = activities.filter(a => {
-          const activityDate = new Date(a.date)
-          return a.status === ActivityStatus.ACTIVE &&
-            activityDate >= today &&
-            activityDate < tomorrow
-        }).length
-
-        // 4. Tasa de asistencia (desactivada para admin)
-        const attendanceRate = 0
-
-        if (!isCancelled) {
-          setDashboardStats({
-            monthlyRevenue,
-            activeClients,
-            todayActivities,
-            attendanceRate
-          })
-        }
-      } catch (error) {
-        console.error('Error calculating dashboard stats:', error)
-
-        if (!isCancelled) {
-          setDashboardStats({
-            monthlyRevenue: 0,
-            activeClients: 0,
-            todayActivities: 0,
-            attendanceRate: 0
-          })
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    calculateStats()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [user, clients, activities, mounted, currentMonthRevenue, calculateWeeklyAttendanceRate])
-
-  // Evitar renderizado durante SSR
   if (!mounted) {
     return null
   }
 
-  if (!user || isLoading || (user.role === UserRole.CLIENT && clientStatsLoading) || (user.role === UserRole.ADMIN && pendingPaymentsLoading) || (user.role === UserRole.TRAINER && loadingShift)) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-background pb-32">
         <MobileHeader title="Cargando..." />
@@ -321,337 +69,6 @@ function DashboardContent() {
     )
   }
 
-  // Función para calcular el tamaño dinámico de la fuente basado en la longitud del texto
-  const getDynamicFontSize = (text: string) => {
-    const length = text.length;
-    if (length <= 6) return "text-3xl"; // Números pequeños
-    if (length <= 9) return "text-2xl"; // Números medianos
-    if (length <= 12) return "text-xl";  // Números grandes
-    if (length <= 15) return "text-lg";  // Números muy grandes
-    return "text-base"; // Números extremadamente grandes
-  }
-
-  const getDashboardStats = () => {
-    if (user.role === UserRole.ADMIN) {
-      const revenueValue = showRevenue ? `$${dashboardStats.monthlyRevenue.toLocaleString('es-AR')}` : "••••••";
-
-      const nextActivity = getNextTrainerActivity();
-      const nextClassValue = nextActivity
-        ? new Date(nextActivity.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        : "Sin clases";
-      const nextClassName = nextActivity?.name ?? "N/A";
-
-      return [
-        {
-          title: "Ingresos del Mes",
-          value: revenueValue,
-          icon: CreditCard,
-          description: "vs mes anterior",
-          isRevenue: true,
-          dynamicFontSize: getDynamicFontSize(revenueValue),
-          color: "primary"
-        },
-        {
-          title: "Clientes Activos",
-          value: dashboardStats.activeClients.toString(),
-          icon: Users,
-          description: "este mes",
-          dynamicFontSize: getDynamicFontSize(dashboardStats.activeClients.toString()),
-          color: "primary"
-        },
-        {
-          title: "Clases Hoy",
-          value: dashboardStats.todayActivities.toString(),
-          icon: Activity,
-          description: "programadas",
-          dynamicFontSize: "text-2xl",
-          color: "primary"
-        },
-        {
-          title: "Próxima Clase",
-          value: nextClassValue,
-          icon: Calendar,
-          description: nextClassName,
-          dynamicFontSize: "text-2xl",
-          color: "primary"
-        },
-      ];
-    } else if (user.role === UserRole.TRAINER) {
-      if (!trainerStats) return [];
-
-      const formatShiftTime = (isoStr: string | null) => {
-        if (!isoStr) return "--:--";
-        return new Date(isoStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-      };
-
-      const nextClassValue = trainerStats.nextClassTime
-        ? new Date(String(trainerStats.nextClassTime)).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        : "Sin clases";
-
-      return [
-        {
-          title: "Check-in",
-          value: formatShiftTime(todayShift.checkInTime),
-          icon: LogIn,
-          description: todayShift.hasCheckedIn ? "Registrado hoy" : "No registrado",
-          dynamicFontSize: "text-2xl",
-          color: todayShift.hasCheckedIn ? "success" : "destructive"
-        },
-        {
-          title: "Check-out",
-          value: formatShiftTime(todayShift.checkOutTime),
-          icon: LogOut,
-          description: todayShift.hasCheckedOut ? "Registrado hoy" : "No registrado",
-          dynamicFontSize: "text-2xl",
-          color: todayShift.hasCheckedOut ? "success" : "destructive"
-        },
-        {
-          title: "Clases Hoy",
-          value: String(trainerStats.classesToday ?? 0),
-          icon: Activity,
-          description: "programadas",
-          dynamicFontSize: "text-2xl",
-          color: "primary"
-        },
-        {
-          title: "Próxima Clase",
-          value: nextClassValue,
-          icon: Calendar,
-          description: typeof trainerStats.nextClassName === 'string' ? trainerStats.nextClassName : "N/A",
-          dynamicFontSize: "text-2xl",
-          color: "primary"
-        },
-      ];
-    } else {
-      // Formatear la próxima clase
-      const formatNextClass = () => {
-        if (!clientStats.nextClass) return "Sin clases";
-
-        const classDate = new Date(clientStats.nextClass.date);
-        const today = new Date();
-
-        // Comparar solo las fechas (sin horas)
-        const isToday = classDate.toDateString() === today.toDateString();
-
-        if (isToday) {
-          // Solo mostrar la hora si es hoy
-          return new Intl.DateTimeFormat("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }).format(classDate);
-        } else {
-          // Mostrar fecha y hora si es otro día
-          return new Intl.DateTimeFormat("es-ES", {
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          }).format(classDate);
-        }
-      };
-
-      const nextClassValue = formatNextClass();
-      const nextClassName = clientStats.nextClass?.name ?? "Sin clase";
-      // Obtener días restantes del backend directamente
-      const diasRestantes = clientStats.remainingDays ?? 0;
-
-      // Progreso mensual de actividades (fallback a weeklyActivityCount si no existe)
-      const actividadesMes = clientStats.weeklyActivityCount ?? 0;
-      // clientStats.faltasDelMes ?? 
-      const faltasDelMes = 0;
-
-      // Estructura uniforme para stats - Reordenadas según layout solicitado
-      return [
-        {
-          title: "Próxima Clase",
-          value: nextClassValue,
-          icon: Clock,
-          description: nextClassName,
-          color: "secondary",
-          dynamicFontSize: "text-2xl"
-        },
-        {
-          title: "Actividades este mes",
-          value: actividadesMes.toString(),
-          icon: Activity,
-          description: "completadas",
-          color: "warning",
-          dynamicFontSize: "text-2xl"
-        },
-        {
-          title: "Faltas del mes",
-          value: `${faltasDelMes}`,
-          icon: Target,
-          description: "inasistencias",
-          color: "primary",
-          dynamicFontSize: "text-2xl"
-        },
-        {
-          title: "Estado del plan",
-          value: diasRestantes > 0 ? "Plan activo" : "Sin plan activo",
-          icon: CheckCircle,
-          description: diasRestantes > 0 ? `Restan ${diasRestantes} días` : "Membresía vencida",
-          color: diasRestantes > 0 ? "success" : "destructive",
-          dynamicFontSize: "text-2xl"
-        },
-      ];
-    }
-  }
-
-  // Función para manejar navegación con validaciones especiales
-  const handleNavigation = (route: string, title: string) => {
-    // Para verificar pagos - validar si hay pagos pendientes
-    if (route === "/payments/verify" && user?.role === UserRole.ADMIN) {
-      if (totalPendingPayments === 0) {
-        toast({
-          title: "Sin pagos pendientes",
-          description: "No hay pagos pendientes de verificación",
-          variant: "default"
-        })
-        return
-      }
-    }
-
-    // Navegación normal
-    router.push(route)
-  }
-
-  const navigateToNextTrainerActivity = () => {
-    const next = getNextTrainerActivity()
-    if (next) {
-      // Navigate to activities page (it will scroll to today)
-      router.push('/activities')
-    } else {
-      toast({
-        title: "Sin actividades",
-        description: "No tenés actividades próximas programadas.",
-        variant: "default"
-      })
-    }
-  }
-
-  const openNextActivityAttendance = () => {
-    const next = getNextTrainerActivity()
-    if (next) {
-      setTrainerAttendanceDialog({ open: true, activityId: next.id })
-    } else {
-      toast({
-        title: "Sin actividades",
-        description: "No tenés actividades próximas para tomar asistencia.",
-        variant: "default"
-      })
-    }
-  }
-
-  const getQuickActions = () => {
-    if (user.role === UserRole.ADMIN) {
-      return [
-        {
-          title: "Tomar Asistencia",
-          onClick: () => openNextActivityAttendance(),
-          icon: CheckCircle,
-          color: "bg-orange-500"
-        },
-        {
-          title: "Mis Actividades",
-          onClick: () => navigateToNextTrainerActivity(),
-          icon: Activity,
-          color: "bg-gray-500"
-        },
-        { title: "Verificar Pagos", route: "/payments/verify", icon: CreditCard, color: "bg-gray-500" },
-        { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
-      ]
-    } else if (user.role === UserRole.TRAINER) {
-      return [
-        {
-          title: "Mis Actividades",
-          onClick: () => navigateToNextTrainerActivity(),
-          icon: Activity,
-          color: "bg-orange-500"
-        },
-        {
-          title: "Tomar Asistencia",
-          onClick: () => openNextActivityAttendance(),
-          icon: CheckCircle,
-          color: "bg-gray-500"
-        },
-        {
-          title: "Horas del Mes",
-          onClick: () => setShowMonthlyHours(true),
-          icon: Timer,
-          color: "bg-gray-500"
-        },
-      ]
-    } else {
-      return [
-        { title: "Ver Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
-        { title: "Mi Resumen", route: "/reports", icon: BarChart3, color: "bg-orange-500" },
-        { title: "Mi Progreso", route: "/progress", icon: TrendingUp, color: "bg-gray-500" },
-        { title: "Realizar Pago", route: "/payments", icon: CreditCard, color: "bg-gray-500" },
-        { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-gray-500" },
-      ]
-    }
-  }
-
-  const getAlerts = () => {
-    if (user.role === UserRole.ADMIN) {
-      return totalPendingPayments > 0
-        ? [{
-          type: "warning",
-          message: `${totalPendingPayments} pagos pendientes a validar`,
-          action: "Ver pagos",
-          route: "/payments/verify"
-        }]
-        : []
-    } else if (user.role === UserRole.TRAINER) {
-      const alerts: any[] = [];
-
-      // Banner informativo de check-in / check-out faltante
-      if (!todayShift.hasCheckedIn) {
-        alerts.push({
-          type: "warning",
-          message: "No registraste tu check-in hoy. Recordá usar el módulo físico para fichar.",
-        });
-      } else if (!todayShift.hasCheckedOut) {
-        alerts.push({
-          type: "warning",
-          message: "No olvides registrar tu check-out con el módulo físico al finalizar tu jornada.",
-        });
-      }
-
-      if (trainerStats?.nextClassTime) {
-        const nextClassTime = new Date(trainerStats.nextClassTime);
-        const now = new Date();
-        const diffMinutes = Math.floor((nextClassTime.getTime() - now.getTime()) / (1000 * 60));
-
-        if (diffMinutes > 0 && diffMinutes <= 60) {
-          alerts.push({
-            type: "info",
-            message: `Clase de ${trainerStats.nextClassName || 'Entrenamiento'} en ${diffMinutes} minutos`,
-            action: "Ver detalles",
-            route: "/activities"
-          });
-        }
-      }
-
-      return alerts;
-    } else {
-      // Usar el estado de membresía validado por el backend
-      const hasActiveMembership = membershipStatus !== null ? membershipStatus : user.status === "ACTIVE"
-
-      if (!hasActiveMembership) {
-        return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", route: "/payments" }];
-      }
-      return [
-        { type: "info", message: `¡Felicidades! Completaste ${clientStats.weeklyActivityCount || 0} actividades este mes`, action: "Ver progreso", route: "/progress" },
-      ];
-    }
-  }
-
-  const stats = getDashboardStats()
-  const quickActions = getQuickActions()
-  const alerts = getAlerts()
-
   return (
     <div className="min-h-screen bg-background pb-32">
       <MobileHeader title={`Hola, ${user.firstName}`} />
@@ -659,48 +76,20 @@ function DashboardContent() {
       <div className="container-centered h-full py-6 space-y-6">
         {/* Solicitud de permisos de notificación para clientes */}
 
-        {/* Welcome Section - Diseño profesional con imagen de fondo */}
+        {/* Welcome Section - Hero con gradiente naranja */}
         <div className="relative overflow-hidden rounded-3xl shadow-professional-lg">
-          {/* Imagen de fondo */}
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: "url('/dashboard.png')"
-            }}
-          />
-          {/* Overlay para mejorar legibilidad del texto */}
-          <div className="absolute inset-0 bg-black/10 rounded-3xl" />
-
-          <div className="relative z-10 p-24 text-white">
-            <div className="flex items-center justify-between">
-              {/* <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-3 tracking-tight">
-                  {user.role === UserRole.ADMIN && "Panel de Control"}
-                  {user.role === UserRole.TRAINER && "Centro de Entrenador"}
-                  {user.role === UserRole.CLIENT && "Mi Entrenamiento"}
-                </h1>
-                <p className="text-white/90 text-base font-medium">
-                  {user.role === UserRole.ADMIN && "Gestiona tu gimnasio de manera eficiente"}
-                  {user.role === UserRole.TRAINER && "Inspira y guía a tus clientes"}
-                  {user.role === UserRole.CLIENT && "Alcanza tus objetivos de fitness"}
-                </p>
-              </div> */}
-              {/* <div className="text-right bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-                <div className="text-sm text-white/80 mb-1 font-medium">
-                  {new Date().toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  })}
-                </div>
-                <div className="text-2xl font-bold">
-                  {new Date().toLocaleTimeString("es-ES", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div> */}
+          {/* Fondo con gradiente naranja */}
+          <div className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 dark:from-primary/90 dark:via-primary/80 dark:to-primary/60 px-6 py-7 rounded-3xl">
+            <div className="relative z-10">
+              <p className="text-white/80 text-sm font-medium">Bienvenido de vuelta</p>
+              <h2 className="text-white text-2xl font-bold mt-1">{user.firstName} {user.lastName}</h2>
+              <p className="text-white/70 text-xs mt-2">
+                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
             </div>
+            {/* Decoración circular sutil */}
+            <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full" />
+            <div className="absolute -bottom-4 -right-10 w-24 h-24 bg-white/5 rounded-full" />
           </div>
         </div>
 
@@ -729,7 +118,7 @@ function DashboardContent() {
                       variant="ghost"
                       size="sm"
                       className={`text-xs font-medium hover:bg-background/50 rounded-xl flex-shrink-0 ${!alert.action ? 'hidden' : ''}`}
-                      onClick={() => alert.onClick ? alert.onClick() : handleNavigation(alert.route, alert.action)}
+                      onClick={() => alert.onClick ? alert.onClick() : handleNavigation(alert.route ?? '', alert.action ?? '')}
                     >
                       {String(alert.action ?? '')}
                       <ArrowUpRight className="h-4 w-4 ml-1" />
@@ -741,18 +130,37 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Stats Grid - Diseño profesional moderno */}
         <div className="grid grid-cols-2 gap-4">
           {stats.map((stat, index) => {
-            // Determinar el span de columnas: primera y última card ocupan 2 columnas
             const colSpan = (index === 0 || index === 3) ? "col-span-2" : "col-span-1";
 
             return (
-              <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 bg-card min-h-[160px] flex flex-col justify-center ${colSpan}`}>
-                <CardContent className="p-5 flex flex-col justify-center h-full">
-                  {/* Icono plano en la esquina */}
+              <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 min-h-[160px] flex flex-col justify-center ${colSpan} ${
+                stat.color === "success" ? "bg-green-50 dark:bg-green-950/30" :
+                stat.color === "destructive" ? "bg-red-50 dark:bg-red-950/30" :
+                index % 2 === 0 ? "bg-card" : "bg-muted/40 dark:bg-muted/20"
+              }`}>
+                {/* Barra lateral de acento */}
+                <div className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${
+                  stat.color === "success" ? "bg-green-500" :
+                  stat.color === "destructive" ? "bg-red-500" :
+                  stat.color === "bg-orange-500" ? "bg-primary" : "bg-gray-300 dark:bg-gray-600"
+                }`} />
+
+                <CardContent className="p-5 pl-5 flex flex-col justify-center h-full">
+
                   <div className="absolute top-4 right-4 flex items-center gap-1">
-                    <stat.icon className={`h-6 w-6 ${stat.color === "success" ? "text-green-600" : stat.color === "destructive" ? "text-red-600" : "text-foreground"}`} />
+                    <div className={`p-1.5 rounded-lg ${
+                      stat.color === "success" ? "bg-green-100 dark:bg-green-900/40" :
+                      stat.color === "destructive" ? "bg-red-100 dark:bg-red-900/40" :
+                      stat.color === "bg-orange-500" ? "bg-primary/10" : "bg-gray-100 dark:bg-gray-800"
+                    }`}>
+                      <stat.icon className={`h-5 w-5 ${
+                        stat.color === "success" ? "text-green-600 dark:text-green-400" :
+                        stat.color === "destructive" ? "text-red-600 dark:text-red-400" :
+                        stat.color === "bg-orange-500" ? "text-primary" : "text-gray-500 dark:text-gray-400"
+                      }`} />
+                    </div>
                     {(stat as any).isRevenue && (
                       <button
                         onClick={() => setShowRevenue(!showRevenue)}
@@ -770,12 +178,18 @@ function DashboardContent() {
 
                   <div className="pr-16">
                     <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{String(stat.title ?? '')}</p>
-                    <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-foreground"} mb-2 tracking-tight`}>{String(stat.value ?? '')}</p>
-                    <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-700" : stat.color === "destructive" ? "text-red-700" : "text-muted-foreground"}`}>{String(stat.description ?? '')}</p>
+                    <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${
+                      stat.color === "success" ? "text-green-700 dark:text-green-400" :
+                      stat.color === "destructive" ? "text-red-700 dark:text-red-400" :
+                      stat.color === "bg-orange-500" ? "text-primary" : "text-foreground"
+                    } mb-2 tracking-tight`}>{String(stat.value ?? '')}</p>
+                    <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-600 dark:text-green-500" : stat.color === "destructive" ? "text-red-600 dark:text-red-500" : "text-muted-foreground"}`}>{String(stat.description ?? '')}</p>
                   </div>
 
-                  {/* Elemento decorativo */}
-                  <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-primary opacity-20"></div>
+                  {/* Elemento decorativo naranja */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 ${
+                    stat.color === "bg-orange-500" ? "bg-primary/40" : "bg-gray-200 dark:bg-gray-700"
+                  }`} />
                 </CardContent>
               </Card>
             );
@@ -783,15 +197,18 @@ function DashboardContent() {
         </div>
 
         {/* Quick Actions - Diseño profesional */}
-        <Card className="shadow-professional border-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-bold flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              Acciones Rápidas
-            </CardTitle>
-          </CardHeader>
+        <Card className="shadow-professional border-0 overflow-hidden">
+          {/* Header con acento naranja */}
+          <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent dark:from-primary/10 dark:via-primary/5 dark:to-transparent">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold flex items-center gap-3">
+                <div className="p-2 bg-primary/15 dark:bg-primary/20 rounded-xl shadow-sm">
+                  <Zap className="h-6 w-6 text-primary" />
+                </div>
+                Acciones Rápidas
+              </CardTitle>
+            </CardHeader>
+          </div>
           <CardContent className="grid grid-cols-2 gap-4">
             {quickActions.map((action, index) => {
               if (action.onClick) {
@@ -799,11 +216,17 @@ function DashboardContent() {
                   <Button
                     key={index}
                     variant="outline"
-                    className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
+                    className={`w-full h-auto p-6 flex flex-col gap-4 border-2 bg-background hover:bg-accent/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group ${
+                      action.color === "bg-orange-500"
+                        ? "border-primary/20 hover:border-primary/50"
+                        : "border-border/50 hover:border-gray-400/50 dark:hover:border-gray-500/50"
+                    }`}
                     onClick={action.onClick}
                     disabled={(action as any).disabled}
                   >
-                    <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
+                      action.color === "bg-orange-500" ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"
+                    }`}>
                       <action.icon className="h-7 w-7 text-white" />
                     </div>
                     <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
@@ -814,10 +237,16 @@ function DashboardContent() {
                   <Button
                     key={index}
                     variant="outline"
-                    className="w-full h-auto p-6 flex flex-col gap-4 border-2 border-border/50 bg-background hover:bg-accent/50 hover:border-primary/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group"
+                    className={`w-full h-auto p-6 flex flex-col gap-4 border-2 bg-background hover:bg-accent/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group ${
+                      action.color === "bg-orange-500"
+                        ? "border-primary/20 hover:border-primary/50"
+                        : "border-border/50 hover:border-gray-400/50 dark:hover:border-gray-500/50"
+                    }`}
                     onClick={() => handleNavigation(action.route!, action.title)}
                   >
-                    <div className={`w-14 h-14 ${action.color} rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
+                      action.color === "bg-orange-500" ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"
+                    }`}>
                       <action.icon className="h-7 w-7 text-white" />
                     </div>
                     <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>

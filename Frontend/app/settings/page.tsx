@@ -1,5 +1,6 @@
 "use client"
 
+import { useSettingsPage } from "@/hooks/settings/use-settings-page"
 import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
 import { ActivityTimesDialog } from "@/components/settings/activity-time-dialog"
 import { MaxActivitiesDialog } from "@/components/settings/max-activities-dialog"
@@ -12,35 +13,31 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Switch } from "@/components/ui/switch"
-import { useAuth } from "@/contexts/auth-provider"
-import { useThemeToggle } from "@/hooks/settings/use-theme"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { UserRole } from "@/lib/types"
+import { UserRole } from "@/types"
 import { BarChart3, Bell, Clock, CreditCard, DollarSign, FileText, Key, LogOut, Moon, Shield, Smartphone, User, Users } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
 
 export default function SettingsPage() {
-  const { logout } = useAuth()
-  const { user } = useRequireAuth()
-  const router = useRouter()
-  const { toggleTheme, isDark, mounted } = useThemeToggle()
-
-  const [showActivityTimesDialog, setShowActivityTimesDialog] = useState(false)
-  const [showMonthlyFeeDialog, setShowMonthlyFeeDialog] = useState(false)
-  const [showMaxActivitiesDialog, setShowMaxActivitiesDialog] = useState(false)
-  const [showPaymentGracePeriodDialog, setShowPaymentGracePeriodDialog] = useState(false)
-  const [showCreateNotificationDialog, setShowCreateNotificationDialog] = useState(false)
-  const [showTermsDialog, setShowTermsDialog] = useState(false)
-
-  const handleLogout = () => {
-    logout()
-    router.push("/")
-  }
-
-  const handleShowTerms = () => {
-    setShowTermsDialog(true)
-  }
+  const {
+    user,
+    router,
+    toggleTheme,
+    isDark,
+    mounted,
+    showActivityTimesDialog,
+    setShowActivityTimesDialog,
+    showMonthlyFeeDialog,
+    setShowMonthlyFeeDialog,
+    showMaxActivitiesDialog,
+    setShowMaxActivitiesDialog,
+    showPaymentGracePeriodDialog,
+    setShowPaymentGracePeriodDialog,
+    showCreateNotificationDialog,
+    setShowCreateNotificationDialog,
+    showTermsDialog,
+    setShowTermsDialog,
+    handleLogout,
+    handleShowTerms,
+  } = useSettingsPage()
 
   return (
     <div className="min-h-screen bg-background pb-32">

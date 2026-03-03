@@ -1,6 +1,6 @@
 "use client"
 
-import { useAttendance, type AttendanceState } from "@/hooks/activities/use-attendance"
+import { useAttendance, type AttendanceState } from "@/hooks/attendance/use-attendance"
 import { createContext, useContext, type ReactNode } from "react"
 
 /**

@@ -1,6 +1,6 @@
 "use client"
 
-import { useNotificationsContext } from "@/contexts/notifications-provider"
+import { useNotificationsList } from "@/hooks/notifications/use-notifications-list"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,26 +15,13 @@ interface NotificationsListProps {
 }
 
 export function NotificationsList({ filterStatus = "all", searchTerm = "" }: NotificationsListProps) {
-  const { 
-    notifications, 
-    isLoadingNotifications: isLoading,
-    markAsRead,
-    archiveNotification,
-    deleteNotification 
-  } = useNotificationsContext()
-
-  const statusFilteredNotifications = filterStatus === "all" 
-    ? notifications 
-    : notifications.filter(n => n.status === filterStatus)
-
-  const normalizedSearchTerm = searchTerm.trim().toLowerCase()
-
-  const filteredNotifications = normalizedSearchTerm
-    ? statusFilteredNotifications.filter((notification) =>
-        notification.title.toLowerCase().includes(normalizedSearchTerm) ||
-        notification.message.toLowerCase().includes(normalizedSearchTerm),
-      )
-    : statusFilteredNotifications
+  const {
+    filteredNotifications,
+    isLoading,
+    handleMarkAsRead,
+    handleArchive,
+    handleDelete,
+  } = useNotificationsList(filterStatus, searchTerm)
 
   if (isLoading) {
     return (
@@ -51,18 +38,6 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
         <p className="text-gray-500">No tienes notificaciones</p>
       </div>
     )
-  }
-
-  const handleMarkAsRead = async (id: number) => {
-    await markAsRead(id)
-  }
-
-  const handleArchive = async (id: number) => {
-    await archiveNotification(id)
-  }
-
-  const handleDelete = async (id: number) => {
-    await deleteNotification(id)
   }
 
   return (

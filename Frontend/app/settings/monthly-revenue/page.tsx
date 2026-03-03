@@ -1,82 +1,29 @@
 "use client"
 
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { usePaymentContext } from "@/contexts/payment-provider"
+import { useMonthlyRevenuePage } from "@/hooks/settings/use-monthly-revenue-page"
+import { UserRole } from "@/types"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { useMonthlyRevenue } from "@/hooks/settings/use-monthly-revenue"
-import { UserRole } from "@/lib/types"
 import { BarChart3, Calendar, DollarSign, Eye, EyeOff, TrendingUp } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 
 export default function MonthlyRevenuePage() {
-    const { user } = useRequireAuth()
-    const router = useRouter()
-    const [showAmounts, setShowAmounts] = useState(true)
-
-    // Funciones de utilidad
-    const formatCurrency = (amount: number): string => {
-        return new Intl.NumberFormat("es-AR", {
-            style: "decimal",
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(amount)
-    }
-
-    const formatDate = (date: Date | string | null) => {
-        if (!date) return ""
-        return new Intl.DateTimeFormat("es-ES", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        }).format(new Date(date))
-    }
-
-    // Solo permitir acceso a administradores
-    useEffect(() => {
-        if (user && user.role !== UserRole.ADMIN) {
-            router.push("/dashboard")
-            return
-        }
-    }, [user, router])
-
-    // Obtener datos optimizados
-    const { archivedRevenues, isLoading: isLoadingArchived } = useMonthlyRevenue(
-        user?.role === UserRole.ADMIN
-    )
-
-    // Obtener pagos y el ingreso del mes actual calculado desde los payments existentes
-    const { payments, currentMonthRevenue, isLoading: isLoadingPayments } = usePaymentContext()
+    const {
+        user,
+        showAmounts,
+        setShowAmounts,
+        isLoading,
+        currentMonthAmount,
+        currentMonthName,
+        displayRevenues,
+        totalRevenue,
+        formatCurrency,
+        formatDate,
+        handleBack,
+    } = useMonthlyRevenuePage()
 
     if (!user || user.role !== UserRole.ADMIN) {
         return null
-    }
-
-    // Estados de carga combinados
-    const isLoading = isLoadingArchived || isLoadingPayments
-
-    // Usar el ingreso del mes actual calculado desde usePayment
-    const currentMonthAmount = currentMonthRevenue.amount
-
-
-
-    // Combinar datos reales con mock para demostración
-    const displayRevenues = archivedRevenues.length > 0 ? archivedRevenues : []
-
-    // Calcular total acumulado simple
-    const totalRevenue = displayRevenues.reduce((sum, rev) => sum + rev.totalRevenue, 0) + currentMonthAmount
-
-    // Obtener nombre del mes actual
-    const currentMonthName = new Date().toLocaleDateString('es-ES', {
-        month: 'long',
-        year: 'numeric'
-    })
-
-    const handleBack = () => {
-        router.push("/settings")
     }
 
     return (

@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Clock, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,8 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useSettingsContext } from "@/contexts/settings-provider"
-import { toast } from "sonner"
+import { useActivityTimeDialog } from "@/hooks/settings/use-activity-time-dialog"
 
 interface ActivityTimesDialogProps {
     open: boolean
@@ -23,64 +21,15 @@ interface ActivityTimesDialogProps {
 
 export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogProps) {
     const {
-        registrationTime,
-        unregistrationTime,
+        regTime,
+        setRegTime,
+        unregTime,
+        setUnregTime,
+        saving,
         loading,
-        updateRegistrationTimeValue,
-        updateUnregistrationTimeValue
-    } = useSettingsContext()
-
-    const [regTime, setRegTime] = useState<string>("")
-    const [unregTime, setUnregTime] = useState<string>("")
-    const [saving, setSaving] = useState(false)
-
-    // Inicializar valores cuando se carguen o cuando se abra el dialog
-    useEffect(() => {
-        if (!loading && open) {
-            setRegTime(registrationTime.toString())
-            setUnregTime(unregistrationTime.toString())
-        }
-    }, [loading, registrationTime, unregistrationTime, open])
-
-    const handleSave = async () => {
-        try {
-            setSaving(true)
-
-            const regHours = parseInt(regTime)
-            const unregHours = parseInt(unregTime)
-
-            if (isNaN(regHours) || regHours < 0 || regHours > 720) {
-                toast.error("El tiempo de inscripción debe ser entre 0 y 720 horas")
-                return
-            }
-
-            if (isNaN(unregHours) || unregHours < 0 || unregHours > 6) {
-                toast.error("El tiempo de desinscripción debe ser entre 0 y 6 horas")
-                return
-            }
-
-            const regResult = await updateRegistrationTimeValue(regHours)
-            const unregResult = await updateUnregistrationTimeValue(unregHours)
-
-            if (regResult.success && unregResult.success) {
-                toast.success("Configuración guardada correctamente")
-                onOpenChange(false)
-            } else {
-                toast.error("Error al guardar la configuración")
-            }
-        } catch (error) {
-            toast.error("Error al guardar la configuración")
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    const handleCancel = () => {
-        // Resetear valores a los originales
-        setRegTime(registrationTime.toString())
-        setUnregTime(unregistrationTime.toString())
-        onOpenChange(false)
-    }
+        handleSave,
+        handleCancel,
+    } = useActivityTimeDialog(open, onOpenChange)
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

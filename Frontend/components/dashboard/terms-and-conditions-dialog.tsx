@@ -3,9 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useAuth } from "@/contexts/auth-provider"
-import { generatePersonalizedTermsText, markTermsAsAccepted } from "@/lib/terms-and-conditions-storage"
-import { useEffect, useRef, useState } from "react"
+import { useTermsAndConditionsDialog } from "@/hooks/dashboard/use-terms-and-conditions-dialog"
 
 interface TermsAndConditionsDialogProps {
   open: boolean
@@ -20,41 +18,15 @@ export function TermsAndConditionsDialog({
   onReject,
   viewMode = "default"
 }: TermsAndConditionsDialogProps) {
-    const { user } = useAuth()
-    const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
-    const scrollAreaRef = useRef<HTMLDivElement>(null)
-
-  // Verificar si el usuario ha scrolleado hasta el final (solo en modo default)
-  const handleScroll = () => {
-    if (viewMode === "readonly") return; // No validar scroll en modo readonly
-    
-    const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]')
-    if (scrollElement) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollElement
-      // Tolerancia de 20px para considerar que llegó al final
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20
-      setHasScrolledToBottom(isAtBottom)
-    }
-  }    // Reset scroll state when dialog opens
-    useEffect(() => {
-        if (open) {
-            setHasScrolledToBottom(false)
-        }
-    }, [open])
-
-    const handleAccept = () => {
-        if (user?.id) {
-            markTermsAsAccepted(user.id)
-            onAccept()
-        }
-    }
-
-    const handleReject = () => {
-        onReject()
-    }
-
-    // Generar texto personalizado con datos del usuario
-    const personalizedText = user ? generatePersonalizedTermsText(user) : ""
+    const {
+      user,
+      hasScrolledToBottom,
+      scrollAreaRef,
+      handleScroll,
+      handleAccept,
+      handleReject,
+      personalizedText,
+    } = useTermsAndConditionsDialog(open, onAccept, onReject, viewMode)
 
     // Formatear el texto manteniendo los saltos de línea y resaltando datos autocompletados
     const formatText = (text: string) => {

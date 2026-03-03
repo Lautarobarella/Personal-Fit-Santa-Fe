@@ -5,10 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useSettingsContext } from "@/contexts/settings-provider"
-import { useToast } from "@/hooks/use-toast"
 import { Clock, Save } from "lucide-react"
-import { useState } from "react"
+import { usePaymentGracePeriodDialog } from "@/hooks/settings/use-payment-grace-period-dialog"
 
 interface PaymentGracePeriodDialogProps {
   open: boolean
@@ -16,56 +14,14 @@ interface PaymentGracePeriodDialogProps {
 }
 
 export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePeriodDialogProps) {
-  const { paymentGracePeriodDays, updatePaymentGracePeriodValue, isUpdatingPaymentGracePeriod } = useSettingsContext()
-  const { toast } = useToast()
-  const [days, setDays] = useState(paymentGracePeriodDays.toString())
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    const daysNumber = parseInt(days)
-    if (isNaN(daysNumber) || daysNumber < 0) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa un número válido de días (0 o mayor)",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      const result = await updatePaymentGracePeriodValue(daysNumber)
-      
-      if (result.success) {
-        toast({
-          title: "Éxito",
-          description: result.message,
-          variant: "default",
-        })
-        onOpenChange(false)
-      } else {
-        toast({
-          title: "Error",
-          description: result.message,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al actualizar el período de gracia",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      // Reset form when closing
-      setDays(paymentGracePeriodDays.toString())
-    }
-    onOpenChange(newOpen)
-  }
+  const {
+    days,
+    setDays,
+    paymentGracePeriodDays,
+    isUpdatingPaymentGracePeriod,
+    handleSubmit,
+    handleOpenChange,
+  } = usePaymentGracePeriodDialog(open, onOpenChange)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

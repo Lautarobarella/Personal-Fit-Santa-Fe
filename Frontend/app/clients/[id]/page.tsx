@@ -1,51 +1,31 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { UserRole } from "@/lib/types"
+import { useClientEdit } from "@/hooks/clients/use-client-edit"
+import { UserRole } from "@/types"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
 import { User, Loader2 } from "lucide-react"
-import { useClients } from "@/hooks/clients/use-client"
 import { BottomNav } from "@/components/ui/bottom-nav"
 
 export default function EditClientPage() {
-  const { user } = useAuth()
-  const router = useRouter()
-  const params = useParams()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-
-  useRequireAuth()
-
-  const { loadClientDetail, selectedClient, loading, updateClientProfile } = useClients()
-
-  const [phone, setPhone] = useState("")
-  const [emergencyPhone, setEmergencyPhone] = useState("")
-  const [address, setAddress] = useState("")
-
-  const clientId = Number(params.id)
-
-  useEffect(() => {
-    if (clientId) {
-      loadClientDetail(clientId)
-    }
-  }, [clientId, loadClientDetail])
-
-  useEffect(() => {
-    if (selectedClient) {
-      setPhone(selectedClient.phone ?? "")
-      setEmergencyPhone(selectedClient.emergencyPhone ?? "")
-      setAddress(selectedClient.address ?? "")
-    }
-  }, [selectedClient])
+  const {
+    user,
+    router,
+    isLoading,
+    loading,
+    selectedClient,
+    phone,
+    setPhone,
+    emergencyPhone,
+    setEmergencyPhone,
+    address,
+    setAddress,
+    handleSubmit,
+  } = useClientEdit()
 
   if (!user || user.role !== UserRole.ADMIN) {
     return <div>No tienes permisos para editar clientes</div>
@@ -60,32 +40,6 @@ export default function EditClientPage() {
   }
 
   if (!selectedClient) return null
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    try {
-      await updateClientProfile({
-        userId: clientId,
-        phone: phone.trim() || undefined,
-        emergencyPhone: emergencyPhone.trim() || undefined,
-        address: address.trim() || undefined,
-      })
-      toast({
-        title: "Cliente actualizado",
-        description: "Los datos del cliente fueron actualizados exitosamente.",
-      })
-      router.push("/clients")
-    } catch {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el cliente.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-background mb-32">

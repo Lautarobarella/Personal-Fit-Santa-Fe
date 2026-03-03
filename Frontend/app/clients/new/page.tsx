@@ -1,10 +1,7 @@
 "use client"
 
-import type React from "react"
-
-import { useAuth } from "@/contexts/auth-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { UserRole } from "@/lib/types"
+import { useClientForm } from "@/hooks/clients/use-client-form"
+import { UserRole } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DatePickerScroll } from "@/components/ui/date-picker-scroll"
@@ -13,90 +10,23 @@ import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useClients } from "@/hooks/clients/use-client"
-import { useToast } from "@/hooks/use-toast"
-import { UserFormType } from "@/lib/types"
 import { Loader2, User } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
 import { BottomNav } from "@/components/ui/bottom-nav"
 
 
 export default function NewClientPage() {
-  const { user } = useAuth()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  
-  // Use custom hook to redirect to login if not authenticated
-  useRequireAuth()
-  const { form, setForm, createClient } = useClients()
-
-  const [errors, setErrors] = useState<Partial<UserFormType>>({})
+  const {
+    user,
+    router,
+    isLoading,
+    form,
+    errors,
+    handleSubmit,
+    handleInputChange,
+  } = useClientForm()
 
   if (!user || user.role !== UserRole.ADMIN) {
     return <div>No tienes permisos para crear clientes</div>
-  }
-
-  const validateForm = (): boolean => {
-    const newErrors: Partial<UserFormType> = {}
-
-    if (!form.dni.trim()) newErrors.dni = "El DNI es requerido"
-    if (!form.firstName.trim()) newErrors.firstName = "El nombre es requerido"
-    if (!form.lastName.trim()) newErrors.lastName = "El nombre es requerido"
-    if (!form.email.trim()) newErrors.email = "El email es requerido"
-    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email inválido"
-    if (!form.phone.trim()) newErrors.phone = "El teléfono es requerido"
-    if (!form.birthDate) newErrors.birthDate = "La fecha de nacimiento es requerida"
-    if (!form.address.trim()) newErrors.address = "La dirección es requerida"
-    if (!form.password.trim()) newErrors.password = "La contraseña es requerida"
-    
-    // Validate age (must be at least 16)
-    if (form.birthDate) {
-      const birthDate = new Date(form.birthDate)
-      const today = new Date()
-      const age = today.getFullYear() - birthDate.getFullYear()
-      if (age < 16) {
-        newErrors.birthDate = "El cliente debe tener al menos 16 años"
-      }
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    form.password = form.dni.toString()
-
-    if (!validateForm()) return
-
-    setIsLoading(true)
-
-    try {
-      const response = await createClient(form)
-      toast({
-        title: "Éxito",
-        description: response?.message || "El cliente ha sido registrado exitosamente",
-      })
-      router.push("/clients")
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo crear el cliente",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleInputChange = (field: keyof UserFormType, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }))
-    }
   }
 
   return (

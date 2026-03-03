@@ -7,96 +7,31 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
-import { usePaymentContext } from "@/contexts/payment-provider"
-import { useRequireAuth } from "@/hooks/use-require-auth"
-import { useToast } from "@/hooks/use-toast"
-import { MethodType, PaymentStatus, PaymentType, UserRole } from "@/lib/types"
+import { usePaymentVerify } from "@/hooks/payments/use-payment-verify"
+import { MethodType, UserRole } from "@/types"
 import { Calendar, Check, Clock, DollarSign, Loader2, User, X } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
 
 export default function PaymentVerificationPage() {
-  const { user } = useRequireAuth()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [rejectionReason, setRejectionReason] = useState("")
-  const [show, setShow] = useState(true)
-  const [reviewedCount, setReviewedCount] = useState(0)
-  const [isOnCooldown, setIsOnCooldown] = useState(false)
-  
-  // NUEVA LÓGICA: usar queue de IDs en lugar de índices
-  const [paymentQueue, setPaymentQueue] = useState<number[]>([])
-  const [currentPaymentId, setCurrentPaymentId] = useState<number | null>(null)
-  const initialPendingCount = useRef<number | null>(null) // Total inicial para progreso
-  const hasInitialized = useRef(false) // Flag para ejecutar solo una vez
-  
-  // Tiempo mínimo entre verificaciones (en milisegundos)
-  const VERIFICATION_COOLDOWN = 2000 // 2 segundos
-
-  // Usar el contexto unificado de pagos
-  const { 
-    pendingPayments, 
-    isLoading: loading, 
-    updatePaymentStatus,
-    fetchSinglePayment,
-  } = usePaymentContext()
-
-  // Inicializar la queue con los IDs de pagos pendientes (SOLO UNA VEZ)
-  useEffect(() => {
-    if (!loading && !hasInitialized.current && pendingPayments.length > 0) {
-      const initialQueue = pendingPayments.map(p => p.id)
-      setPaymentQueue(initialQueue)
-      setCurrentPaymentId(initialQueue[0] || null)
-      // Almacenar el total inicial para el progreso
-      initialPendingCount.current = initialQueue.length
-      hasInitialized.current = true // Marcar como inicializado
-    } else if (!loading && !hasInitialized.current && pendingPayments.length === 0) {
-      // Caso especial: no hay pagos pendientes
-      initialPendingCount.current = 0
-      hasInitialized.current = true
-    }
-  }, [loading, pendingPayments]) // Dependencias mínimas
-
-  const [currentPayment, setCurrentPayment] = useState<PaymentType | null>(null)
-
-  // Cargar el pago actual cuando cambie el currentPaymentId
-  useEffect(() => {
-    if (currentPaymentId) {
-      const fetchPayment = async () => {
-        try {
-          const payment = await fetchSinglePayment(currentPaymentId)
-          setCurrentPayment(payment)
-        } catch (error) {
-          console.error("Error al cargar el pago:", error)
-          // Si falla la carga, intentar con el siguiente pago en la queue
-          moveToNextPayment()
-        }
-      }
-      fetchPayment()
-    } else {
-      setCurrentPayment(null)
-    }
-  }, [currentPaymentId, fetchSinglePayment])
-
-  // Función para mover al siguiente pago en la queue
-  const moveToNextPayment = () => {
-    setPaymentQueue(prevQueue => {
-      const newQueue = prevQueue.slice(1) // Remover el primer elemento
-      setCurrentPaymentId(newQueue[0] || null) // Setear el siguiente como actual
-      return newQueue
-    })
-  }
-
-  // Redirige si no es admin
-  useEffect(() => {
-    if (user && user.role !== UserRole.ADMIN) {
-      router.replace("/payments")
-    }
-  }, [user, router])
-
-  // Verificar si la verificación ha terminado
-  const isVerificationComplete = !loading && paymentQueue.length === 0 && initialPendingCount.current !== null
+  const {
+    user,
+    router,
+    isVerifying,
+    rejectionReason,
+    setRejectionReason,
+    show,
+    reviewedCount,
+    isOnCooldown,
+    paymentQueue,
+    currentPayment,
+    initialPendingCount,
+    loading,
+    pendingPayments,
+    isVerificationComplete,
+    formatDateTime,
+    getStatusColor,
+    getStatusText,
+    handleStatusUpdate,
+  } = usePaymentVerify()
 
   if (isVerificationComplete) {
     const hasReviewedPayments = reviewedCount > 0
@@ -124,92 +59,6 @@ export default function PaymentVerificationPage() {
         <p className="text-muted-foreground">Cargando pagos pendientes...</p>
       </div>
     )
-  }
-
-  // Helper visual
-  const formatDateTime = (date: Date | string | null) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date ?? "N/A"))
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case PaymentStatus.PAID: return "success"
-      case PaymentStatus.REJECTED: return "destructive"
-      case PaymentStatus.PENDING: return "warning"
-      default: return "secondary"
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case PaymentStatus.PAID: return "Pagado"
-      case PaymentStatus.REJECTED: return "Rechazado"
-      case PaymentStatus.PENDING: return "Pendiente"
-      default: return status
-    }
-  }
-
-  // Acción de aprobar/rechazar con cooldown
-  const handleStatusUpdate = async (status: "paid" | "rejected") => {
-    if (!currentPayment) return
-
-    if (status === "rejected" && !rejectionReason.trim()) {
-      toast({
-        title: "Error",
-        description: "Debes proporcionar una razón para rechazar el pago",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsVerifying(true)
-    setIsOnCooldown(true) // Activar cooldown inmediatamente
-    
-    try {
-      await updatePaymentStatus({
-        id: currentPayment.id,
-        status,
-        rejectionReason: status === "rejected" ? rejectionReason : undefined,
-      })
-
-      toast({
-        title: status === "paid" ? "Pago aprobado" : "Pago rechazado",
-        description: `El pago de ${currentPayment.clientName} ha sido ${status === "paid" ? "aprobado" : "rechazado"}`,
-      })
-
-      setRejectionReason("")
-      setShow(false)
-
-      // Esperar a que se complete la transición visual antes de mover al siguiente pago
-      setTimeout(() => {
-        setShow(true)
-        // Mover al siguiente pago en la queue
-        moveToNextPayment()
-        setReviewedCount(prev => prev + 1)
-      }, 350)
-
-      // Desactivar cooldown después del tiempo especificado
-      setTimeout(() => {
-        setIsOnCooldown(false)
-      }, VERIFICATION_COOLDOWN)
-
-    } catch (error) {
-      // En caso de error, desactivar cooldown inmediatamente
-      setIsOnCooldown(false)
-      toast({
-        title: "Error",
-        description: "No se pudo procesar la verificación",
-        variant: "destructive",
-      })
-    } finally {
-      setIsVerifying(false)
-    }
   }
 
   // Render principal

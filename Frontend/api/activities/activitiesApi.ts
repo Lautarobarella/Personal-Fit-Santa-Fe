@@ -121,6 +121,15 @@ export async function fetchTrainers() {
   }
 }
 
+export async function fetchTrainerActivitiesByDate(trainerId: number, date: string) {
+  try {
+    return await jwtPermissionsApi.get(`/api/trainer/${trainerId}/activities?date=${date}`);
+  } catch (error) {
+    handleApiError(error, 'Error al cargar las actividades del entrenador');
+    return [];
+  }
+}
+
 export async function fetchMyActivitySummary(activityId: number): Promise<ActivitySummaryType | null> {
   try {
     return await jwtPermissionsApi.get(`/api/activities/${activityId}/summary/me`);
