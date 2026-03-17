@@ -11,9 +11,9 @@ services:
     networks:
       - personalfit-network
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-personalfit_db}
+      POSTGRES_USER: ${POSTGRES_USER:-personalfit_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personalfit_local_db_password}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -30,33 +30,33 @@ services:
     depends_on:
       - postgres
     environment:
-      SPRING_DATASOURCE_FILES_PATH: ${SPRING_DATASOURCE_FILES_PATH}
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATASOURCE_FILES_PATH: ${SPRING_DATASOURCE_FILES_PATH:-/app/uploads}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/personalfit_db}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-personalfit_user}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-personalfit_local_db_password}
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-5}
       SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:-2}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-production}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-development}
       JWT_SECRET: ${JWT_SECRET}
       FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
-      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE:-true}
-      APP_COOKIE_SAME_SITE: ${APP_COOKIE_SAME_SITE:-None}
-      APP_COOKIE_DOMAIN: ${APP_COOKIE_DOMAIN:-personalfitsantafe.com}
+      APP_COOKIE_SECURE: ${APP_COOKIE_SECURE:-false}
+      APP_COOKIE_SAME_SITE: ${APP_COOKIE_SAME_SITE:-Lax}
+      APP_COOKIE_DOMAIN: ${APP_COOKIE_DOMAIN:-localhost}
       APP_COOKIE_ACCESS_TOKEN_MAX_AGE: ${APP_COOKIE_ACCESS_TOKEN_MAX_AGE:-86400}
       APP_COOKIE_REFRESH_TOKEN_MAX_AGE: ${APP_COOKIE_REFRESH_TOKEN_MAX_AGE:-604800}
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
-      - ${RECEIPTS_HOST_PATH:-/opt/backups/comprobantes}:${SPRING_DATASOURCE_FILES_PATH}
-      - ${FIREBASE_HOST_PATH:-/opt/firebase}:/opt/firebase:ro
+      - receipts_data:${SPRING_DATASOURCE_FILES_PATH:-/app/uploads}
+      - ./local-data/firebase:/opt/firebase:ro
 
   personalfit-frontend:
     build:
       context: .
       dockerfile: Frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
         NEXT_PUBLIC_IS_DOCKER: ${NEXT_PUBLIC_IS_DOCKER:-true}
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
@@ -77,8 +77,8 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET}
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://personalfit-backend:8080}
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
       NODE_ENV: production
 
   pgadmin:
@@ -91,9 +91,10 @@ services:
       - "127.0.0.1:5050:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@personalfit.com
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-personalfit_local_pgadmin_password}
     depends_on:
       - postgres
 
 volumes:
   pgdata:
+  receipts_data:

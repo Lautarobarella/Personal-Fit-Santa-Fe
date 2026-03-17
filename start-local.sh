@@ -35,19 +35,30 @@ cd "$SCRIPT_DIR"
 step "Iniciando entorno local de Personal Fit"
 
 [[ -f ".env" ]] || fail "No existe .env en $SCRIPT_DIR"
+[[ -f "docker-compose.local.yml" ]] || fail "No existe docker-compose.local.yml en $SCRIPT_DIR"
 
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta en PATH"
 docker info >/dev/null 2>&1 || fail "Docker daemon no responde. Inicia Docker Desktop"
 docker compose version >/dev/null 2>&1 || fail "docker compose no esta disponible"
+
+set -a
+. ./.env
+set +a
+
+: "${NEXT_PUBLIC_API_URL:=http://localhost:8080}"
+: "${NEXT_PUBLIC_API_BASE_URL:=${NEXT_PUBLIC_API_URL}}"
+
+export NEXT_PUBLIC_API_URL
+export NEXT_PUBLIC_API_BASE_URL
 
 step "Preparando directorios locales"
 mkdir -p local-data/firebase
 
 step "Levantando servicios con docker compose"
 if [[ "$NO_BUILD" == "true" ]]; then
-  docker compose --env-file .env up -d
+  docker compose -f docker-compose.local.yml --env-file .env up -d
 else
-  docker compose --env-file .env up -d --build
+  docker compose -f docker-compose.local.yml --env-file .env up -d --build
 fi
 
 echo
@@ -57,9 +68,9 @@ echo "Backend:  http://localhost:8080/api/health"
 echo "PgAdmin:  http://localhost:5050"
 echo
 echo "Para apagar todo:"
-echo "docker compose --env-file .env down"
+echo "docker compose -f docker-compose.local.yml --env-file .env down"
 
 if [[ "$FOLLOW_LOGS" == "true" ]]; then
   step "Mostrando logs de backend y frontend"
-  docker compose --env-file .env logs -f personalfit-backend personalfit-frontend
+  docker compose -f docker-compose.local.yml --env-file .env logs -f personalfit-backend personalfit-frontend
 fi
