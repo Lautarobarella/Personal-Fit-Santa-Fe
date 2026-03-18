@@ -2,6 +2,7 @@ package com.personalfit.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +29,7 @@ public class SettingsController {
      * Get all current system settings.
      */
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
     public ResponseEntity<AllSettingsResponseDTO> getAllSettings() {
         AllSettingsResponseDTO allSettings = settingsService.getAllSettings();
         return ResponseEntity.ok(allSettings);
@@ -37,6 +39,7 @@ public class SettingsController {
      * Get current monthly fee amount.
      */
     @GetMapping("/monthly-fee")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Double> getMonthlyFee() {
         Double monthlyFee = settingsService.getMonthlyFee();
         return ResponseEntity.ok(monthlyFee);
@@ -46,6 +49,7 @@ public class SettingsController {
      * Update monthly fee amount.
      */
     @PostMapping("/monthly-fee")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Double> setMonthlyFee(@RequestBody MonthlyFeeRequestDTO request) {
         Double updatedFee = settingsService.setMonthlyFee(request.getAmount());
         return ResponseEntity.ok(updatedFee);
@@ -55,6 +59,7 @@ public class SettingsController {
      * Get how many hours before class a user can register.
      */
     @GetMapping("/registration-time")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getRegistrationTimeHours() {
         Integer hours = settingsService.getRegistrationTimeHours();
         return ResponseEntity.ok(hours);
@@ -64,6 +69,7 @@ public class SettingsController {
      * Update regulation time (hours before class) for registration.
      */
     @PostMapping("/registration-time")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Integer> setRegistrationTimeHours(@RequestBody TimeRequestDTO request) {
         Integer updatedHours = settingsService.setRegistrationTimeHours(request.getHours());
         return ResponseEntity.ok(updatedHours);
@@ -73,6 +79,7 @@ public class SettingsController {
      * Get how many hours before class a user can unregister.
      */
     @GetMapping("/unregistration-time")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getUnregistrationTimeHours() {
         Integer hours = settingsService.getUnregistrationTimeHours();
         return ResponseEntity.ok(hours);
@@ -82,6 +89,7 @@ public class SettingsController {
      * Update regulation time (hours before class) for unregistration.
      */
     @PostMapping("/unregistration-time")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Integer> setUnregistrationTimeHours(@RequestBody TimeRequestDTO request) {
         Integer updatedHours = settingsService.setUnregistrationTimeHours(request.getHours());
         return ResponseEntity.ok(updatedHours);
@@ -91,6 +99,7 @@ public class SettingsController {
      * Get max activities allowed per day per user.
      */
     @GetMapping("/max-activities-per-day")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getMaxActivitiesPerDay() {
         Integer maxActivities = settingsService.getMaxActivitiesPerDay();
         return ResponseEntity.ok(maxActivities);
@@ -100,6 +109,7 @@ public class SettingsController {
      * Update max activities allowed per day.
      */
     @PostMapping("/max-activities-per-day")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Integer> setMaxActivitiesPerDay(@RequestBody TimeRequestDTO request) {
         Integer updatedMaxActivities = settingsService.setMaxActivitiesPerDay(request.getHours());
         return ResponseEntity.ok(updatedMaxActivities);
@@ -109,6 +119,7 @@ public class SettingsController {
      * Get payment grace period (days).
      */
     @GetMapping("/payment-grace-period")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getPaymentGracePeriodDays() {
         Integer days = settingsService.getPaymentGracePeriodDays();
         return ResponseEntity.ok(days);
@@ -118,6 +129,7 @@ public class SettingsController {
      * Update payment grace period (days).
      */
     @PostMapping("/payment-grace-period")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Integer> setPaymentGracePeriodDays(@RequestBody TimeRequestDTO request) {
         // Reusing 'hours' field for days as per DTO structure
         Integer updatedDays = settingsService.setPaymentGracePeriodDays(request.getHours());

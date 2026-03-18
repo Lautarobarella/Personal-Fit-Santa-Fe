@@ -26,10 +26,10 @@ export default function NotificationsPage() {
   } = useNotificationsPage()
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader title="Notificaciones" showBack onBack={() => window.history.back()} />
 
-      <div className="container mx-auto max-w-4xl px-4 pb-24 pt-4">
+      <div className="container-centered pt-4">
         <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />

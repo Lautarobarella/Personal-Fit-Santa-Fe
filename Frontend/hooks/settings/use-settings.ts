@@ -54,7 +54,23 @@ export function useSettings() {
     try {
       setLoading(true)
       setError(null)
+
+      // If the user is not an ADMIN, try reading from localStorage to avoid 403
+      if (user && user.role !== 'ADMIN') {
+        const cachedParams = localStorage.getItem('globalSettings')
+        if (cachedParams) {
+          setSettings(JSON.parse(cachedParams))
+          return
+        }
+      }
+
       const settingsData = await fetchAllSettings()
+      
+      // Keep localStorage in sync when ADMIN fetches latest
+      if (settingsData) {
+        localStorage.setItem('globalSettings', JSON.stringify(settingsData))
+      }
+
       setSettings(settingsData)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar configuraciones'

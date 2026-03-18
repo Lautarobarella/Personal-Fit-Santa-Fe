@@ -102,7 +102,7 @@ export default function ActivitiesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader
         title="Actividades"
         actions={

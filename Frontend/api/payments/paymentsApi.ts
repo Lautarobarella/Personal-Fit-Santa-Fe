@@ -110,9 +110,15 @@ export async function createPayment(
     ...(paymentData.clientDnis ? { clientDnis: paymentData.clientDnis } : { clientDni: paymentData.clientDni }),
     createdByDni: paymentData.createdByDni,
     amount: paymentData.amount,
-    // Format dates to ISO String, stripping time component for standard comparison
-    createdAt: new Date(paymentData.createdAt + "T00:00:00").toISOString().slice(0, 19),
-    expiresAt: new Date(paymentData.expiresAt + "T00:00:00").toISOString().slice(0, 19),
+    // Format createdAt with the actual current time (local, no UTC conversion)
+    createdAt: (() => {
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const [year, month, day] = paymentData.createdAt.split('-');
+      return `${year}-${month}-${day}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    })(),
+    // expiresAt set to end of day so the payment is valid through the full expiration date
+    expiresAt: paymentData.expiresAt + "T23:59:59",
     paymentStatus,
     methodType: paymentData.method,
     notes: paymentData.notes,

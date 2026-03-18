@@ -449,7 +449,10 @@ export function useCreatePaymentDialog(
       if (user?.role === UserRole.CLIENT) {
         createdByDni = user.dni
       } else if (user?.role === UserRole.ADMIN) {
-        createdByDni = validDnis[0]
+        if (!user.dni) {
+          throw new Error("El administrador debe tener un DNI configurado para registrar el pago")
+        }
+        createdByDni = user.dni
       } else {
         throw new Error("Rol de usuario no válido")
       }

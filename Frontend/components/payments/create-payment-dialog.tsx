@@ -229,16 +229,16 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                     id="amount"
                                     type="text"
                                     value={amount}
-                                    readOnly={validatedUsers.filter(user => user.isValid).length > 1}
-                                    onChange={validatedUsers.filter(user => user.isValid).length === 1
-                                        ? (e) => {
+                                    readOnly={validatedUsers.filter(user => user.isValid).length !== 1}
+                                    onChange={(e) => {
+                                        if (validatedUsers.filter(user => user.isValid).length === 1) {
                                             const value = e.target.value
                                             if (/^\d*\.?\d*$/.test(value)) {
                                                 setAmount(value)
                                                 setBaseAmount(value)
                                             }
-                                        } : undefined
-                                    }
+                                        }
+                                    }}
                                     className={validatedUsers.filter(user => user.isValid).length > 1
                                         ? "bg-muted text-foreground cursor-not-allowed border border-gray-300"
                                         : "border border-gray-300"

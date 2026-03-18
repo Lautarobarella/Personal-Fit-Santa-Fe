@@ -38,10 +38,12 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Posicionamiento móvil profesional: justo después del header (56px) hasta antes del bottom nav (64px)
+        // Mobile: full width with margins, below header and above bottom nav
         "fixed left-0 right-0 z-50 mx-4 bg-background border shadow-professional-lg rounded-2xl",
-        "top-[72px] bottom-[80px] max-h-[calc(100vh-152px)]", // 72px del header + 80px del bottom nav
+        "top-[72px] bottom-[80px] max-h-[calc(100vh-152px)]",
         "overflow-hidden flex flex-col",
+        // Desktop: account for sidebar, center in viewport 
+        "lg:left-64 lg:right-0 lg:mx-auto lg:max-w-2xl lg:top-[10vh] lg:bottom-auto lg:max-h-[80vh]",
         "duration-300 ease-out",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

@@ -37,7 +37,7 @@ export default function CompletedClassesPage() {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Clases Completadas" showBack onBack={() => router.push("/progress")} />
 
-      <div className="container-centered py-6 pb-32 space-y-4">
+      <div className="container-centered py-6 pb-safe-bottom space-y-4">
         {completedActivities.length === 0 && (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">

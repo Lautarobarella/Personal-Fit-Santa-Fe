@@ -136,7 +136,6 @@ export function useDashboard() {
   // Marcar como montado e invalidar queries
   useEffect(() => {
     setMounted(true)
-    loadClients()
     refreshActivities()
 
     if (user?.role === UserRole.CLIENT && user.id) {
@@ -144,9 +143,9 @@ export function useDashboard() {
     }
 
     if (user?.role === UserRole.ADMIN) {
-      // Placeholder for admin-specific initialization
+      loadClients()
     }
-  }, [loadClients, refreshActivities, user?.role, queryClient])
+  }, [loadClients, refreshActivities, user?.role, user?.id, queryClient])
 
   // Encontrar la próxima actividad del entrenador
   const getNextTrainerActivity = useCallback(() => {

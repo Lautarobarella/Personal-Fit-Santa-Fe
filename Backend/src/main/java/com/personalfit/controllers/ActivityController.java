@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,6 +52,7 @@ public class ActivityController {
      * Create a new activity/class.
      */
     @PostMapping("/new")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> newActivity(@RequestBody ActivityFormTypeDTO activity) {
         activityService.createActivity(activity);
         Map<String, Object> response = new HashMap<>();
@@ -63,6 +65,7 @@ public class ActivityController {
      * Update an existing activity.
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> updateActivity(@PathVariable Long id,
             @RequestBody ActivityFormTypeDTO activity) {
         activityService.updateActivity(id, activity);
@@ -77,6 +80,7 @@ public class ActivityController {
      * Delete an activity.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteActivity(@PathVariable Long id) {
         activityService.deleteActivity(id);
         Map<String, Object> response = new HashMap<>();
@@ -111,6 +115,7 @@ public class ActivityController {
      * Get detailed info for a specific activity (incl. participants).
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<ActivityDetailInfoDTO> getActivityInfo(@PathVariable Long id) {
         ActivityDetailInfoDTO activityInfo = activityService.getActivityDetailInfo(id);
         return ResponseEntity.ok(activityInfo);
@@ -120,6 +125,7 @@ public class ActivityController {
      * Create or update the authenticated user's activity summary.
      */
     @PostMapping("/{activityId}/summary")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<ActivitySummaryDTO> upsertActivitySummary(
             @PathVariable Long activityId,
             @Valid @RequestBody ActivitySummaryUpsertDTO summaryRequest,
@@ -135,6 +141,7 @@ public class ActivityController {
      * Get the authenticated user's summary for a specific activity.
      */
     @GetMapping("/{activityId}/summary/me")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<ActivitySummaryDTO> getMyActivitySummary(
             @PathVariable Long activityId,
             Authentication authentication) {
@@ -155,6 +162,7 @@ public class ActivityController {
      * Enroll a user in a class.
      */
     @PostMapping("/enroll")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<EnrollmentResponseDTO> enrollUser(@RequestBody EnrollmentRequestDTO enrollmentRequest) {
         EnrollmentResponseDTO response = activityService.enrollUser(enrollmentRequest);
         return ResponseEntity.ok(response);
@@ -164,6 +172,7 @@ public class ActivityController {
      * Unenroll a user from a class.
      */
     @PostMapping("/unenroll")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<EnrollmentResponseDTO> unenrollUser(@RequestBody EnrollmentRequestDTO enrollmentRequest) {
         EnrollmentResponseDTO response = activityService.unenrollUser(enrollmentRequest);
         return ResponseEntity.ok(response);
@@ -173,6 +182,7 @@ public class ActivityController {
      * Check if a user is enrolled in a class.
      */
     @GetMapping("/{activityId}/enrolled/{userId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Boolean> isUserEnrolled(@PathVariable Long activityId, @PathVariable Long userId) {
         boolean isEnrolled = activityService.isUserEnrolled(userId, activityId);
         return ResponseEntity.ok(isEnrolled);
@@ -183,6 +193,7 @@ public class ActivityController {
      */
     @Transactional
     @PostMapping("/batch")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createBatchActivities(
             @RequestBody List<ActivityFormTypeDTO> activities) {
         Integer createdCount = activityService.createBatchActivities(activities);

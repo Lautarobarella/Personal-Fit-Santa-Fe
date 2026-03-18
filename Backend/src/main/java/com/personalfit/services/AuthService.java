@@ -29,6 +29,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final SettingsService settingsService;
 
     /**
      * Authenticates a user with email and password.
@@ -57,6 +58,7 @@ public class AuthService {
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .user(userInfo)
+                    .globalSettings(settingsService.getAllSettings())
                     .build();
 
         } catch (Exception e) {

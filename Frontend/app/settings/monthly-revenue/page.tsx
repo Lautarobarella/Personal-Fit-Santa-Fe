@@ -27,7 +27,7 @@ export default function MonthlyRevenuePage() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-32">
+        <div className="min-h-screen bg-background pb-safe-bottom">
             <MobileHeader
                 title="Registro de Ingresos"
                 showBack

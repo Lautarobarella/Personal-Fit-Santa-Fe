@@ -492,9 +492,8 @@ public class PaymentService {
     }
 
     private void updateUserStatusIfPaid(User user, Payment payment) {
-        if (payment.getStatus() == PaymentStatus.PAID && user.getStatus() == UserStatus.INACTIVE) {
-            user.setStatus(UserStatus.ACTIVE);
-            // JPA transaction will merge this user state change
+        if (payment.getStatus() == PaymentStatus.PAID && user.getStatus() != UserStatus.ACTIVE) {
+            userService.updateUserStatus(user, UserStatus.ACTIVE);
         }
     }
 

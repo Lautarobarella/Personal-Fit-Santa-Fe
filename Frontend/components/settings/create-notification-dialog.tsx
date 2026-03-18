@@ -64,7 +64,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Bell className="h-5 w-5" />
@@ -75,114 +75,118 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto space-y-4 py-4">
-                    {/* Info Card */}
-                    <Alert>
-                        <Users className="h-4 w-4" />
-                        <AlertDescription>
-                            Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores) y aparecerá en su sección de notificaciones.
-                        </AlertDescription>
-                    </Alert>
+                <div className="flex flex-col h-full overflow-hidden">
+                    <div className="flex-1 overflow-y-auto space-y-4 p-2">
+                        {/* Info Card */}
+                        <Alert>
+                            <Users className="h-5 w-5" />
+                            <AlertDescription>
+                                Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores)
+                                y aparecerá en su sección de notificaciones.
+                            </AlertDescription>
+                        </Alert>
 
-                    {/* Formulario */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4" />
-                                Contenido de la Notificación
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Título */}
-                            <div className="space-y-2">
-                                <Label htmlFor="title">
-                                    Título *
-                                </Label>
-                                <Input
-                                    id="title"
-                                    placeholder="Ej: Cambio de horarios"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    maxLength={maxTitleLength}
-                                    disabled={isSending}
-                                />
-                                <p className="text-xs text-muted-foreground text-right">
-                                    {title.length}/{maxTitleLength}
-                                </p>
-                            </div>
-
-                            {/* Mensaje */}
-                            <div className="space-y-2">
-                                <Label htmlFor="message">
-                                    Mensaje *
-                                </Label>
-                                <Textarea
-                                    id="message"
-                                    placeholder="Escribe aquí el mensaje de la notificación..."
-                                    value={message}
-                                    onChange={(e) => setMessage(e.target.value)}
-                                    maxLength={maxMessageLength}
-                                    rows={6}
-                                    disabled={isSending}
-                                    className="resize-none"
-                                />
-                                <p className="text-xs text-muted-foreground text-right">
-                                    {message.length}/{maxMessageLength}
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Vista previa */}
-                    {(title || message) && (
-                        <Card className="border-2 border-dashed">
+                        {/* Formulario */}
+                        <Card>
                             <CardHeader>
-                                <CardTitle className="text-sm">Vista Previa</CardTitle>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5" />
+                                    Contenido de la Notificación
+                                </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-2">
-                                {title && (
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Título:</p>
-                                        <p className="font-semibold">{title}</p>
-                                    </div>
-                                )}
-                                {message && (
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Mensaje:</p>
-                                        <p className="text-sm text-gray-600">{message}</p>
-                                    </div>
-                                )}
+                            <CardContent className="space-y-4">
+                                {/* Título */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="title">
+                                        Título *
+                                    </Label>
+                                    <Input
+                                        id="title"
+                                        placeholder="Ej: Cambio de horarios"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        maxLength={maxTitleLength}
+                                        disabled={isSending}
+                                    />
+                                    <p className="text-xs text-muted-foreground text-right">
+                                        {title.length}/{maxTitleLength}
+                                    </p>
+                                </div>
+
+                                {/* Mensaje */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="message">
+                                        Mensaje *
+                                    </Label>
+                                    <Textarea
+                                        id="message"
+                                        placeholder="Escribe aquí el mensaje de la notificación..."
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                        maxLength={maxMessageLength}
+                                        rows={6}
+                                        disabled={isSending}
+                                        className="resize-none"
+                                    />
+                                    <p className="text-xs text-muted-foreground text-right">
+                                        {message.length}/{maxMessageLength}
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
-                    )}
-                </div>
 
-                {/* Footer con botones */}
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                    <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        disabled={isSending}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleSend}
-                        disabled={isSending || !title.trim() || !message.trim()}
-                        className="gap-2"
-                    >
-                        {isSending ? (
-                            <>
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                Enviando...
-                            </>
-                        ) : (
-                            <>
-                                <Send className="h-4 w-4" />
-                                Enviar Notificación
-                            </>
+                        {/* Vista previa */}
+                        {(title || message) && (
+                            <Card className="border-2 border-dashed">
+                                <CardHeader>
+                                    <CardTitle className="text-sm">Vista Previa</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {title && (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Título:</p>
+                                            <p className="font-semibold">{title}</p>
+                                        </div>
+                                    )}
+                                    {message && (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Mensaje:</p>
+                                            <p className="text-sm text-gray-600">{message}</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
                         )}
-                    </Button>
+                    </div>
+
+                    {/* Footer con botones */}
+                    <div className="flex gap-3 p-4 border-t border-border">
+                        <Button
+                            variant="outline"
+                            onClick={handleCancel}
+                            disabled={isSending}
+                            className="flex-1"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleSend}
+                            disabled={isSending || !title.trim() || !message.trim()}
+                            className="flex-1 gap-2"
+                        >
+                            {isSending ? (
+                                <>
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    Enviando...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="h-4 w-4" />
+                                    Enviar Notificación
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

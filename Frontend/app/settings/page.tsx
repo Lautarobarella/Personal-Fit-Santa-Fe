@@ -40,7 +40,7 @@ export default function SettingsPage() {
   } = useSettingsPage()
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader title="Configuración" />
 
       <div className="container-centered py-6 space-y-6">

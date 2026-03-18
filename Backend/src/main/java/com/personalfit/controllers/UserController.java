@@ -47,6 +47,7 @@ public class UserController {
      * Create a new user (Client).
      */
     @PostMapping("/new")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody CreateUserDTO user) {
         userService.createNewUser(user);
         Map<String, Object> response = new HashMap<>();
@@ -56,28 +57,10 @@ public class UserController {
     }
 
     /**
-     * Bootstrap endpoint to create the first Admin user.
-     * Accessible publicly to set up the system.
-     */
-    @PostMapping("/public/first-admin")
-    public ResponseEntity<Map<String, Object>> createFirstAdmin(@Valid @RequestBody CreateUserDTO user) {
-
-        // Force ADMIN role and ACTIVE status
-        user.setRole(UserRole.ADMIN);
-        user.setStatus(UserStatus.ACTIVE);
-
-        userService.createNewUser(user);
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "First Administrator created successfully");
-        response.put("success", true);
-        response.put("role", "ADMIN");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    /**
      * Delete a user by ID.
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         Map<String, Object> response = new HashMap<>();
@@ -91,6 +74,7 @@ public class UserController {
      * Find user model by DNI (Internal use).
      */
     @GetMapping("/findByDni")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> findByDni(@Valid @RequestBody Integer userDni) {
         User user = userService.getUserByDni(userDni);
         return new ResponseEntity<>(user, HttpStatus.OK);
@@ -100,6 +84,7 @@ public class UserController {
      * Get User DTO by DNI.
      */
     @GetMapping("/by-dni/{dni}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
     public ResponseEntity<UserTypeDTO> getUserByDni(@PathVariable Integer dni) {
         User user = userService.getUserByDni(dni);
         UserTypeDTO userDto = userService.createUserDetailInfoDTO(user);
@@ -110,6 +95,7 @@ public class UserController {
      * Get all users.
      */
     @GetMapping("/getAll")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserTypeDTO>> getAllUsers() {
         return new ResponseEntity<>(userService.getAllUsers(), HttpStatus.OK);
     }
@@ -118,6 +104,7 @@ public class UserController {
      * Get specific user info by ID.
      */
     @GetMapping("/info/{id}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<UserTypeDTO> getUserInfo(@PathVariable Long id) {
         User user = userService.getUserById(id);
         UserTypeDTO userDto = userService.createUserDetailInfoDTO(user);
@@ -128,6 +115,7 @@ public class UserController {
      * Get all trainers.
      */
     @GetMapping("/trainers")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserTypeDTO>> getAllTrainers() {
         List<UserTypeDTO> trainers = userService.getAllTrainers();
         return new ResponseEntity<>(trainers, HttpStatus.OK);
@@ -137,6 +125,7 @@ public class UserController {
      * Update last attendance timestamp for a user.
      */
     @PutMapping("/lastAttendance/{dni}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> updateLastAttendance(@PathVariable Integer dni) {
         userService.updateLastAttendanceByDni(dni);
         Map<String, Object> response = new HashMap<>();
@@ -191,7 +180,7 @@ public class UserController {
     /**
      * Update User Profile (Non-sensitive data).
      */
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     @PutMapping("/update-profile")
     public ResponseEntity<Map<String, Object>> updateProfile(
             @Valid @RequestBody UpdateProfileDTO updateProfileDTO,
@@ -229,6 +218,7 @@ public class UserController {
      * Batch create clients.
      */
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/batch/clients")
     public ResponseEntity<Map<String, Object>> createBatchClients(@Valid @RequestBody List<CreateUserDTO> newUsers) {
         Integer createdCount = userService.createBatchClients(newUsers);
@@ -247,6 +237,7 @@ public class UserController {
      * Get aggregated stats for a client.
      */
     @GetMapping("/stats/{clientId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<ClientStatsDTO> getClientStats(@PathVariable Long clientId) {
         ClientStatsDTO stats = userService.getClientStats(clientId);
         return ResponseEntity.ok(stats);
@@ -256,6 +247,7 @@ public class UserController {
      * Get number of activities this week for a client.
      */
     @GetMapping("/{clientId}/weekly-activities")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getWeeklyActivities(@PathVariable Long clientId) {
         User client = userService.getUserById(clientId);
         Integer count = userService.getWeeklyActivityCount(client);
@@ -266,6 +258,7 @@ public class UserController {
      * Get number of activities for a specific week for a client.
      */
     @GetMapping("/{clientId}/weekly-activities/{date}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getWeeklyActivities(@PathVariable Long clientId, @PathVariable String date) {
         User client = userService.getUserById(clientId);
         LocalDate weekDate = LocalDate.parse(date);
@@ -277,6 +270,7 @@ public class UserController {
      * Get the next upcoming class for a client.
      */
     @GetMapping("/{clientId}/next-class")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<ClientStatsDTO.NextClassDTO> getNextClass(@PathVariable Long clientId) {
         User client = userService.getUserById(clientId);
         ClientStatsDTO.NextClassDTO nextClass = userService.getNextClass(client);
@@ -287,6 +281,7 @@ public class UserController {
      * Get total completed classes count.
      */
     @GetMapping("/{clientId}/completed-classes")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Integer> getCompletedClasses(@PathVariable Long clientId) {
         User client = userService.getUserById(clientId);
         Integer count = userService.getCompletedClassesCount(client);
@@ -297,6 +292,7 @@ public class UserController {
      * Get client membership status (Active, Inactive, Blocked).
      */
     @GetMapping("/{clientId}/membership-status")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getMembershipStatus(@PathVariable Long clientId) {
         User client = userService.getUserById(clientId);
         UserStatus status = userService.getMembershipStatus(client);

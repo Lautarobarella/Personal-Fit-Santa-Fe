@@ -65,7 +65,7 @@ export default function PaymentsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-32">
+        <div className="min-h-screen bg-background pb-safe-bottom">
             <MobileHeader
                 title="Pagos"
                 actions={
@@ -364,7 +364,7 @@ export default function PaymentsPage() {
             {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
             {user?.role === UserRole.ADMIN && pendingPayments.length > 0 && (
                 <Button
-                    className="fixed bottom-28 left-1/2 transform -translate-x-1/2 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
+                    className="fixed bottom-28 left-1/2 -translate-x-1/2 lg:bottom-8 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
                     size="default"
                     onClick={() => router.push("/payments/verify")}
                 >

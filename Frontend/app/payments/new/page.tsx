@@ -18,10 +18,12 @@ export default function NewPaymentPage() {
 
   const handleCreatePayment = async (payment: {
     clientDnis: number[]
+    createdByDni: number
     amount: number
     createdAt: string
     expiresAt: string
     method: MethodType
+    notes?: string
     file?: File
   }) => {
     const isAutomaticPayment = user?.role === UserRole.ADMIN
@@ -39,7 +41,7 @@ export default function NewPaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <div className="container-centered py-6 space-y-6">
         <CreatePaymentDialog
           open={true}

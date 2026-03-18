@@ -37,7 +37,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
@@ -49,9 +49,9 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
         </DialogHeader>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[60vh]">
+        <div className="flex-1 overflow-y-auto space-y-4 max-h-[60vh]">
           {/* Payment Info */}
-          <Card>
+          <Card className="m-2">
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
 
           {/* Associated Users card - Solo mostrar si hay múltiples usuarios */}
           {selectedPayment.associatedUsers && selectedPayment.associatedUsers.length > 1 && (
-            <Card>
+            <Card className="m-2">
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-3 block">Clientes Relacionados ({selectedPayment.associatedUsers.length})</Label>
                 <div className="space-y-2">
@@ -107,7 +107,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
 
           {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
           {selectedPayment.notes && (
-            <Card>
+            <Card className="m-2">
               <CardContent className="p-4">
                 <Label className="text-sm font-medium mb-2 block">
                   {selectedPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
@@ -126,7 +126,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
           {/* Receipt Display - Solo para métodos que NO sean efectivo */}
           {selectedPayment.method !== MethodType.CASH && (
             selectedPayment.receiptId ? (
-              <Card>
+              <Card className="m-2">
                 <CardContent className="p-4">
                   <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
                   <PaymentReceiptDisplay
@@ -138,7 +138,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
                 </CardContent>
               </Card>
             ) : (
-              <Card>
+              <Card className="m-2">
                 <CardContent className="py-8 text-center">
                   <FileImage className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No hay comprobante subido</p>
@@ -149,7 +149,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
 
           {/* Rejection Reason */}
           {selectedPayment.status === PaymentStatus.REJECTED && selectedPayment.rejectionReason && (
-            <Card className="border-destructive">
+            <Card className="m-2 border-destructive">
               <CardContent className="p-4">
                 <Label className="text-sm font-medium text-destructive mb-2 block">Razón del Rechazo</Label>
                 <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{selectedPayment.rejectionReason}</p>

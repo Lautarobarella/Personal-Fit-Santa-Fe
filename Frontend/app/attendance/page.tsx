@@ -33,7 +33,7 @@ export default function AttendancePage() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-32">
+        <div className="min-h-screen bg-background pb-safe-bottom">
             <MobileHeader title="Control de Asistencia" />
 
             <div className="container-centered py-6 space-y-6">

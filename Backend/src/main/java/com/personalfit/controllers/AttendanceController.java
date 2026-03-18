@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.personalfit.dto.Attendance.AttendanceDTO;
 import com.personalfit.enums.AttendanceStatus;
@@ -43,6 +44,7 @@ public class AttendanceController {
      * Enroll a user in an activity.
      */
     @PostMapping("/enroll/{userId}/{activityId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<AttendanceDTO> enrollUser(@PathVariable Long userId, @PathVariable Long activityId) {
         AttendanceDTO attendance = attendanceService.enrollUser(userId, activityId);
         return ResponseEntity.ok(attendance);
@@ -52,6 +54,7 @@ public class AttendanceController {
      * Unenroll a user from an activity.
      */
     @DeleteMapping("/unenroll/{userId}/{activityId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> unenrollUser(@PathVariable Long userId, @PathVariable Long activityId) {
         attendanceService.unenrollUser(userId, activityId);
         Map<String, Object> response = new HashMap<>();
@@ -66,6 +69,7 @@ public class AttendanceController {
      * Get list of attendances for a specific activity (User IDs only).
      */
     @GetMapping("/activity/{activityId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<List<AttendanceDTO>> getActivityAttendances(@PathVariable Long activityId) {
         List<AttendanceDTO> attendances = attendanceService.getActivityAttendances(activityId);
         return ResponseEntity.ok(attendances);
@@ -77,6 +81,7 @@ public class AttendanceController {
      * Useful for trainers taking roll call.
      */
     @GetMapping("/activity/{activityId}/with-user-info")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<List<AttendanceDTO>> getActivityAttendancesWithUserInfo(@PathVariable Long activityId) {
         List<AttendanceDTO> attendances = attendanceService.getActivityAttendancesWithUserInfo(activityId);
         return ResponseEntity.ok(attendances);
@@ -86,6 +91,7 @@ public class AttendanceController {
      * Get a user's attendance history.
      */
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<List<AttendanceDTO>> getUserAttendances(@PathVariable Long userId) {
         List<AttendanceDTO> attendances = attendanceService.getUserAttendances(userId);
         return ResponseEntity.ok(attendances);
@@ -96,6 +102,7 @@ public class AttendanceController {
      * someone Present).
      */
     @PutMapping("/{attendanceId}/status")
+    @PreAuthorize("hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> updateAttendanceStatus(
             @PathVariable Long attendanceId,
             @RequestBody Map<String, String> requestBody) {
@@ -128,6 +135,7 @@ public class AttendanceController {
      * Check if a user is enrolled in an activity.
      */
     @GetMapping("/{activityId}/enrolled/{userId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Boolean> isUserEnrolled(@PathVariable Long activityId, @PathVariable Long userId) {
         boolean isEnrolled = attendanceService.isUserEnrolled(userId, activityId);
         return ResponseEntity.ok(isEnrolled);

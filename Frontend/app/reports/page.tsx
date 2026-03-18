@@ -81,7 +81,7 @@ export default function ReportsPage() {
 
   if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.CLIENT)) {
     return (
-      <div className="min-h-screen bg-background pb-32">
+      <div className="min-h-screen bg-background pb-safe-bottom">
         <MobileHeader title="Sin acceso" showBack onBack={() => router.push("/dashboard")} />
         <div className="container-centered py-6">
           <Card>
@@ -100,7 +100,7 @@ export default function ReportsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-32">
+      <div className="min-h-screen bg-background pb-safe-bottom">
         <MobileHeader title="Reportes" showBack onBack={() => router.push("/dashboard")} />
         <div className="container-centered py-6 space-y-6">
           <Card>
@@ -172,7 +172,7 @@ export default function ReportsPage() {
 
   if (user.role === UserRole.CLIENT) {
     return (
-      <div className="min-h-screen bg-background pb-32">
+      <div className="min-h-screen bg-background pb-safe-bottom">
         <MobileHeader
           title="Mi Resumen"
           showBack
@@ -395,7 +395,7 @@ export default function ReportsPage() {
   // ─── Render: ADMIN view ───────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader
         title="Reportes"
         showBack

@@ -63,7 +63,7 @@ export default function ClientsPage() {
   if (!clients) return null
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader
         title="Clientes"
         actions={

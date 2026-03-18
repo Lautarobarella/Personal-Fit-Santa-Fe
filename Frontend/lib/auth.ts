@@ -1,5 +1,5 @@
 import { API_CONFIG } from "../api/JWTAuth/config"
-import type { GlobalSettingsType, UserRole, UserType } from "./types"
+import type { UserRole, UserType } from "./types"
 
 /**
  * Interface definition for the JWT Authentication Payload.
@@ -10,27 +10,13 @@ export interface AuthResponse {
   refreshToken: string
   tokenType: string
   user: UserType
-  globalSettings?: GlobalSettingsType
-}
-
-/**
- * Lazy loading of global application settings.
- * Fetches configuration that governs app behavior (maintenance mode, feature flags, etc).
- * Called during login if settings are missing from the initial auth payload.
- */
-const loadGlobalSettings = async (): Promise<GlobalSettingsType | null> => {
-  try {
-    const { fetchAllSettings } = await import('../api/settings/settingsApi')
-    return await fetchAllSettings()
-  } catch (error) {
-    console.error('Error loading global settings:', error)
-    return null
-  }
+  globalSettings?: any
 }
 
 /**
  * Core Authentication Function.
  * Exchanges credentials for a session token and persists user state.
+ * Settings are now embedded directly in the auth response by the backend.
  * 
  * @param email 
  * @param password 
@@ -63,11 +49,8 @@ export const authenticate = async (email: string, password: string): Promise<Use
 
     // Persistence: Store minimal identity markers in LocalStorage for session recovery
     localStorage.setItem('userId', authData.user.id.toString())
-
-    // Global Settings Hydration
-    let settings: GlobalSettingsType | null = authData.globalSettings || null
-    if (!settings) {
-      settings = await loadGlobalSettings()
+    if (authData.globalSettings) {
+      localStorage.setItem('globalSettings', JSON.stringify(authData.globalSettings))
     }
 
     return authData.user
@@ -76,6 +59,7 @@ export const authenticate = async (email: string, password: string): Promise<Use
     throw error // Propagate to UI layer
   }
 }
+
 
 /**
  * Session Termination.
@@ -103,6 +87,7 @@ export const logout = async (deviceToken?: string): Promise<void> => {
   } finally {
     // Always clean up local state, even if server request fails (optimistic logout)
     localStorage.removeItem('userId')
+    localStorage.removeItem('globalSettings')
   }
 }
 
@@ -143,6 +128,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     // Update local persistence
     localStorage.setItem('userId', authData.user.id.toString())
+    if (authData.globalSettings) {
+      localStorage.setItem('globalSettings', JSON.stringify(authData.globalSettings))
+    }
 
     return authData.accessToken
   } catch (error) {

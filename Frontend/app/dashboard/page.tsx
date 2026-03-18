@@ -52,7 +52,7 @@ function DashboardContent() {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-background pb-32">
+      <div className="min-h-screen bg-background pb-safe-bottom">
         <MobileHeader title="Cargando..." />
         <div className="container-centered py-6 space-y-6">
           <Card>
@@ -70,7 +70,7 @@ function DashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader title={`Hola, ${user.firstName}`} />
 
       <div className="container-centered h-full py-6 space-y-6">
@@ -130,7 +130,7 @@ function DashboardContent() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, index) => {
             const colSpan = (index === 0 || index === 3) ? "col-span-2" : "col-span-1";
 
@@ -209,7 +209,7 @@ function DashboardContent() {
               </CardTitle>
             </CardHeader>
           </div>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action, index) => {
               if (action.onClick) {
                 return (

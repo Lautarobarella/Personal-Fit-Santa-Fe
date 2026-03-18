@@ -1,5 +1,6 @@
 package com.personalfit.dto.Auth;
 
+import com.personalfit.dto.Settings.AllSettingsResponseDTO;
 import com.personalfit.dto.User.UserTypeDTO;
 
 import lombok.AllArgsConstructor;
@@ -17,4 +18,5 @@ public class AuthResponseDTO {
     @Builder.Default
     private String tokenType = "Bearer";
     private UserTypeDTO user;
-} 
+    private AllSettingsResponseDTO globalSettings;
+}

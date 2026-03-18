@@ -35,7 +35,7 @@ export default function ProgressPage() {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Mi Progreso" showBack onBack={() => router.push("/dashboard")} />
 
-      <main className="container-centered py-6 pb-32 space-y-6">
+      <main className="container-centered py-6 pb-safe-bottom space-y-6">
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 p-3 bg-primary/10 rounded-full w-fit">

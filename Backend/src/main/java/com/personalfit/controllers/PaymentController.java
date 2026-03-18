@@ -54,6 +54,7 @@ public class PaymentController {
      * Main endpoint used by Frontend.
      */
     @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createPayment(
             @RequestPart("payment") PaymentRequestDTO paymentRequest,
             @RequestPart(value = "file", required = false) MultipartFile file) {
@@ -97,6 +98,7 @@ public class PaymentController {
      * Get all payments (Admin view).
      */
     @GetMapping("/getAll")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PaymentTypeDTO>> getAllPayments() {
         List<PaymentTypeDTO> payments = paymentService.getAllPayments();
         return ResponseEntity.ok(payments);
@@ -120,6 +122,7 @@ public class PaymentController {
      * Get payments for a specific user.
      */
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long userId) {
         List<PaymentTypeDTO> payments = paymentService.getUserPayments(userId);
         return ResponseEntity.ok(payments);
@@ -129,6 +132,7 @@ public class PaymentController {
      * Get details of a single payment.
      */
     @GetMapping("/info/{paymentId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<PaymentTypeDTO> getPaymentDetails(@PathVariable Long paymentId) {
         PaymentTypeDTO payment = paymentService.getPaymentDetails(paymentId);
         return ResponseEntity.ok(payment);
@@ -138,6 +142,7 @@ public class PaymentController {
      * Update payment status (e.g., Approve/Reject a pending cash payment).
      */
     @PutMapping("/pending/{paymentId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> updatePaymentStatus(
             @PathVariable Long paymentId,
             @Valid @RequestBody PaymentStatusUpdateDTO statusUpdate) {
@@ -164,6 +169,7 @@ public class PaymentController {
      * Download a payment receipt/proof file.
      */
     @GetMapping("/files/{fileId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
         log.info("Downloading file: ID={}", fileId);
 
@@ -180,6 +186,7 @@ public class PaymentController {
      * Get file associated with a payment (for verification).
      */
     @GetMapping("/getFile/{paymentId}")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId) {
         log.info("Fetching file for payment: ID={}", paymentId);
 

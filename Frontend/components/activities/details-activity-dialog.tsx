@@ -249,18 +249,6 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
             <div className="m-2 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-lg font-semibold text-left">Lista de Participantes</h3>
-                {canTakeAttendance && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="bg-transparent"
-                    disabled={participantsNotPresent.length === 0}
-                    onClick={openTakeAttendanceDialog}
-                  >
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    Tomar Asistencia
-                  </Button>
-                )}
               </div>
               <div className="flex justify-end gap-2">
                 <Badge variant={"success"}>{presentParticipants.length} Presentes</Badge>
@@ -434,94 +422,6 @@ export function DetailsActivityDialog({ _open: isOpen, onOpenChange, activityId,
             </Card>
           </TabsContent>
         </Tabs>
-
-        <Dialog
-          open={isTakeAttendanceOpen}
-          onOpenChange={(open) => {
-            setIsTakeAttendanceOpen(open)
-            if (!open) {
-              setAttendanceQueueIds([])
-            }
-          }}
-        >
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="mt-4">Tomar Asistencia</DialogTitle>
-              <DialogDescription>
-                Marca asistencia cliente por cliente. Solo se listan quienes no estan en estado Presente.
-              </DialogDescription>
-            </DialogHeader>
-
-            {participantsToProcess.length > 0 ? (
-              <div className="space-y-2">
-                <div className="flex justify-end">
-                  <Badge variant="outline">{participantsToProcess.length} pendientes</Badge>
-                </div>
-                {participantsToProcess.map((participant) => (
-                  <Card key={participant.id}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {`${participant.firstName[0] ?? ""}${participant.lastName[0] ?? ""}`}
-                            </AvatarFallback>
-                          </Avatar>
-                          <p className="font-medium truncate">{participant.firstName} {participant.lastName}</p>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            size="sm"
-                            className="h-7 px-2.5 text-xs"
-                            disabled={updatingAttendanceId !== null}
-                            onClick={() =>
-                              updateAttendanceStatus(participant.id, AttendanceStatus.PRESENT, {
-                                removeFromQueue: true,
-                                successMessage: `${participant.firstName} ${participant.lastName} fue marcado como presente.`,
-                              })
-                            }
-                          >
-                            {updatingAttendanceId === participant.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                            Asistió
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-7 px-2.5 text-xs"
-                            disabled={updatingAttendanceId !== null}
-                            onClick={() =>
-                              updateAttendanceStatus(participant.id, AttendanceStatus.ABSENT, {
-                                removeFromQueue: true,
-                                successMessage: `${participant.firstName} ${participant.lastName} fue marcado como ausente.`,
-                              })
-                            }
-                          >
-                            {updatingAttendanceId === participant.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                            No asistió
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <CheckCircle className="h-10 w-10 mx-auto mb-2 text-success" />
-                  <p className="font-medium">No quedan clientes pendientes</p>
-                  <p className="text-sm text-muted-foreground">Todas las asistencias de esta ronda ya fueron marcadas.</p>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setIsTakeAttendanceOpen(false)}>
-                Cerrar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
   )

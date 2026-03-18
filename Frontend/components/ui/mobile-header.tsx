@@ -30,8 +30,8 @@ export function MobileHeader({
   const { unreadCount } = useNotification()
   
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-professional transition-all duration-200">
-      <div className="container-centered flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full lg:ml-0 bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-professional transition-all duration-200">
+      <div className="w-full mx-auto px-4 lg:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center gap-3">
           {showBack && (
             <Button variant="ghost" size="sm" onClick={onBack} className="rounded-full hover:bg-accent">

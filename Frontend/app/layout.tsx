@@ -2,6 +2,7 @@ import { ZoomPrevention } from "@/components/providers/zoom-prevention"
 import { ThemeProvider } from "@/components/theme-provider"
 import { VersionChecker } from "@/components/providers/version-checker"
 import { Toaster } from "@/components/ui/toaster"
+import { DesktopSidebar } from "@/components/ui/desktop-sidebar"
 import { ActivityProvider } from "@/contexts/activity-provider"
 import { AttendanceProvider } from "@/contexts/attendance-provider"
 import { AuthProvider } from "@/contexts/auth-provider"
@@ -16,8 +17,8 @@ import type React from "react"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "PERSONAL FIT",
-  description: "Professional personal training management platform with role-based access",
+  title: "PERSONAL FIT Santa Fe",
+  description: "Aplicación de gestión para el gimnasio PERSONAL FIT Santa Fe, desarrollada por Lautaro Barella y Fernando Ale",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -81,8 +82,9 @@ export default function RootLayout({
                 <ActivityProvider>
                   <AttendanceProvider>
                     <NotificationsProvider>
-                      <div className="min-h-screen flex justify-center bg-background">
-                        <div className="w-full max-w-md mx-auto relative">
+                      <div className="min-h-screen bg-background">
+                        <DesktopSidebar />
+                        <div className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] relative">
                           {children}
                         </div>
                       </div>
