@@ -41,16 +41,6 @@ command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta en
 docker info >/dev/null 2>&1 || fail "Docker daemon no responde. Inicia Docker Desktop"
 docker compose version >/dev/null 2>&1 || fail "docker compose no esta disponible"
 
-set -a
-. ./.env
-set +a
-
-: "${NEXT_PUBLIC_API_URL:=http://localhost:8080}"
-: "${NEXT_PUBLIC_API_BASE_URL:=${NEXT_PUBLIC_API_URL}}"
-
-export NEXT_PUBLIC_API_URL
-export NEXT_PUBLIC_API_BASE_URL
-
 step "Preparando directorios locales"
 mkdir -p local-data/firebase
 
