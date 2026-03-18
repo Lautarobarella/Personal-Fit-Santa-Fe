@@ -1,4 +1,5 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
+import { buildApiUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
 import { TrainerDashboardStats, UserFormType, WorkShift } from "@/lib/types";
 
@@ -101,6 +102,35 @@ export async function updateUserProfile(data: {
     // No mostrar toasts aquí, dejar que el componente maneje el error
     throw error;
   }
+}
+
+export async function uploadUserAvatar(userId: number, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    return await jwtPermissionsApi.post(`/api/users/${userId}/avatar`, formData);
+  } catch (error) {
+    handleApiError(error, 'Error al subir la foto de perfil');
+    throw error;
+  }
+}
+
+export async function deleteUserAvatar(userId: number) {
+  try {
+    return await jwtPermissionsApi.delete(`/api/users/${userId}/avatar`);
+  } catch (error) {
+    handleApiError(error, 'Error al eliminar la foto de perfil');
+    throw error;
+  }
+}
+
+export function buildUserAvatarUrl(userId?: number, avatar?: string | null): string | null {
+  if (!userId || !avatar || !avatar.startsWith("avatars/")) {
+    return null;
+  }
+
+  return buildApiUrl(`/api/users/${userId}/avatar`);
 }
 
 /**

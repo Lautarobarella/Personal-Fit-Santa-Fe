@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -18,7 +19,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.personalfit.dto.User.ClientStatsDTO;
 import com.personalfit.dto.User.CreateUserDTO;
@@ -215,6 +219,47 @@ public class UserController {
     }
 
     /**
+     * Upload user avatar.
+     */
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
+    @PostMapping(value = "/{userId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserTypeDTO> uploadAvatar(
+            @PathVariable Long userId,
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication) {
+
+        validateSelfOrAdmin(userId, authentication);
+        return ResponseEntity.ok(userService.uploadAvatar(userId, file));
+    }
+
+    /**
+     * Delete user avatar and restore initials fallback.
+     */
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
+    @DeleteMapping("/{userId}/avatar")
+    public ResponseEntity<UserTypeDTO> deleteAvatar(
+            @PathVariable Long userId,
+            Authentication authentication) {
+
+        validateSelfOrAdmin(userId, authentication);
+        return ResponseEntity.ok(userService.deleteAvatar(userId));
+    }
+
+    /**
+     * Download current avatar image for a user.
+     */
+    @GetMapping("/{userId}/avatar")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CLIENT') or hasRole('TRAINER')")
+    public ResponseEntity<byte[]> getAvatar(@PathVariable Long userId) {
+        byte[] content = userService.getAvatarContent(userId);
+        String contentType = userService.getAvatarContentType(userId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(content);
+    }
+
+    /**
      * Batch create clients.
      */
     @Transactional
@@ -302,6 +347,17 @@ public class UserController {
         response.put("clientId", clientId);
 
         return ResponseEntity.ok(response);
+    }
+
+    private void validateSelfOrAdmin(Long targetUserId, Authentication authentication) {
+        String currentUserEmail = authentication.getName();
+        User currentUser = userService.getUserByEmail(currentUserEmail);
+
+        if (!currentUser.getRole().equals(UserRole.ADMIN) &&
+                !currentUser.getId().equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You do not have permission to edit another user's avatar");
+        }
     }
 
 }

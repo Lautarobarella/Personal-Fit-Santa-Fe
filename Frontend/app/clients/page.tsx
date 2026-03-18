@@ -1,11 +1,11 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -136,11 +136,12 @@ export default function ClientsPage() {
             <Card key={client.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <Avatar>
-                    <AvatarFallback>
-                      {`${client.firstName[0] ?? ""}${client.lastName[0] ?? ""}`}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    userId={client.id}
+                    firstName={client.firstName}
+                    lastName={client.lastName}
+                    avatar={client.avatar}
+                  />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

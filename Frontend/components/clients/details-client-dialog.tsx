@@ -1,12 +1,12 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { getMuscleGroupLabels } from "@/lib/muscle-groups"
 import { ActivityStatus, AttendanceStatus, UserRole, UserStatus } from "@/lib/types"
 import {
@@ -109,11 +109,14 @@ export function ClientDetailsDialog({
                     {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
                   </Badge>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="text-lg">
-                        {`${selectedClient.firstName[0] ?? ""}${selectedClient.lastName[0] ?? ""}`}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      userId={selectedClient.id}
+                      firstName={selectedClient.firstName}
+                      lastName={selectedClient.lastName}
+                      avatar={selectedClient.avatar}
+                      className="h-12 w-12"
+                      fallbackClassName="text-lg"
+                    />
                     <div>
                       <DialogTitle className="text-xl flex">{selectedClient.firstName + " " + selectedClient.lastName}</DialogTitle>
                       <div className="flex items-center justify-between gap-2">

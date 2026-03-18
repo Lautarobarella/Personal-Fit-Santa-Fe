@@ -75,7 +75,7 @@ export function useDashboard() {
   const { checkMembershipStatus } = useClients()
   const { clients, loadClients } = useClients()
   const { activities, refreshActivities, getWeekDates } = useActivityContext()
-  const { stats: clientStats, loading: clientStatsLoading } = useClientStats(
+  const { stats: clientStats, loading: clientStatsLoading, refetch: refetchClientStats } = useClientStats(
     user?.role === UserRole.CLIENT ? user?.id : undefined
   )
   const {
@@ -146,6 +146,12 @@ export function useDashboard() {
       loadClients()
     }
   }, [loadClients, refreshActivities, user?.role, user?.id, queryClient])
+
+  useEffect(() => {
+    if (mounted && user?.role === UserRole.CLIENT && user?.id) {
+      refetchClientStats()
+    }
+  }, [activities, mounted, refetchClientStats, user?.id, user?.role])
 
   // Encontrar la próxima actividad del entrenador
   const getNextTrainerActivity = useCallback(() => {

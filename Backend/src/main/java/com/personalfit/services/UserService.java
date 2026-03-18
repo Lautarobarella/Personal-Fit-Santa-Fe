@@ -1,5 +1,10 @@
 package com.personalfit.services;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,12 +13,17 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 import java.util.stream.Collectors;
+import java.text.Normalizer;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.personalfit.dto.User.ClientStatsDTO;
 import com.personalfit.dto.User.CreateUserDTO;
@@ -28,6 +38,7 @@ import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.EntityAlreadyExistsException;
 import com.personalfit.exceptions.EntityNotFoundException;
+import com.personalfit.exceptions.FileException;
 import com.personalfit.models.Activity;
 import com.personalfit.models.Attendance;
 import com.personalfit.models.ActivitySummary;
@@ -57,6 +68,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class UserService {
+
+    private static final long MAX_AVATAR_SIZE_BYTES = 5L * 1024L * 1024L;
+
+    @Value("${spring.datasource.files.path}")
+    private String uploadFolder;
 
     @Autowired
     private UserRepository userRepository;
@@ -103,9 +119,7 @@ public class UserService {
         userToCreate.setRole(newUser.getRole());
 
         // Auto-generate avatar initials (e.g., "Juan Perez" -> "JP")
-        String initialAvatar = newUser.getFirstName().substring(0, 1).toUpperCase() +
-                newUser.getLastName().substring(0, 1).toUpperCase();
-        userToCreate.setAvatar(initialAvatar);
+        userToCreate.setAvatar(buildInitialAvatar(newUser.getFirstName(), newUser.getLastName()));
 
         userToCreate.setJoinDate(LocalDate.now());
         userToCreate.setAddress(newUser.getAddress());
@@ -350,9 +364,7 @@ public class UserService {
             userToCreate.setPhone(newUser.getPhone());
             userToCreate.setRole(newUser.getRole()); // Enforced as CLIENT by controller
 
-            String initialAvatar = newUser.getFirstName().substring(0, 1).toUpperCase() +
-                    newUser.getLastName().substring(0, 1).toUpperCase();
-            userToCreate.setAvatar(initialAvatar);
+            userToCreate.setAvatar(buildInitialAvatar(newUser.getFirstName(), newUser.getLastName()));
 
             userToCreate.setJoinDate(LocalDate.now());
             userToCreate.setAddress(newUser.getAddress());
@@ -453,12 +465,31 @@ public class UserService {
         }
 
         return ClientStatsDTO.builder()
-                .weeklyActivityCount(getWeeklyActivityCount(client))
+                .weeklyActivityCount(getCurrentMonthActivityCount(client))
                 .nextClass(getNextClass(client))
                 .completedClassesCount(getCompletedClassesCount(client))
                 .membershipStatus(client.getStatus())
                 .remainingDays(getRemainingPlanDays(client))
                 .build();
+    }
+
+    /**
+     * Metric: Current Month Attendance Count.
+     * Counts attendances in the current calendar month.
+     * Includes PRESENT and LATE, excludes ABSENT/PENDING.
+     */
+    public Integer getCurrentMonthActivityCount(User client) {
+        LocalDate today = LocalDate.now();
+        LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+        LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+
+        LocalDateTime startOfMonth = firstDayOfMonth.atStartOfDay();
+        LocalDateTime endOfMonth = lastDayOfMonth.atTime(23, 59, 59);
+
+        return (int) attendanceRepository.findByUser(client).stream()
+                .filter(attendance -> isAttendanceWithinRange(attendance, startOfMonth, endOfMonth))
+                .filter(this::countsAsCompletedAttendance)
+                .count();
     }
 
     /**
@@ -474,11 +505,8 @@ public class UserService {
         LocalDateTime endOfWeek = sunday.atTime(23, 59, 59);
 
         return (int) attendanceRepository.findByUser(client).stream()
-                .filter(attendance -> {
-                    LocalDateTime activityDate = attendance.getActivity().getDate();
-                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek)
-                            && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
-                })
+                .filter(attendance -> isAttendanceWithinRange(attendance, startOfWeek, endOfWeek))
+                .filter(this::countsAsCompletedAttendance)
                 .count();
     }
 
@@ -494,11 +522,8 @@ public class UserService {
         LocalDateTime endOfWeek = sunday.atTime(23, 59, 59);
 
         return (int) attendanceRepository.findByUser(client).stream()
-                .filter(attendance -> {
-                    LocalDateTime activityDate = attendance.getActivity().getDate();
-                    return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek)
-                            && attendance.getAttendance().equals(AttendanceStatus.PRESENT);
-                })
+                .filter(attendance -> isAttendanceWithinRange(attendance, startOfWeek, endOfWeek))
+                .filter(this::countsAsCompletedAttendance)
                 .count();
     }
 
@@ -535,8 +560,18 @@ public class UserService {
      */
     public Integer getCompletedClassesCount(User client) {
         return (int) attendanceRepository.findByUser(client).stream()
-                .filter(attendance -> attendance.getAttendance().equals(AttendanceStatus.PRESENT))
+                .filter(this::countsAsCompletedAttendance)
                 .count();
+    }
+
+    private boolean isAttendanceWithinRange(Attendance attendance, LocalDateTime start, LocalDateTime end) {
+        LocalDateTime activityDate = attendance.getActivity().getDate();
+        return !activityDate.isBefore(start) && !activityDate.isAfter(end);
+    }
+
+    private boolean countsAsCompletedAttendance(Attendance attendance) {
+        return attendance.getAttendance().equals(AttendanceStatus.PRESENT)
+                || attendance.getAttendance().equals(AttendanceStatus.LATE);
     }
 
     public UserStatus getMembershipStatus(User client) {
@@ -606,6 +641,72 @@ public class UserService {
         }
     }
 
+    @Transactional
+    public UserTypeDTO uploadAvatar(Long userId, MultipartFile file) {
+        User user = getUserById(userId);
+        validateAvatarFile(file);
+
+        try {
+            Path avatarDirectory = getAvatarDirectory();
+            Files.createDirectories(avatarDirectory);
+
+            deleteAvatarFileIfPresent(user);
+
+            String extension = getFileExtension(file.getOriginalFilename());
+            String fileName = buildAvatarFileName(user, extension);
+            Path avatarPath = avatarDirectory.resolve(fileName);
+
+            Files.copy(file.getInputStream(), avatarPath, StandardCopyOption.REPLACE_EXISTING);
+
+            user.setAvatar("avatars/" + fileName);
+            userRepository.save(user);
+
+            log.info("Avatar uploaded for user ID {}: {}", userId, fileName);
+            return new UserTypeDTO(user);
+        } catch (IOException e) {
+            log.error("Error storing avatar for user {}: {}", userId, e.getMessage());
+            throw new FileException("No se pudo guardar la foto de perfil", "/api/users/" + userId + "/avatar");
+        }
+    }
+
+    @Transactional
+    public UserTypeDTO deleteAvatar(Long userId) {
+        User user = getUserById(userId);
+        deleteAvatarFileIfPresent(user);
+        user.setAvatar(buildInitialAvatar(user.getFirstName(), user.getLastName()));
+        userRepository.save(user);
+
+        log.info("Avatar deleted for user ID {}", userId);
+        return new UserTypeDTO(user);
+    }
+
+    public byte[] getAvatarContent(Long userId) {
+        User user = getUserById(userId);
+        Path avatarPath = resolveAvatarPath(user);
+
+        try {
+            if (!Files.exists(avatarPath)) {
+                throw new FileException("La foto de perfil no existe", "/api/users/" + userId + "/avatar");
+            }
+            return Files.readAllBytes(avatarPath);
+        } catch (IOException e) {
+            log.error("Error reading avatar for user {}: {}", userId, e.getMessage());
+            throw new FileException("No se pudo leer la foto de perfil", "/api/users/" + userId + "/avatar");
+        }
+    }
+
+    public String getAvatarContentType(Long userId) {
+        User user = getUserById(userId);
+        Path avatarPath = resolveAvatarPath(user);
+
+        try {
+            String contentType = Files.probeContentType(avatarPath);
+            return contentType != null ? contentType : "application/octet-stream";
+        } catch (IOException e) {
+            return "application/octet-stream";
+        }
+    }
+
     /**
      * Helper: Calculates days remaining on active plan.
      * Returns 0 if expired or not found.
@@ -633,5 +734,78 @@ public class UserService {
 
         long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(now.toLocalDate(), expiresAt.toLocalDate());
         return Math.max(0, (int) daysBetween);
+    }
+
+    private String buildInitialAvatar(String firstName, String lastName) {
+        return firstName.substring(0, 1).toUpperCase(Locale.ROOT)
+                + lastName.substring(0, 1).toUpperCase(Locale.ROOT);
+    }
+
+    private void validateAvatarFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new FileException("La imagen de perfil está vacía", "/api/users/avatar");
+        }
+
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new FileException("La foto de perfil no puede superar los 5MB", "/api/users/avatar");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new FileException("Solo se permiten imágenes para la foto de perfil", "/api/users/avatar");
+        }
+    }
+
+    private Path getAvatarDirectory() {
+        return Paths.get(uploadFolder, "avatars");
+    }
+
+    private void deleteAvatarFileIfPresent(User user) {
+        if (!hasCustomAvatar(user)) {
+            return;
+        }
+
+        try {
+            Files.deleteIfExists(resolveAvatarPath(user));
+        } catch (IOException e) {
+            log.warn("Could not delete previous avatar for user {}: {}", user.getId(), e.getMessage());
+        }
+    }
+
+    private Path resolveAvatarPath(User user) {
+        if (!hasCustomAvatar(user)) {
+            throw new FileException("El usuario no tiene una foto de perfil cargada", "/api/users/" + user.getId() + "/avatar");
+        }
+
+        String avatarValue = user.getAvatar().replace("\\", "/");
+        String relativePath = avatarValue.startsWith("avatars/") ? avatarValue.substring("avatars/".length()) : avatarValue;
+        return getAvatarDirectory().resolve(relativePath);
+    }
+
+    private boolean hasCustomAvatar(User user) {
+        return user.getAvatar() != null && user.getAvatar().startsWith("avatars/");
+    }
+
+    private String buildAvatarFileName(User user, String extension) {
+        String fullName = sanitizeFileComponent(user.getFullName().replace(" ", "_"));
+        return user.getId() + "_" + fullName + extension;
+    }
+
+    private String sanitizeFileComponent(String value) {
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
+        return normalized
+                .replaceAll("[^A-Za-z0-9_]+", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
+    }
+
+    private String getFileExtension(String originalFileName) {
+        if (originalFileName == null || !originalFileName.contains(".")) {
+            return ".jpg";
+        }
+
+        return originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase(Locale.ROOT);
     }
 }

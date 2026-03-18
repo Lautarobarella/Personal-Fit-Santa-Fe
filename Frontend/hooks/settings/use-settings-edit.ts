@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { updateUserPassword, updateUserProfile } from "@/api/clients/usersApi"
 import { useAuth } from "@/contexts/auth-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
-import { updateUserProfile } from "@/api/clients/usersApi"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function useSettingsEdit() {
   const { refreshUser } = useAuth()
@@ -19,9 +19,14 @@ export function useSettingsEdit() {
     emergencyPhone: "",
   })
 
+  const [passwordData, setPasswordData] = useState({
+    current: "",
+    next: "",
+    confirm: "",
+  })
+
   const [isLoading, setIsLoading] = useState(false)
 
-  // Cargar datos actuales del usuario
   useEffect(() => {
     if (user) {
       setProfileData({
@@ -33,11 +38,23 @@ export function useSettingsEdit() {
   }, [user])
 
   const handleInputChange = (field: string, value: string) => {
-    setProfileData(prev => ({
+    setProfileData((prev) => ({
       ...prev,
       [field]: value,
     }))
   }
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const shouldUpdatePassword =
+    passwordData.current.trim() !== "" ||
+    passwordData.next.trim() !== "" ||
+    passwordData.confirm.trim() !== ""
 
   const validateForm = (): boolean => {
     if (!profileData.phone.trim()) {
@@ -77,14 +94,60 @@ export function useSettingsEdit() {
       return false
     }
 
+    if (shouldUpdatePassword) {
+      if (!passwordData.current.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La contraseña actual es requerida para cambiar la clave",
+        })
+        return false
+      }
+
+      if (!passwordData.next.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La nueva contraseña es requerida",
+        })
+        return false
+      }
+
+      if (passwordData.next.length < 6) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La nueva contraseña debe tener al menos 6 caracteres",
+        })
+        return false
+      }
+
+      if (passwordData.next !== passwordData.confirm) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La confirmación de contraseña no coincide",
+        })
+        return false
+      }
+
+      if (passwordData.current === passwordData.next) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La nueva contraseña debe ser diferente a la actual",
+        })
+        return false
+      }
+    }
+
     return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) return
-    if (!user) return
+    if (!validateForm() || !user) return
 
     setIsLoading(true)
 
@@ -96,12 +159,23 @@ export function useSettingsEdit() {
         emergencyPhone: profileData.emergencyPhone || undefined,
       })
 
+      if (shouldUpdatePassword) {
+        await updateUserPassword({
+          userId: user.id,
+          currentPassword: passwordData.current,
+          newPassword: passwordData.next,
+        })
+      }
+
       toast({
         title: "Éxito",
-        description: "Datos actualizados correctamente",
+        description: shouldUpdatePassword
+          ? "Datos y contraseña actualizados correctamente"
+          : "Datos actualizados correctamente",
       })
 
       await refreshUser()
+      setPasswordData({ current: "", next: "", confirm: "" })
 
       setTimeout(() => {
         router.push("/settings")
@@ -110,7 +184,7 @@ export function useSettingsEdit() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Error al actualizar los datos",
+        description: error.message || "Error al actualizar el perfil",
       })
     } finally {
       setIsLoading(false)
@@ -124,8 +198,11 @@ export function useSettingsEdit() {
   return {
     user,
     profileData,
+    passwordData,
+    shouldUpdatePassword,
     isLoading,
     handleInputChange,
+    handlePasswordChange,
     handleSubmit,
     handleCancel,
   }

@@ -2,6 +2,7 @@
 
 import { Home, Calendar, Users, CreditCard, Settings } from "lucide-react"
 import { useAuth } from "@/contexts/auth-provider"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { UserRole } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -50,9 +51,14 @@ export function DesktopSidebar() {
       {/* User info */}
       <div className="px-6 py-4 border-b border-border/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-primary text-foreground flex items-center justify-center text-sm font-bold shadow-professional flex-shrink-0">
-            {user?.avatar?.[0]}{user?.avatar?.[1]}
-          </div>
+          <UserAvatar
+            userId={user?.id}
+            firstName={user?.firstName}
+            lastName={user?.lastName}
+            avatar={user?.avatar}
+            className="h-10 w-10 shadow-professional flex-shrink-0"
+            fallbackClassName="bg-gradient-primary text-foreground text-sm font-bold"
+          />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">
               {user.firstName} {user.lastName}

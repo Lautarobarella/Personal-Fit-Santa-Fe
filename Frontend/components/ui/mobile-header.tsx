@@ -5,6 +5,7 @@ import type React from "react"
 import { useAuth } from "@/contexts/auth-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { useNotification } from "@/hooks/notifications/use-notification"
 import { ArrowLeft, Bell, Menu } from "lucide-react"
 import Link from "next/link"
@@ -61,9 +62,14 @@ export function MobileHeader({
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-primary text-foreground flex items-center justify-center text-sm font-bold shadow-professional">
-              {user?.avatar?.[0]}{user?.avatar?.[1]} {/* DEFINIR EL RENDERIZADO CONDICIONAL DE LA FOTO */}
-            </div>
+            <UserAvatar
+              userId={user?.id}
+              firstName={user?.firstName}
+              lastName={user?.lastName}
+              avatar={user?.avatar}
+              className="h-9 w-9 shadow-professional"
+              fallbackClassName="bg-gradient-primary text-foreground text-sm font-bold"
+            />
           </div>
         </div>
       </div>
