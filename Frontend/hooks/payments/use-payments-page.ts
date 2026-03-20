@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
@@ -21,10 +21,8 @@ export function usePaymentsPage() {
   const currentDate = new Date()
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
-  const [adminPayments, setAdminPayments] = useState<any[]>([])
-  const [isLoadingAdminPayments, setIsLoadingAdminPayments] = useState(false)
 
-  const { payments, updatePaymentStatus, isLoading } = usePaymentContext()
+  const { payments, isLoading } = usePaymentContext()
 
   // Dialog state
   const [verificationDialog, setVerificationDialog] = useState({
@@ -46,15 +44,14 @@ export function usePaymentsPage() {
     }
   }, [user?.id, user?.role, queryClient])
 
-  // Load admin payments by month/year
-  useEffect(() => {
-    if (user?.role !== UserRole.ADMIN) return
-    setIsLoadingAdminPayments(true)
-    fetchPaymentsByMonthAndYear(selectedYear, selectedMonth)
-      .then((data) => setAdminPayments(data))
-      .catch(() => setAdminPayments([]))
-      .finally(() => setIsLoadingAdminPayments(false))
-  }, [user?.role, selectedYear, selectedMonth])
+  const {
+    data: adminPayments = [],
+    isLoading: isLoadingAdminPayments,
+  } = useQuery({
+    queryKey: ["payments", "admin", selectedYear, selectedMonth],
+    queryFn: () => fetchPaymentsByMonthAndYear(selectedYear, selectedMonth),
+    enabled: user?.role === UserRole.ADMIN,
+  })
 
   // Validate dates
   useEffect(() => {

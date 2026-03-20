@@ -118,6 +118,25 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       rejectionReason?: string
     }) => updatePaymentStatus(id, status, rejectionReason),
     onSuccess: (response, variables) => {
+      const nextStatus = variables.status === "paid" ? PaymentStatus.PAID : PaymentStatus.REJECTED
+
+      queryClient.setQueriesData<PaymentType[]>({ queryKey: ["payments"] }, (currentPayments) => {
+        if (!Array.isArray(currentPayments)) {
+          return currentPayments
+        }
+
+        return currentPayments.map((payment) =>
+          payment.id === variables.id
+            ? {
+                ...payment,
+                status: nextStatus,
+                rejectionReason: variables.status === "rejected" ? variables.rejectionReason : undefined,
+                verifiedAt: variables.status === "paid" ? new Date().toISOString() : payment.verifiedAt,
+              }
+            : payment,
+        )
+      })
+
       queryClient.invalidateQueries({ queryKey: ["payments"] })
       
       if (variables.status === "paid") {

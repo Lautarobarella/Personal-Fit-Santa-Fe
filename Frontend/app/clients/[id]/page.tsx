@@ -25,6 +25,7 @@ export default function EditClientPage() {
     address,
     setAddress,
     handleSubmit,
+    formatDate,
   } = useClientEdit()
 
   if (!user || user.role !== UserRole.ADMIN) {
@@ -58,16 +59,7 @@ export default function EditClientPage() {
             <p><span className="font-medium text-foreground">Email:</span> {selectedClient.email}</p>
             <p>
               <span className="font-medium text-foreground">Fecha de nacimiento:</span>{" "}
-              {selectedClient.birthDate
-                ? new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric" }).format(
-                    typeof selectedClient.birthDate === "string"
-                      ? (() => {
-                          const [y, m, d] = (selectedClient.birthDate as string).split("-").map(Number)
-                          return new Date(y, m - 1, d)
-                        })()
-                      : selectedClient.birthDate
-                  )
-                : "N/A"}
+              <span> {formatDate(selectedClient.birthDate)}</span>
             </p>
           </CardContent>
         </Card>

@@ -195,6 +195,43 @@ export function useSettingsEdit() {
     router.back()
   }
 
+    const formatDate = (date: Date | string | null | undefined) => {
+    try {
+      if (!date) {
+        return "N/A"
+      }
+
+      let parsedDate: Date
+
+      if (typeof date === "string") {
+        const dateOnlyMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})/)
+
+        if (dateOnlyMatch) {
+          const [, year, month, day] = dateOnlyMatch.map(Number)
+          parsedDate = new Date(year, month - 1, day)
+        } else {
+          parsedDate = new Date(date)
+        }
+      } else {
+        parsedDate = date
+      }
+
+      if (isNaN(parsedDate.getTime())) {
+        console.warn("Fecha inválida:", date)
+        return "N/A"
+      }
+
+      return new Intl.DateTimeFormat("es-ES", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(parsedDate)
+    } catch (err) {
+      console.error("Error al formatear fecha:", err, date)
+      return "N/A"
+    }
+  }
+
   return {
     user,
     profileData,
@@ -205,5 +242,6 @@ export function useSettingsEdit() {
     handlePasswordChange,
     handleSubmit,
     handleCancel,
+    formatDate,
   }
 }

@@ -1,12 +1,14 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-provider"
+import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { AttendanceStatus, PaymentStatus } from "@/lib/types"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 export function useClientDetailsDialog(userId: number, isOpen: boolean) {
   const { user } = useAuth()
+  const { payments } = usePaymentContext()
   const [activeTab, setActiveTab] = useState("profile")
   const [visibleSummaryActivityId, setVisibleSummaryActivityId] = useState<number | null>(null)
   const { loading, error, loadClientDetail, selectedClient } = useClients()
@@ -201,10 +203,30 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
       ? Math.round((presentActivities.length / (presentActivities.length + absentActivities.length)) * 100)
       : 0
 
+  const syncedClient = useMemo(() => {
+    if (!selectedClient) {
+      return null
+    }
+
+    const livePaymentsById = new Map(
+      payments
+        .filter((payment) => payment.clientId === selectedClient.id)
+        .map((payment) => [payment.id, payment]),
+    )
+
+    return {
+      ...selectedClient,
+      listPayments: selectedClient.listPayments.map((payment) => {
+        const livePayment = livePaymentsById.get(payment.id)
+        return livePayment ? { ...payment, ...livePayment } : payment
+      }),
+    }
+  }, [payments, selectedClient])
+
   const completedPayments =
-    selectedClient?.listPayments.filter((p) => p.status === PaymentStatus.PAID) ?? []
+    syncedClient?.listPayments.filter((p) => p.status === PaymentStatus.PAID) ?? []
   const pendingPayments =
-    selectedClient?.listPayments.filter((p) => p.status === PaymentStatus.PENDING) ?? []
+    syncedClient?.listPayments.filter((p) => p.status === PaymentStatus.PENDING) ?? []
   const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0)
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0)
 
@@ -216,7 +238,7 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
     toggleSummaryVisibility,
     loading,
     error,
-    selectedClient,
+    selectedClient: syncedClient,
     formatDate,
     formatFullDate,
     getActivityStatusColor,

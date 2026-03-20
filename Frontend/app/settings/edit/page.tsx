@@ -19,6 +19,7 @@ export default function EditProfilePage() {
     handlePasswordChange,
     handleSubmit,
     handleCancel,
+    formatDate,
   } = useSettingsEdit()
 
   return (
@@ -64,13 +65,7 @@ export default function EditProfilePage() {
                   <div>
                     <Label className="text-xs text-muted-foreground">Fecha de nacimiento</Label>
                     <p className="text-sm font-medium">
-                      {user?.birthDate
-                        ? new Date(user.birthDate).toLocaleDateString("es-ES", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
-                        : "No especificada"}
+                      {formatDate(user?.birthDate)}
                     </p>
                   </div>
                 </div>
