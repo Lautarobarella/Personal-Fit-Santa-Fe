@@ -82,11 +82,11 @@ export default function RootLayout({
                 <ActivityProvider>
                   <AttendanceProvider>
                     <NotificationsProvider>
-                      <div className="min-h-screen bg-background">
+                      <div className="min-h-screen h-[100dvh] overflow-hidden bg-background">
                         <DesktopSidebar />
-                        <div className="w-full lg:ml-64 lg:w-[calc(100%-16rem)] relative">
+                        <main className="relative h-full w-full overflow-y-auto overflow-x-hidden lg:ml-64 lg:w-[calc(100%-16rem)]">
                           {children}
-                        </div>
+                        </main>
                       </div>
                       <ZoomPrevention />
                       <Toaster />
