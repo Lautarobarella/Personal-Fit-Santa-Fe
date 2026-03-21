@@ -1,4 +1,4 @@
-import { API_CONFIG } from "../api/JWTAuth/config"
+import { buildApiUrl } from "../api/JWTAuth/config"
 import type { UserRole, UserType } from "./types"
 
 /**
@@ -25,7 +25,7 @@ export interface AuthResponse {
  */
 export const authenticate = async (email: string, password: string): Promise<UserType> => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login`, {
+    const response = await fetch(buildApiUrl('/api/auth/login'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export const logout = async (deviceToken?: string): Promise<void> => {
       headers['Device-Token'] = deviceToken;
     }
 
-    await fetch(`${API_CONFIG.BASE_URL}/api/auth/logout`, {
+    await fetch(buildApiUrl('/api/auth/logout'), {
       method: 'POST',
       credentials: 'include', // Sends the RefreshToken cookie to be invalidated
       headers,
@@ -109,7 +109,7 @@ export const getUserId = (): number | null => {
  */
 export const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh`, {
+    const response = await fetch(buildApiUrl('/api/auth/refresh'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

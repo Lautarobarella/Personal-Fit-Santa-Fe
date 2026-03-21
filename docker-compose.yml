@@ -55,7 +55,6 @@ services:
       context: .
       dockerfile: Frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_IS_DOCKER: ${NEXT_PUBLIC_IS_DOCKER:-true}
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
@@ -77,7 +76,6 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET}
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://personalfit-backend:8080}
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NODE_ENV: production
 
