@@ -85,6 +85,7 @@ export function useAttendance() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activity-attendances'] })
       queryClient.invalidateQueries({ queryKey: ['activities'] }) // Para actualizar los contadores
+      queryClient.invalidateQueries({ queryKey: ['activity-detail'] })
     },
   })
 
@@ -125,7 +126,9 @@ export function useAttendance() {
     }
 
     return {
-      present: activityAttendances.filter(a => a.status === AttendanceStatus.PRESENT).length,
+      present: activityAttendances.filter(
+        (a) => a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE,
+      ).length,
       absent: activityAttendances.filter(a => a.status === AttendanceStatus.ABSENT).length,
       late: activityAttendances.filter(a => a.status === AttendanceStatus.LATE).length,
       pending: activityAttendances.filter(a => a.status === AttendanceStatus.PENDING).length,

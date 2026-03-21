@@ -75,6 +75,8 @@ export function ClientDetailsDialog({
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent>
+          <DialogTitle className="sr-only">Detalles del cliente</DialogTitle>
+          <DialogDescription className="sr-only">Cargando detalles del cliente</DialogDescription>
           <div className="flex items-center justify-center p-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span className="ml-2">Cargando detalles del cliente...</span>
@@ -87,6 +89,8 @@ export function ClientDetailsDialog({
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent>
+          <DialogTitle className="sr-only">Error al cargar cliente</DialogTitle>
+          <DialogDescription className="sr-only">No se pudieron obtener los detalles del cliente</DialogDescription>
           <div className="text-destructive p-4">{String(error)}</div>
         </DialogContent>
       </Dialog>
@@ -146,16 +150,30 @@ export function ClientDetailsDialog({
             </div>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 overflow-hidden mt-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="profile">Perfil</TabsTrigger>
-              <TabsTrigger value="activities">Actividades</TabsTrigger>
-              <TabsTrigger value="payments">Pagos</TabsTrigger>
-              <TabsTrigger value="stats">Estadísticas</TabsTrigger>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="mt-4 flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+          >
+            <TabsList className="grid h-11 w-full grid-cols-4 gap-1">
+              <TabsTrigger value="profile" className="px-2 text-xs sm:text-sm">
+                Perfil
+              </TabsTrigger>
+              <TabsTrigger value="activities" className="px-2 text-xs sm:text-sm" aria-label="Actividades">
+                <span className="sm:hidden">Act.</span>
+                <span className="hidden sm:inline">Actividades</span>
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="px-2 text-xs sm:text-sm">
+                Pagos
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="px-2 text-xs sm:text-sm" aria-label="Estadisticas">
+                <span className="sm:hidden">Est.</span>
+                <span className="hidden sm:inline">Estadisticas</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Profile Tab */}
-            <TabsContent value="profile" className="h-full overflow-y-auto space-y-4 mt-4">
+            <TabsContent value="profile" className="mt-4 min-h-0 flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
 
               {/* Personal Information */}
               <Card className="m-2">
@@ -233,8 +251,8 @@ export function ClientDetailsDialog({
             </TabsContent>
 
             {/* Activities Tab */}
-            <TabsContent value="activities" className="h-full overflow-y-auto space-y-4 mt-4">
-              <div className="mb-2">
+            <TabsContent value="activities" className="mt-4 min-h-0 flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
+              <div className="m-2">
                 <div className="flex items-center justify-center">
                   <h3 className="text-lg font-semibold text-center">Historial de Actividades</h3>
                 </div>
@@ -255,7 +273,7 @@ export function ClientDetailsDialog({
                 )}
 
                 {selectedClient.listActivity.map((activity) => (
-                  <Card key={activity.id}>
+                  <Card key={activity.id} className="m-2">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
@@ -349,8 +367,8 @@ export function ClientDetailsDialog({
             </TabsContent>
 
             {/* Payments Tab */}
-            <TabsContent value="payments" className="h-full overflow-y-auto space-y-4 mt-4">
-              <div className="flex items-center justify-center">
+            <TabsContent value="payments" className="mt-4 min-h-0 flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
+              <div className="m-2 flex items-center justify-center">
                 <h3 className="text-lg font-semibold text-center">Historial de Pagos</h3>
                 {/* <div className="flex gap-2">
                 <Badge variant="success">${totalPaid} Pagado</Badge>
@@ -394,10 +412,10 @@ export function ClientDetailsDialog({
             </TabsContent>
 
             {/* Statistics Tab */}
-            <TabsContent value="stats" className="h-full overflow-y-auto space-y-2 mt-4">
+            <TabsContent value="stats" className="mt-4 min-h-0 flex-1 overflow-y-auto space-y-2 pr-2 pb-6">
               <div className="space-y-2">
                 {/* Activity Stats */}
-                <Card className="min-h-[20vh] m-2">
+                <Card className="m-2">
                   <CardHeader className="py-2">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Activity className="h-5 w-5" />
@@ -428,7 +446,7 @@ export function ClientDetailsDialog({
 
                 {/* Financial Stats */}
                 {user?.role !== UserRole.CLIENT && (
-                  <Card className="min-h-[13vh] m-2">
+                  <Card className="m-2">
                     <CardHeader className="py-2">
                       <CardTitle className="text-lg flex items-center gap-2">
                         <DollarSign className="h-5 w-5" />
@@ -450,7 +468,7 @@ export function ClientDetailsDialog({
                   </Card>
                 )}
                 {/* Client Summary */}
-                <Card className="min-h-[20vh] m-2">
+                <Card className="m-2">
                   <CardHeader className="py-2">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <TrendingUp className="h-5 w-5" />

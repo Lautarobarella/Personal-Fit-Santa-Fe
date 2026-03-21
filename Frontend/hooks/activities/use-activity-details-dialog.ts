@@ -13,8 +13,8 @@ export function useActivityDetailsDialog(
   const [activeTab, setActiveTab] = useState("overview")
   const [visibleSummaryAttendanceId, setVisibleSummaryAttendanceId] = useState<number | null>(null)
   const [isTakeAttendanceOpen, setIsTakeAttendanceOpen] = useState(false)
-  const [attendanceQueueIds, setAttendanceQueueIds] = useState<number[]>([])
   const [updatingAttendanceId, setUpdatingAttendanceId] = useState<number | null>(null)
+
   const { user } = useAuth()
   const { toast } = useToast()
   const {
@@ -32,7 +32,7 @@ export function useActivityDetailsDialog(
       setActiveTab("overview")
       setVisibleSummaryAttendanceId(null)
       setIsTakeAttendanceOpen(false)
-      setAttendanceQueueIds([])
+      setUpdatingAttendanceId(null)
     }
   }, [isOpen])
 
@@ -75,7 +75,8 @@ export function useActivityDetailsDialog(
     }
   }
 
-  const canTakeAttendance = user?.role === UserRole.ADMIN
+  const canTakeAttendance = user?.role === UserRole.ADMIN || user?.role === UserRole.TRAINER
+
   const attendanceStatusOptions: AttendanceStatus[] = [
     AttendanceStatus.PRESENT,
     AttendanceStatus.ABSENT,
@@ -90,7 +91,7 @@ export function useActivityDetailsDialog(
       case AttendanceStatus.ABSENT:
         return "Ausente"
       case AttendanceStatus.LATE:
-        return "Tarde"
+        return "Tardanza"
       case AttendanceStatus.PENDING:
       default:
         return "Pendiente"
@@ -104,7 +105,7 @@ export function useActivityDetailsDialog(
       case AttendanceStatus.ABSENT:
         return "border-red-200 bg-red-50 text-red-700"
       case AttendanceStatus.LATE:
-        return "border-slate-300 bg-slate-100 text-slate-700"
+        return "border-yellow-200 bg-yellow-50 text-yellow-700"
       case AttendanceStatus.PENDING:
       default:
         return "border-yellow-200 bg-yellow-50 text-yellow-700"
@@ -114,7 +115,7 @@ export function useActivityDetailsDialog(
   const updateAttendanceStatus = async (
     attendanceId: number,
     status: AttendanceStatus,
-    options?: { removeFromQueue?: boolean; successMessage?: string },
+    options?: { successMessage?: string },
   ) => {
     if (!canTakeAttendance) return
 
@@ -132,10 +133,6 @@ export function useActivityDetailsDialog(
       }
 
       await loadActivityDetail(activityId)
-      if (options?.removeFromQueue) {
-        setAttendanceQueueIds((currentQueue) => currentQueue.filter((id) => id !== attendanceId))
-      }
-
       toast({
         title: "Asistencia actualizada",
         description: options?.successMessage || "El estado de asistencia fue actualizado.",
@@ -151,30 +148,23 @@ export function useActivityDetailsDialog(
     }
   }
 
-  const participantsNotPresent = selectedActivity?.participants.filter(
-    (participant) => participant.status !== AttendanceStatus.PRESENT,
-  ) ?? []
-
   const openTakeAttendanceDialog = () => {
     if (!canTakeAttendance) return
-
-    const pendingAttendanceIds = participantsNotPresent.map((participant) => participant.id)
-    setAttendanceQueueIds(pendingAttendanceIds)
     setIsTakeAttendanceOpen(true)
   }
 
-  const participantsToProcess = selectedActivity?.participants.filter((participant) =>
-    attendanceQueueIds.includes(participant.id),
-  ) ?? []
-
-  const presentParticipants = selectedActivity?.participants.filter((p) => p.status === AttendanceStatus.PRESENT) ?? []
+  const presentParticipants =
+    selectedActivity?.participants.filter(
+      (p) => p.status === AttendanceStatus.PRESENT || p.status === AttendanceStatus.LATE,
+    ) ?? []
+  const lateParticipants = selectedActivity?.participants.filter((p) => p.status === AttendanceStatus.LATE) ?? []
   const absentParticipants = selectedActivity?.participants.filter((p) => p.status === AttendanceStatus.ABSENT) ?? []
   const occupancyRate = selectedActivity
     ? Math.round((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100)
     : 0
 
   const toggleSummaryVisibility = (id: number) => {
-    setVisibleSummaryAttendanceId((currentId) => currentId === id ? null : id)
+    setVisibleSummaryAttendanceId((currentId) => (currentId === id ? null : id))
   }
 
   return {
@@ -184,8 +174,6 @@ export function useActivityDetailsDialog(
     toggleSummaryVisibility,
     isTakeAttendanceOpen,
     setIsTakeAttendanceOpen,
-    attendanceQueueIds,
-    setAttendanceQueueIds,
     updatingAttendanceId,
     selectedActivity,
     formatDate,
@@ -197,11 +185,11 @@ export function useActivityDetailsDialog(
     getAttendanceStatusLabel,
     getAttendanceStatusSelectClass,
     updateAttendanceStatus,
-    participantsNotPresent,
     openTakeAttendanceDialog,
-    participantsToProcess,
     presentParticipants,
+    lateParticipants,
     absentParticipants,
     occupancyRate,
+    reloadActivityDetail: () => loadActivityDetail(activityId),
   }
 }

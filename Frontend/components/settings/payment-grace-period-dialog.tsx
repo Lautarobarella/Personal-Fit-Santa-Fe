@@ -37,7 +37,7 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
         </DialogHeader>
         
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-4 pb-4">
             {/* Configuración del Período de Gracia */}
             <Card className="m-2">
               <CardHeader>

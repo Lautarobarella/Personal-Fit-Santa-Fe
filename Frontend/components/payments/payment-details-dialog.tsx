@@ -49,7 +49,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
         </DialogHeader>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto space-y-4 max-h-[60vh]">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4 max-h-[60vh]">
           {/* Payment Info */}
           <Card className="m-2">
             <CardContent className="p-4">

@@ -2,7 +2,6 @@
 
 import { useAttendance } from "@/hooks/attendance/use-attendance"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/auth-provider"
 import { AttendanceStatus } from "@/lib/types"
 import { useEffect, useState } from "react"
 
@@ -10,9 +9,10 @@ export function useAttendanceActivityDialog(
   activityId: number,
   open: boolean,
   onOpenChange: (open: boolean) => void,
+  onAttendanceUpdated?: () => void,
 ) {
-  const { user } = useAuth()
   const [isAttending, setIsAttending] = useState(false)
+  const [updatingAttendanceId, setUpdatingAttendanceId] = useState<number | null>(null)
   const { toast } = useToast()
   const {
     activityAttendances,
@@ -21,6 +21,7 @@ export function useAttendanceActivityDialog(
     loadActivityAttendances,
     markAttendance,
     getAttendanceStats,
+    refreshActivityAttendances,
   } = useAttendance()
 
   useEffect(() => {
@@ -41,8 +42,9 @@ export function useAttendanceActivityDialog(
 
   const stats = getAttendanceStats()
 
-  const handleMarkStatus = async (attendanceId: number, status: AttendanceStatus) => {
+  const handleMarkStatus = async (attendanceId: number, status: AttendanceStatus): Promise<boolean> => {
     setIsAttending(true)
+    setUpdatingAttendanceId(attendanceId)
 
     const statusLabels: Record<string, { title: string; errorDesc: string }> = {
       [AttendanceStatus.PRESENT]: { title: "Asistencia marcada", errorDesc: "al marcar la asistencia" },
@@ -56,26 +58,33 @@ export function useAttendanceActivityDialog(
       const result = await markAttendance(attendanceId, status)
 
       if (result.success) {
+        await refreshActivityAttendances()
+        onAttendanceUpdated?.()
+
         toast({
           title: label.title,
           description: result.message,
           variant: "default",
         })
+        return true
       } else {
         toast({
           title: "Error",
           description: result.message,
           variant: "destructive",
         })
+        return false
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
-        description: `Ocurrió un error ${label.errorDesc}`,
+        description: `Ocurrio un error ${label.errorDesc}`,
         variant: "destructive",
       })
+      return false
     } finally {
       setIsAttending(false)
+      setUpdatingAttendanceId(null)
     }
   }
 
@@ -88,6 +97,7 @@ export function useAttendanceActivityDialog(
     isLoading,
     error,
     isAttending,
+    updatingAttendanceId,
     stats,
     formatDateTime,
     handleMarkStatus,

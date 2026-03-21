@@ -1,9 +1,9 @@
 "use client"
 
-import { AttendanceActivityDialog } from "@/components/activities/attendance-activity-dialog"
 import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
+import { TakeAttendanceDialog } from "@/components/activities/take-attendance-dialog"
 import { useActivitiesPage } from "@/hooks/activities/use-activities-page"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -420,7 +420,7 @@ export default function ActivitiesPage() {
         />
       )}
       {attendanceDialog.activity && (
-        <AttendanceActivityDialog
+        <TakeAttendanceDialog
           open={attendanceDialog.open}
           onOpenChange={(open) => setAttendanceDialog({ open, activity: null })}
           activityId={attendanceDialog.activity.id}
