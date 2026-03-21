@@ -180,7 +180,6 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
-                                            <SelectItem value={MethodType.CARD}>Tarjeta</SelectItem>
                                             <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
                                         </SelectContent>
                                     </Select>

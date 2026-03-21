@@ -241,9 +241,7 @@ export function useReports() {
   const paymentMethodBreakdown = useMemo((): PaymentMethodBreakdown[] => {
     const methodLabels: Record<string, string> = {
       [MethodType.CASH]: "Efectivo",
-      [MethodType.CARD]: "Tarjeta",
       [MethodType.TRANSFER]: "Transferencia",
-      [MethodType.MERCADOPAGO]: "MercadoPago",
     }
 
     const methods = Object.values(MethodType)
