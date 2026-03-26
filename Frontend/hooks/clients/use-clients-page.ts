@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/auth-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { useToast } from "@/hooks/use-toast"
 import { useRequireAuth } from "@/hooks/use-require-auth"
-import { UserRole } from "@/types"
 
 export function useClientsPage() {
   const { user } = useAuth()
@@ -43,16 +42,35 @@ export function useClientsPage() {
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
   }
+
+  const tokenizeText = (text: string) => normalizeText(text).split(" ").filter(Boolean)
+
+  const searchTokens = tokenizeText(searchTerm)
 
   const filteredClients = clients
     ? clients.filter((c) => {
-        const normalizedSearchTerm = normalizeText(searchTerm)
+        const searchableIndex = normalizeText(
+          [
+            c.firstName,
+            c.lastName,
+            `${c.firstName} ${c.lastName}`,
+            `${c.lastName} ${c.firstName}`,
+            c.email,
+            c.phone ?? "",
+            c.dni?.toString() ?? "",
+          ].join(" "),
+        )
+
+        const matchesSearch =
+          searchTokens.length === 0 || searchTokens.every((term) => searchableIndex.includes(term))
+
         return (
           (statusFilter === "all" ? true : c.status === statusFilter) &&
-          (normalizeText(c.firstName).includes(normalizedSearchTerm) ||
-            normalizeText(c.lastName).includes(normalizedSearchTerm) ||
-            normalizeText(c.email).includes(normalizedSearchTerm))
+          matchesSearch
         )
       })
     : []
@@ -74,7 +92,9 @@ export function useClientsPage() {
   }
 
   const handleConfirmDelete = async () => {
-    if (!deleteDialog.clientId) return
+    if (!deleteDialog.clientId) {
+      return
+    }
     setIsDeleting(true)
     try {
       await deleteClient(deleteDialog.clientId)
