@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useClientsPage } from "@/hooks/clients/use-clients-page"
 import { UserRole } from "@/types"
-import { Calendar, Loader2, Mail, MoreVertical, Phone, Plus, Search } from "lucide-react"
+import { Calendar, Loader2, Mail, MoreVertical, Phone, Plus, Search, UserCheck } from "lucide-react"
 import Link from "next/link"
 
 export default function ClientsPage() {
@@ -32,6 +32,7 @@ export default function ClientsPage() {
     loading,
     error,
     filteredClients,
+    pendingVerificationCount,
     searchTerm,
     setSearchTerm,
     statusFilter,
@@ -41,10 +42,15 @@ export default function ClientsPage() {
     deleteDialog,
     setDeleteDialog,
     isDeleting,
+    resetPasswordDialog,
+    setResetPasswordDialog,
+    isResettingPassword,
     formatDate,
     handleClientDetails,
     handleOpenDeleteDialog,
     handleConfirmDelete,
+    handleOpenResetPasswordDialog,
+    handleConfirmResetPassword,
   } = useClientsPage()
 
   if (!user || user.role === UserRole.CLIENT || user.role === UserRole.TRAINER) {
@@ -59,8 +65,12 @@ export default function ClientsPage() {
     )
   }
 
-  if (error) return <div>{error}</div>
-  if (!clients) return null
+  if (error) {
+    return <div>{error}</div>
+  }
+  if (!clients) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-background pb-safe-bottom">
@@ -68,12 +78,16 @@ export default function ClientsPage() {
         title="Clientes"
         actions={
           user.role === UserRole.ADMIN ? (
-            <Link href="/clients/new">
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Nuevo
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/clients/verify">
+              </Link>
+              <Link href="/clients/new">
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Nuevo
+                </Button>
+              </Link>
+            </div>
           ) : null
         }
       />
@@ -197,6 +211,11 @@ export default function ClientsPage() {
                         <>
                           <DropdownMenuItem onClick={() => router.push(`/clients/${client.id}`)}>Editar</DropdownMenuItem>
                           <DropdownMenuItem
+                            onClick={() => handleOpenResetPasswordDialog(client.id, `${client.firstName} ${client.lastName}`, client.dni ?? null)}
+                          >
+                            Reiniciar contraseña (DNI)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => handleOpenDeleteDialog(client.id, `${client.firstName} ${client.lastName}`)}
                           >
@@ -267,7 +286,42 @@ export default function ClientsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Reset password confirmation dialog */}
+      <AlertDialog
+        open={resetPasswordDialog.open}
+        onOpenChange={(open) => !isResettingPassword && setResetPasswordDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Reiniciar contraseña del cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de reiniciar la contraseña de <strong>{resetPasswordDialog.clientName}</strong>.
+              La nueva contraseña será su <strong>DNI ({resetPasswordDialog.clientDni ?? "sin DNI"})</strong> y esta acción
+              <strong> no se puede volver atrás</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResettingPassword}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmResetPassword} disabled={isResettingPassword}>
+              {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reiniciar contraseña
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BottomNav />
+
+      {user.role === UserRole.ADMIN && pendingVerificationCount > 0 && (
+        <Button
+          className="fixed bottom-28 left-1/2 -translate-x-1/2 lg:bottom-8 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
+          size="default"
+          onClick={() => router.push("/clients/verify")}
+        >
+          <UserCheck className="h-5 w-5" />
+          Verificar ({pendingVerificationCount})
+        </Button>
+      )}
     </div>
   )
 }

@@ -16,13 +16,14 @@ import {
  */
 describe('Types & Enums - Contract Validation', () => {
   describe('UserStatus', () => {
-    it('debe tener los valores ACTIVE e INACTIVE', () => {
+    it('debe tener los valores ACTIVE, INACTIVE y PENDING_APPROVAL', () => {
       expect(UserStatus.ACTIVE).toBe('ACTIVE')
       expect(UserStatus.INACTIVE).toBe('INACTIVE')
+      expect(UserStatus.PENDING_APPROVAL).toBe('PENDING_APPROVAL')
     })
 
-    it('debe tener exactamente 2 valores', () => {
-      expect(Object.keys(UserStatus)).toHaveLength(2)
+    it('debe tener exactamente 3 valores', () => {
+      expect(Object.keys(UserStatus)).toHaveLength(3)
     })
   })
 

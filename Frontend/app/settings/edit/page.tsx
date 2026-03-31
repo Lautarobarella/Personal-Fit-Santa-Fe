@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useSettingsEdit } from "@/hooks/settings/use-settings-edit"
-import { LockKeyhole, Save, Shield, User, UserRoundPen } from "lucide-react"
+import { Eye, EyeOff, LockKeyhole, Save, Shield, User, UserRoundPen } from "lucide-react"
+import { useState } from "react"
 
 export default function EditProfilePage() {
   const {
@@ -21,6 +22,16 @@ export default function EditProfilePage() {
     handleCancel,
     formatDate,
   } = useSettingsEdit()
+
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  })
+
+  const togglePasswordVisibility = (field: "current" | "next" | "confirm") => {
+    setPasswordVisibility((prev) => ({ ...prev, [field]: !prev[field] }))
+  }
 
   return (
     <div className="min-h-screen bg-background mb-32">
@@ -134,38 +145,74 @@ export default function EditProfilePage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Contraseña actual</Label>
-                  <Input
-                    id="current-password"
-                    type="password"
-                    value={passwordData.current}
-                    onChange={(e) => handlePasswordChange("current", e.target.value)}
-                    placeholder="Solo requerida si vas a cambiar la contraseña"
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="current-password"
+                      type={passwordVisibility.current ? "text" : "password"}
+                      value={passwordData.current}
+                      onChange={(e) => handlePasswordChange("current", e.target.value)}
+                      placeholder="Solo requerida si vas a cambiar la contraseña"
+                      className="pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility("current")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={passwordVisibility.current ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      disabled={isLoading}
+                    >
+                      {passwordVisibility.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Nueva contraseña</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={passwordData.next}
-                    onChange={(e) => handlePasswordChange("next", e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={passwordVisibility.next ? "text" : "password"}
+                      value={passwordData.next}
+                      onChange={(e) => handlePasswordChange("next", e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility("next")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={passwordVisibility.next ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      disabled={isLoading}
+                    >
+                      {passwordVisibility.next ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirmar nueva contraseña</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={passwordData.confirm}
-                    onChange={(e) => handlePasswordChange("confirm", e.target.value)}
-                    placeholder="Repite la nueva contraseña"
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={passwordVisibility.confirm ? "text" : "password"}
+                      value={passwordData.confirm}
+                      onChange={(e) => handlePasswordChange("confirm", e.target.value)}
+                      placeholder="Repite la nueva contraseña"
+                      className="pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility("confirm")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={passwordVisibility.confirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      disabled={isLoading}
+                    >
+                      {passwordVisibility.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {shouldUpdatePassword && (

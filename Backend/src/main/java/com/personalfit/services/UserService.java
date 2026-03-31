@@ -1,6 +1,7 @@
 package com.personalfit.services;
 
 import java.io.IOException;
+import java.text.Normalizer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,10 +13,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import java.text.Normalizer;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +36,7 @@ import com.personalfit.enums.MuscleGroup;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
+import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityAlreadyExistsException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.exceptions.FileException;
@@ -70,6 +71,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UserService {
 
     private static final long MAX_AVATAR_SIZE_BYTES = 5L * 1024L * 1024L;
+    private static final long MAX_PENDING_USER_REGISTRATIONS = 99L;
 
     @Value("${spring.datasource.files.path}")
     private String uploadFolder;
@@ -103,39 +105,81 @@ public class UserService {
      * @throws EntityAlreadyExistsException if DNI is already taken.
      */
     public Boolean createNewUser(CreateUserDTO newUser) {
-        Optional<User> user = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
+        ensureUniqueDniAndEmail(newUser.getDni(), newUser.getEmail(), "Api/User/createNewUser");
 
-        if (user.isPresent())
-            throw new EntityAlreadyExistsException("User already exists with DNI: " + newUser.getDni(),
-                    "Api/User/createNewUser");
-
-        User userToCreate = new User();
-        userToCreate.setDni(Integer.parseInt(newUser.getDni()));
-        userToCreate.setFirstName(newUser.getFirstName());
-        userToCreate.setLastName(newUser.getLastName());
-        userToCreate.setEmail(newUser.getEmail());
-        userToCreate.setPhone(newUser.getPhone());
-        userToCreate.setEmergencyPhone(newUser.getEmergencyPhone());
-        userToCreate.setRole(newUser.getRole());
-
-        // Auto-generate avatar initials (e.g., "Juan Perez" -> "JP")
-        userToCreate.setAvatar(buildInitialAvatar(newUser.getFirstName(), newUser.getLastName()));
-
-        userToCreate.setJoinDate(LocalDate.now());
-        userToCreate.setAddress(newUser.getAddress());
-        userToCreate.setBirthDate(newUser.getBirthDate());
-        userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword()));
-
-        // Set Initial Status based on Role
-        if (userToCreate.getRole().equals(UserRole.CLIENT))
-            userToCreate.setStatus(UserStatus.INACTIVE); // Waits for payment
-        else
-            userToCreate.setStatus(UserStatus.ACTIVE); // Staff is auto-active
+        User userToCreate = createUserEntity(
+                newUser,
+                resolveInitialStatusForApprovedUser(newUser.getRole()),
+                LocalDate.now());
 
         userRepository.save(userToCreate);
         log.info("New user created: {} ({})", userToCreate.getFullName(), userToCreate.getRole());
 
         return true;
+    }
+
+    /**
+     * Public registration flow.
+     * Creates a user request in PENDING_APPROVAL state until an admin validates it.
+     */
+    public Boolean createPendingUserRegistration(CreateUserDTO newUser) {
+        long pendingRequests = userRepository.countByStatus(UserStatus.PENDING_APPROVAL);
+        if (pendingRequests >= MAX_PENDING_USER_REGISTRATIONS) {
+            throw new BusinessRuleException(
+                    "No se pueden recibir mÃ¡s solicitudes por el momento. Intenta nuevamente mÃ¡s tarde.",
+                    "Api/User/createPendingUserRegistration");
+        }
+
+        // Public registration only allows CLIENT role.
+        newUser.setRole(UserRole.CLIENT);
+        ensureUniqueDniAndEmail(newUser.getDni(), newUser.getEmail(), "Api/User/createPendingUserRegistration");
+
+        User pendingUser = createUserEntity(newUser, UserStatus.PENDING_APPROVAL, LocalDate.now());
+        userRepository.save(pendingUser);
+
+        log.info("New pending registration created: {} ({})", pendingUser.getFullName(), pendingUser.getRole());
+        return true;
+    }
+
+    /**
+     * Lists users awaiting admin validation.
+     */
+    public List<UserTypeDTO> getPendingUserRegistrations() {
+        return userRepository.findAllByStatusOrderByIdAsc(UserStatus.PENDING_APPROVAL).stream()
+                .map(UserTypeDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Approves a pending registration.
+     * Client accounts become INACTIVE until payment; staff become ACTIVE.
+     */
+    public void approvePendingUser(Long userId) {
+        User user = getUserById(userId);
+        if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
+            throw new BusinessRuleException(
+                    "Solo se pueden aprobar usuarios en estado pendiente.",
+                    "Api/User/approvePendingUser");
+        }
+
+        user.setStatus(resolveInitialStatusForApprovedUser(user.getRole()));
+        userRepository.save(user);
+        log.info("Pending user approved: ID={}, Role={}", userId, user.getRole());
+    }
+
+    /**
+     * Rejects a pending registration and removes it from the system.
+     */
+    public void rejectPendingUser(Long userId) {
+        User user = getUserById(userId);
+        if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
+            throw new BusinessRuleException(
+                    "Solo se pueden rechazar usuarios en estado pendiente.",
+                    "Api/User/rejectPendingUser");
+        }
+
+        userRepository.delete(user);
+        log.info("Pending user rejected and deleted: ID={}", userId);
     }
 
     /**
@@ -193,6 +237,7 @@ public class UserService {
         // Exclude Admins from general list
         return usersDto.stream()
                 .filter(u -> !u.getRole().equals(UserRole.ADMIN))
+                .filter(u -> u.getStatus() != UserStatus.PENDING_APPROVAL)
                 .collect(Collectors.toList());
     }
 
@@ -227,7 +272,7 @@ public class UserService {
      * Retrieves a user by their email address.
      */
     public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new EntityNotFoundException("User Email: " + email + " not found",
                         "Api/User/getUserByEmail"));
     }
@@ -321,6 +366,7 @@ public class UserService {
     public List<User> getAllNonAdminUsers() {
         return userRepository.findAll().stream()
                 .filter(u -> u.getRole() != UserRole.ADMIN)
+                .filter(u -> u.getStatus() != UserStatus.PENDING_APPROVAL)
                 .collect(Collectors.toList());
     }
 
@@ -349,29 +395,10 @@ public class UserService {
         List<User> usersToSave = new ArrayList<>();
 
         for (CreateUserDTO newUser : newUsers) {
-            Optional<User> existingUser = userRepository.findByDni(Integer.parseInt(newUser.getDni()));
+            ensureUniqueDniAndEmail(newUser.getDni(), newUser.getEmail(), "Api/User/createBatchClients");
 
-            if (existingUser.isPresent()) {
-                throw new EntityAlreadyExistsException("User already exists with DNI: " + newUser.getDni(),
-                        "Api/User/createBatchClients");
-            }
-
-            User userToCreate = new User();
-            userToCreate.setDni(Integer.parseInt(newUser.getDni()));
-            userToCreate.setFirstName(newUser.getFirstName());
-            userToCreate.setLastName(newUser.getLastName());
-            userToCreate.setEmail(newUser.getEmail());
-            userToCreate.setPhone(newUser.getPhone());
-            userToCreate.setRole(newUser.getRole()); // Enforced as CLIENT by controller
-
-            userToCreate.setAvatar(buildInitialAvatar(newUser.getFirstName(), newUser.getLastName()));
-
-            userToCreate.setJoinDate(LocalDate.now());
-            userToCreate.setAddress(newUser.getAddress());
-            userToCreate.setBirthDate(newUser.getBirthDate());
-            userToCreate.setPassword(passwordEncoder.encode(newUser.getPassword()));
-            userToCreate.setStatus(newUser.getStatus()); // Enforced as INACTIVE by controller
-
+            UserStatus status = newUser.getStatus() != null ? newUser.getStatus() : UserStatus.INACTIVE;
+            User userToCreate = createUserEntity(newUser, status, LocalDate.now());
             usersToSave.add(userToCreate);
         }
 
@@ -606,6 +633,28 @@ public class UserService {
     }
 
     /**
+     * Resets a client password to their DNI.
+     * Only intended for administrative recovery actions.
+     */
+    public void resetClientPasswordToDni(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId,
+                        "UserService/resetClientPasswordToDni"));
+
+        if (!UserRole.CLIENT.equals(user.getRole())) {
+            throw new IllegalArgumentException("Solo se puede reiniciar la contraseña de usuarios con rol CLIENT");
+        }
+
+        if (user.getDni() == null) {
+            throw new IllegalArgumentException("El cliente no tiene DNI configurado");
+        }
+
+        user.setPassword(passwordEncoder.encode(String.valueOf(user.getDni())));
+        userRepository.save(user);
+        log.info("Password reset to DNI for client ID: {}", userId);
+    }
+
+    /**
      * Profile Management.
      * Updates non-sensitive user details.
      */
@@ -734,6 +783,58 @@ public class UserService {
 
         long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(now.toLocalDate(), expiresAt.toLocalDate());
         return Math.max(0, (int) daysBetween);
+    }
+
+    private void ensureUniqueDniAndEmail(String dni, String email, String path) {
+        Integer parsedDni = Integer.parseInt(dni.trim());
+        if (userRepository.findByDni(parsedDni).isPresent()) {
+            throw new EntityAlreadyExistsException("User already exists with DNI: " + dni.trim(), path);
+        }
+
+        String normalizedEmail = normalizeEmail(email);
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
+            throw new EntityAlreadyExistsException("User already exists with Email: " + normalizedEmail, path);
+        }
+    }
+
+    private User createUserEntity(CreateUserDTO source, UserStatus status, LocalDate joinDate) {
+        String normalizedDni = source.getDni().trim();
+        UserRole role = source.getRole() != null ? source.getRole() : UserRole.CLIENT;
+        String rawPassword = source.getPassword() != null && !source.getPassword().trim().isEmpty()
+                ? source.getPassword().trim()
+                : normalizedDni;
+
+        User user = new User();
+        user.setDni(Integer.parseInt(normalizedDni));
+        user.setFirstName(source.getFirstName().trim());
+        user.setLastName(source.getLastName().trim());
+        user.setEmail(normalizeEmail(source.getEmail()));
+        user.setPhone(normalizeOptionalText(source.getPhone()));
+        user.setEmergencyPhone(normalizeOptionalText(source.getEmergencyPhone()));
+        user.setRole(role);
+        user.setAvatar(buildInitialAvatar(user.getFirstName(), user.getLastName()));
+        user.setJoinDate(joinDate != null ? joinDate : LocalDate.now());
+        user.setAddress(source.getAddress().trim());
+        user.setBirthDate(source.getBirthDate());
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setStatus(status);
+        return user;
+    }
+
+    private UserStatus resolveInitialStatusForApprovedUser(UserRole role) {
+        return role == UserRole.CLIENT ? UserStatus.INACTIVE : UserStatus.ACTIVE;
+    }
+
+    private String normalizeEmail(String email) {
+        return email.toLowerCase().trim();
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String buildInitialAvatar(String firstName, String lastName) {

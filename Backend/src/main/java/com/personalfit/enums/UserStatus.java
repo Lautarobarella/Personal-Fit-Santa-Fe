@@ -1,5 +1,7 @@
 package com.personalfit.enums;
 
 public enum UserStatus {
-    ACTIVE, INACTIVE
+    ACTIVE,
+    INACTIVE,
+    PENDING_APPROVAL
 }

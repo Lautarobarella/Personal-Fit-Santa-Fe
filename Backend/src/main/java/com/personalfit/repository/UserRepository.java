@@ -28,6 +28,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
         List<User> findAllByStatus(UserStatus status);
 
         /**
+         * Finds all users with a specific status ordered by creation proxy (ID).
+         */
+        List<User> findAllByStatusOrderByIdAsc(UserStatus status);
+
+        /**
+         * Counts users by status.
+         */
+        long countByStatus(UserStatus status);
+
+        /**
          * Finds all users born on a specific date (ignoring year is handled by service
          * logic,
          * but this method finds by exact LocalDate usually, so wait.
@@ -72,4 +82,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
          * Finds a user by their email address.
          */
         Optional<User> findByEmail(String email);
+
+        /**
+         * Finds a user by email ignoring case.
+         */
+        Optional<User> findByEmailIgnoreCase(String email);
 }

@@ -6,6 +6,10 @@ import {
   fetchCurrentUserById,
   deleteUser,
   createUser,
+  createPublicUserRegistration,
+  fetchPendingUserVerifications,
+  approvePendingUser,
+  rejectPendingUser,
 } from '@/api/clients/usersApi'
 
 jest.mock('@/api/JWTAuth/api', () => ({
@@ -218,6 +222,61 @@ describe('usersApi', () => {
         expect(e.message).toBe('server')
       }
       expect(errorHandler.handleApiError).toHaveBeenCalled()
+    })
+  })
+
+  // ---- createPublicUserRegistration ----
+
+  describe('createPublicUserRegistration', () => {
+    const userData = {
+      firstName: 'Public',
+      lastName: 'User',
+      email: 'public@example.com',
+      dni: '99887766',
+      password: '99887766',
+      role: 'CLIENT',
+    }
+
+    it('llama POST /api/users/public/register', async () => {
+      const response = { success: true }
+      ;(jwtPermissionsApi.post as jest.Mock).mockResolvedValueOnce(response)
+
+      const result = await createPublicUserRegistration(userData as any)
+
+      expect(jwtPermissionsApi.post).toHaveBeenCalledWith('/api/users/public/register', userData, false)
+      expect(result).toEqual(response)
+    })
+  })
+
+  // ---- pending verification endpoints ----
+
+  describe('pending verification', () => {
+    it('fetchPendingUserVerifications llama GET /api/users/pending', async () => {
+      const pendingUsers = [{ id: 1 }, { id: 2 }]
+      ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce(pendingUsers)
+
+      const result = await fetchPendingUserVerifications()
+
+      expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/users/pending')
+      expect(result).toEqual(pendingUsers)
+    })
+
+    it('approvePendingUser llama PUT /api/users/pending/:id/approve', async () => {
+      ;(jwtPermissionsApi.put as jest.Mock).mockResolvedValueOnce({ success: true })
+
+      const result = await approvePendingUser(12)
+
+      expect(jwtPermissionsApi.put).toHaveBeenCalledWith('/api/users/pending/12/approve', {})
+      expect(result).toEqual({ success: true })
+    })
+
+    it('rejectPendingUser llama DELETE /api/users/pending/:id/reject', async () => {
+      ;(jwtPermissionsApi.delete as jest.Mock).mockResolvedValueOnce({ success: true })
+
+      const result = await rejectPendingUser(12)
+
+      expect(jwtPermissionsApi.delete).toHaveBeenCalledWith('/api/users/pending/12/reject')
+      expect(result).toEqual({ success: true })
     })
   })
 })

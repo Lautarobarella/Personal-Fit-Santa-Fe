@@ -64,6 +64,15 @@ export async function deleteUser(id: number) {
   }
 }
 
+export async function resetClientPasswordToDni(userId: number) {
+  try {
+    return await jwtPermissionsApi.put(`/api/users/${userId}/reset-password`, {});
+  } catch (error) {
+    handleApiError(error, 'Error al reiniciar la contraseña del cliente');
+    throw error;
+  }
+}
+
 export async function createUser(user: UserFormType) {
   try {
     return await jwtPermissionsApi.post('/api/users/new', user);
@@ -100,6 +109,46 @@ export async function updateUserProfile(data: {
     return await jwtPermissionsApi.put('/api/users/update-profile', data);
   } catch (error) {
     // No mostrar toasts aquí, dejar que el componente maneje el error
+    throw error;
+  }
+}
+
+export async function createPublicUserRegistration(user: UserFormType) {
+  try {
+    return await jwtPermissionsApi.post('/api/users/public/register', user, false);
+  } catch (error) {
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al enviar la solicitud de registro');
+    }
+    throw error;
+  }
+}
+
+export async function fetchPendingUserVerifications() {
+  try {
+    return await jwtPermissionsApi.get('/api/users/pending');
+  } catch (error) {
+    handleApiError(error, 'Error al cargar usuarios pendientes');
+    return [];
+  }
+}
+
+export async function approvePendingUser(userId: number) {
+  try {
+    return await jwtPermissionsApi.put(`/api/users/pending/${userId}/approve`, {});
+  } catch (error) {
+    handleApiError(error, 'Error al aprobar el usuario');
+    throw error;
+  }
+}
+
+export async function rejectPendingUser(userId: number) {
+  try {
+    return await jwtPermissionsApi.delete(`/api/users/pending/${userId}/reject`);
+  } catch (error) {
+    handleApiError(error, 'Error al rechazar el usuario');
     throw error;
   }
 }

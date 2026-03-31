@@ -2,6 +2,7 @@ import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { fetchActivityDetail } from "@/api/activities/activitiesApi"
+import { fetchPendingUserVerifications } from "@/api/clients/usersApi"
 import { useClients } from "@/hooks/clients/use-client"
 import { useClientStats } from "@/hooks/clients/use-client-stats"
 import { useRequireAuth } from "@/hooks/use-require-auth"
@@ -24,6 +25,7 @@ import {
   Target,
   Timer,
   TrendingUp,
+  UserCheck,
   Users,
 } from "lucide-react"
 
@@ -71,6 +73,7 @@ export function useDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [showRevenue, setShowRevenue] = useState(true)
+  const [pendingUserVerificationsCount, setPendingUserVerificationsCount] = useState(0)
 
   const { checkMembershipStatus } = useClients()
   const { clients, loadClients } = useClients()
@@ -144,6 +147,9 @@ export function useDashboard() {
 
     if (user?.role === UserRole.ADMIN) {
       loadClients()
+      fetchPendingUserVerifications()
+        .then((users) => setPendingUserVerificationsCount(Array.isArray(users) ? users.length : 0))
+        .catch(() => setPendingUserVerificationsCount(0))
     }
   }, [loadClients, refreshActivities, user?.role, user?.id, queryClient])
 
@@ -506,6 +512,7 @@ export function useDashboard() {
         { title: "Tomar Asistencia", onClick: () => openNextActivityAttendance(), icon: CheckCircle, color: "bg-orange-500" },
         { title: "Mis Actividades", onClick: () => navigateToNextTrainerActivity(), icon: Activity, color: "bg-gray-500" },
         { title: "Verificar Pagos", route: "/payments/verify", icon: CreditCard, color: "bg-gray-500" },
+        { title: "Verificar Usuarios", route: "/clients/verify", icon: UserCheck, color: "bg-gray-500" },
         { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
       ]
     } else if (user.role === UserRole.TRAINER) {
@@ -530,9 +537,27 @@ export function useDashboard() {
     if (!user) return []
 
     if (user.role === UserRole.ADMIN) {
-      return totalPendingPayments > 0
-        ? [{ type: "warning", message: `${totalPendingPayments} pagos pendientes a validar`, action: "Ver pagos", route: "/payments/verify" }]
-        : []
+      const adminAlerts: DashboardAlert[] = []
+
+      if (totalPendingPayments > 0) {
+        adminAlerts.push({
+          type: "warning",
+          message: `${totalPendingPayments} pagos pendientes a validar`,
+          action: "Ver pagos",
+          route: "/payments/verify"
+        })
+      }
+
+      if (pendingUserVerificationsCount > 0) {
+        adminAlerts.push({
+          type: "warning",
+          message: `${pendingUserVerificationsCount} usuarios pendientes de validacion`,
+          action: "Ver usuarios",
+          route: "/clients/verify"
+        })
+      }
+
+      return adminAlerts
     } else if (user.role === UserRole.TRAINER) {
       const alerts: DashboardAlert[] = [];
 

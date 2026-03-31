@@ -1,11 +1,11 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { Attendance, AttendanceStatus } from "@/lib/types";
+import { AttendanceType, AttendanceStatus } from "@/lib/types";
 
 /**
  * Obtiene todas las asistencias de una actividad específica
  */
-export async function fetchActivityAttendances(activityId: number): Promise<Attendance[]> {
+export async function fetchActivityAttendances(activityId: number): Promise<AttendanceType[]> {
   try {
     const response = await jwtPermissionsApi.get(`/api/attendance/activity/${activityId}`);
     return response;
@@ -18,7 +18,7 @@ export async function fetchActivityAttendances(activityId: number): Promise<Atte
 /**
  * Obtiene todas las asistencias de una actividad específica con información de usuario
  */
-export async function fetchActivityAttendancesWithUserInfo(activityId: number): Promise<Attendance[]> {
+export async function fetchActivityAttendancesWithUserInfo(activityId: number): Promise<AttendanceType[]> {
   try {
     const response = await jwtPermissionsApi.get(`/api/attendance/activity/${activityId}/with-user-info`);
     return response;
@@ -31,7 +31,7 @@ export async function fetchActivityAttendancesWithUserInfo(activityId: number): 
 /**
  * Obtiene todas las asistencias de un usuario específico
  */
-export async function fetchUserAttendances(userId: number): Promise<Attendance[]> {
+export async function fetchUserAttendances(userId: number): Promise<AttendanceType[]> {
   try {
     const response = await jwtPermissionsApi.get(`/api/attendance/user/${userId}`);
     return response;
@@ -63,7 +63,7 @@ export async function updateAttendanceStatus(attendanceId: number, status: Atten
 /**
  * Inscribe un usuario en una actividad
  */
-export async function enrollUserInActivity(userId: number, activityId: number): Promise<Attendance> {
+export async function enrollUserInActivity(userId: number, activityId: number): Promise<AttendanceType> {
   try {
     const response = await jwtPermissionsApi.post(`/api/attendance/enroll/${userId}/${activityId}`, {});
     return response;

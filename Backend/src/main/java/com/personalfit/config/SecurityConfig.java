@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/test-users").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/users/public/first-admin").permitAll()
+                        .requestMatchers("/api/users/public/register").permitAll()
                         .requestMatchers("/api/payments/files/**").permitAll() // Allow downloading payment receipts
                         .requestMatchers("/payments/files/**").permitAll() // Allow access to payment files
                         .requestMatchers("/api/files/**").permitAll() // Allow direct access to backend files

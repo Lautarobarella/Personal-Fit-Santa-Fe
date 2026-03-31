@@ -51,23 +51,10 @@ public class AuthController {
                 log.info("User authenticated successfully: {}", normalizedRequest.getEmail());
 
                 // Create secure HTTP-only cookies
-                ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", response.getAccessToken())
-                                .httpOnly(true)
-                                .secure(cookieProperties.isSecure())
-                                .sameSite(cookieProperties.getSameSite())
-                                .maxAge(cookieProperties.getAccessTokenMaxAge())
-                                .path("/")
-                                .domain(cookieProperties.getDomain())
-                                .build();
-
-                ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
-                                .httpOnly(true)
-                                .secure(cookieProperties.isSecure())
-                                .sameSite(cookieProperties.getSameSite())
-                                .maxAge(cookieProperties.getRefreshTokenMaxAge())
-                                .path("/")
-                                .domain(cookieProperties.getDomain())
-                                .build();
+                ResponseCookie accessTokenCookie = buildCookie("accessToken", response.getAccessToken(),
+                                cookieProperties.getAccessTokenMaxAge());
+                ResponseCookie refreshTokenCookie = buildCookie("refreshToken", response.getRefreshToken(),
+                                cookieProperties.getRefreshTokenMaxAge());
 
                 // Create response body without tokens (tokens are in cookies)
                 AuthResponseDTO responseWithoutTokens = AuthResponseDTO.builder()
@@ -100,23 +87,10 @@ public class AuthController {
                 log.info("Token refreshed successfully");
 
                 // Set new cookies
-                ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", response.getAccessToken())
-                                .httpOnly(true)
-                                .secure(cookieProperties.isSecure())
-                                .sameSite(cookieProperties.getSameSite())
-                                .maxAge(cookieProperties.getAccessTokenMaxAge())
-                                .path("/")
-                                .domain(cookieProperties.getDomain())
-                                .build();
-
-                ResponseCookie newRefreshTokenCookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
-                                .httpOnly(true)
-                                .secure(cookieProperties.isSecure())
-                                .sameSite(cookieProperties.getSameSite())
-                                .maxAge(cookieProperties.getRefreshTokenMaxAge())
-                                .path("/")
-                                .domain(cookieProperties.getDomain())
-                                .build();
+                ResponseCookie accessTokenCookie = buildCookie("accessToken", response.getAccessToken(),
+                                cookieProperties.getAccessTokenMaxAge());
+                ResponseCookie newRefreshTokenCookie = buildCookie("refreshToken", response.getRefreshToken(),
+                                cookieProperties.getRefreshTokenMaxAge());
 
                 AuthResponseDTO responseWithoutTokens = AuthResponseDTO.builder()
                                 .tokenType(response.getTokenType())
@@ -138,23 +112,8 @@ public class AuthController {
                         @RequestHeader(value = "Device-Token", required = false) String deviceToken) {
 
                 // Clear cookies by setting maxAge to 0
-                ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", "")
-                                .httpOnly(true)
-                                .secure(cookieProperties.isSecure())
-                                .sameSite(cookieProperties.getSameSite())
-                                .maxAge(0)
-                                .path("/")
-                                .domain(cookieProperties.getDomain())
-                                .build();
-
-                ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", "")
-                                .httpOnly(true)
-                                .secure(cookieProperties.isSecure())
-                                .sameSite(cookieProperties.getSameSite())
-                                .maxAge(0)
-                                .path("/")
-                                .domain(cookieProperties.getDomain())
-                                .build();
+                ResponseCookie accessTokenCookie = buildCookie("accessToken", "", 0);
+                ResponseCookie refreshTokenCookie = buildCookie("refreshToken", "", 0);
 
                 log.info("User logged out successfully");
 
@@ -162,6 +121,22 @@ public class AuthController {
                                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                                 .build();
+        }
+
+        private ResponseCookie buildCookie(String name, String value, long maxAgeSeconds) {
+                ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
+                                .httpOnly(true)
+                                .secure(cookieProperties.isSecure())
+                                .sameSite(cookieProperties.getSameSite())
+                                .maxAge(maxAgeSeconds)
+                                .path("/");
+
+                String domain = cookieProperties.getDomain();
+                if (domain != null && !domain.isBlank()) {
+                        builder.domain(domain);
+                }
+
+                return builder.build();
         }
 
 }

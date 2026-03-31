@@ -1,4 +1,4 @@
-import { refreshAccessToken } from '../../lib/auth';
+import { isAuthenticated, refreshAccessToken } from '../../lib/auth';
 import { API_CONFIG } from './config';
 
 // Custom error class for API errors
@@ -23,8 +23,12 @@ interface ApiOptions {
 
 class JWTPermissionsApi {
 
-  private async handleResponse(response: Response): Promise<any> {
-    if (response.status === 401) {
+  private async handleResponse(response: Response, requireAuth: boolean): Promise<any> {
+    if (response.status === 401 && requireAuth) {
+      if (!isAuthenticated()) {
+        throw new Error('Authentication required')
+      }
+
       // Token expired, try to refresh
       const newToken = await refreshAccessToken()
       if (!newToken) {
@@ -102,7 +106,7 @@ class JWTPermissionsApi {
 
     try {
       const response = await fetch(url, config)
-      return await this.handleResponse(response)
+      return await this.handleResponse(response, requireAuth)
     } catch (error) {
       throw error
     }

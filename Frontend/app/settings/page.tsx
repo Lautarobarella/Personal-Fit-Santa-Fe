@@ -210,7 +210,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Administración
+                <span>Administración</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -220,7 +220,8 @@ export default function SettingsPage() {
                 onClick={() => setShowMonthlyFeeDialog(true)}
               >
                 <DollarSign className="h-4 w-4 mr-3" />
-                Establecer valor de la cuota
+                <span className="sm:hidden">Valor cuota</span>
+                <span className="hidden sm:inline">Establecer valor de la cuota</span>
               </Button>
 
               <Button
@@ -229,7 +230,8 @@ export default function SettingsPage() {
                 onClick={() => setShowActivityTimesDialog(true)}
               >
                 <Clock className="h-4 w-4 mr-3" />
-                Configurar tiempos de actividades
+                <span className="sm:hidden">Tiempos act.</span>
+                <span className="hidden sm:inline">Configurar tiempos de actividades</span>
               </Button>
 
               <Button
@@ -238,7 +240,8 @@ export default function SettingsPage() {
                 onClick={() => setShowMaxActivitiesDialog(true)}
               >
                 <Users className="h-4 w-4 mr-3" />
-                Máximo de actividades por día
+                <span className="sm:hidden">Max. act./dia</span>
+                <span className="hidden sm:inline">Máximo de actividades por día</span>
               </Button>
 
               <Button
@@ -247,7 +250,8 @@ export default function SettingsPage() {
                 onClick={() => setShowPaymentGracePeriodDialog(true)}
               >
                 <CreditCard className="h-4 w-4 mr-3" />
-                Período de gracia de pago
+                <span className="sm:hidden">Per. gracia pago</span>
+                <span className="hidden sm:inline">Período de gracia de pago</span>
               </Button>
 
               <Button
@@ -256,7 +260,8 @@ export default function SettingsPage() {
                 onClick={() => router.push("/settings/monthly-revenue")}
               >
                 <BarChart3 className="h-4 w-4 mr-3" />
-                Registro de ingresos mensuales
+                <span className="sm:hidden">Ingresos mes</span>
+                <span className="hidden sm:inline">Registro de ingresos mensuales</span>
               </Button>
 
               <Button
@@ -265,7 +270,8 @@ export default function SettingsPage() {
                 onClick={() => setShowCreateNotificationDialog(true)}
               >
                 <Bell className="h-4 w-4 mr-3" />
-                Generar notificación
+                <span className="sm:hidden">Notificar</span>
+                <span className="hidden sm:inline">Generar notificación</span>
               </Button>
             </CardContent>
           </Card>

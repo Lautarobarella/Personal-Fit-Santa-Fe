@@ -65,6 +65,16 @@ class SecurityConfigTest {
         }
 
         @Test
+        @DisplayName("/api/users/public/register should be publicly accessible")
+        void publicRegisterEndpoint_IsPublic() throws Exception {
+            int statusCode = mockMvc.perform(post("/api/users/public/register")
+                            .contentType("application/json")
+                            .content("{}"))
+                    .andReturn().getResponse().getStatus();
+            org.assertj.core.api.Assertions.assertThat(statusCode).isNotEqualTo(401);
+        }
+
+        @Test
         @DisplayName("NFC endpoint should be publicly accessible")
         void nfcEndpoint_IsPublic() throws Exception {
             mockMvc.perform(post("/api/attendance/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30")

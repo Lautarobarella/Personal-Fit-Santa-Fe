@@ -2,7 +2,8 @@
 
 export enum UserStatus {
   ACTIVE = "ACTIVE",
-  INACTIVE = "INACTIVE"
+  INACTIVE = "INACTIVE",
+  PENDING_APPROVAL = "PENDING_APPROVAL"
 }
 
 export enum UserRole {
@@ -117,7 +118,7 @@ export interface UserType {
   birthDate: Date | string | null
   address: string
   role: UserRole
-  status: "ACTIVE" | "INACTIVE"
+  status: "ACTIVE" | "INACTIVE" | "PENDING_APPROVAL"
   joinDate: Date | string | null
   activitiesCount: number
   lastActivity: Date | string | null

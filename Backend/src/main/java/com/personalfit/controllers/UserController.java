@@ -61,6 +61,56 @@ public class UserController {
     }
 
     /**
+     * Public registration request.
+     * The account remains pending until an admin approves it.
+     */
+    @PostMapping("/public/register")
+    public ResponseEntity<Map<String, Object>> createPendingRegistration(@Valid @RequestBody CreateUserDTO user) {
+        userService.createPendingUserRegistration(user);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Registration request sent successfully");
+        response.put("success", true);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Get all users pending validation by admin.
+     */
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserTypeDTO>> getPendingUsers() {
+        return new ResponseEntity<>(userService.getPendingUserRegistrations(), HttpStatus.OK);
+    }
+
+    /**
+     * Approve a pending user registration.
+     */
+    @PutMapping("/pending/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> approvePendingUser(@PathVariable Long id) {
+        userService.approvePendingUser(id);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "User approved successfully");
+        response.put("success", true);
+        response.put("userId", id);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Reject a pending user registration.
+     */
+    @DeleteMapping("/pending/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> rejectPendingUser(@PathVariable Long id) {
+        userService.rejectPendingUser(id);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "User rejected successfully");
+        response.put("success", true);
+        response.put("userId", id);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Delete a user by ID.
      */
     @DeleteMapping("/delete/{id}")
@@ -173,6 +223,29 @@ public class UserController {
             response.put("success", true);
             return ResponseEntity.ok(response);
 
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            response.put("success", false);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    /**
+     * Reset client password to DNI.
+     * Admin-only irreversible action.
+     */
+    @PutMapping("/{userId}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> resetClientPassword(@PathVariable Long userId) {
+        try {
+            userService.resetClientPasswordToDni(userId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Password reset successfully");
+            response.put("success", true);
+            response.put("userId", userId);
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", e.getMessage());

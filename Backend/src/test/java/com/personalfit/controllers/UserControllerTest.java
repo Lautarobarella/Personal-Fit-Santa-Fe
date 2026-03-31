@@ -99,6 +99,24 @@ class UserControllerTest {
     }
 
     @Nested
+    @DisplayName("POST /api/users/public/register")
+    class PublicRegistrationTests {
+
+        @Test
+        @DisplayName("should create pending registration without authentication")
+        void createPendingRegistration_NoAuth_Returns201() throws Exception {
+            when(userService.createPendingUserRegistration(any(CreateUserDTO.class))).thenReturn(true);
+
+            mockMvc.perform(post("/api/users/public/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validCreateUserDTO)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("Registration request sent successfully"));
+        }
+    }
+
+    @Nested
     @DisplayName("POST /api/users/public/first-admin")
     class FirstAdminTests {
 
@@ -156,6 +174,47 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.length()").value(2))
                     .andExpect(jsonPath("$[0].firstName").value("Juan"))
                     .andExpect(jsonPath("$[1].firstName").value("Ana"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Pending Verification Endpoints")
+    class PendingVerificationTests {
+
+        @Test
+        @DisplayName("GET /api/users/pending should return pending users")
+        void getPendingUsers_ReturnsList() throws Exception {
+            UserTypeDTO pendingUser = new UserTypeDTO();
+            pendingUser.setId(33L);
+            pendingUser.setFirstName("Pending");
+
+            when(userService.getPendingUserRegistrations()).thenReturn(List.of(pendingUser));
+
+            mockMvc.perform(get("/api/users/pending")
+                            .with(user("admin").roles("ADMIN")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].firstName").value("Pending"));
+        }
+
+        @Test
+        @DisplayName("PUT /api/users/pending/{id}/approve should approve user")
+        void approvePendingUser_ReturnsOk() throws Exception {
+            mockMvc.perform(put("/api/users/pending/33/approve")
+                            .with(user("admin").roles("ADMIN")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.userId").value(33));
+        }
+
+        @Test
+        @DisplayName("DELETE /api/users/pending/{id}/reject should reject user")
+        void rejectPendingUser_ReturnsOk() throws Exception {
+            mockMvc.perform(delete("/api/users/pending/44/reject")
+                            .with(user("admin").roles("ADMIN")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.userId").value(44));
         }
     }
 

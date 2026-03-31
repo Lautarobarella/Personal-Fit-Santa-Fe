@@ -1,5 +1,6 @@
 "use client"
 
+import { fetchPendingUserVerifications, resetClientPasswordToDni } from "@/api/clients/usersApi"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-provider"
@@ -30,9 +31,24 @@ export function useClientsPage() {
   }>({ open: false, clientId: null, clientName: "" })
 
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [pendingVerificationCount, setPendingVerificationCount] = useState(0)
+
+  const [resetPasswordDialog, setResetPasswordDialog] = useState<{
+    open: boolean
+    clientId: number | null
+    clientName: string
+    clientDni: number | null
+  }>({ open: false, clientId: null, clientName: "", clientDni: null })
 
   useEffect(() => {
-    loadClients()
+    const loadData = async () => {
+      await loadClients()
+      const pendingUsers = await fetchPendingUserVerifications()
+      setPendingVerificationCount(Array.isArray(pendingUsers) ? pendingUsers.length : 0)
+    }
+
+    loadData()
   }, [loadClients])
 
   // ── Helpers ─────────────────────────────────────────────────────────
@@ -114,6 +130,34 @@ export function useClientsPage() {
     }
   }
 
+  const handleOpenResetPasswordDialog = (clientId: number, clientName: string, clientDni: number | null) => {
+    setResetPasswordDialog({ open: true, clientId, clientName, clientDni })
+  }
+
+  const handleConfirmResetPassword = async () => {
+    if (!resetPasswordDialog.clientId) {
+      return
+    }
+
+    setIsResettingPassword(true)
+    try {
+      await resetClientPasswordToDni(resetPasswordDialog.clientId)
+      toast({
+        title: "Contraseña reiniciada",
+        description: `${resetPasswordDialog.clientName} ahora debe ingresar con su DNI (${resetPasswordDialog.clientDni ?? "sin DNI"}).`,
+      })
+      setResetPasswordDialog({ open: false, clientId: null, clientName: "", clientDni: null })
+    } catch {
+      toast({
+        title: "Error",
+        description: "No se pudo reiniciar la contraseña del cliente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsResettingPassword(false)
+    }
+  }
+
   return {
     user,
     router,
@@ -122,6 +166,7 @@ export function useClientsPage() {
     loading,
     error,
     filteredClients,
+    pendingVerificationCount,
     // State
     searchTerm,
     setSearchTerm,
@@ -132,11 +177,16 @@ export function useClientsPage() {
     deleteDialog,
     setDeleteDialog,
     isDeleting,
+    resetPasswordDialog,
+    setResetPasswordDialog,
+    isResettingPassword,
     // Formatters
     formatDate,
     // Handlers
     handleClientDetails,
     handleOpenDeleteDialog,
     handleConfirmDelete,
+    handleOpenResetPasswordDialog,
+    handleConfirmResetPassword,
   }
 }

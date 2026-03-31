@@ -108,6 +108,10 @@ export const getUserId = (): number | null => {
  * @returns The new AccessToken string or null if session is completely dead.
  */
 export const refreshAccessToken = async (): Promise<string | null> => {
+  if (!isAuthenticated()) {
+    return null
+  }
+
   try {
     const response = await fetch(buildApiUrl('/api/auth/refresh'), {
       method: 'POST',

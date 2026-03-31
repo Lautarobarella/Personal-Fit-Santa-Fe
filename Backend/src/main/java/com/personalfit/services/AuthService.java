@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.personalfit.dto.Auth.AuthRequestDTO;
 import com.personalfit.dto.Auth.AuthResponseDTO;
 import com.personalfit.dto.User.UserTypeDTO;
+import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.models.User;
 import com.personalfit.repository.UserRepository;
@@ -40,13 +41,23 @@ public class AuthService {
      */
     public AuthResponseDTO authenticate(AuthRequestDTO request) {
         try {
+            String normalizedEmail = request.getEmail().toLowerCase().trim();
+
+            userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(user -> {
+                if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
+                    throw new BusinessRuleException(
+                            "Tu cuenta estÃ¡ pendiente de validaciÃ³n por un administrador.",
+                            "Api/Auth/authenticate");
+                }
+            });
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
+                            normalizedEmail,
                             request.getPassword()));
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            User user = userRepository.findByEmail(userDetails.getUsername())
+            User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             String accessToken = jwtService.generateToken(userDetails);
@@ -61,6 +72,8 @@ public class AuthService {
                     .globalSettings(settingsService.getAllSettings())
                     .build();
 
+        } catch (BusinessRuleException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Authentication failed for user: {}", request.getEmail(), e);
             throw new BusinessRuleException("Incorrect email or password", "Api/Auth/authenticate");
@@ -76,8 +89,14 @@ public class AuthService {
     public AuthResponseDTO refreshToken(String refreshToken) {
         try {
             String userEmail = jwtService.extractUsername(refreshToken);
-            User user = userRepository.findByEmail(userEmail)
+            User user = userRepository.findByEmailIgnoreCase(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
+                throw new BusinessRuleException(
+                        "Tu cuenta estÃ¡ pendiente de validaciÃ³n por un administrador.",
+                        "Api/Auth/refreshToken");
+            }
 
             UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
                     .username(user.getEmail())
@@ -99,6 +118,8 @@ public class AuthService {
             } else {
                 throw new BusinessRuleException("Invalid refresh token", "Api/Auth/refreshToken");
             }
+        } catch (BusinessRuleException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Token refresh failed", e);
             throw new BusinessRuleException("Error refreshing token", "Api/Auth/refreshToken");
