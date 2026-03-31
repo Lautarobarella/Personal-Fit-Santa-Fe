@@ -6,6 +6,7 @@ import { usePaymentContext } from "@/contexts/payment-provider"
 import { useSettings } from "@/hooks/settings/use-settings"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, validatePaymentFile } from "@/lib/file-compression"
+import { getNextPaymentDueDate, isWithinPaymentCreationWindow, toLocalDateInputValue } from "@/lib/payment-rules"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -65,23 +66,16 @@ export function useCreatePaymentDialog(
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
-  const today = new Date()
-  const startDateStr = today.toISOString().split("T")[0]
-
-  const calculateDueDate = (startDate: Date) => {
-    const dueDate = new Date(startDate)
-    dueDate.setMonth(dueDate.getMonth() + 1)
-    if (dueDate.getDate() !== startDate.getDate()) {
-      dueDate.setDate(0)
+  const getDefaultPaymentDates = useCallback(() => {
+    const now = new Date()
+    return {
+      startDate: toLocalDateInputValue(now),
+      dueDate: toLocalDateInputValue(getNextPaymentDueDate(now)),
     }
-    return dueDate
-  }
+  }, [])
 
-  const oneMonthLater = calculateDueDate(today)
-  const dueDateStr = oneMonthLater.toISOString().split("T")[0]
-
-  const [startDate, setStartDate] = useState(startDateStr)
-  const [dueDate, setDueDate] = useState(dueDateStr)
+  const [startDate, setStartDate] = useState(() => getDefaultPaymentDates().startDate)
+  const [dueDate, setDueDate] = useState(() => getDefaultPaymentDates().dueDate)
 
   const isIndividualFlow = paymentFlowMode === "individual"
   const isGroupFlow = paymentFlowMode === "group"
@@ -118,10 +112,13 @@ export function useCreatePaymentDialog(
     setPreviewUrl(null)
     setIsCreating(false)
     setIsUploading(false)
+    const defaultDates = getDefaultPaymentDates()
+    setStartDate(defaultDates.startDate)
+    setDueDate(defaultDates.dueDate)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
-  }, [debounceTimers, fixedDniCount, initializeDniInputs])
+  }, [debounceTimers, fixedDniCount, getDefaultPaymentDates, initializeDniInputs])
 
   useEffect(() => {
     if (open && user && monthlyFee > 0) {
@@ -239,24 +236,12 @@ export function useCreatePaymentDialog(
       const hasActivePlan = fetchedUser.status === "ACTIVE"
 
       const newValidatedUsers = [...validatedUsers]
-
-      if (hasActivePlan) {
-        newValidatedUsers[index] = {
-          dni,
-          name: fetchedUser.name,
-          isValid: false,
-          isValidating: false,
-          hasActivePlan: true,
-          errorMessage: `${fetchedUser.name} ya tiene un plan activo`,
-        }
-      } else {
-        newValidatedUsers[index] = {
-          dni,
-          name: fetchedUser.name,
-          isValid: true,
-          isValidating: false,
-          hasActivePlan: false,
-        }
+      newValidatedUsers[index] = {
+        dni,
+        name: fetchedUser.name,
+        isValid: true,
+        isValidating: false,
+        hasActivePlan,
       }
 
       setValidatedUsers(newValidatedUsers)
@@ -293,15 +278,6 @@ export function useCreatePaymentDialog(
       }
       setValidatedUsers(newValidatedUsers)
     }
-  }
-
-  const checkExistingPayment = (): boolean => {
-    if (!clientPayments || clientPayments.length === 0) {
-      return false
-    }
-    return clientPayments.some(
-      (payment) => payment.status === PaymentStatus.PAID || payment.status === PaymentStatus.PENDING,
-    )
   }
 
   const generateMonthOptions = () => {
@@ -454,7 +430,7 @@ export function useCreatePaymentDialog(
     if (validUsers.length === 0 || validUsers.length !== clientDnis.filter((dni) => dni.trim()).length) {
       toast({
         title: "Error",
-        description: "Todos los DNIs deben ser válidos y no contar con planes activos",
+        description: "Todos los DNIs deben ser válidos",
         variant: "destructive",
       })
       return
@@ -467,6 +443,21 @@ export function useCreatePaymentDialog(
     }
 
     if (user?.role === UserRole.CLIENT) {
+      if (isLoadingPayments) {
+        toast({ title: "Cargando", description: "Verificando pagos existentes..." })
+        return
+      }
+
+      const hasPendingPayment = clientPayments.some((payment) => payment.status === PaymentStatus.PENDING)
+      if (hasPendingPayment) {
+        toast({
+          title: "Pago pendiente",
+          description: "Ya tienes un pago pendiente en verificación.",
+          variant: "destructive",
+        })
+        return
+      }
+
       if (paymentMethod === MethodType.TRANSFER && !selectedFile) {
         toast({
           title: "Error",
@@ -496,21 +487,13 @@ export function useCreatePaymentDialog(
       return
     }
 
-    if (user?.role === UserRole.CLIENT) {
-      if (isLoadingPayments) {
-        toast({ title: "Cargando", description: "Verificando pagos existentes..." })
-        return
-      }
-
-      if (checkExistingPayment()) {
-        toast({
-          title: "Error",
-          description:
-            "Ya tienes un pago activo o pendiente. No puedes crear un nuevo pago hasta que el actual sea procesado o rechazado.",
-          variant: "destructive",
-        })
-        return
-      }
+    if (!isWithinPaymentCreationWindow()) {
+      toast({
+        title: "Fuera de período",
+        description: "Los pagos solo se pueden crear entre el día 1 y el 10 de cada mes.",
+        variant: "destructive",
+      })
+      return
     }
 
     setIsCreating(true)
@@ -581,6 +564,8 @@ export function useCreatePaymentDialog(
     isUploading,
     fileInputRef,
     monthOptions,
+    startDate,
+    dueDate,
     addDniField,
     removeDniField,
     updateDni,

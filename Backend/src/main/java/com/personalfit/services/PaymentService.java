@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -71,6 +73,8 @@ public class PaymentService {
     // Maximum allowed size for receipt files (3MB).
     // Files are pre-compressed on the client-side before upload.
     private static final Integer MAX_FILE_SIZE_MB = 3;
+    private static final int PAYMENT_CREATION_WINDOW_START_DAY = 1;
+    private static final int PAYMENT_CREATION_WINDOW_END_DAY = 10;
 
     @Value("${spring.datasource.files.path}")
     private String UPLOAD_FOLDER;
@@ -95,15 +99,19 @@ public class PaymentService {
     @Autowired
     private SettingsService settingsService;
 
+    @Autowired
+    private Clock clock;
+
     /**
      * Creates a new payment transaction.
      * Supports both Single-User and Multi-User (Group) payments.
      * 
      * Process:
-     * 1. Validates business rules (e.g., preventing duplicate active payments).
+     * 1. Validates creation window (day 1 to day 10 of each month).
      * 2. Persists the payment record with PENDING status.
      * 3. Stores the optional receipt file if provided.
-     * 4. Updates User status to ACTIVE if the payment is immediately marked as
+     * 4. Calculates expiration date as day 10 of the following month.
+     * 5. Updates User status to ACTIVE if the payment is immediately marked as
      * PAID.
      * 
      * @param paymentRequest DTO containing amount, method, and target users.
@@ -112,12 +120,14 @@ public class PaymentService {
      */
     @Transactional
     public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file) {
+        validatePaymentCreationWindow();
+
         // 1. Resolve Target Users
         List<User> users = getUsersForPayment(paymentRequest);
 
-        // 2. Business Validation
+        // 2. Business Validation: one pending payment max per client
         for (User user : users) {
-            validatePaymentCreation(user);
+            validateSinglePendingPaymentRule(user);
         }
 
         // 3. Resolve Creator (Admin or Self)
@@ -127,7 +137,8 @@ public class PaymentService {
         }
 
         // 4. Build Entity
-        Payment payment = buildPayment(paymentRequest);
+        LocalDateTime createdAt = LocalDateTime.now(clock);
+        Payment payment = buildPayment(paymentRequest, createdAt);
 
         if (createdByUser != null) {
             payment.setCreatedBy(createdByUser);
@@ -173,7 +184,10 @@ public class PaymentService {
      */
     @Transactional
     public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests) {
+        validatePaymentCreationWindow();
+
         List<Payment> paymentsToSave = new ArrayList<>();
+        LocalDateTime createdAt = LocalDateTime.now(clock);
 
         for (PaymentRequestDTO paymentRequest : paymentRequests) {
             try {
@@ -194,6 +208,8 @@ public class PaymentService {
                     continue;
                 }
 
+                validateSinglePendingPaymentRule(user);
+
                 // Force PENDING status for manual entry safety
                 PaymentRequestDTO batchRequest = PaymentRequestDTO.builder()
                         .clientId(paymentRequest.getClientId())
@@ -201,13 +217,11 @@ public class PaymentService {
                         .amount(paymentRequest.getAmount())
                         .methodType(paymentRequest.getMethodType())
                         .paymentStatus(PaymentStatus.PENDING)
-                        .createdAt(paymentRequest.getCreatedAt() != null ? paymentRequest.getCreatedAt()
-                                : LocalDateTime.now())
-                        .expiresAt(paymentRequest.getExpiresAt())
                         .confNumber(paymentRequest.getConfNumber())
+                        .notes(paymentRequest.getNotes())
                         .build();
 
-                Payment payment = buildPayment(batchRequest);
+                Payment payment = buildPayment(batchRequest, createdAt);
                 payment.setUsers(Set.of(user));
                 paymentsToSave.add(payment);
 
@@ -230,7 +244,7 @@ public class PaymentService {
      * Scoped to the current month to prevent loading massive historical datasets.
      */
     public List<PaymentTypeDTO> getAllPayments() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
@@ -240,7 +254,7 @@ public class PaymentService {
                     // Dynamic Status Calculation: Check expiration on read-time
                     if (payment.getStatus() == PaymentStatus.PAID &&
                             payment.getExpiresAt() != null &&
-                            payment.getExpiresAt().isBefore(LocalDateTime.now())) {
+                            !payment.getExpiresAt().isAfter(now)) {
                         dto.setStatus(PaymentStatus.EXPIRED);
                     }
                     return dto;
@@ -253,6 +267,7 @@ public class PaymentService {
      * Fetches payments for a specific Month/Year window.
      */
     public List<PaymentTypeDTO> getPaymentsByMonthAndYear(Integer year, Integer month) {
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime startOfMonth = LocalDateTime.of(year, month, 1, 0, 0, 0);
         LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
@@ -261,7 +276,7 @@ public class PaymentService {
                     PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
                     if (payment.getStatus() == PaymentStatus.PAID &&
                             payment.getExpiresAt() != null &&
-                            payment.getExpiresAt().isBefore(LocalDateTime.now())) {
+                            !payment.getExpiresAt().isAfter(now)) {
                         dto.setStatus(PaymentStatus.EXPIRED);
                     }
                     return dto;
@@ -274,7 +289,7 @@ public class PaymentService {
      * Returns full payment history for a specific client.
      */
     public List<PaymentTypeDTO> getUserPayments(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // Optimized query to fetch payments with minimal N+1 issues
         List<Payment> userPayments = paymentRepository.findAllByUserIdWithDetails(userId);
@@ -284,7 +299,7 @@ public class PaymentService {
                     PaymentTypeDTO dto = convertToPaymentTypeDTO(payment);
                     if (payment.getStatus() == PaymentStatus.PAID &&
                             payment.getExpiresAt() != null &&
-                            payment.getExpiresAt().isBefore(now)) {
+                            !payment.getExpiresAt().isAfter(now)) {
                         dto.setStatus(PaymentStatus.EXPIRED);
                     }
                     return dto;
@@ -319,16 +334,17 @@ public class PaymentService {
     public void updatePaymentStatus(Long paymentId, PaymentStatusUpdateDTO statusUpdate) {
         Payment payment = getPaymentById(paymentId);
         PaymentStatus newStatus = PaymentStatus.valueOf(statusUpdate.getStatus().toUpperCase());
+        LocalDateTime now = LocalDateTime.now(clock);
 
         payment.setStatus(newStatus);
-        payment.setUpdatedAt(LocalDateTime.now());
+        payment.setUpdatedAt(now);
 
         if (newStatus == PaymentStatus.REJECTED && statusUpdate.getRejectionReason() != null) {
             payment.setRejectionReason(statusUpdate.getRejectionReason());
         }
 
         if (newStatus == PaymentStatus.PAID) {
-            payment.setVerifiedAt(LocalDateTime.now());
+            payment.setVerifiedAt(now);
             // Activate linked accounts
             if (payment.getUsers() != null) {
                 for (User user : payment.getUsers()) {
@@ -398,41 +414,56 @@ public class PaymentService {
         return users;
     }
 
-    private void validatePaymentCreation(User user) {
-        // Validation Scope: Only applicable for manual Client payments
-        if (user.getRole().name().equals("CLIENT")) {
-            Optional<Payment> lastPayment = paymentRepository.findTopByUserOrderByCreatedAtDesc(user);
+    private void validatePaymentCreationWindow() {
+        LocalDate today = LocalDate.now(clock);
 
-            if (lastPayment.isPresent()) {
-                Payment payment = lastPayment.get();
-                if (payment.getStatus() == PaymentStatus.PENDING) {
-                    throw new BusinessRuleException(
-                            "User already has a pending payment awaiting verification",
-                            "/api/payments/new");
-                }
-
-                if (payment.getStatus() == PaymentStatus.PAID) {
-                    LocalDateTime expirationDate = payment.getExpiresAt();
-                    if (expirationDate != null && expirationDate.isAfter(LocalDateTime.now())) {
-                        throw new BusinessRuleException(
-                                "User already has an active membership",
-                                "/api/payments/new");
-                    }
-                }
-            }
+        if (!isWithinPaymentCreationWindow(today)) {
+            throw new BusinessRuleException(
+                    "Los pagos solo se pueden crear entre el día 1 y el 10 de cada mes.",
+                    "/api/payments/new");
         }
     }
 
-    private Payment buildPayment(PaymentRequestDTO request) {
+    private boolean isWithinPaymentCreationWindow(LocalDate date) {
+        int dayOfMonth = date.getDayOfMonth();
+        return dayOfMonth >= PAYMENT_CREATION_WINDOW_START_DAY && dayOfMonth <= PAYMENT_CREATION_WINDOW_END_DAY;
+    }
+
+    private void validateSinglePendingPaymentRule(User user) {
+        if (user == null || user.getRole() != UserRole.CLIENT) {
+            return;
+        }
+
+        Optional<Payment> pendingPayment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(
+                user,
+                PaymentStatus.PENDING);
+
+        if (pendingPayment.isPresent()) {
+            throw new BusinessRuleException(
+                    "El usuario ya tiene un pago pendiente en verificación.",
+                    "/api/payments/new");
+        }
+    }
+
+    private Payment buildPayment(PaymentRequestDTO request, LocalDateTime createdAt) {
+        LocalDateTime expirationDate = calculateNextExpirationDate(createdAt);
+
         return Payment.builder()
                 .amount(request.getAmount())
                 .methodType(request.getMethodType())
                 .status(request.getPaymentStatus())
-                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
-                .expiresAt(request.getExpiresAt())
+                .createdAt(createdAt)
+                .expiresAt(expirationDate)
                 .confNumber(request.getConfNumber())
                 .notes(request.getNotes())
                 .build();
+    }
+
+    private LocalDateTime calculateNextExpirationDate(LocalDateTime createdAt) {
+        return createdAt.toLocalDate()
+                .plusMonths(1)
+                .withDayOfMonth(10)
+                .atStartOfDay();
     }
 
     /**
@@ -572,56 +603,71 @@ public class PaymentService {
     }
 
     /**
-     * CRON JOB: Daily Expiration Check (01:00 AM).
-     * 1. Finds payments expiring 'today'.
-     * 2. Sets status to EXPIRED.
-     * 3. Deactivates associated Users.
-     * 4. Triggers "Payment Vencido" notifications.
+     * CRON JOB: Monthly Expiration Check.
+     * Schedule: day 10 of every month at 00:00.
+     * 1. Expires only PAID payments due on or before the 10th.
+     * 2. Keeps PENDING payments unchanged.
+     * 3. Deactivates users only if they no longer have another active PAID payment.
      */
-    @Scheduled(cron = "0 0 1 * * ?")
+    @Scheduled(cron = "0 0 0 10 * *")
     @Transactional
     public void checkPaidPayments() {
-        log.info("Starting daily payment expiration process at 01:00 AM...");
+        log.info("Starting monthly payment expiration process (day 10 at 00:00)...");
 
         try {
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-            LocalDateTime endOfDay = startOfDay.plusDays(1);
+            LocalDateTime now = LocalDateTime.now(clock);
+            LocalDateTime expirationCutoff = now.toLocalDate().plusDays(1).atStartOfDay();
 
-            List<Payment> expiredPayments = paymentRepository.findPaidPaymentsExpiringToday(startOfDay, endOfDay);
+            List<Payment> expiredPayments = paymentRepository.findPaidPaymentsExpiringBefore(expirationCutoff);
 
             if (expiredPayments.isEmpty()) {
-                log.info("No payments expiring today");
+                log.info("No paid payments to expire on this cycle");
                 return;
             }
 
-            List<User> usersWithExpiredPayments = new ArrayList<>();
+            Set<User> impactedUsers = new HashSet<>();
 
             for (Payment payment : expiredPayments) {
                 payment.setStatus(PaymentStatus.EXPIRED);
-                payment.setUpdatedAt(LocalDateTime.now());
+                payment.setUpdatedAt(now);
 
-                if (payment.getUsers() != null) {
-                    for (User user : payment.getUsers()) {
-                        userService.updateUserStatus(user, UserStatus.INACTIVE);
-                        usersWithExpiredPayments.add(user);
-                    }
+                if (payment.getUsers() != null && !payment.getUsers().isEmpty()) {
+                    impactedUsers.addAll(payment.getUsers());
                 }
             }
 
             paymentRepository.saveAll(expiredPayments);
 
+            List<User> usersWithExpiredMembership = new ArrayList<>();
+
+            for (User user : impactedUsers) {
+                if (!hasAnotherActivePaidMembership(user, now) && user.getStatus() != UserStatus.INACTIVE) {
+                    userService.updateUserStatus(user, UserStatus.INACTIVE);
+                    usersWithExpiredMembership.add(user);
+                }
+            }
+
             // Notify Users
-            try {
-                notificationService.createPaymentExpiredNotification(usersWithExpiredPayments, new ArrayList<>());
-                log.info("Payment expiration notifications sent to {} users", usersWithExpiredPayments.size());
-            } catch (Exception notifEx) {
-                log.error("Error sending notifications: {}", notifEx.getMessage());
+            if (!usersWithExpiredMembership.isEmpty()) {
+                try {
+                    notificationService.createPaymentExpiredNotification(usersWithExpiredMembership, new ArrayList<>());
+                    log.info("Payment expiration notifications sent to {} users", usersWithExpiredMembership.size());
+                } catch (Exception notifEx) {
+                    log.error("Error sending payment expiration notifications: {}", notifEx.getMessage());
+                }
             }
 
         } catch (Exception e) {
-            log.error("Error during daily expiration job", e);
+            log.error("Error during monthly expiration job", e);
         }
+    }
+
+    private boolean hasAnotherActivePaidMembership(User user, LocalDateTime now) {
+        List<Payment> paidPayments = paymentRepository.findByUserAndStatus(user, PaymentStatus.PAID);
+
+        return paidPayments.stream()
+                .map(Payment::getExpiresAt)
+                .anyMatch(expiresAt -> expiresAt != null && expiresAt.isAfter(now));
     }
 
     /**
@@ -632,7 +678,7 @@ public class PaymentService {
     public void sendPaymentReminders() {
         try {
             log.info("Starting payment reminder job...");
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
             LocalDateTime threeDaysFromNow = now.plusDays(3);
 
             // Scope: Payments expiring exactly 3 days from now
@@ -681,7 +727,7 @@ public class PaymentService {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         Integer year = now.getYear();
         Integer month = now.getMonthValue();
 
@@ -707,7 +753,7 @@ public class PaymentService {
      * Used for the Dashboard stats widget.
      */
     public MonthlyRevenueDTO getCurrentMonthRevenue() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         Integer year = now.getYear();
         Integer month = now.getMonthValue();
 
@@ -771,7 +817,7 @@ public class PaymentService {
         try {
             log.info("Archiving previous month revenue...");
 
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
             LocalDateTime lastMonth = now.minusMonths(1);
             Integer lastYear = lastMonth.getYear();
             Integer lastMonthNumber = lastMonth.getMonthValue();
@@ -829,7 +875,7 @@ public class PaymentService {
 
                     if (lastPayment != null) {
                         long daysDifference = java.time.temporal.ChronoUnit.DAYS.between(
-                                lastPayment.getCreatedAt(), LocalDateTime.now());
+                                lastPayment.getCreatedAt(), LocalDateTime.now(clock));
 
                         Integer gracePeriodDays = settingsService.getPaymentGracePeriodDays();
 

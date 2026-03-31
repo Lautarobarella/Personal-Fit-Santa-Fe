@@ -2,17 +2,22 @@ package com.personalfit.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +31,7 @@ import com.personalfit.enums.MethodType;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
+import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.models.Payment;
 import com.personalfit.models.User;
 import com.personalfit.repository.MonthlyRevenueRepository;
@@ -53,8 +59,16 @@ class PaymentServiceTest {
     @Mock
     private SettingsService settingsService;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private PaymentService paymentService;
+
+    @BeforeEach
+    void setUp() {
+        mockCurrentTime(LocalDateTime.of(2026, 4, 5, 10, 0));
+    }
 
     @Test
     void createPayment_withMultiplePaidUsers_activatesEveryLinkedUser() {
@@ -72,8 +86,10 @@ class PaymentServiceTest {
 
         when(userService.getUserByDni(firstClient.getDni())).thenReturn(firstClient);
         when(userService.getUserByDni(secondClient.getDni())).thenReturn(secondClient);
-        when(paymentRepository.findTopByUserOrderByCreatedAtDesc(firstClient)).thenReturn(Optional.empty());
-        when(paymentRepository.findTopByUserOrderByCreatedAtDesc(secondClient)).thenReturn(Optional.empty());
+        when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(firstClient, PaymentStatus.PENDING))
+                .thenReturn(Optional.empty());
+        when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(secondClient, PaymentStatus.PENDING))
+                .thenReturn(Optional.empty());
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> {
             Payment payment = invocation.getArgument(0);
             payment.setId(77L);
@@ -91,6 +107,7 @@ class PaymentServiceTest {
         assertNotNull(createdPayment);
         assertEquals(2, savedPayment.getUsers().size());
         assertEquals(Set.of(firstClient, secondClient), savedPayment.getUsers());
+        assertEquals(LocalDateTime.of(2026, 5, 10, 0, 0), savedPayment.getExpiresAt());
     }
 
     @Test
@@ -121,6 +138,48 @@ class PaymentServiceTest {
     }
 
     @Test
+    void createPayment_outsideCreationWindow_throwsBusinessRuleException() {
+        mockCurrentTime(LocalDateTime.of(2026, 4, 15, 10, 0));
+
+        User client = buildClient(41L, 30666666);
+
+        PaymentRequestDTO request = PaymentRequestDTO.builder()
+                .clientDni(client.getDni())
+                .amount(30000.0)
+                .methodType(MethodType.TRANSFER)
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
+
+        when(userService.getUserByDni(client.getDni())).thenReturn(client);
+
+        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null));
+    }
+
+    @Test
+    void createPayment_withExistingPendingPayment_throwsBusinessRuleException() {
+        User client = buildClient(51L, 30777777);
+
+        Payment pendingPayment = Payment.builder()
+                .id(101L)
+                .status(PaymentStatus.PENDING)
+                .createdAt(LocalDateTime.of(2026, 4, 2, 10, 0))
+                .build();
+
+        PaymentRequestDTO request = PaymentRequestDTO.builder()
+                .clientDni(client.getDni())
+                .amount(30000.0)
+                .methodType(MethodType.TRANSFER)
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
+
+        when(userService.getUserByDni(client.getDni())).thenReturn(client);
+        when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(client, PaymentStatus.PENDING))
+                .thenReturn(Optional.of(pendingPayment));
+
+        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null));
+    }
+
+    @Test
     void updatePaymentStatus_toPaid_skipsAlreadyActiveUsers() {
         User alreadyActiveClient = buildClient(31L, 30555555);
         alreadyActiveClient.setStatus(UserStatus.ACTIVE);
@@ -144,6 +203,13 @@ class PaymentServiceTest {
 
         verify(userService, never()).updateUserStatus(alreadyActiveClient, UserStatus.ACTIVE);
         verify(paymentRepository, times(1)).save(existingPayment);
+    }
+
+    private void mockCurrentTime(LocalDateTime now) {
+        ZoneId zone = ZoneId.of("UTC");
+        Instant instant = now.atZone(zone).toInstant();
+        when(clock.getZone()).thenReturn(zone);
+        when(clock.instant()).thenReturn(instant);
     }
 
     private User buildClient(Long id, Integer dni) {

@@ -98,15 +98,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                         @Param("endOfMonth") LocalDateTime endOfMonth);
 
         /**
-         * Retrieves paid payments expiring today (for auto-verification task).
+         * Retrieves paid payments with expiration date before the provided cutoff.
          */
         @Query("SELECT DISTINCT p FROM Payment p " +
                         "JOIN FETCH p.users u " +
                         "WHERE p.status = 'PAID' " +
-                        "AND p.expiresAt >= :startOfDay " +
-                        "AND p.expiresAt < :endOfDay")
-        List<Payment> findPaidPaymentsExpiringToday(@Param("startOfDay") LocalDateTime startOfDay,
-                        @Param("endOfDay") LocalDateTime endOfDay);
+                        "AND p.expiresAt < :expirationCutoff")
+        List<Payment> findPaidPaymentsExpiringBefore(@Param("expirationCutoff") LocalDateTime expirationCutoff);
 
         // ===== REVENUE QUERIES =====
 

@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { MethodType, UserRole } from "@/lib/types"
+import { getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
 import { cn } from "@/lib/utils"
 import { User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -51,13 +52,20 @@ export default function NewPaymentPage() {
     return parsed
   }, [groupSizeInput])
 
+  const isPaymentCreationWindowOpen = useMemo(() => isWithinPaymentCreationWindow(), [])
+  const paymentCreationWindowLabel = useMemo(() => getPaymentCreationWindowLabel(), [])
+
   const canContinue = useMemo(() => {
+    if (!isPaymentCreationWindowOpen) {
+      return false
+    }
+
     if (selectedMode === "individual") {
       return true
     }
 
     return Number.isInteger(parsedGroupSize) && parsedGroupSize >= 2
-  }, [parsedGroupSize, selectedMode])
+  }, [isPaymentCreationWindowOpen, parsedGroupSize, selectedMode])
 
   const handleCreatePayment = async (payment: {
     clientDnis: number[]
@@ -85,6 +93,10 @@ export default function NewPaymentPage() {
   }
 
   const handleContinueToPayment = () => {
+    if (!isPaymentCreationWindowOpen) {
+      return
+    }
+
     if (selectedMode === "individual") {
       setPaymentDialogConfig({ mode: "individual", expectedDniCount: 1 })
       setModeDialogOpen(false)
@@ -118,6 +130,16 @@ export default function NewPaymentPage() {
             </DialogHeader>
 
             <DialogBody className="space-y-4 px-5 py-4 sm:px-6">
+              {!isPaymentCreationWindowOpen && (
+                <Card className="border-amber-300 bg-amber-50">
+                  <CardContent className="p-3">
+                    <p className="text-xs font-medium text-amber-900">
+                      La carga de pagos está habilitada {paymentCreationWindowLabel}.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
               <div className="space-y-3">
                 <button
                   type="button"

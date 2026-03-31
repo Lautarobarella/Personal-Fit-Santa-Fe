@@ -424,8 +424,9 @@ public class UserService {
             Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u,
                     PaymentStatus.PAID);
 
-            if (payment.isEmpty() ||
-                    payment.get().getExpiresAt().toLocalDate().isBefore(LocalDate.now())) {
+            if (payment.isEmpty()
+                    || payment.get().getExpiresAt() == null
+                    || !payment.get().getExpiresAt().toLocalDate().isAfter(LocalDate.now())) {
                 u.setStatus(UserStatus.INACTIVE);
                 toUpdate.add(u);
                 log.info("Deactivating user {}: Membership expired.", u.getFullName());

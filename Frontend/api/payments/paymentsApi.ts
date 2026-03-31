@@ -117,8 +117,9 @@ export async function createPayment(
       const [year, month, day] = paymentData.createdAt.split('-');
       return `${year}-${month}-${day}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     })(),
-    // expiresAt set to end of day so the payment is valid through the full expiration date
-    expiresAt: paymentData.expiresAt + "T23:59:59",
+    // Backend now defines the final expiration rule (day 10 of next month).
+    // We still send the selected date as an informational value.
+    expiresAt: paymentData.expiresAt + "T00:00:00",
     paymentStatus,
     methodType: paymentData.method,
     notes: paymentData.notes,
@@ -137,7 +138,7 @@ export async function createPayment(
       }
 
       // Step 2: Lossy Compression to reduce storage load
-      const { compressedFile, originalSize, compressedSize, compressionRatio } = await compressFile(paymentData.file);
+      const { compressedFile } = await compressFile(paymentData.file);
 
       // Step 3: Append optimized binary
       formData.append("file", compressedFile);

@@ -58,6 +58,8 @@ export function CreatePaymentDialog({
         setBaseAmount,
         amount,
         setAmount,
+        startDate,
+        dueDate,
         paymentMethod,
         setPaymentMethod,
         notes,
@@ -288,7 +290,7 @@ export function CreatePaymentDialog({
                                     id="startDate"
                                     type="text"
                                     readOnly
-                                    value={new Date().toISOString().split("T")[0]}
+                                    value={startDate}
                                     placeholder="Fecha de inicio"
                                     className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                                 />
@@ -301,20 +303,7 @@ export function CreatePaymentDialog({
                                     id="dueDate"
                                     type="text"
                                     readOnly
-                                    value={(() => {
-                                        const today = new Date()
-                                        const nextMonth = new Date(today)
-
-                                        // Sumar un mes
-                                        nextMonth.setMonth(nextMonth.getMonth() + 1)
-
-                                        // Si el día cambió, establecer el último día del mes anterior
-                                        if (nextMonth.getDate() !== today.getDate()) {
-                                            nextMonth.setDate(0) // Va al último día del mes anterior
-                                        }
-
-                                        return nextMonth.toISOString().split("T")[0]
-                                    })()}
+                                    value={dueDate}
                                     placeholder="Fecha de vencimiento"
                                     className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                                 />
@@ -341,7 +330,13 @@ export function CreatePaymentDialog({
                                             <div>
                                                 <div className="relative border rounded-lg overflow-hidden">
                                                     {selectedFile.type.startsWith('image/') ? (
-                                                        <img src={previewUrl || ""} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                                        previewUrl ? (
+                                                            <img src={previewUrl} alt="Comprobante" className="w-full max-h-64 object-contain" />
+                                                        ) : (
+                                                            <div className="p-8 text-center text-sm text-muted-foreground">
+                                                                Procesando comprobante...
+                                                            </div>
+                                                        )
                                                     ) : (
                                                         <div className="p-8 text-center">
                                                             <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -434,5 +429,3 @@ export function CreatePaymentDialog({
         </Dialog >
     )
 }
-
-

@@ -48,6 +48,8 @@ export default function PaymentsPage() {
         activePayment,
         pendingPayment,
         canCreateNewPayment,
+        isPaymentCreationWindowOpen,
+        paymentCreationWindowLabel,
         formatDate,
         getStatusColor,
         getStatusText,
@@ -70,34 +72,17 @@ export default function PaymentsPage() {
                 title="Pagos"
                 actions={
                     <div className="flex gap-x-2">
-                        {user?.role === UserRole.ADMIN ? (
+                        {(user?.role === UserRole.ADMIN || user?.role === UserRole.CLIENT) && (
                             <Button
                                 size="sm"
                                 onClick={() => router.push("/payments/new")}
+                                disabled={!canCreateNewPayment}
+                                className={!canCreateNewPayment ? "opacity-50 cursor-not-allowed" : undefined}
                             >
                                 <Plus className="h-4 w-4 mr-1" />
                                 Nuevo
                             </Button>
-                        ) : user?.role === UserRole.CLIENT ? (
-                            canCreateNewPayment ? (
-                                <Button
-                                    size="sm"
-                                    onClick={() => router.push("/payments/new")}
-                                >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    Nuevo
-                                </Button>
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    disabled={true}
-                                    className="opacity-50 cursor-not-allowed"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    Nuevo
-                                </Button>
-                            )
-                        ) : null}
+                        )}
                     </div>
                 }
             />
@@ -207,6 +192,11 @@ export default function PaymentsPage() {
                                     </>
                                 )}
                             </div>
+                            {!isPaymentCreationWindowOpen && (
+                                <p className="mt-3 text-xs font-medium text-muted-foreground">
+                                    La carga de pagos está habilitada {paymentCreationWindowLabel}.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 )}

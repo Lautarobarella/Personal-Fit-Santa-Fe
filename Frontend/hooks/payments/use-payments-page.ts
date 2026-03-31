@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
+import { getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
 import { MethodType, PaymentStatus, UserRole } from "@/types"
 
 export function usePaymentsPage() {
@@ -36,7 +37,9 @@ export function usePaymentsPage() {
 
   // Refresh on mount
   useEffect(() => {
-    if (!user?.id && user?.role !== UserRole.ADMIN) return
+    if (!user?.id && user?.role !== UserRole.ADMIN) {
+      return
+    }
     const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
     queryClient.invalidateQueries({ queryKey })
     if (user?.role === UserRole.ADMIN) {
@@ -71,7 +74,9 @@ export function usePaymentsPage() {
   // ── Formatters ──────────────────────────────────────────────────────
 
   const formatDate = (date: Date | string | null) => {
-    if (!date) return ""
+    if (!date) {
+      return ""
+    }
     return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(date))
   }
 
@@ -117,7 +122,9 @@ export function usePaymentsPage() {
   const sourcePayments = user?.role === UserRole.ADMIN ? adminPayments : payments
 
   const filteredPayments = sourcePayments.filter((p: any) => {
-    if (user?.role !== UserRole.ADMIN) return true
+    if (user?.role !== UserRole.ADMIN) {
+      return true
+    }
     return (
       p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase())
@@ -153,8 +160,14 @@ export function usePaymentsPage() {
 
   const pendingPayment = pendingPayments.find((p: any) => p.status === PaymentStatus.PENDING)
 
+  const isPaymentCreationWindowOpen = isWithinPaymentCreationWindow()
+  const paymentCreationWindowLabel = getPaymentCreationWindowLabel()
   const canCreateNewPayment =
-    user?.role === UserRole.ADMIN || (user?.role === UserRole.CLIENT && !activePayment && !pendingPayment)
+    user?.role === UserRole.ADMIN
+      ? isPaymentCreationWindowOpen
+      : user?.role === UserRole.CLIENT
+        ? isPaymentCreationWindowOpen && !pendingPayment
+        : false
 
   // ── Handlers ────────────────────────────────────────────────────────
 
@@ -201,6 +214,8 @@ export function usePaymentsPage() {
     activePayment,
     pendingPayment,
     canCreateNewPayment,
+    isPaymentCreationWindowOpen,
+    paymentCreationWindowLabel,
     // Formatters
     formatDate,
     getStatusColor,
