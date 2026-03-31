@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, validatePaymentFile } from "@/lib/file-compression"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/contexts/auth-provider"
 
 interface ValidatedUser {
@@ -31,10 +31,18 @@ interface CreatePaymentArgs {
   file?: File
 }
 
+type PaymentFlowMode = "default" | "individual" | "group"
+
+interface CreatePaymentDialogOptions {
+  paymentFlowMode?: PaymentFlowMode
+  expectedDniCount?: number
+}
+
 export function useCreatePaymentDialog(
   open: boolean,
-  onOpenChange: (open: boolean) => void,
-  onCreatePayment: (payment: CreatePaymentArgs) => Promise<void>,
+  onOpenChange: (_open: boolean) => void,
+  onCreatePayment: (_payment: CreatePaymentArgs) => Promise<void>,
+  options: CreatePaymentDialogOptions = {},
 ) {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -42,11 +50,13 @@ export function useCreatePaymentDialog(
   const { monthlyFee } = useSettings()
   const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const paymentFlowMode: PaymentFlowMode = options.paymentFlowMode ?? "default"
+  const expectedDniCount = options.expectedDniCount
 
   const [isCreating, setIsCreating] = useState(false)
   const [clientDnis, setClientDnis] = useState<string[]>([""])
   const [validatedUsers, setValidatedUsers] = useState<ValidatedUser[]>([])
-  const [debounceTimers, setDebounceTimers] = useState<Array<NodeJS.Timeout | null>>([])
+  const [debounceTimers, setDebounceTimers] = useState<Array<ReturnType<typeof setTimeout> | null>>([])
   const [baseAmount, setBaseAmount] = useState("")
   const [amount, setAmount] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<MethodType | "">("")
@@ -73,19 +83,33 @@ export function useCreatePaymentDialog(
   const [startDate, setStartDate] = useState(startDateStr)
   const [dueDate, setDueDate] = useState(dueDateStr)
 
-  const resetFormState = () => {
-    setClientDnis([""])
-    setValidatedUsers([{
-      dni: 0,
-      name: "",
-      isValid: false,
-      isValidating: false,
-      hasActivePlan: false,
-    }])
+  const isIndividualFlow = paymentFlowMode === "individual"
+  const isGroupFlow = paymentFlowMode === "group"
+  const hasFixedDniCount = isIndividualFlow || (isGroupFlow && !!expectedDniCount && expectedDniCount > 0)
+  const fixedDniCount = isIndividualFlow ? 1 : isGroupFlow && expectedDniCount ? expectedDniCount : 1
+
+  const createEmptyValidatedUser = (): ValidatedUser => ({
+    dni: 0,
+    name: "",
+    isValid: false,
+    isValidating: false,
+    hasActivePlan: false,
+  })
+
+  const initializeDniInputs = useCallback((count: number) => {
+    const safeCount = Math.max(1, count)
+    setClientDnis(Array.from({ length: safeCount }, () => ""))
+    setValidatedUsers(Array.from({ length: safeCount }, () => createEmptyValidatedUser()))
+    setDebounceTimers(Array.from({ length: safeCount }, () => null))
+  }, [])
+
+  const resetFormState = useCallback(() => {
     debounceTimers.forEach((timer) => {
-      if (timer) clearTimeout(timer)
+      if (timer) {
+        clearTimeout(timer)
+      }
     })
-    setDebounceTimers([null])
+    initializeDniInputs(fixedDniCount)
     setBaseAmount("")
     setAmount("")
     setPaymentMethod("")
@@ -97,21 +121,27 @@ export function useCreatePaymentDialog(
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
-  }
+  }, [debounceTimers, fixedDniCount, initializeDniInputs])
 
   useEffect(() => {
     if (open && user && monthlyFee > 0) {
-      if (user.role === UserRole.CLIENT && user.dni) {
-        setClientDnis([user.dni.toString()])
+      const initialCount = hasFixedDniCount ? fixedDniCount : 1
+      initializeDniInputs(initialCount)
+
+      if (!isGroupFlow && user.role === UserRole.CLIENT && user.dni) {
+        const userDniString = user.dni.toString()
+        setClientDnis((previous) => {
+          const next = [...previous]
+          next[0] = userDniString
+          return next
+        })
         setTimeout(() => {
-          validateDni(0, user.dni.toString())
+          validateDni(0, userDniString)
         }, 100)
-      } else {
-        setClientDnis([""])
       }
       setBaseAmount(monthlyFee.toString())
     }
-  }, [open, user, monthlyFee])
+  }, [open, user, monthlyFee, hasFixedDniCount, fixedDniCount, isGroupFlow])
 
   useEffect(() => {
     const validUsersCount = validatedUsers.filter((u) => u.isValid).length
@@ -137,6 +167,10 @@ export function useCreatePaymentDialog(
   }, [open])
 
   const addDniField = () => {
+    if (hasFixedDniCount) {
+      return
+    }
+
     setClientDnis((prev) => [...prev, ""])
     setValidatedUsers((prev) => [
       ...prev,
@@ -146,6 +180,10 @@ export function useCreatePaymentDialog(
   }
 
   const removeDniField = (index: number) => {
+    if (hasFixedDniCount) {
+      return
+    }
+
     if (clientDnis.length > 1) {
       if (debounceTimers[index]) {
         clearTimeout(debounceTimers[index]!)
@@ -258,7 +296,9 @@ export function useCreatePaymentDialog(
   }
 
   const checkExistingPayment = (): boolean => {
-    if (!clientPayments || clientPayments.length === 0) return false
+    if (!clientPayments || clientPayments.length === 0) {
+      return false
+    }
     return clientPayments.some(
       (payment) => payment.status === PaymentStatus.PAID || payment.status === PaymentStatus.PENDING,
     )
@@ -281,9 +321,38 @@ export function useCreatePaymentDialog(
 
   const monthOptions = generateMonthOptions()
 
+  const completedDniCount = clientDnis.filter((dni) => dni.trim()).length
+  const validUsersCount = validatedUsers.filter((validatedUser) => validatedUser.isValid).length
+  const validatingUsersCount = validatedUsers.filter((validatedUser) => validatedUser.isValidating).length
+
+  const canSubmitByDniCount = useMemo(() => {
+    if (validatingUsersCount > 0) {
+      return false
+    }
+
+    if (isIndividualFlow) {
+      return completedDniCount === 1 && validUsersCount === 1
+    }
+
+    if (isGroupFlow && expectedDniCount) {
+      return completedDniCount === expectedDniCount && validUsersCount === expectedDniCount
+    }
+
+    return completedDniCount > 0 && completedDniCount === validUsersCount
+  }, [
+    completedDniCount,
+    expectedDniCount,
+    isGroupFlow,
+    isIndividualFlow,
+    validUsersCount,
+    validatingUsersCount,
+  ])
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      return
+    }
 
     const validation = validatePaymentFile(file)
     if (!validation.isValid) {
@@ -319,12 +388,16 @@ export function useCreatePaymentDialog(
   const handleRemoveFile = () => {
     setSelectedFile(null)
     setPreviewUrl(null)
-    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   const handleSuccessfulPayment = () => {
     debounceTimers.forEach((timer) => {
-      if (timer) clearTimeout(timer)
+      if (timer) {
+        clearTimeout(timer)
+      }
     })
 
     setClientDnis([""])
@@ -484,7 +557,15 @@ export function useCreatePaymentDialog(
 
   return {
     user,
+    paymentFlowMode,
+    isIndividualFlow,
+    isGroupFlow,
+    expectedDniCount,
+    hasFixedDniCount,
     isCreating,
+    canSubmitByDniCount,
+    completedDniCount,
+    validUsersCount,
     clientDnis,
     validatedUsers,
     baseAmount,

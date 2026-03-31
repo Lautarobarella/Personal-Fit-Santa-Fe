@@ -21,8 +21,10 @@ import { useCreatePaymentDialog } from "@/hooks/payments/use-create-payment-dial
 
 interface CreatePaymentDialogProps {
     open: boolean
-    onOpenChange: (open: boolean) => void
-    onCreatePayment: (payment: {
+    onOpenChange: (_open: boolean) => void
+    paymentFlowMode?: "default" | "individual" | "group"
+    expectedDniCount?: number
+    onCreatePayment: (_payment: {
         clientDnis: number[]  // Cambiado de clientDni a clientDnis (array)
         createdByDni: number  // DNI del usuario que crea el pago
         amount: number
@@ -34,10 +36,22 @@ interface CreatePaymentDialogProps {
     }) => Promise<void>
 }
 
-export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: CreatePaymentDialogProps) {
+export function CreatePaymentDialog({
+    open,
+    onOpenChange,
+    onCreatePayment,
+    paymentFlowMode = "default",
+    expectedDniCount,
+}: CreatePaymentDialogProps) {
     const {
         user,
+        isIndividualFlow,
+        isGroupFlow,
+        hasFixedDniCount,
         isCreating,
+        canSubmitByDniCount,
+        completedDniCount,
+        validUsersCount,
         clientDnis,
         validatedUsers,
         baseAmount,
@@ -59,7 +73,10 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
         handleRemoveFile,
         handleSubmit,
         handleClose,
-    } = useCreatePaymentDialog(open, onOpenChange, onCreatePayment)
+    } = useCreatePaymentDialog(open, onOpenChange, onCreatePayment, {
+        paymentFlowMode,
+        expectedDniCount,
+    })
 
 
     return (
@@ -71,7 +88,13 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                         <DollarSign className="h-5 w-5" />
                         Crear Pago Mensual
                     </DialogTitle>
-                    <DialogDescription className="text-left">Asigna un pago mensual a un cliente activo</DialogDescription>
+                    <DialogDescription className="text-left">
+                        {isIndividualFlow
+                            ? "Asigna un pago mensual individual"
+                            : isGroupFlow && expectedDniCount
+                                ? `Asigna un pago grupal para ${expectedDniCount} clientes`
+                                : "Asigna un pago mensual a un cliente activo"}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <Card className="m-2">
@@ -81,17 +104,24 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label>DNI de Clientes *</Label>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={addDniField}
-                                        className="flex items-center gap-1"
-                                    >
-                                        <span className="text-lg">+</span>
-                                        Agregar DNI
-                                    </Button>
+                                    {!hasFixedDniCount && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={addDniField}
+                                            className="flex items-center gap-1"
+                                        >
+                                            <span className="text-lg">+</span>
+                                            Agregar DNI
+                                        </Button>
+                                    )}
                                 </div>
+                                {isGroupFlow && expectedDniCount && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Debes completar {expectedDniCount} DNI(s): {completedDniCount}/{expectedDniCount} cargados, {validUsersCount}/{expectedDniCount} validados.
+                                    </p>
+                                )}
 
                                 {clientDnis.map((dni, index) => (
                                     <div key={index} className="space-y-2">
@@ -127,7 +157,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
                                                 )}
                                             </div>
 
-                                            {clientDnis.length > 1 && (
+                                            {!hasFixedDniCount && clientDnis.length > 1 && (
                                                 <Button
                                                     type="button"
                                                     variant="outline"
@@ -387,7 +417,7 @@ export function CreatePaymentDialog({ open, onOpenChange, onCreatePayment }: Cre
 
                         <Button
                             type="submit"
-                            disabled={isCreating}
+                            disabled={isCreating || !canSubmitByDniCount}
                             className="flex-1"
                             onClick={handleSubmit}
                         >
