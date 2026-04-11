@@ -71,6 +71,7 @@ export function CreatePaymentDialog({
         removeDniField,
         updateDni,
         handleFileSelect,
+        handleFilePickerOpen,
         handleCameraCapture,
         handleRemoveFile,
         handleSubmit,
@@ -357,7 +358,7 @@ export function CreatePaymentDialog({
                                             <Button
                                                 variant="outline"
                                                 type="button"
-                                                onClick={() => fileInputRef.current?.click()}
+                                                onClick={handleFilePickerOpen}
                                                 disabled={isCreating}
                                             >
                                                 <Upload className="h-4 w-2" /> Archivo
