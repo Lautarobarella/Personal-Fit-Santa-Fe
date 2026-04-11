@@ -43,7 +43,7 @@ public class AuthService {
         try {
             String normalizedEmail = request.getEmail().toLowerCase().trim();
 
-            userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(user -> {
+            userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(normalizedEmail).ifPresent(user -> {
                 if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
                     throw new BusinessRuleException(
                             "Tu cuenta estÃ¡ pendiente de validaciÃ³n por un administrador.",
@@ -57,7 +57,7 @@ public class AuthService {
                             request.getPassword()));
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
+            User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             String accessToken = jwtService.generateToken(userDetails);
@@ -89,7 +89,7 @@ public class AuthService {
     public AuthResponseDTO refreshToken(String refreshToken) {
         try {
             String userEmail = jwtService.extractUsername(refreshToken);
-            User user = userRepository.findByEmailIgnoreCase(userEmail)
+            User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             if (user.getStatus() == UserStatus.PENDING_APPROVAL) {

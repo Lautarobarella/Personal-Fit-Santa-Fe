@@ -40,10 +40,10 @@ export function DesktopSidebar() {
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-border/50">
         <Image
-          src="/logo.png"
-          alt="Personal Fit"
-          width={120}
-          height={48}
+          src="/logo.svg"
+          alt="Personal Fit Santa Fe"
+          width={150}
+          height={60}
           priority
         />
       </div>

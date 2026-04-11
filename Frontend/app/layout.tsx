@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   title: "PERSONAL FIT Santa Fe",
   description: "Aplicación de gestión para el gimnasio PERSONAL FIT Santa Fe, desarrollada por Lautaro Barella y Fernando Ale",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

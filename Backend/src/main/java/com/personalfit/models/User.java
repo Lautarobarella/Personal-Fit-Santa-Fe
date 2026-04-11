@@ -66,6 +66,7 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt = null;
 
     public String getFullName() {

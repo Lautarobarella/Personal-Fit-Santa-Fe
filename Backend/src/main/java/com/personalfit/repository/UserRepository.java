@@ -18,73 +18,40 @@ import com.personalfit.models.User;
 public interface UserRepository extends JpaRepository<User, Long> {
 
         /**
-         * Finds a user by their Document Number (DNI).
+         * Finds a user by DNI, including logically deleted records.
+         * Used for reactivation flows.
          */
         Optional<User> findByDni(Integer dni);
 
-        /**
-         * Finds all users with a specific status (ACTIVE/INACTIVE).
-         */
-        List<User> findAllByStatus(UserStatus status);
+        Optional<User> findByDniAndDeletedAtIsNull(Integer dni);
 
-        /**
-         * Finds all users with a specific status ordered by creation proxy (ID).
-         */
-        List<User> findAllByStatusOrderByIdAsc(UserStatus status);
+        Optional<User> findByIdAndDeletedAtIsNull(Long id);
 
-        /**
-         * Counts users by status.
-         */
-        long countByStatus(UserStatus status);
+        List<User> findAllByDeletedAtIsNull();
 
-        /**
-         * Finds all users born on a specific date (ignoring year is handled by service
-         * logic,
-         * but this method finds by exact LocalDate usually, so wait.
-         * Service logic: `userRepository.findAllByBirthDate(LocalDate.now())`.
-         * Actually, if `BirthDate` is YYYY-MM-DD, `findAllByBirthDate(now)` searches
-         * for people born TODAY.
-         * That's weird for a birthday check unless the service handles it differently
-         * or query is custom?
-         * Checking Service: `userRepository.findAllByBirthDate(LocalDate.now());`
-         * This looks like a bug in logic IF birthdate includes year.
-         * However, I am just documenting.
-         */
-        List<User> findAllByBirthDate(LocalDate now);
+        List<User> findAllByStatusAndDeletedAtIsNull(UserStatus status);
 
-        /**
-         * Finds all users with a specific role.
-         */
-        List<User> findAllByRole(UserRole userRole);
+        List<User> findAllByStatusAndDeletedAtIsNullOrderByIdAsc(UserStatus status);
 
-        /**
-         * Finds users by a list of IDs.
-         */
-        List<User> findByIdIn(List<Long> id);
+        long countByStatusAndDeletedAtIsNull(UserStatus status);
 
-        /**
-         * Finds active users who haven't attended since a specific date limit.
-         */
-        @Query("SELECT u FROM User u WHERE u.status = :status AND u.lastAttendance < :dateLimit")
+        List<User> findAllByBirthDateAndDeletedAtIsNull(LocalDate now);
+
+        List<User> findAllByRoleAndDeletedAtIsNull(UserRole userRole);
+
+        List<User> findByIdInAndDeletedAtIsNull(List<Long> id);
+
+        @Query("SELECT u FROM User u WHERE u.status = :status AND u.deletedAt IS NULL AND u.lastAttendance < :dateLimit")
         List<User> findActiveUsersWithLastAttendanceBefore(
                         @Param("status") UserStatus status,
                         @Param("dateLimit") LocalDateTime dateLimit);
 
-        /**
-         * Finds active users whose last attendance was exactly on a specific date.
-         */
-        @Query("SELECT u FROM User u WHERE u.status = :status AND FUNCTION('DATE', u.lastAttendance) = :dateLimit")
+        @Query("SELECT u FROM User u WHERE u.status = :status AND u.deletedAt IS NULL AND FUNCTION('DATE', u.lastAttendance) = :dateLimit")
         List<User> findActiveUsersWithLastAttendanceOn(
                         @Param("status") UserStatus status,
                         @Param("dateLimit") LocalDate dateLimit);
 
-        /**
-         * Finds a user by their email address.
-         */
-        Optional<User> findByEmail(String email);
+        Optional<User> findByEmailAndDeletedAtIsNull(String email);
 
-        /**
-         * Finds a user by email ignoring case.
-         */
-        Optional<User> findByEmailIgnoreCase(String email);
+        Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 }

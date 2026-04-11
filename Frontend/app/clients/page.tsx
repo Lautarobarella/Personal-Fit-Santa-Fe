@@ -72,6 +72,9 @@ export default function ClientsPage() {
     return null
   }
 
+  const activeClientsCount = clients.filter((c) => c.role === UserRole.CLIENT && c.status === "ACTIVE").length
+  const inactiveClientsCount = clients.filter((c) => c.role === UserRole.CLIENT && c.status === "INACTIVE").length
+
   return (
     <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader
@@ -112,7 +115,7 @@ export default function ClientsPage() {
             <Card className="border-0 bg-transparent shadow-none">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {clients.filter((c) => c.status === "ACTIVE").length}
+                  {activeClientsCount}
                 </div>
                 <div className="text-sm text-muted-foreground">Activos</div>
               </CardContent>
@@ -125,7 +128,7 @@ export default function ClientsPage() {
             <Card className="border-0 bg-transparent shadow-none">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {clients.filter((c) => c.status === "INACTIVE").length}
+                  {inactiveClientsCount}
                 </div>
                 <div className="text-sm text-muted-foreground">Inactivos</div>
               </CardContent>

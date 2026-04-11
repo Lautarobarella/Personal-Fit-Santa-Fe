@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/auth-provider"
 import { useClients } from "@/hooks/clients/use-client"
 import { useToast } from "@/hooks/use-toast"
 import { useRequireAuth } from "@/hooks/use-require-auth"
+import { UserRole } from "@/types"
 
 export function useClientsPage() {
   const { user } = useAuth()
@@ -84,10 +85,30 @@ export function useClientsPage() {
         const matchesSearch =
           searchTokens.length === 0 || searchTokens.every((term) => searchableIndex.includes(term))
 
+        if (statusFilter === "all") {
+          return matchesSearch
+        }
+
+        const isClient = c.role === UserRole.CLIENT
+
         return (
-          (statusFilter === "all" ? true : c.status === statusFilter) &&
+          isClient &&
+          c.status === statusFilter &&
           matchesSearch
         )
+      }).sort((a, b) => {
+        if (statusFilter !== "all") {
+          return 0
+        }
+
+        const aIsTrainer = a.role === UserRole.TRAINER
+        const bIsTrainer = b.role === UserRole.TRAINER
+
+        if (aIsTrainer === bIsTrainer) {
+          return 0
+        }
+
+        return aIsTrainer ? -1 : 1
       })
     : []
 

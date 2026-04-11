@@ -72,7 +72,7 @@ public class FCMController {
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getId();
     }

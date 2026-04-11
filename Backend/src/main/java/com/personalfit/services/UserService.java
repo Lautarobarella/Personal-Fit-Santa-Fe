@@ -105,15 +105,13 @@ public class UserService {
      * @throws EntityAlreadyExistsException if DNI is already taken.
      */
     public Boolean createNewUser(CreateUserDTO newUser) {
-        ensureUniqueDniAndEmail(newUser.getDni(), newUser.getEmail(), "Api/User/createNewUser");
-
-        User userToCreate = createUserEntity(
+        User userToCreate = createOrReactivateUser(
                 newUser,
                 resolveInitialStatusForApprovedUser(newUser.getRole()),
-                LocalDate.now());
+                LocalDate.now(),
+                "Api/User/createNewUser");
 
-        userRepository.save(userToCreate);
-        log.info("New user created: {} ({})", userToCreate.getFullName(), userToCreate.getRole());
+        log.info("User upserted: {} ({})", userToCreate.getFullName(), userToCreate.getRole());
 
         return true;
     }
@@ -123,19 +121,20 @@ public class UserService {
      * Creates a user request in PENDING_APPROVAL state until an admin validates it.
      */
     public Boolean createPendingUserRegistration(CreateUserDTO newUser) {
-        long pendingRequests = userRepository.countByStatus(UserStatus.PENDING_APPROVAL);
+        long pendingRequests = userRepository.countByStatusAndDeletedAtIsNull(UserStatus.PENDING_APPROVAL);
         if (pendingRequests >= MAX_PENDING_USER_REGISTRATIONS) {
             throw new BusinessRuleException(
-                    "No se pueden recibir mÃ¡s solicitudes por el momento. Intenta nuevamente mÃ¡s tarde.",
+                    "No se pueden recibir más solicitudes por el momento. Intenta nuevamente más tarde.",
                     "Api/User/createPendingUserRegistration");
         }
 
         // Public registration only allows CLIENT role.
         newUser.setRole(UserRole.CLIENT);
-        ensureUniqueDniAndEmail(newUser.getDni(), newUser.getEmail(), "Api/User/createPendingUserRegistration");
-
-        User pendingUser = createUserEntity(newUser, UserStatus.PENDING_APPROVAL, LocalDate.now());
-        userRepository.save(pendingUser);
+        User pendingUser = createOrReactivateUser(
+                newUser,
+                UserStatus.PENDING_APPROVAL,
+                LocalDate.now(),
+                "Api/User/createPendingUserRegistration");
 
         log.info("New pending registration created: {} ({})", pendingUser.getFullName(), pendingUser.getRole());
         return true;
@@ -145,7 +144,7 @@ public class UserService {
      * Lists users awaiting admin validation.
      */
     public List<UserTypeDTO> getPendingUserRegistrations() {
-        return userRepository.findAllByStatusOrderByIdAsc(UserStatus.PENDING_APPROVAL).stream()
+        return userRepository.findAllByStatusAndDeletedAtIsNullOrderByIdAsc(UserStatus.PENDING_APPROVAL).stream()
                 .map(UserTypeDTO::new)
                 .collect(Collectors.toList());
     }
@@ -186,18 +185,10 @@ public class UserService {
      * Deletes a user by their ID.
      */
     public Boolean deleteUser(Long id) {
-        Optional<User> user = userRepository.findById(id);
-
-        if (user.isEmpty())
-            throw new EntityNotFoundException("User ID: " + id + " not found", "Api/User/deleteUser");
-
-        try {
-            userRepository.delete(user.get());
-            log.info("User deleted: ID {}", id);
-        } catch (Exception e) {
-            log.error("Failed to delete user ID {}: {}", id, e.getMessage());
-            return false;
-        }
+        User user = getUserById(id);
+        user.setDeletedAt(LocalDateTime.now());
+        userRepository.save(user);
+        log.info("User soft deleted: ID {}", id);
 
         return true;
     }
@@ -206,7 +197,7 @@ public class UserService {
      * Retrieves a user by their DNI (Document Number).
      */
     public User getUserByDni(Integer dni) {
-        return userRepository.findByDni(dni)
+        return userRepository.findByDniAndDeletedAtIsNull(dni)
                 .orElseThrow(
                         () -> new EntityNotFoundException("User DNI: " + dni + " not found", "Api/User/getUserByDni"));
     }
@@ -219,7 +210,7 @@ public class UserService {
      * - Total Activity Count.
      */
     public List<UserTypeDTO> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllByDeletedAtIsNull();
         List<UserTypeDTO> usersDto = new ArrayList<>();
 
         users.forEach(user -> {
@@ -263,7 +254,7 @@ public class UserService {
      * Retrieves a user by their database ID.
      */
     public User getUserById(Long id) {
-        return userRepository.findById(id)
+        return userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(
                         () -> new EntityNotFoundException("User ID: " + id + " not found", "Api/User/getUserById"));
     }
@@ -272,7 +263,7 @@ public class UserService {
      * Retrieves a user by their email address.
      */
     public User getUserByEmail(String email) {
-        return userRepository.findByEmailIgnoreCase(email)
+        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new EntityNotFoundException("User Email: " + email + " not found",
                         "Api/User/getUserByEmail"));
     }
@@ -333,7 +324,7 @@ public class UserService {
      * Excludes the Super Admin.
      */
     public List<UserTypeDTO> getAllTrainers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAllByDeletedAtIsNull().stream()
                 .filter(user -> user.getRole().equals(UserRole.TRAINER) || user.getRole().equals(UserRole.ADMIN))
                 .filter(user -> !user.getDni().equals(99999999)) // Exclude Super Admin
                 .map(UserTypeDTO::new)
@@ -356,7 +347,7 @@ public class UserService {
      * Retrieves all users with the ADMIN role.
      */
     public List<User> getAllAdmins() {
-        return userRepository.findAllByRole(UserRole.ADMIN);
+        return userRepository.findAllByRoleAndDeletedAtIsNull(UserRole.ADMIN);
     }
 
     /**
@@ -364,14 +355,14 @@ public class UserService {
      * Returns all users eligible for mass announcements (Non-Admins).
      */
     public List<User> getAllNonAdminUsers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAllByDeletedAtIsNull().stream()
                 .filter(u -> u.getRole() != UserRole.ADMIN)
                 .filter(u -> u.getStatus() != UserStatus.PENDING_APPROVAL)
                 .collect(Collectors.toList());
     }
 
     public List<User> getAll(List<Long> id) {
-        return userRepository.findByIdIn(id);
+        return userRepository.findByIdInAndDeletedAtIsNull(id);
     }
 
     /**
@@ -392,19 +383,16 @@ public class UserService {
      * @return Number of successfully created users.
      */
     public Integer createBatchClients(List<CreateUserDTO> newUsers) {
-        List<User> usersToSave = new ArrayList<>();
+        int processedUsers = 0;
 
         for (CreateUserDTO newUser : newUsers) {
-            ensureUniqueDniAndEmail(newUser.getDni(), newUser.getEmail(), "Api/User/createBatchClients");
-
             UserStatus status = newUser.getStatus() != null ? newUser.getStatus() : UserStatus.INACTIVE;
-            User userToCreate = createUserEntity(newUser, status, LocalDate.now());
-            usersToSave.add(userToCreate);
+            createOrReactivateUser(newUser, status, LocalDate.now(), "Api/User/createBatchClients");
+            processedUsers++;
         }
 
-        List<User> savedUsers = userRepository.saveAll(usersToSave);
-        log.info("Batch created {} new users", savedUsers.size());
-        return savedUsers.size();
+        log.info("Batch processed {} users", processedUsers);
+        return processedUsers;
     }
 
     /**
@@ -414,7 +402,7 @@ public class UserService {
     @Scheduled(cron = "0 0 3 * * ?")
     public void userStatusDailyCheck() {
         log.info("Starting daily user status audit...");
-        List<User> users = userRepository.findAllByStatus(UserStatus.ACTIVE);
+        List<User> users = userRepository.findAllByStatusAndDeletedAtIsNull(UserStatus.ACTIVE);
         List<User> toUpdate = new ArrayList<>();
 
         users.forEach(u -> {
@@ -449,7 +437,7 @@ public class UserService {
     @Scheduled(cron = "0 1 0 * * ?")
     public void userBirthdayCheck() {
         log.info("Checking for birthdays...");
-        List<User> users = userRepository.findAllByBirthDate(LocalDate.now());
+        List<User> users = userRepository.findAllByBirthDateAndDeletedAtIsNull(LocalDate.now());
 
         if (!users.isEmpty()) {
             log.info("Found {} birthdays today.", users.size());
@@ -613,9 +601,7 @@ public class UserService {
     public void updatePassword(Long userId, String currentPassword, String newPassword) {
         log.info("Updating password for user ID: {}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId,
-                        "UserService/updatePassword"));
+        User user = getUserById(userId);
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             log.warn("Password update failed: Invalid current password");
@@ -638,9 +624,7 @@ public class UserService {
      * Only intended for administrative recovery actions.
      */
     public void resetClientPasswordToDni(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId,
-                        "UserService/resetClientPasswordToDni"));
+        User user = getUserById(userId);
 
         if (!UserRole.CLIENT.equals(user.getRole())) {
             throw new IllegalArgumentException("Solo se puede reiniciar la contraseña de usuarios con rol CLIENT");
@@ -662,10 +646,7 @@ public class UserService {
     public void updateProfile(com.personalfit.dto.User.UpdateProfileDTO updateProfileDTO) {
         log.info("Updating profile for user ID: {}", updateProfileDTO.getUserId());
 
-        User user = userRepository.findById(updateProfileDTO.getUserId())
-                .orElseThrow(
-                        () -> new EntityNotFoundException("User not found with id: " + updateProfileDTO.getUserId(),
-                                "UserService/updateProfile"));
+        User user = getUserById(updateProfileDTO.getUserId());
 
         boolean changed = false;
 
@@ -786,26 +767,54 @@ public class UserService {
         return Math.max(0, (int) daysBetween);
     }
 
-    private void ensureUniqueDniAndEmail(String dni, String email, String path) {
-        Integer parsedDni = Integer.parseInt(dni.trim());
-        if (userRepository.findByDni(parsedDni).isPresent()) {
-            throw new EntityAlreadyExistsException("User already exists with DNI: " + dni.trim(), path);
+    private User createOrReactivateUser(CreateUserDTO source, UserStatus status, LocalDate joinDate, String path) {
+        Integer parsedDni = Integer.parseInt(source.getDni().trim());
+        Optional<User> existingByDni = userRepository.findByDni(parsedDni);
+
+        if (existingByDni.isPresent()) {
+            User existingUser = existingByDni.get();
+
+            if (existingUser.getDeletedAt() == null) {
+                throw new EntityAlreadyExistsException("User already exists with DNI: " + source.getDni().trim(), path);
+            }
+
+            ensureUniqueActiveEmail(source.getEmail(), existingUser.getId(), path);
+            applyCreateUserFields(existingUser, source, status, joinDate);
+            existingUser.setDeletedAt(null);
+
+            User restoredUser = userRepository.save(existingUser);
+            log.info("Soft-deleted user reactivated: ID={}, DNI={}", restoredUser.getId(), restoredUser.getDni());
+            return restoredUser;
         }
 
+        ensureUniqueActiveEmail(source.getEmail(), null, path);
+        User userToCreate = createUserEntity(source, status, joinDate);
+        userRepository.save(userToCreate);
+        return userToCreate;
+    }
+
+    private void ensureUniqueActiveEmail(String email, Long excludedUserId, String path) {
         String normalizedEmail = normalizeEmail(email);
-        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
+        Optional<User> existingByEmail = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(normalizedEmail);
+
+        if (existingByEmail.isPresent() && (excludedUserId == null || !existingByEmail.get().getId().equals(excludedUserId))) {
             throw new EntityAlreadyExistsException("User already exists with Email: " + normalizedEmail, path);
         }
     }
 
     private User createUserEntity(CreateUserDTO source, UserStatus status, LocalDate joinDate) {
+        User user = new User();
+        applyCreateUserFields(user, source, status, joinDate);
+        return user;
+    }
+
+    private void applyCreateUserFields(User user, CreateUserDTO source, UserStatus status, LocalDate joinDate) {
         String normalizedDni = source.getDni().trim();
         UserRole role = source.getRole() != null ? source.getRole() : UserRole.CLIENT;
         String rawPassword = source.getPassword() != null && !source.getPassword().trim().isEmpty()
                 ? source.getPassword().trim()
                 : normalizedDni;
 
-        User user = new User();
         user.setDni(Integer.parseInt(normalizedDni));
         user.setFirstName(source.getFirstName().trim());
         user.setLastName(source.getLastName().trim());
@@ -817,9 +826,10 @@ public class UserService {
         user.setJoinDate(joinDate != null ? joinDate : LocalDate.now());
         user.setAddress(source.getAddress().trim());
         user.setBirthDate(source.getBirthDate());
+        user.setLastAttendance(null);
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setStatus(status);
-        return user;
+        user.setDeletedAt(null);
     }
 
     private UserStatus resolveInitialStatusForApprovedUser(UserRole role) {
