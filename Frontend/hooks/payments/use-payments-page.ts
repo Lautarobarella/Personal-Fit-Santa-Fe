@@ -9,6 +9,9 @@ import { useRequireAuth } from "@/hooks/use-require-auth"
 import { getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
 import { MethodType, PaymentStatus, UserRole } from "@/types"
 
+const getAdminShowRevenueStorageKey = (userId?: number) =>
+  `payments.admin.showRevenue.${userId ?? "default"}`
+
 export function usePaymentsPage() {
   const { user } = useRequireAuth()
   const router = useRouter()
@@ -17,6 +20,40 @@ export function usePaymentsPage() {
   // Basic state
   const [searchTerm, setSearchTerm] = useState("")
   const [showRevenue, setShowRevenue] = useState(true)
+  const [showRevenuePreferenceReady, setShowRevenuePreferenceReady] = useState(false)
+
+  const revenueStorageKey = getAdminShowRevenueStorageKey(user?.id)
+
+  useEffect(() => {
+    if (user?.role !== UserRole.ADMIN) {
+      setShowRevenue(true)
+      setShowRevenuePreferenceReady(true)
+      return
+    }
+
+    try {
+      const storedValue = localStorage.getItem(revenueStorageKey)
+      if (storedValue !== null) {
+        setShowRevenue(storedValue === "true")
+      }
+    } catch {
+      // Ignore storage errors (private mode, blocked storage, etc.)
+    } finally {
+      setShowRevenuePreferenceReady(true)
+    }
+  }, [user?.role, revenueStorageKey])
+
+  useEffect(() => {
+    if (!showRevenuePreferenceReady || user?.role !== UserRole.ADMIN) {
+      return
+    }
+
+    try {
+      localStorage.setItem(revenueStorageKey, String(showRevenue))
+    } catch {
+      // Ignore storage errors (private mode, blocked storage, etc.)
+    }
+  }, [showRevenuePreferenceReady, showRevenue, user?.role, revenueStorageKey])
 
   // Admin state
   const currentDate = new Date()
