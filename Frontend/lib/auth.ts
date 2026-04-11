@@ -36,13 +36,22 @@ export const authenticate = async (email: string, password: string): Promise<Use
     })
 
     if (!response.ok) {
-      // Robust error handling: Attempt to extract backend error message, fallback to generic
+      // Attempt to extract backend message without overriding it by mistake.
+      let backendMessage = ''
       try {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Credenciales incorrectas')
-      } catch (parseError) {
-        throw new Error('Error de autenticación')
+        if (errorData && typeof errorData.message === 'string') {
+          backendMessage = errorData.message.trim()
+        }
+      } catch {
+        // Ignore parse errors and use fallback message below.
       }
+
+      if (response.status === 401) {
+        throw new Error('Usuario y/o contraseña incorrecto')
+      }
+
+      throw new Error(backendMessage || 'No se pudo iniciar sesión. Inténtalo nuevamente.')
     }
 
     const authData: AuthResponse = await response.json()

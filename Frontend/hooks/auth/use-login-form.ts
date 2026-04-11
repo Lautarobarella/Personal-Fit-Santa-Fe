@@ -33,6 +33,7 @@ export function useLoginForm() {
 
   const { login } = useAuth()
   const { toast } = useToast()
+  const INVALID_CREDENTIALS_MESSAGE = "Usuario y/o contraseña incorrecto"
 
   const validateRegistrationForm = (): boolean => {
     const errors: Partial<UserFormType> = {}
@@ -68,16 +69,21 @@ export function useLoginForm() {
       const success = await login(normalizedEmail, password)
       if (!success) {
         toast({
-          title: "Error de autenticación",
-          description: "Credenciales incorrectas",
+          title: INVALID_CREDENTIALS_MESSAGE,
           variant: "destructive",
         })
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Ocurrió un error durante el login"
+      const normalizedMessage = errorMessage.toLowerCase()
+      const looksLikeCredentialError = normalizedMessage.includes("incorrect")
+        || normalizedMessage.includes("credencial")
+        || normalizedMessage.includes("authenticat")
+        || normalizedMessage.includes("unauthorized")
+
       toast({
-        title: "Error de autenticación",
-        description: errorMessage,
+        title: looksLikeCredentialError ? INVALID_CREDENTIALS_MESSAGE : "Error al iniciar sesión",
+        description: looksLikeCredentialError ? undefined : errorMessage,
         variant: "destructive",
       })
     } finally {
