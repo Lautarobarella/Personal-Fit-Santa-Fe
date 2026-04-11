@@ -6,7 +6,12 @@ import { usePaymentContext } from "@/contexts/payment-provider"
 import { useSettings } from "@/hooks/settings/use-settings"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, validatePaymentFile } from "@/lib/file-compression"
-import { getNextPaymentDueDate, isWithinPaymentCreationWindow, toLocalDateInputValue } from "@/lib/payment-rules"
+import {
+  getNextPaymentDueDate,
+  getPaymentCreationWindowLabel,
+  isWithinPaymentCreationWindow,
+  toLocalDateInputValue,
+} from "@/lib/payment-rules"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -490,7 +495,7 @@ export function useCreatePaymentDialog(
     if (!isWithinPaymentCreationWindow()) {
       toast({
         title: "Fuera de período",
-        description: "Los pagos solo se pueden crear entre el día 1 y el 10 de cada mes.",
+        description: `Los pagos solo se pueden crear ${getPaymentCreationWindowLabel()}.`,
         variant: "destructive",
       })
       return

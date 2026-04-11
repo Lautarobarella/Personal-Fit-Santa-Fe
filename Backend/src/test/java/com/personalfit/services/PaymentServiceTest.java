@@ -139,7 +139,7 @@ class PaymentServiceTest {
 
     @Test
     void createPayment_outsideCreationWindow_throwsBusinessRuleException() {
-        mockCurrentTime(LocalDateTime.of(2026, 4, 15, 10, 0));
+        mockCurrentTime(LocalDateTime.of(2026, 4, 16, 10, 0));
 
         User client = buildClient(41L, 30666666);
 
