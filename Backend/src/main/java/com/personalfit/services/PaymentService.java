@@ -74,7 +74,7 @@ public class PaymentService {
     // Files are pre-compressed on the client-side before upload.
     private static final Integer MAX_FILE_SIZE_MB = 3;
     private static final int PAYMENT_CREATION_WINDOW_START_DAY = 1;
-    private static final int PAYMENT_CREATION_WINDOW_END_DAY = 10;
+    private static final int PAYMENT_CREATION_WINDOW_END_DAY = 15;
 
     @Value("${spring.datasource.files.path}")
     private String UPLOAD_FOLDER;
@@ -419,7 +419,7 @@ public class PaymentService {
 
         if (!isWithinPaymentCreationWindow(today)) {
             throw new BusinessRuleException(
-                    "Los pagos solo se pueden crear entre el día 1 y el 10 de cada mes.",
+                    "Los pagos solo se pueden crear entre el día 1 y el 15 de cada mes.",
                     "/api/payments/new");
         }
     }
