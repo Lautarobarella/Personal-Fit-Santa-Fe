@@ -366,6 +366,13 @@ export function useCreatePaymentDialog(
     }
   }
 
+  const handleFilePickerOpen = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.removeAttribute("capture")
+      fileInputRef.current.click()
+    }
+  }
+
   const handleRemoveFile = () => {
     setSelectedFile(null)
     setPreviewUrl(null)
@@ -575,6 +582,7 @@ export function useCreatePaymentDialog(
     removeDniField,
     updateDni,
     handleFileSelect,
+    handleFilePickerOpen,
     handleCameraCapture,
     handleRemoveFile,
     handleSubmit,
