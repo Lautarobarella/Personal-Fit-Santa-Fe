@@ -1,0 +1,177 @@
+name: Deploy to Host (password SSH + healthchecks)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('Frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies (Frontend)
+        working-directory: Frontend
+        run: npm install --no-audit --no-fund
+
+  deploy:
+    needs: frontend-tests
+    environment: Production
+    runs-on: ubuntu-latest
+    env:
+      # Solo se requieren las credenciales SSH como secrets
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+      SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Sanity check de secrets SSH
+        run: |
+          for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD; do
+            if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
+              echo "Falta variable SSH $v (revisa environment/Production o nombres)"; exit 1
+            fi
+          done
+          echo "✅ Secrets SSH verificados"
+
+      - name: Install sshpass (para autenticación por usuario+password)
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy to host (ssh via password) and wait healthchecks
+        run: |
+          # default port
+          if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
+            SSH_PORT=22
+          fi
+
+          echo "Conectando a ${SSH_USERNAME}@${SSH_HOST}:${SSH_PORT} ..."
+          sshpass -p "${SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no -p "${SSH_PORT}" "${SSH_USERNAME}@${SSH_HOST}" bash -lc '
+            set -euo pipefail
+
+            DEPLOY_DIR=/opt/Personal-Fit-Santa-Fe
+            echo "==> Entrando en $DEPLOY_DIR"
+            cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
+            
+            echo "==> Verificando archivo .env local"
+            if [ ! -f .env ]; then
+              echo "ERROR: Archivo .env no encontrado en el servidor. Debes crearlo manualmente en $DEPLOY_DIR/.env"
+              exit 2
+            fi
+            echo "✅ Archivo .env presente en servidor"
+
+            echo "==> Actualizando repo (origin/main)"
+            git fetch --all --prune
+            git reset --hard origin/main
+            git pull origin main
+
+            echo "==> Construyendo y levantando servicios"
+            docker compose down -v
+            
+            # Docker Compose automáticamente cargará las variables del archivo .env
+            # No es necesario exportar manualmente las variables
+            echo "==> Usando variables del archivo .env"
+            
+            docker compose build
+            docker compose up -d
+
+            # Esperar a Postgres (usa envs del contenedor)
+            wait_for_postgres() {
+              local timeout="${1:-120}"
+              local interval=2
+              local waited=0
+              while [ "$waited" -lt "$timeout" ]; do
+                if docker compose exec -T postgres bash -lc "PGPASSWORD=\"\$POSTGRES_PASSWORD\" pg_isready -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"" >/dev/null 2>&1; then
+                  echo "$(date +"%F %T") - Postgres ready"
+                  return 0
+                fi
+                echo "$(date +"%F %T") - Esperando Postgres... (${waited}s/${timeout}s)"
+                sleep "$interval"
+                waited=$((waited + interval))
+              done
+              return 1
+            }
+
+            echo "==> Esperando Postgres..."
+            if ! wait_for_postgres 120; then
+              echo "ERROR: Postgres no estuvo listo a tiempo"
+              docker compose logs --no-color --timestamps postgres | tail -n 200 || true
+              exit 5
+            fi
+
+            wait_for_healthy() {
+              local container="$1"
+              local timeout_seconds="${2:-180}"
+              local interval=5
+              local waited=0
+
+              while [ "$waited" -lt "$timeout_seconds" ]; do
+                local docker_health
+                docker_health=$(docker inspect -f "{{.State.Health.Status}}" "$container" 2>/dev/null || echo "no-health-check")
+
+                if [ "$docker_health" = "healthy" ]; then
+                  echo "$(date +"%F %T") - $container healthy (Docker health)"
+                  return 0
+                elif [ "$docker_health" = "unhealthy" ]; then
+                  echo "$(date +"%F %T") - $container unhealthy"
+                  return 2
+                fi
+
+                if [ "$container" = "personalfit-backend" ]; then
+                  if curl -fsS http://localhost:8080/api/health >/dev/null 2>&1; then
+                    echo "$(date +"%F %T") - Backend OK en :8080"
+                    return 0
+                  fi
+                elif [ "$container" = "personalfit-frontend" ]; then
+                  if curl -fsS http://localhost:3000 >/dev/null 2>&1; then
+                    echo "$(date +"%F %T") - Frontend OK en :3000"
+                    return 0
+                  fi
+                fi
+
+                echo "$(date +"%F %T") - Esperando $container... (${waited}s/${timeout_seconds}s) - Docker health: $docker_health"
+                sleep $interval
+                waited=$((waited + interval))
+              done
+
+              echo "TIMEOUT: $container no quedó listo tras ${timeout_seconds}s"
+              return 1
+            }
+
+            echo "==> Esperando backend..."
+            if ! wait_for_healthy personalfit-backend 60; then
+              echo "ERROR: backend no responde -> logs:"
+              docker compose logs --no-color --timestamps personalfit-backend | tail -n 300
+              exit 10
+            fi
+
+            echo "==> Esperando frontend..."
+            if ! wait_for_healthy personalfit-frontend 60; then
+              echo "ERROR: frontend no responde -> logs:"
+              docker compose logs --no-color --timestamps personalfit-frontend | tail -n 300
+              exit 11
+            fi
+
+            echo "==> Limpieza de imágenes antiguas"
+            docker image prune -f
+
+            echo "==> DEPLOY OK"
+          '

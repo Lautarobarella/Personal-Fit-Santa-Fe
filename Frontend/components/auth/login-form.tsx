@@ -38,8 +38,8 @@ export function LoginForm() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Image
-              src="/logo.png"
-              alt="Personal Fit Santa Fe Logo"
+              src="/logo.svg"
+              alt="Personal Fit Santa Fe"
               width={150}
               height={60}
               priority

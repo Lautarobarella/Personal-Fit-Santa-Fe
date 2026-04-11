@@ -148,7 +148,6 @@ export function usePaymentsPage() {
   const getMethodText = (method: MethodType) => {
     switch (method) {
       case MethodType.CASH: return "Efectivo"
-      case MethodType.CARD: return "Tarjeta"
       case MethodType.TRANSFER: return "Transferencia"
       default: return method
     }

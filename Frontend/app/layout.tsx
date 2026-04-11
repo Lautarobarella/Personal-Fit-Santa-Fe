@@ -18,7 +18,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "PERSONAL FIT Santa Fe",
-  description: "Aplicación de gestión para el gimnasio PERSONAL FIT Santa Fe, desarrollada por Lautaro Barella y Fernando Ale",
+  description: "Aplicación de gestión para el centro deportivo PERSONAL FIT Santa Fe, desarrollada por Lautaro Barella y Fernando Ale",
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "PERSONAL FIT Santa Fe",
   },
-  generator: 'v0.dev'
+  generator: 'lautaro-barella & fernando-ale',
 }
 
 export const viewport: Viewport = {
