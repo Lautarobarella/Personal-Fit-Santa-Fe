@@ -139,7 +139,7 @@ class PaymentServiceTest {
 
     @Test
     void createPayment_outsideCreationWindow_throwsBusinessRuleException() {
-        mockCurrentTime(LocalDateTime.of(2026, 4, 16, 10, 0));
+        mockCurrentTime(LocalDateTime.of(2026, 4, 21, 10, 0));
 
         User client = buildClient(41L, 30666666);
 
@@ -149,8 +149,6 @@ class PaymentServiceTest {
                 .methodType(MethodType.TRANSFER)
                 .paymentStatus(PaymentStatus.PENDING)
                 .build();
-
-        when(userService.getUserByDni(client.getDni())).thenReturn(client);
 
         assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null));
     }

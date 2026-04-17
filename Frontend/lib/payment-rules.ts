@@ -1,5 +1,5 @@
 const PAYMENT_CREATION_WINDOW_START_DAY = 1
-const PAYMENT_CREATION_WINDOW_END_DAY = 15
+const PAYMENT_CREATION_WINDOW_END_DAY = 20
 
 export function isWithinPaymentCreationWindow(date: Date = new Date()): boolean {
   const day = date.getDate()
