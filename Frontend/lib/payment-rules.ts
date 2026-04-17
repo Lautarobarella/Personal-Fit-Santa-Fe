@@ -1,9 +1,15 @@
+import { UserRole } from "@/lib/types"
+
 const PAYMENT_CREATION_WINDOW_START_DAY = 1
 const PAYMENT_CREATION_WINDOW_END_DAY = 20
 
 export function isWithinPaymentCreationWindow(date: Date = new Date()): boolean {
   const day = date.getDate()
   return day >= PAYMENT_CREATION_WINDOW_START_DAY && day <= PAYMENT_CREATION_WINDOW_END_DAY
+}
+
+export function canUserCreatePaymentAtDate(role?: UserRole | null, date: Date = new Date()): boolean {
+  return role !== UserRole.CLIENT || isWithinPaymentCreationWindow(date)
 }
 
 export function getNextPaymentDueDate(date: Date = new Date()): Date {

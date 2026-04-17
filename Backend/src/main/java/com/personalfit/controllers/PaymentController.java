@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,12 +58,13 @@ public class PaymentController {
     @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createPayment(
             @RequestPart("payment") PaymentRequestDTO paymentRequest,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            Authentication authentication) {
 
         log.info("Creating new payment: Client={}, Amount={}",
                 paymentRequest.getClientDni(), paymentRequest.getAmount());
 
-        Payment createdPayment = paymentService.createPayment(paymentRequest, file);
+        Payment createdPayment = paymentService.createPayment(paymentRequest, file, authentication.getName());
 
         Map<String, Object> response = new HashMap<>();
         response.put("id", createdPayment.getId());
@@ -79,11 +81,12 @@ public class PaymentController {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createBatchPayments(
-            @Valid @RequestBody List<PaymentRequestDTO> paymentRequests) {
+            @Valid @RequestBody List<PaymentRequestDTO> paymentRequests,
+            Authentication authentication) {
 
         log.info("Batch payment creation: {} items requested", paymentRequests.size());
 
-        Integer createdCount = paymentService.createBatchPayments(paymentRequests);
+        Integer createdCount = paymentService.createBatchPayments(paymentRequests, authentication.getName());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

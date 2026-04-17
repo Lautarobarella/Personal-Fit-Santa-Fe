@@ -19,7 +19,7 @@ import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { MethodType, UserRole } from "@/lib/types"
-import { getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
+import { canUserCreatePaymentAtDate, getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
 import { cn } from "@/lib/utils"
 import { User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -54,9 +54,17 @@ export default function NewPaymentPage() {
 
   const isPaymentCreationWindowOpen = useMemo(() => isWithinPaymentCreationWindow(), [])
   const paymentCreationWindowLabel = useMemo(() => getPaymentCreationWindowLabel(), [])
+  const canCurrentUserCreatePayment = useMemo(() => {
+    if (!user) {
+      return false
+    }
+
+    return canUserCreatePaymentAtDate(user.role)
+  }, [user])
+  const shouldShowPaymentWindowWarning = user?.role === UserRole.CLIENT && !isPaymentCreationWindowOpen
 
   const canContinue = useMemo(() => {
-    if (!isPaymentCreationWindowOpen) {
+    if (!canCurrentUserCreatePayment) {
       return false
     }
 
@@ -65,7 +73,7 @@ export default function NewPaymentPage() {
     }
 
     return Number.isInteger(parsedGroupSize) && parsedGroupSize >= 2
-  }, [isPaymentCreationWindowOpen, parsedGroupSize, selectedMode])
+  }, [canCurrentUserCreatePayment, parsedGroupSize, selectedMode])
 
   const handleCreatePayment = async (payment: {
     clientDnis: number[]
@@ -93,7 +101,7 @@ export default function NewPaymentPage() {
   }
 
   const handleContinueToPayment = () => {
-    if (!isPaymentCreationWindowOpen) {
+    if (!canCurrentUserCreatePayment) {
       return
     }
 
@@ -130,7 +138,7 @@ export default function NewPaymentPage() {
             </DialogHeader>
 
             <DialogBody className="space-y-4 px-5 py-4 sm:px-6">
-              {!isPaymentCreationWindowOpen && (
+              {shouldShowPaymentWindowWarning && (
                 <Card className="border-amber-300 bg-amber-50">
                   <CardContent className="p-3">
                     <p className="text-xs font-medium text-amber-900">

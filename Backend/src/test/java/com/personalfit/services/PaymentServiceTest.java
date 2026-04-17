@@ -41,6 +41,9 @@ import com.personalfit.repository.PaymentRepository;
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
+    private static final String ADMIN_EMAIL = "admin@personalfit.test";
+    private static final String CLIENT_EMAIL = "client@personalfit.test";
+
     @Mock
     private PaymentRepository paymentRepository;
 
@@ -74,6 +77,7 @@ class PaymentServiceTest {
     void createPayment_withMultiplePaidUsers_activatesEveryLinkedUser() {
         User firstClient = buildClient(11L, 30111111);
         User secondClient = buildClient(12L, 30222222);
+        User admin = buildAdmin(1L, 30000001, ADMIN_EMAIL);
 
         PaymentRequestDTO request = PaymentRequestDTO.builder()
                 .clientDnis(List.of(firstClient.getDni(), secondClient.getDni()))
@@ -86,6 +90,7 @@ class PaymentServiceTest {
 
         when(userService.getUserByDni(firstClient.getDni())).thenReturn(firstClient);
         when(userService.getUserByDni(secondClient.getDni())).thenReturn(secondClient);
+        when(userService.getUserByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(firstClient, PaymentStatus.PENDING))
                 .thenReturn(Optional.empty());
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(secondClient, PaymentStatus.PENDING))
@@ -96,7 +101,7 @@ class PaymentServiceTest {
             return payment;
         });
 
-        Payment createdPayment = paymentService.createPayment(request, null);
+        Payment createdPayment = paymentService.createPayment(request, null, ADMIN_EMAIL);
 
         ArgumentCaptor<Payment> paymentCaptor = ArgumentCaptor.forClass(Payment.class);
         verify(paymentRepository).save(paymentCaptor.capture());
@@ -142,6 +147,7 @@ class PaymentServiceTest {
         mockCurrentTime(LocalDateTime.of(2026, 4, 21, 10, 0));
 
         User client = buildClient(41L, 30666666);
+        when(userService.getUserByEmail(CLIENT_EMAIL)).thenReturn(client);
 
         PaymentRequestDTO request = PaymentRequestDTO.builder()
                 .clientDni(client.getDni())
@@ -150,12 +156,39 @@ class PaymentServiceTest {
                 .paymentStatus(PaymentStatus.PENDING)
                 .build();
 
-        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null));
+        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null, CLIENT_EMAIL));
+    }
+
+    @Test
+    void createPayment_outsideCreationWindow_forAdmin_allowsCreation() {
+        mockCurrentTime(LocalDateTime.of(2026, 4, 21, 10, 0));
+
+        User client = buildClient(42L, 30666667);
+        User admin = buildAdmin(2L, 30000002, ADMIN_EMAIL);
+
+        PaymentRequestDTO request = PaymentRequestDTO.builder()
+                .clientDni(client.getDni())
+                .amount(30000.0)
+                .methodType(MethodType.TRANSFER)
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
+
+        when(userService.getUserByEmail(ADMIN_EMAIL)).thenReturn(admin);
+        when(userService.getUserByDni(client.getDni())).thenReturn(client);
+        when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(client, PaymentStatus.PENDING))
+                .thenReturn(Optional.empty());
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment payment = paymentService.createPayment(request, null, ADMIN_EMAIL);
+
+        assertNotNull(payment);
+        verify(paymentRepository).save(any(Payment.class));
     }
 
     @Test
     void createPayment_withExistingPendingPayment_throwsBusinessRuleException() {
         User client = buildClient(51L, 30777777);
+        when(userService.getUserByEmail(CLIENT_EMAIL)).thenReturn(client);
 
         Payment pendingPayment = Payment.builder()
                 .id(101L)
@@ -174,7 +207,7 @@ class PaymentServiceTest {
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(client, PaymentStatus.PENDING))
                 .thenReturn(Optional.of(pendingPayment));
 
-        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null));
+        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null, CLIENT_EMAIL));
     }
 
     @Test
@@ -211,13 +244,22 @@ class PaymentServiceTest {
     }
 
     private User buildClient(Long id, Integer dni) {
+        return buildUser(id, dni, UserRole.CLIENT, UserStatus.INACTIVE, CLIENT_EMAIL);
+    }
+
+    private User buildAdmin(Long id, Integer dni, String email) {
+        return buildUser(id, dni, UserRole.ADMIN, UserStatus.ACTIVE, email);
+    }
+
+    private User buildUser(Long id, Integer dni, UserRole role, UserStatus status, String email) {
         User user = new User();
         user.setId(id);
         user.setDni(dni);
         user.setFirstName("Cliente");
         user.setLastName(String.valueOf(dni));
-        user.setRole(UserRole.CLIENT);
-        user.setStatus(UserStatus.INACTIVE);
+        user.setEmail(email);
+        user.setRole(role);
+        user.setStatus(status);
         return user;
     }
 }

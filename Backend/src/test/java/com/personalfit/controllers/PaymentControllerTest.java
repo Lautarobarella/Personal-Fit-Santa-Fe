@@ -209,7 +209,7 @@ class PaymentControllerTest {
                     .paymentStatus(PaymentStatus.PENDING)
                     .build();
 
-            when(paymentService.createBatchPayments(anyList())).thenReturn(3);
+            when(paymentService.createBatchPayments(anyList(), anyString())).thenReturn(3);
 
             mockMvc.perform(post("/api/payments/batch")
                             .with(user("admin").roles("ADMIN"))

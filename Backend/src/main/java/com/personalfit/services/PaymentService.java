@@ -107,7 +107,7 @@ public class PaymentService {
      * Supports both Single-User and Multi-User (Group) payments.
      * 
      * Process:
-     * 1. Validates creation window (day 1 to day 20 of each month).
+     * 1. Enforces the creation window for client-initiated payments only.
      * 2. Persists the payment record with PENDING status.
      * 3. Stores the optional receipt file if provided.
      * 4. Calculates expiration date as day 10 of the following month.
@@ -119,8 +119,9 @@ public class PaymentService {
      * @return The persisted Payment entity.
      */
     @Transactional
-    public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file) {
-        validatePaymentCreationWindow();
+    public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file, String authenticatedUserEmail) {
+        User authenticatedUser = userService.getUserByEmail(authenticatedUserEmail);
+        validatePaymentCreationWindow(authenticatedUser);
 
         // 1. Resolve Target Users
         List<User> users = getUsersForPayment(paymentRequest);
@@ -183,8 +184,9 @@ public class PaymentService {
      * @return Count of successfully created payments.
      */
     @Transactional
-    public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests) {
-        validatePaymentCreationWindow();
+    public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests, String authenticatedUserEmail) {
+        User authenticatedUser = userService.getUserByEmail(authenticatedUserEmail);
+        validatePaymentCreationWindow(authenticatedUser);
 
         List<Payment> paymentsToSave = new ArrayList<>();
         LocalDateTime createdAt = LocalDateTime.now(clock);
@@ -414,7 +416,11 @@ public class PaymentService {
         return users;
     }
 
-    private void validatePaymentCreationWindow() {
+    private void validatePaymentCreationWindow(User authenticatedUser) {
+        if (authenticatedUser != null && authenticatedUser.getRole() != UserRole.CLIENT) {
+            return;
+        }
+
         LocalDate today = LocalDate.now(clock);
 
         if (!isWithinPaymentCreationWindow(today)) {
