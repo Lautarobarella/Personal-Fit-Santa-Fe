@@ -11,7 +11,6 @@ import { getMuscleGroupLabels } from "@/lib/muscle-groups"
 import { ActivityStatus, AttendanceStatus, UserRole, UserStatus } from "@/lib/types"
 import {
   Activity,
-  AlertTriangle,
   CakeIcon,
   Calendar,
   Clock,
@@ -68,7 +67,8 @@ export function ClientDetailsDialog({
     enrolledActivities,
     attendanceRate,
     totalPaid,
-    totalPending,
+    lastCompletedActivityDate,
+    completedActivitiesThisMonth,
   } = useClientDetailsDialog(userId, isOpen)
 
   if (loading) {
@@ -491,31 +491,13 @@ export function ClientDetailsDialog({
                       </div>
                       <div className="flex flex-col items-center">
                         <span className="text-muted-foreground text-xs">Última actividad:</span>
-                        <p className="font-medium text-sm">{selectedClient.lastActivity ? formatDate(selectedClient.lastActivity) : "No posee"}</p>
+                        <p className="font-medium text-sm">{lastCompletedActivityDate ? formatDate(lastCompletedActivityDate) : "Sin actividad"}</p>
                       </div>
                       <div className="flex flex-col items-center">
-                        <span className="text-muted-foreground text-xs">Promedio mensual:</span>
-                        <p className="font-medium text-sm">
-                          {Math.round(
-                            presentActivities.length / selectedClient.listActivity.length,
-                          )}{" "}
-                          actividades
-                        </p>
+                        <span className="text-muted-foreground text-xs">Este mes:</span>
+                        <p className="font-medium text-sm">{completedActivitiesThisMonth} actividades</p>
                       </div>
                     </div>
-
-                    {/* Payment Alerts */}
-                    {totalPending > 0 && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
-                          <div>
-                            <span className="text-sm font-medium text-red-800">Pagos pendientes:</span>
-                            <p className="text-sm text-red-700">${totalPending} en pagos por cobrar</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>

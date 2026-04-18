@@ -187,7 +187,7 @@ export default function ClientsPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        <span>Última actividad: {client.lastActivity ? formatDate(client?.lastActivity) : "no ha realizado ninguna actividad"}</span>
+                        <span>Última actividad: {client.lastActivity ? formatDate(client?.lastActivity) : "sin actividad"}</span>
                       </div>
                     </div>
                   </div>

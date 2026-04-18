@@ -189,20 +189,6 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
     }
   }
 
-  const presentActivities =
-    selectedClient?.listActivity.filter(
-      (a) => a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE,
-    ) ?? []
-  const absentActivities =
-    selectedClient?.listActivity.filter((a) => a.clientStatus === AttendanceStatus.ABSENT) ?? []
-  const enrolledActivities =
-    selectedClient?.listActivity.filter((a) => a.clientStatus === AttendanceStatus.PENDING) ?? []
-
-  const attendanceRate =
-    presentActivities.length > 0
-      ? Math.round((presentActivities.length / (presentActivities.length + absentActivities.length)) * 100)
-      : 0
-
   const syncedClient = useMemo(() => {
     if (!selectedClient) {
       return null
@@ -222,6 +208,80 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
       }),
     }
   }, [payments, selectedClient])
+
+  const presentActivities = useMemo(
+    () =>
+      syncedClient?.listActivity.filter(
+        (activity) =>
+          activity.clientStatus === AttendanceStatus.PRESENT || activity.clientStatus === AttendanceStatus.LATE,
+      ) ?? [],
+    [syncedClient],
+  )
+
+  const absentActivities = useMemo(
+    () => syncedClient?.listActivity.filter((activity) => activity.clientStatus === AttendanceStatus.ABSENT) ?? [],
+    [syncedClient],
+  )
+
+  const enrolledActivities = useMemo(
+    () => syncedClient?.listActivity.filter((activity) => activity.clientStatus === AttendanceStatus.PENDING) ?? [],
+    [syncedClient],
+  )
+
+  const attendanceRate =
+    presentActivities.length > 0
+      ? Math.round((presentActivities.length / (presentActivities.length + absentActivities.length)) * 100)
+      : 0
+
+  const lastCompletedActivityDate = useMemo(() => {
+    if (!syncedClient?.listActivity.length) {
+      return syncedClient?.lastActivity ?? null
+    }
+
+    const lastTimestamp = syncedClient.listActivity.reduce<number | null>((latestTimestamp, activity) => {
+      const isCompletedAttendance =
+        activity.clientStatus === AttendanceStatus.PRESENT || activity.clientStatus === AttendanceStatus.LATE
+
+      if (!isCompletedAttendance || !activity.date) {
+        return latestTimestamp
+      }
+
+      const parsedTimestamp = new Date(activity.date).getTime()
+      if (Number.isNaN(parsedTimestamp)) {
+        return latestTimestamp
+      }
+
+      if (latestTimestamp === null || parsedTimestamp > latestTimestamp) {
+        return parsedTimestamp
+      }
+
+      return latestTimestamp
+    }, null)
+
+    return lastTimestamp !== null ? new Date(lastTimestamp) : syncedClient.lastActivity ?? null
+  }, [syncedClient])
+
+  const completedActivitiesThisMonth = useMemo(() => {
+    const today = new Date()
+    const currentMonth = today.getMonth()
+    const currentYear = today.getFullYear()
+
+    return presentActivities.reduce((count, activity) => {
+      if (!activity.date) {
+        return count
+      }
+
+      const parsedDate = new Date(activity.date)
+      if (Number.isNaN(parsedDate.getTime())) {
+        return count
+      }
+
+      const isCurrentMonth =
+        parsedDate.getMonth() === currentMonth && parsedDate.getFullYear() === currentYear
+
+      return isCurrentMonth ? count + 1 : count
+    }, 0)
+  }, [presentActivities])
 
   const completedPayments =
     syncedClient?.listPayments.filter((p) => p.status === PaymentStatus.PAID) ?? []
@@ -256,5 +316,7 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
     pendingPayments,
     totalPaid,
     totalPending,
+    lastCompletedActivityDate,
+    completedActivitiesThisMonth,
   }
 }

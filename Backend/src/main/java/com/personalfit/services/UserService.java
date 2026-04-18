@@ -218,8 +218,7 @@ public class UserService {
             Integer age = getUserAge(user);
             newUserDto.setAge(age);
 
-            // TODO: Implement actual 'Last Activity' logic (currently hardcoded to now)
-            newUserDto.setLastActivity(LocalDate.now());
+            newUserDto.setLastActivity(getLastCompletedActivityDate(user));
             newUserDto.setActivitiesCount(user.getAttendances().size());
 
             usersDto.add(newUserDto);
@@ -290,7 +289,7 @@ public class UserService {
                     .build());
         });
 
-        userDto.setLastActivity(LocalDate.now()); // Placeholder
+        userDto.setLastActivity(getLastCompletedActivityDate(user));
         userDto.setActivitiesCount(user.getAttendances().size());
 
         return userDto;
@@ -578,6 +577,17 @@ public class UserService {
         return (int) attendanceRepository.findByUser(client).stream()
                 .filter(this::countsAsCompletedAttendance)
                 .count();
+    }
+
+    private LocalDate getLastCompletedActivityDate(User client) {
+        return client.getAttendances().stream()
+                .filter(this::countsAsCompletedAttendance)
+                .map(Attendance::getActivity)
+                .filter(activity -> activity != null && activity.getDate() != null)
+                .map(Activity::getDate)
+                .max(LocalDateTime::compareTo)
+                .map(LocalDateTime::toLocalDate)
+                .orElse(null);
     }
 
     private boolean isAttendanceWithinRange(Attendance attendance, LocalDateTime start, LocalDateTime end) {
