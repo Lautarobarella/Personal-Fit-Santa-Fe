@@ -347,34 +347,39 @@ html {
 }
 
 /* Animaciones profesionales adicionales */
-@keyframes slideInFromBottom {
+@keyframes avatarPreviewEnter {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translate(-50%, -50%) scale(0.72);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
-@keyframes fadeInScale {
+@keyframes avatarPreviewExit {
   from {
-    opacity: 0;
-    transform: scale(0.95);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
   to {
-    opacity: 1;
-    transform: scale(1);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
   }
 }
 
-.animate-slide-in-bottom {
-  animation: slideInFromBottom 0.3s ease-out;
+.avatar-preview-content {
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 
-.animate-fade-in-scale {
-  animation: fadeInScale 0.2s ease-out;
+.avatar-preview-content[data-state="open"] {
+  animation: avatarPreviewEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.avatar-preview-content[data-state="closed"] {
+  animation: avatarPreviewExit 0.18s ease-in forwards;
 }
 
 /* Ocultar scrollbar pero mantener funcionalidad */

@@ -137,10 +137,10 @@ export function CreatePaymentDialog({
                                                     className={`border ${validatedUsers[index]?.isValid
                                                         ? 'border-green-500 focus:ring-green-500'
                                                         : validatedUsers[index]?.errorMessage
-                                                            ? 'border-red-500 focus:ring-red-500'
+                                                            ? 'border-border focus:ring-ring'
                                                             : validatedUsers[index]?.isValidating
                                                                 ? 'border-blue-500 focus:ring-blue-500'
-                                                                : 'border-gray-300'
+                                                                : 'border-border'
                                                         }`}
                                                     placeholder="Ej: 30123456"
                                                     inputMode="numeric"
@@ -185,8 +185,8 @@ export function CreatePaymentDialog({
 
                                             {/* Validación negativa */}
                                             {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
-                                                <div className="flex items-center gap-1 text-sm text-red-600">
-                                                    <AlertCircle className="h-3 w-3" />
+                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                    <AlertCircle className="h-3 w-3 text-muted-foreground" />
                                                     <span>{validatedUsers[index].errorMessage}</span>
                                                 </div>
                                             )}
