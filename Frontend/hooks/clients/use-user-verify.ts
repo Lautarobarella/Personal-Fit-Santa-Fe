@@ -60,7 +60,10 @@ export function useUserVerify() {
   }, [])
 
   const currentUser = useMemo(() => {
-    if (!currentUserId) return null
+    if (!currentUserId) {
+      return null
+    }
+
     return pendingUsers.find((pendingUser) => pendingUser.id === currentUserId) ?? null
   }, [currentUserId, pendingUsers])
 
@@ -125,11 +128,30 @@ export function useUserVerify() {
       return "Sin fecha"
     }
 
+    let parsedDate: Date
+
+    if (typeof date === "string") {
+      const dateOnlyMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+      if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch
+        parsedDate = new Date(Number(year), Number(month) - 1, Number(day))
+      } else {
+        parsedDate = new Date(date)
+      }
+    } else {
+      parsedDate = date
+    }
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "Sin fecha"
+    }
+
     return new Intl.DateTimeFormat("es-AR", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    }).format(new Date(date))
+    }).format(parsedDate)
   }
 
   const getRoleText = (role: string) => {

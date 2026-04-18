@@ -113,11 +113,34 @@ export function useClientsPage() {
     : []
 
   const formatDate = (date: Date | string | null) => {
+    if (!date) {
+      return "N/A"
+    }
+
+    let parsedDate: Date
+
+    if (typeof date === "string") {
+      const dateOnlyMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+      if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch
+        parsedDate = new Date(Number(year), Number(month) - 1, Number(day))
+      } else {
+        parsedDate = new Date(date)
+      }
+    } else {
+      parsedDate = date
+    }
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "N/A"
+    }
+
     return new Intl.DateTimeFormat("es-ES", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(new Date(date ?? "N/A"))
+    }).format(parsedDate)
   }
 
   // ── Handlers ────────────────────────────────────────────────────────
