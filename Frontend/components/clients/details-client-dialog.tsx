@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { PaymentDetailsDialog } from "@/components/payments/payment-details-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
@@ -51,6 +52,9 @@ export function ClientDetailsDialog({
     setActiveTab,
     visibleSummaryActivityId,
     toggleSummaryVisibility,
+    paymentDetailsDialog,
+    setPaymentDetailsDialog,
+    handlePaymentDetailsClick,
     loading,
     error,
     selectedClient,
@@ -102,53 +106,54 @@ export function ClientDetailsDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
-        <div className="flex flex-col h-full overflow-hidden">
-          <DialogHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex gap-3">
-                <div className="flex flex-col items-start">
-                  <Badge className="mb-1" variant={selectedClient.status === UserStatus.ACTIVE ? "default" : "secondary"}>
-                    {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
-                  </Badge>
-                  <div className="flex items-center gap-3">
-                    <UserAvatar
-                      userId={selectedClient.id}
-                      firstName={selectedClient.firstName}
-                      lastName={selectedClient.lastName}
-                      avatar={selectedClient.avatar}
-                      className="h-12 w-12"
-                      fallbackClassName="text-lg"
-                    />
-                    <div>
-                      <DialogTitle className="text-xl flex">{selectedClient.firstName + " " + selectedClient.lastName}</DialogTitle>
-                      <div className="flex items-center justify-between gap-2">
-                        <DialogDescription>{selectedClient.email}</DialogDescription>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
+          <div className="flex flex-col h-full overflow-hidden">
+            <DialogHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-start">
+                    <Badge className="mb-1" variant={selectedClient.status === UserStatus.ACTIVE ? "default" : "secondary"}>
+                      {selectedClient.status === UserStatus.ACTIVE ? "Activo" : "Inactivo"}
+                    </Badge>
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        userId={selectedClient.id}
+                        firstName={selectedClient.firstName}
+                        lastName={selectedClient.lastName}
+                        avatar={selectedClient.avatar}
+                        className="h-12 w-12"
+                        fallbackClassName="text-lg"
+                      />
+                      <div>
+                        <DialogTitle className="text-xl flex">{selectedClient.firstName + " " + selectedClient.lastName}</DialogTitle>
+                        <div className="flex items-center justify-between gap-2">
+                          <DialogDescription>{selectedClient.email}</DialogDescription>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  {onEdit && (
+                    <Button size="sm" variant="outline" onClick={onEdit}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {onDeactivate && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onDeactivate}
+                      className="text-destructive hover:text-destructive bg-transparent"
+                    >
+                      <UserX className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {onEdit && (
-                  <Button size="sm" variant="outline" onClick={onEdit}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                )}
-                {onDeactivate && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={onDeactivate}
-                    className="text-destructive hover:text-destructive bg-transparent"
-                  >
-                    <UserX className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </DialogHeader>
+            </DialogHeader>
 
           <Tabs
             value={activeTab}
@@ -387,7 +392,19 @@ export function ClientDetailsDialog({
                 )}
 
                 {selectedClient.listPayments.map((payment) => (
-                  <Card key={payment.id} className="m-2">
+                  <Card
+                    key={payment.id}
+                    className="m-2 cursor-pointer transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handlePaymentDetailsClick(payment.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault()
+                        handlePaymentDetailsClick(payment.id)
+                      }
+                    }}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
@@ -502,9 +519,18 @@ export function ClientDetailsDialog({
                 </Card>
               </div>
             </TabsContent>
-          </Tabs>
-        </div>
-      </DialogContent>
-    </Dialog >
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog >
+
+      {paymentDetailsDialog.paymentId !== null && (
+        <PaymentDetailsDialog
+          open={paymentDetailsDialog.open}
+          onOpenChange={(open) => setPaymentDetailsDialog({ open, paymentId: open ? paymentDetailsDialog.paymentId : null })}
+          paymentId={paymentDetailsDialog.paymentId}
+        />
+      )}
+    </>
   )
 }

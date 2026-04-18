@@ -11,6 +11,10 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
   const { payments } = usePaymentContext()
   const [activeTab, setActiveTab] = useState("profile")
   const [visibleSummaryActivityId, setVisibleSummaryActivityId] = useState<number | null>(null)
+  const [paymentDetailsDialog, setPaymentDetailsDialog] = useState<{ open: boolean; paymentId: number | null }>({
+    open: false,
+    paymentId: null,
+  })
   const { loading, error, loadClientDetail, selectedClient } = useClients()
 
   useEffect(() => {
@@ -22,11 +26,16 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
   useEffect(() => {
     if (!isOpen) {
       setVisibleSummaryActivityId(null)
+      setPaymentDetailsDialog({ open: false, paymentId: null })
     }
   }, [isOpen])
 
   const toggleSummaryVisibility = (id: number) => {
     setVisibleSummaryActivityId((currentId) => (currentId === id ? null : id))
+  }
+
+  const handlePaymentDetailsClick = (paymentId: number) => {
+    setPaymentDetailsDialog({ open: true, paymentId })
   }
 
   const formatDate = (date: Date | string | null | undefined) => {
@@ -296,6 +305,9 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
     setActiveTab,
     visibleSummaryActivityId,
     toggleSummaryVisibility,
+    paymentDetailsDialog,
+    setPaymentDetailsDialog,
+    handlePaymentDetailsClick,
     loading,
     error,
     selectedClient: syncedClient,

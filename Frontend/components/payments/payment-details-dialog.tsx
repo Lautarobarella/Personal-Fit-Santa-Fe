@@ -19,7 +19,7 @@ import { Calendar, Clock, DollarSign, FileImage, User } from "lucide-react"
 
 interface PaymentDetailsDialogProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (_open: boolean) => void
   paymentId: number
 }
 

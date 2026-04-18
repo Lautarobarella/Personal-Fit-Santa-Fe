@@ -4,7 +4,7 @@
  */
 
 // IMPORTANTE: Incrementa este número cada vez que resetees la BD o hagas cambios que requieran limpiar cache
-export const BUILD_VERSION = '1.2.3';
+export const BUILD_VERSION = '1.2.4';
 const VERSION_KEY = 'app_build_version';
 
 /**
