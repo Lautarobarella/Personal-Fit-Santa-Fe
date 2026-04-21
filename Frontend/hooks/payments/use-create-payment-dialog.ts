@@ -7,9 +7,7 @@ import { useSettings } from "@/hooks/settings/use-settings"
 import { useToast } from "@/hooks/use-toast"
 import { createOptimizedPreview, validatePaymentFile } from "@/lib/file-compression"
 import {
-  canUserCreatePaymentAtDate,
   getNextPaymentDueDate,
-  getPaymentCreationWindowLabel,
   toLocalDateInputValue,
 } from "@/lib/payment-rules"
 import { MethodType, PaymentStatus, UserRole } from "@/lib/types"
@@ -494,15 +492,6 @@ export function useCreatePaymentDialog(
       toast({
         title: "Error",
         description: "El monto base debe ser un número válido mayor a 0",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (user?.role === UserRole.CLIENT && !canUserCreatePaymentAtDate(user.role)) {
-      toast({
-        title: "Fuera de período",
-        description: `Los pagos solo se pueden crear ${getPaymentCreationWindowLabel()}.`,
         variant: "destructive",
       })
       return

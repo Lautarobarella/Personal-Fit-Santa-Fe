@@ -48,8 +48,6 @@ export default function PaymentsPage() {
         activePayment,
         pendingPayment,
         canCreateNewPayment,
-        isPaymentCreationWindowOpen,
-        paymentCreationWindowLabel,
         formatDate,
         getStatusColor,
         getStatusText,
@@ -192,11 +190,6 @@ export default function PaymentsPage() {
                                     </>
                                 )}
                             </div>
-                            {!isPaymentCreationWindowOpen && (
-                                <p className="mt-3 text-xs font-medium text-muted-foreground">
-                                    La carga de pagos está habilitada {paymentCreationWindowLabel}.
-                                </p>
-                            )}
                         </CardContent>
                     </Card>
                 )}

@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { MethodType, UserRole } from "@/lib/types"
-import { canUserCreatePaymentAtDate, getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
 import { cn } from "@/lib/utils"
 import { User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -52,16 +51,9 @@ export default function NewPaymentPage() {
     return parsed
   }, [groupSizeInput])
 
-  const isPaymentCreationWindowOpen = useMemo(() => isWithinPaymentCreationWindow(), [])
-  const paymentCreationWindowLabel = useMemo(() => getPaymentCreationWindowLabel(), [])
   const canCurrentUserCreatePayment = useMemo(() => {
-    if (!user) {
-      return false
-    }
-
-    return canUserCreatePaymentAtDate(user.role)
+    return !!user
   }, [user])
-  const shouldShowPaymentWindowWarning = user?.role === UserRole.CLIENT && !isPaymentCreationWindowOpen
 
   const canContinue = useMemo(() => {
     if (!canCurrentUserCreatePayment) {
@@ -138,15 +130,6 @@ export default function NewPaymentPage() {
             </DialogHeader>
 
             <DialogBody className="space-y-4 px-5 py-4 sm:px-6">
-              {shouldShowPaymentWindowWarning && (
-                <Card className="border-amber-300 bg-amber-50">
-                  <CardContent className="p-3">
-                    <p className="text-xs font-medium text-amber-900">
-                      La carga de pagos está habilitada {paymentCreationWindowLabel}.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
 
               <div className="space-y-3">
                 <button

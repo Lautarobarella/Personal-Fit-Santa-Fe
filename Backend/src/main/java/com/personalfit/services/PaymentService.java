@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -73,8 +72,6 @@ public class PaymentService {
     // Maximum allowed size for receipt files (3MB).
     // Files are pre-compressed on the client-side before upload.
     private static final Integer MAX_FILE_SIZE_MB = 3;
-    private static final int PAYMENT_CREATION_WINDOW_START_DAY = 1;
-    private static final int PAYMENT_CREATION_WINDOW_END_DAY = 20;
 
     @Value("${spring.datasource.files.path}")
     private String UPLOAD_FOLDER;
@@ -107,11 +104,10 @@ public class PaymentService {
      * Supports both Single-User and Multi-User (Group) payments.
      * 
      * Process:
-     * 1. Enforces the creation window for client-initiated payments only.
-     * 2. Persists the payment record with PENDING status.
-     * 3. Stores the optional receipt file if provided.
-     * 4. Calculates expiration date as day 10 of the following month.
-     * 5. Updates User status to ACTIVE if the payment is immediately marked as
+     * 1. Persists the payment record with PENDING status.
+     * 2. Stores the optional receipt file if provided.
+     * 3. Calculates expiration date as day 10 of the following month.
+     * 4. Updates User status to ACTIVE if the payment is immediately marked as
      * PAID.
      * 
      * @param paymentRequest DTO containing amount, method, and target users.
@@ -120,9 +116,6 @@ public class PaymentService {
      */
     @Transactional
     public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file, String authenticatedUserEmail) {
-        User authenticatedUser = userService.getUserByEmail(authenticatedUserEmail);
-        validatePaymentCreationWindow(authenticatedUser);
-
         // 1. Resolve Target Users
         List<User> users = getUsersForPayment(paymentRequest);
 
@@ -185,9 +178,6 @@ public class PaymentService {
      */
     @Transactional
     public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests, String authenticatedUserEmail) {
-        User authenticatedUser = userService.getUserByEmail(authenticatedUserEmail);
-        validatePaymentCreationWindow(authenticatedUser);
-
         List<Payment> paymentsToSave = new ArrayList<>();
         LocalDateTime createdAt = LocalDateTime.now(clock);
 
@@ -414,25 +404,6 @@ public class PaymentService {
         }
 
         return users;
-    }
-
-    private void validatePaymentCreationWindow(User authenticatedUser) {
-        if (authenticatedUser != null && authenticatedUser.getRole() != UserRole.CLIENT) {
-            return;
-        }
-
-        LocalDate today = LocalDate.now(clock);
-
-        if (!isWithinPaymentCreationWindow(today)) {
-            throw new BusinessRuleException(
-                    "Los pagos solo se pueden crear entre el día 1 y el 20 de cada mes.",
-                    "/api/payments/new");
-        }
-    }
-
-    private boolean isWithinPaymentCreationWindow(LocalDate date) {
-        int dayOfMonth = date.getDayOfMonth();
-        return dayOfMonth >= PAYMENT_CREATION_WINDOW_START_DAY && dayOfMonth <= PAYMENT_CREATION_WINDOW_END_DAY;
     }
 
     private void validateSinglePendingPaymentRule(User user) {

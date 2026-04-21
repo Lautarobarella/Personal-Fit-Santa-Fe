@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
-import { canUserCreatePaymentAtDate, getPaymentCreationWindowLabel, isWithinPaymentCreationWindow } from "@/lib/payment-rules"
 import { MethodType, PaymentStatus, UserRole } from "@/types"
 
 const getAdminShowRevenueStorageKey = (userId?: number) =>
@@ -196,13 +195,11 @@ export function usePaymentsPage() {
 
   const pendingPayment = pendingPayments.find((p: any) => p.status === PaymentStatus.PENDING)
 
-  const isPaymentCreationWindowOpen = isWithinPaymentCreationWindow()
-  const paymentCreationWindowLabel = getPaymentCreationWindowLabel()
   const canCreateNewPayment =
     user?.role === UserRole.ADMIN
-      ? canUserCreatePaymentAtDate(user.role)
+      ? true
       : user?.role === UserRole.CLIENT
-        ? canUserCreatePaymentAtDate(user.role) && !pendingPayment
+        ? !pendingPayment
         : false
 
   // ── Handlers ────────────────────────────────────────────────────────
@@ -250,8 +247,6 @@ export function usePaymentsPage() {
     activePayment,
     pendingPayment,
     canCreateNewPayment,
-    isPaymentCreationWindowOpen,
-    paymentCreationWindowLabel,
     // Formatters
     formatDate,
     getStatusColor,
