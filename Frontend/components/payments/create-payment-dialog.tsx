@@ -55,9 +55,7 @@ export function CreatePaymentDialog({
         clientDnis,
         validatedUsers,
         baseAmount,
-        setBaseAmount,
         amount,
-        setAmount,
         startDate,
         dueDate,
         paymentMethod,
@@ -237,14 +235,11 @@ export function CreatePaymentDialog({
                                         id="baseAmount"
                                         type="text"
                                         value={baseAmount}
-                                        onChange={(e) => {
-                                            const value = e.target.value
-                                            if (/^\d*\.?\d*$/.test(value)) {
-                                                setBaseAmount(value)
-                                            }
-                                        }}
-                                        placeholder="Ej: 30000"
+                                        readOnly
+                                        aria-readonly="true"
+                                        placeholder="Monto por usuario"
                                         inputMode="numeric"
+                                        className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                                     />
                                 </div>
                             )}
@@ -261,21 +256,9 @@ export function CreatePaymentDialog({
                                     id="amount"
                                     type="text"
                                     value={amount}
-                                    readOnly={validatedUsers.filter(user => user.isValid).length !== 1}
-                                    onChange={(e) => {
-                                        if (validatedUsers.filter(user => user.isValid).length === 1) {
-                                            const value = e.target.value
-                                            if (/^\d*\.?\d*$/.test(value)) {
-                                                setAmount(value)
-                                                setBaseAmount(value)
-                                            }
-                                        }
-                                    }}
-                                    className={validatedUsers.filter(user => user.isValid).length > 1
-                                        ? "bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                        : "border border-gray-300"
-                                    }
-                                    onFocus={(e) => e.currentTarget.blur()} // evitar edición por foco
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
                                 />
                                 {validatedUsers.filter(u => u.isValid).length > 1 && (
                                     <p className="text-sm text-gray-600">
