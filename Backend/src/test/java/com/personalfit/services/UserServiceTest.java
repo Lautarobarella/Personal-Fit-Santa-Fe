@@ -23,9 +23,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.mock.web.MockMultipartFile;
 
 import com.personalfit.enums.AttendanceStatus;
+import com.personalfit.enums.ActivityStatus;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
+import com.personalfit.dto.User.UserDetailInfoDTO;
 import com.personalfit.dto.User.UserTypeDTO;
 import com.personalfit.models.Activity;
 import com.personalfit.models.Attendance;
@@ -94,6 +96,30 @@ class UserServiceTest {
     }
 
     @Test
+    void createUserDetailInfoDTO_sortsUnorderedCompletedActivitiesByDateDescending() {
+        User client = buildClient(3L);
+        LocalDateTime oldestDate = LocalDateTime.of(2026, 5, 1, 10, 0);
+        LocalDateTime middleDate = LocalDateTime.of(2026, 5, 5, 18, 0);
+        LocalDateTime newestDate = LocalDateTime.of(2026, 5, 10, 8, 0);
+
+        Attendance oldestAttendance = buildCompletedActivityAttendance(11L, "Fuerza", oldestDate);
+        Attendance newestAttendance = buildCompletedActivityAttendance(12L, "Funcional", newestDate);
+        Attendance middleAttendance = buildCompletedActivityAttendance(13L, "Spinning", middleDate);
+        client.setAttendances(List.of(oldestAttendance, newestAttendance, middleAttendance));
+
+        UserDetailInfoDTO detail = userService.createUserDetailInfoDTO(client);
+
+        System.out.println("Input order: 11 Fuerza 2026-05-01, 12 Funcional 2026-05-10, 13 Spinning 2026-05-05");
+        System.out.println("Sorted order: " + detail.getListActivity().stream()
+                .map(activity -> activity.getId() + " " + activity.getName() + " " + activity.getDate())
+                .toList());
+
+        assertEquals(List.of(12L, 13L, 11L), detail.getListActivity().stream()
+                .map(activity -> activity.getId())
+                .toList());
+    }
+
+    @Test
     void uploadAndDeleteAvatar_usesExpectedFileNameAndRestoresInitials() throws IOException {
         User client = buildClient(15L);
         client.setFirstName("Juan");
@@ -142,6 +168,25 @@ class UserServiceTest {
         Attendance attendance = new Attendance();
         attendance.setActivity(activity);
         attendance.setAttendance(status);
+        return attendance;
+    }
+
+    private Attendance buildCompletedActivityAttendance(Long activityId, String activityName, LocalDateTime activityDate) {
+        User trainer = new User();
+        trainer.setFirstName("Trainer");
+        trainer.setLastName(String.valueOf(activityId));
+
+        Activity activity = Activity.builder()
+                .id(activityId)
+                .name(activityName)
+                .date(activityDate)
+                .status(ActivityStatus.COMPLETED)
+                .trainer(trainer)
+                .build();
+
+        Attendance attendance = new Attendance();
+        attendance.setActivity(activity);
+        attendance.setAttendance(AttendanceStatus.PRESENT);
         return attendance;
     }
 }

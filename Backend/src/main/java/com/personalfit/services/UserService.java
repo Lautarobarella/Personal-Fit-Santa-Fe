@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -275,9 +276,9 @@ public class UserService {
         UserDetailInfoDTO userDto = new UserDetailInfoDTO(user);
         userDto.setAge(getUserAge(user));
 
-        // Map Attendance History
-        user.getAttendances().forEach(attendance -> {
-            userDto.getListActivity().add(UserActivityDetailsDTO.builder()
+        // Map Attendance History, newest activities first.
+        user.getAttendances().stream()
+                .map(attendance -> UserActivityDetailsDTO.builder()
                     .id(attendance.getActivity().getId())
                     .name(attendance.getActivity().getName())
                     .trainerName(attendance.getActivity().getTrainer().getFirstName() + " "
@@ -286,8 +287,11 @@ public class UserService {
                     .activityStatus(attendance.getActivity().getStatus())
                     .clientStatus(attendance.getAttendance())
                     .summary(convertToActivitySummaryDTO(attendance.getActivitySummary()))
-                    .build());
-        });
+                    .build())
+                .sorted(Comparator
+                        .comparing(UserActivityDetailsDTO::getDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(UserActivityDetailsDTO::getId, Comparator.nullsLast(Comparator.reverseOrder())))
+                .forEach(userDto.getListActivity()::add);
 
         userDto.setLastActivity(getLastCompletedActivityDate(user));
         userDto.setActivitiesCount(user.getAttendances().size());
