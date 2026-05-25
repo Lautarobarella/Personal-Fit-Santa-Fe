@@ -29,12 +29,7 @@ class JWTPermissionsApi {
         throw new Error('Authentication required')
       }
 
-      // Token expired, try to refresh
-      const newToken = await refreshAccessToken()
-      if (!newToken) {
-        throw new Error('Authentication failed')
-      }
-      throw new Error('Authentication failed - please try again')
+      throw new Error('Authentication failed')
     }
 
     if (!response.ok) {
@@ -94,18 +89,30 @@ class JWTPermissionsApi {
     if (!(body instanceof FormData)) {
       requestHeaders['Content-Type'] = 'application/json'
     }
-    const config: RequestInit = {
-      method,
-      headers: requestHeaders,
-      credentials: 'include',
-    }
+    const buildRequestConfig = (): RequestInit => {
+      const config: RequestInit = {
+        method,
+        headers: requestHeaders,
+        credentials: 'include',
+      }
 
-    if (body) {
-      config.body = body instanceof FormData ? body : JSON.stringify(body)
+      if (body) {
+        config.body = body instanceof FormData ? body : JSON.stringify(body)
+      }
+
+      return config
     }
 
     try {
-      const response = await fetch(url, config)
+      const response = await fetch(url, buildRequestConfig())
+      if (response.status === 401 && requireAuth && isAuthenticated()) {
+        const refreshed = await refreshAccessToken()
+        if (refreshed) {
+          const retryResponse = await fetch(url, buildRequestConfig())
+          return await this.handleResponse(retryResponse, false)
+        }
+      }
+
       return await this.handleResponse(response, requireAuth)
     } catch (error) {
       throw error

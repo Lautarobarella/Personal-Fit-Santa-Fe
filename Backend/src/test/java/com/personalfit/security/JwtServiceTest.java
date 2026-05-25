@@ -10,6 +10,11 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.ActiveProfiles;
 
+import io.jsonwebtoken.Claims;
+
+import java.time.Duration;
+import java.util.Date;
+
 import static org.assertj.core.api.Assertions.*;
 
 /**
@@ -50,6 +55,18 @@ class JwtServiceTest {
         void generateRefreshToken_ReturnsNonNull() {
             String token = jwtService.generateRefreshToken(testUser);
             assertThat(token).isNotNull().isNotBlank();
+        }
+
+        @Test
+        @DisplayName("refresh token should expire in seven days")
+        void generateRefreshToken_ExpiresInSevenDays() {
+            String refreshToken = jwtService.generateRefreshToken(testUser);
+
+            Date issuedAt = jwtService.extractClaim(refreshToken, Claims::getIssuedAt);
+            Date expiresAt = jwtService.extractClaim(refreshToken, Claims::getExpiration);
+
+            Duration refreshDuration = Duration.between(issuedAt.toInstant(), expiresAt.toInstant());
+            assertThat(refreshDuration).isBetween(Duration.ofDays(7).minusSeconds(1), Duration.ofDays(7).plusSeconds(1));
         }
 
         @Test

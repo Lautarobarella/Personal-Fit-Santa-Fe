@@ -6,8 +6,8 @@ import type { UserRole, UserType } from "./types"
  * Corresponds to the standard JWT Bearer Token response structure.
  */
 export interface AuthResponse {
-  accessToken: string
-  refreshToken: string
+  accessToken?: string
+  refreshToken?: string
   tokenType: string
   user: UserType
   globalSettings?: any
@@ -111,14 +111,14 @@ export const getUserId = (): number | null => {
 
 /**
  * Token Refresh Mechanism.
- * Called automatically by API interceptors (axios/fetch wrappers) when AccessToken expires.
+ * Called automatically by API wrappers when the access token cookie expires.
  * Uses the HTTP-Only cookie to request a new AccessToken.
  * 
- * @returns The new AccessToken string or null if session is completely dead.
+ * @returns True when the backend renewed the session cookies.
  */
-export const refreshAccessToken = async (): Promise<string | null> => {
+export const refreshAccessToken = async (): Promise<boolean> => {
   if (!isAuthenticated()) {
-    return null
+    return false
   }
 
   try {
@@ -134,7 +134,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       console.error('Token refresh failed:', response.statusText)
       // Force logout if we can't refresh (e.g., RefreshToken expired too)
       logout()
-      return null
+      return false
     }
 
     const authData: AuthResponse = await response.json()
@@ -145,11 +145,11 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       localStorage.setItem('globalSettings', JSON.stringify(authData.globalSettings))
     }
 
-    return authData.accessToken
+    return true
   } catch (error) {
     console.error('Token refresh error:', error)
     logout()
-    return null
+    return false
   }
 }
 
