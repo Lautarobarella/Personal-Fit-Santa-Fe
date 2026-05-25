@@ -348,7 +348,16 @@ public class PaymentService {
         }
 
         paymentRepository.save(payment);
-        log.info("Payment status updated: ID={}, NewStatus={}", paymentId, newStatus);
+        if (newStatus == PaymentStatus.REJECTED) {
+            log.info("Payment rejected: id={}, hasReason={}",
+                    paymentId, statusUpdate.getRejectionReason() != null);
+        } else if (newStatus == PaymentStatus.PAID) {
+            log.info("Payment approved: id={}, amount={}, users={}",
+                    paymentId, payment.getAmount(),
+                    payment.getUsers() != null ? payment.getUsers().size() : 0);
+        } else {
+            log.info("Payment status updated: id={}, newStatus={}", paymentId, newStatus);
+        }
     }
 
     /**
@@ -633,6 +642,9 @@ public class PaymentService {
                     log.error("Error sending payment expiration notifications: {}", notifEx.getMessage());
                 }
             }
+
+            log.info("Monthly expiration job complete: expired={}, deactivated={}",
+                    expiredPayments.size(), usersWithExpiredMembership.size());
 
         } catch (Exception e) {
             log.error("Error during monthly expiration job", e);

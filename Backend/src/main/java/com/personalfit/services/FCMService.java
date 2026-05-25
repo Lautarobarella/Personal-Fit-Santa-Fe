@@ -130,5 +130,6 @@ public class FCMService {
         for (Long userId : userIds) {
             sendNotification(userId, title, body);
         }
+        log.info("Bulk push dispatched: recipients={}", userIds.size());
     }
 }

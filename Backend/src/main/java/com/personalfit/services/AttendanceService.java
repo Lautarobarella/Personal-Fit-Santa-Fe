@@ -18,14 +18,17 @@ import com.personalfit.models.User;
 import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.AttendanceRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Service Layer: Attendance & Enrollment
- * 
+ *
  * Manages user participation in activities.
  * Handles enrollment rules (quotas, capacities) and attendance tracking (Start
  * -> Present/Absent).
  */
 @Service
+@Slf4j
 public class AttendanceService {
 
     @Autowired
@@ -55,11 +58,14 @@ public class AttendanceService {
 
         // Rule 1: Prevent double enrollment
         if (isUserEnrolled(userId, activityId)) {
+            log.warn("Enrollment rejected (double-booking): userId={}, activityId={}", userId, activityId);
             throw new BusinessRuleException("User is already enrolled in this activity", "Api/Attendance/enrollUser");
         }
 
         // Rule 2: Check Capacity
         if (activity.getAttendances().size() >= activity.getSlots()) {
+            log.warn("Enrollment rejected (capacity): userId={}, activityId={}, slots={}",
+                    userId, activityId, activity.getSlots());
             throw new BusinessRuleException("Activity is full", "Api/Attendance/enrollUser");
         }
 
@@ -68,6 +74,8 @@ public class AttendanceService {
         long activitiesOnSameDay = attendanceRepository.countByUserAndActivityDate(user, activity.getDate());
 
         if (activitiesOnSameDay >= maxActivitiesPerDay) {
+            log.warn("Enrollment rejected (daily limit): userId={}, date={}, limit={}",
+                    userId, activity.getDate().toLocalDate(), maxActivitiesPerDay);
             throw new BusinessRuleException(
                     String.format("Cannot enroll in more than %d activities per day", maxActivitiesPerDay),
                     "Api/Attendance/enrollUser");
@@ -79,6 +87,7 @@ public class AttendanceService {
         attendance.setAttendance(AttendanceStatus.PENDING);
 
         Attendance savedAttendance = attendanceRepository.save(attendance);
+        log.info("User enrolled: userId={}, activityId={}", userId, activityId);
 
         return AttendanceDTO.builder()
                 .id(savedAttendance.getId())
@@ -104,6 +113,7 @@ public class AttendanceService {
         Optional<Attendance> attendance = attendanceRepository.findByUserAndActivity(user, activity);
         if (attendance.isPresent()) {
             attendanceRepository.delete(attendance.get());
+            log.info("User unenrolled: userId={}, activityId={}", userId, activityId);
         } else {
             throw new BusinessRuleException("User is not enrolled in this activity", "Api/Attendance/unenrollUser");
         }
@@ -185,6 +195,8 @@ public class AttendanceService {
 
         if (!pendingAttendances.isEmpty()) {
             attendanceRepository.saveAll(pendingAttendances);
+            log.info("Pending attendances marked ABSENT: activityId={}, count={}",
+                    activityId, pendingAttendances.size());
         }
     }
 

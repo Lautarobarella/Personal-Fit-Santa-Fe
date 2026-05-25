@@ -8,12 +8,15 @@ import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.models.Settings;
 import com.personalfit.repository.SettingsRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Service for managing application-wide settings.
  * Handles retrieval and updates for configurations like monthly fees, timing
  * rules, and limits.
  */
 @Service
+@Slf4j
 public class SettingsService {
 
     @Autowired
@@ -52,7 +55,7 @@ public class SettingsService {
                     .orElseGet(() -> createDefaultMonthlyFeeSetting());
             return Double.parseDouble(setting.getValue());
         } catch (Exception e) {
-            // In case of error, return default value
+            log.warn("Failed to read monthly_fee setting, returning default: cause={}", e.getMessage());
             return DEFAULT_MONTHLY_FEE;
         }
     }
@@ -68,6 +71,7 @@ public class SettingsService {
         setting.setValue(amount.toString());
         settingsRepository.save(setting);
 
+        log.info("Setting updated: key={}, value={}", MONTHLY_FEE_KEY, amount);
         return amount;
     }
 
@@ -89,6 +93,7 @@ public class SettingsService {
         setting.setValue(hours.toString());
 
         settingsRepository.save(setting);
+        log.info("Setting updated: key={}, value={}", REGISTRATION_TIME_KEY, hours);
         return hours;
     }
 
@@ -111,6 +116,7 @@ public class SettingsService {
         setting.setValue(hours.toString());
 
         settingsRepository.save(setting);
+        log.info("Setting updated: key={}, value={}", UNREGISTRATION_TIME_KEY, hours);
         return hours;
     }
 
@@ -132,6 +138,7 @@ public class SettingsService {
         setting.setValue(maxActivities.toString());
 
         settingsRepository.save(setting);
+        log.info("Setting updated: key={}, value={}", MAX_ACTIVITIES_PER_DAY_KEY, maxActivities);
         return maxActivities;
     }
 
@@ -141,7 +148,7 @@ public class SettingsService {
                     .orElseGet(() -> createDefaultPaymentGracePeriodSetting());
             return Integer.parseInt(setting.getValue());
         } catch (Exception e) {
-            // In case of error, return default value
+            log.warn("Failed to read payment_grace_period setting, returning default: cause={}", e.getMessage());
             return DEFAULT_PAYMENT_GRACE_PERIOD;
         }
     }
@@ -158,6 +165,7 @@ public class SettingsService {
         setting.setValue(days.toString());
 
         settingsRepository.save(setting);
+        log.info("Setting updated: key={}, value={}", PAYMENT_GRACE_PERIOD_KEY, days);
         return days;
     }
 

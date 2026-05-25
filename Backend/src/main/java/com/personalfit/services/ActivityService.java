@@ -87,7 +87,9 @@ public class ActivityService {
                 .build();
 
         try {
-            activityRepository.save(newActivity);
+            Activity saved = activityRepository.save(newActivity);
+            log.info("Activity created: id={}, name={}, trainerId={}, date={}",
+                    saved.getId(), saved.getName(), trainer.getId(), saved.getDate());
         } catch (Exception e) {
             throw new BusinessRuleException("Failed to save activity: " + e.getMessage(),
                     "Api/Activity/createActivity");
@@ -129,6 +131,7 @@ public class ActivityService {
 
         try {
             activityRepository.save(existingActivity);
+            log.info("Activity updated: id={}, trainerId={}", id, trainer.getId());
         } catch (Exception e) {
             throw new BusinessRuleException("Failed to update activity: " + e.getMessage(),
                     "Api/Activity/updateActivity");
@@ -142,6 +145,7 @@ public class ActivityService {
 
         try {
             activityRepository.delete(activity);
+            log.info("Activity deleted: id={}, date={}", id, activity.getDate());
         } catch (Exception e) {
             throw new BusinessRuleException("Failed to delete activity: " + e.getMessage(),
                     "Api/Activity/deleteActivity");

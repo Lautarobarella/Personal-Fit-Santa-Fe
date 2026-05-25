@@ -115,7 +115,8 @@ public class AuthController {
                 ResponseCookie accessTokenCookie = buildCookie("accessToken", "", 0);
                 ResponseCookie refreshTokenCookie = buildCookie("refreshToken", "", 0);
 
-                log.info("User logged out successfully");
+                String principal = (authentication != null) ? authentication.getName() : "anonymous";
+                log.info("User logged out: {}", principal);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
