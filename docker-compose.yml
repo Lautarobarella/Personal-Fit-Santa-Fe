@@ -29,6 +29,11 @@ services:
       - personalfit-network
     depends_on:
       - postgres
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
     environment:
       SPRING_DATASOURCE_FILES_PATH: ${SPRING_DATASOURCE_FILES_PATH}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
@@ -71,6 +76,11 @@ services:
       - personalfit-network
     depends_on:
       - personalfit-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
     ports:
       - "3000:3000"
     environment:

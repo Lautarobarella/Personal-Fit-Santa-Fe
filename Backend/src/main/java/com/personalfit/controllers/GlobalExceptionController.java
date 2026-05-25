@@ -32,7 +32,7 @@ public class GlobalExceptionController {
      */
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ErrorDTO> handleAuthenticationException(AuthException ex) {
-        log.error("Authentication error: {}", ex.getMessage());
+        log.warn("Authentication error: path={}, msg={}", ex.path, ex.getMessage());
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
@@ -48,7 +48,7 @@ public class GlobalExceptionController {
      */
     @ExceptionHandler(FileException.class)
     public ResponseEntity<ErrorDTO> handleFileException(FileException ex) {
-        log.error("File error: {}", ex.getMessage());
+        log.warn("File error: path={}, msg={}", ex.path, ex.getMessage());
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -64,7 +64,8 @@ public class GlobalExceptionController {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorDTO> handleEntityNotFoundException(EntityNotFoundException ex) {
-        log.error("Entity not found: {}", ex.getMessage());
+        // 404 is part of normal traffic. Keep at DEBUG to avoid noise.
+        log.debug("Entity not found: path={}, msg={}", ex.path, ex.getMessage());
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
@@ -81,7 +82,7 @@ public class GlobalExceptionController {
      */
     @ExceptionHandler(EntityAlreadyExistsException.class)
     public ResponseEntity<ErrorDTO> handleEntityAlreadyExistsException(EntityAlreadyExistsException ex) {
-        log.error("Entity already exists: {}", ex.getMessage());
+        log.warn("Entity already exists: path={}, msg={}", ex.path, ex.getMessage());
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
@@ -97,7 +98,7 @@ public class GlobalExceptionController {
      */
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorDTO> handleBusinessRuleException(BusinessRuleException ex) {
-        log.error("Business rule violation: {}", ex.getMessage());
+        log.warn("Business rule violation: path={}, msg={}", ex.path, ex.getMessage());
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -132,7 +133,7 @@ public class GlobalExceptionController {
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .reduce((a, b) -> a + "; " + b)
                 .orElse("Validation failed");
-        log.error("Validation error: {}", message);
+        log.warn("Validation error: {}", message);
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())

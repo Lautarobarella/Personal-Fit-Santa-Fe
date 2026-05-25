@@ -84,7 +84,7 @@ public class AuthController {
                 }
 
                 AuthResponseDTO response = authService.refreshToken(tokenToUse);
-                log.info("Token refreshed successfully");
+                log.debug("Token refreshed successfully");
 
                 // Set new cookies
                 ResponseCookie accessTokenCookie = buildCookie("accessToken", response.getAccessToken(),

@@ -158,9 +158,9 @@ public class PaymentService {
         // 7. Persist (Cascade will save relationships)
         Payment savedPayment = paymentRepository.save(payment);
 
-        log.info("Payment created successfully: ID={}, Users={}, Amount={}, CreatedBy={}",
+        log.info("Payment created: id={}, users={}, amount={}, createdByUserId={}",
                 savedPayment.getId(), users.size(), savedPayment.getAmount(),
-                createdByUser != null ? createdByUser.getFullName() : "N/A");
+                createdByUser != null ? createdByUser.getId() : null);
 
         return savedPayment;
     }
@@ -188,7 +188,7 @@ public class PaymentService {
 
                 // Logic Constraint: Batch payments currently support 1 user per transaction row
                 if (users.size() != 1) {
-                    log.warn("Skipping multi-user batch row: DNIs={}", paymentRequest.getAllDnis());
+                    log.warn("Skipping multi-user batch row: requestedCount={}", users.size());
                     continue;
                 }
 
@@ -196,7 +196,7 @@ public class PaymentService {
 
                 // Validation: Must be a CLIENT
                 if (!user.getRole().equals(UserRole.CLIENT)) {
-                    log.warn("Skipping payment for non-client: DNI={}, Role={}", user.getDni(), user.getRole());
+                    log.warn("Skipping payment for non-client: userId={}, role={}", user.getId(), user.getRole());
                     continue;
                 }
 
@@ -218,7 +218,7 @@ public class PaymentService {
                 paymentsToSave.add(payment);
 
             } catch (Exception e) {
-                log.error("Error processing batch payment item: {}", e.getMessage());
+                log.warn("Batch payment item skipped: cause={}", e.getMessage());
             }
         }
 
@@ -720,7 +720,7 @@ public class PaymentService {
         monthlyRevenue.addRevenue(amount);
         monthlyRevenueRepository.save(monthlyRevenue);
 
-        log.info("Monthly revenue updated: Year={}, Month={}, Amount={}, Total={}",
+        log.debug("Monthly revenue updated: year={}, month={}, amount={}, total={}",
                 year, month, amount, monthlyRevenue.getTotalRevenue());
     }
 
@@ -746,7 +746,7 @@ public class PaymentService {
 
         String monthName = now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
 
-        log.info("Calculated current month revenue in real time: Year={}, Month={}, TotalRevenue={}, TotalPayments={}",
+        log.debug("Current month revenue computed: year={}, month={}, totalRevenue={}, totalPayments={}",
                 year, month, totalRevenue, totalPayments);
 
         return MonthlyRevenueDTO.builder()
@@ -864,7 +864,7 @@ public class PaymentService {
             return false;
 
         } catch (Exception e) {
-            log.error("Error validating enrollment eligibility for user {}: {}", userId, e.getMessage());
+            log.warn("Enrollment eligibility check failed: userId={}, cause={}", userId, e.getMessage());
             return false;
         }
     }

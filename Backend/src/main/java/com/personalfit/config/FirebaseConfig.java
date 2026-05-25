@@ -74,8 +74,8 @@ public class FirebaseConfig {
                     serviceAccountStream = new FileInputStream(FIREBASE_CONFIG_PATH);
                 } else {
                     // Critical Failure: Notification system cannot function without credentials
-                    logger.warn("❌ Firebase configuration not found in Env Var or File ({})", FIREBASE_CONFIG_PATH);
-                    logger.warn("📋 Push notifications will be disabled.");
+                    logger.warn("Firebase configuration not found (env or {}). Push notifications disabled.",
+                            FIREBASE_CONFIG_PATH);
                     return;
                 }
             }
@@ -99,9 +99,9 @@ public class FirebaseConfig {
             FirebaseApp.getInstance();
 
         } catch (IOException e) {
-            logger.error("❌ Error reading Firebase configuration: {}", e.getMessage(), e);
+            logger.error("Error reading Firebase configuration: {}", e.getMessage());
         } catch (Exception e) {
-            logger.error("❌ Error initializing Firebase Admin SDK", e);
+            logger.error("Error initializing Firebase Admin SDK: {}", e.getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ public class FirebaseConfig {
     @Bean
     public FirebaseAuth firebaseAuth() {
         if (FirebaseApp.getApps().isEmpty()) {
-            logger.warn("⚠️ Firebase not initialized - FirebaseAuth bean will not be available");
+            logger.warn("Firebase not initialized; FirebaseAuth bean unavailable");
             return null;
         }
         return FirebaseAuth.getInstance();

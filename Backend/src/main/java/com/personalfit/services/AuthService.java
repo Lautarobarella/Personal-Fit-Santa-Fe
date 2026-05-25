@@ -75,7 +75,9 @@ public class AuthService {
         } catch (BusinessRuleException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Authentication failed for user: {}", request.getEmail(), e);
+            // Bad credentials are an expected runtime case; log at WARN
+            // without stack trace to avoid noise on every failed attempt.
+            log.warn("Authentication failed: email={}, cause={}", request.getEmail(), e.getMessage());
             throw new BusinessRuleException("Incorrect email or password", "Api/Auth/authenticate");
         }
     }
@@ -121,7 +123,9 @@ public class AuthService {
         } catch (BusinessRuleException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Token refresh failed", e);
+            // Refresh token rejection is expected (expired/rotated/tampered).
+            // Do not log the token itself.
+            log.warn("Token refresh failed: {}", e.getMessage());
             throw new BusinessRuleException("Error refreshing token", "Api/Auth/refreshToken");
         }
     }

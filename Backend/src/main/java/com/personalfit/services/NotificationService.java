@@ -62,7 +62,7 @@ public class NotificationService {
 
         try {
             notificationRepository.save(newNotification);
-            log.info("Notification created for user: {} | Title: {}", user.getId(), notification.getTitle());
+            log.debug("Notification created: userId={}, title={}", user.getId(), notification.getTitle());
 
             // Trigger External Push
             fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
@@ -131,7 +131,7 @@ public class NotificationService {
 
         try {
             notificationRepository.delete(notification);
-            log.info("Notification deleted: {}", id);
+            log.debug("Notification deleted: {}", id);
         } catch (Exception e) {
             throw new BusinessRuleException("Delete failed: " + e.getMessage(),
                     "Api/Notification/deleteNotification");
@@ -184,7 +184,7 @@ public class NotificationService {
 
         try {
             notificationRepository.save(notification);
-            log.info("Marked as Read: {}", id);
+            log.debug("Notification marked as read: {}", id);
         } catch (Exception e) {
             throw new BusinessRuleException("Status update failed: " + e.getMessage(),
                     "Api/Notification/markAsRead");
@@ -203,7 +203,7 @@ public class NotificationService {
 
         try {
             notificationRepository.save(notification);
-            log.info("Marked as Unread: {}", id);
+            log.debug("Notification marked as unread: {}", id);
         } catch (Exception e) {
             throw new BusinessRuleException("Status update failed: " + e.getMessage(),
                     "Api/Notification/markAsUnread");
@@ -222,7 +222,7 @@ public class NotificationService {
 
         try {
             notificationRepository.save(notification);
-            log.info("Archived: {}", id);
+            log.debug("Notification archived: {}", id);
         } catch (Exception e) {
             throw new BusinessRuleException("Archive failed: " + e.getMessage(),
                     "Api/Notification/archiveNotification");
@@ -241,7 +241,7 @@ public class NotificationService {
 
         try {
             notificationRepository.save(notification);
-            log.info("Unarchived: {}", id);
+            log.debug("Notification unarchived: {}", id);
         } catch (Exception e) {
             throw new BusinessRuleException("Unarchive failed: " + e.getMessage(),
                     "Api/Notification/unarchiveNotification");
@@ -279,9 +279,9 @@ public class NotificationService {
                 notificationRepository.save(notification);
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("Expiration alert sent to user: {}", user.getId());
+                log.debug("Expiration alert sent: userId={}", user.getId());
             } catch (Exception e) {
-                log.error("Failed to alert user {}: {}", user.getId(), e.getMessage());
+                log.warn("Failed to send expiration alert: userId={}, cause={}", user.getId(), e.getMessage());
             }
         }
 
@@ -303,9 +303,9 @@ public class NotificationService {
                     notificationRepository.save(notification);
                     fcmService.sendNotification(admin.getId(), title, message);
 
-                    log.info("Expiration summary sent to admin: {}", admin.getId());
+                    log.debug("Expiration summary sent: adminId={}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Failed to alert admin {}: {}", admin.getId(), e.getMessage());
+                    log.warn("Failed to send expiration summary: adminId={}, cause={}", admin.getId(), e.getMessage());
                 }
             }
         }
@@ -335,9 +335,9 @@ public class NotificationService {
                 notificationRepository.save(notification);
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("Birthday wish sent to user: {}", user.getId());
+                log.debug("Birthday wish sent: userId={}", user.getId());
             } catch (Exception e) {
-                log.error("Failed to wish user {}: {}", user.getId(), e.getMessage());
+                log.warn("Failed to send birthday wish: userId={}, cause={}", user.getId(), e.getMessage());
             }
         }
 
@@ -363,9 +363,9 @@ public class NotificationService {
                     notificationRepository.save(notification);
                     fcmService.sendNotification(admin.getId(), title, message);
 
-                    log.info("Birthday report sent to admin: {}", admin.getId());
+                    log.debug("Birthday report sent: adminId={}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Failed to report birthdays to admin {}: {}", admin.getId(), e.getMessage());
+                    log.warn("Failed to send birthday report: adminId={}, cause={}", admin.getId(), e.getMessage());
                 }
             }
         }
@@ -395,9 +395,9 @@ public class NotificationService {
                 notificationRepository.save(notification);
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("Absence warning sent to user: {}", user.getId());
+                log.debug("Absence warning sent: userId={}", user.getId());
             } catch (Exception e) {
-                log.error("Failed to warn user {}: {}", user.getId(), e.getMessage());
+                log.warn("Failed to send absence warning: userId={}, cause={}", user.getId(), e.getMessage());
             }
         }
 
@@ -419,9 +419,9 @@ public class NotificationService {
                     notificationRepository.save(notification);
                     fcmService.sendNotification(admin.getId(), title, message);
 
-                    log.info("Absence report sent to admin: {}", admin.getId());
+                    log.debug("Absence report sent: adminId={}", admin.getId());
                 } catch (Exception e) {
-                    log.error("Failed to report absence to admin {}: {}", admin.getId(), e.getMessage());
+                    log.warn("Failed to send absence report: adminId={}, cause={}", admin.getId(), e.getMessage());
                 }
             }
         }
@@ -451,9 +451,9 @@ public class NotificationService {
             notificationRepository.save(notification);
             fcmService.sendNotification(user.getId(), title, message);
 
-            log.info("Payment reminder sent to user: {}", user.getId());
+            log.debug("Payment reminder sent: userId={}", user.getId());
         } catch (Exception e) {
-            log.error("Failed to send payment reminder to user {}: {}", user.getId(), e.getMessage());
+            log.warn("Failed to send payment reminder: userId={}, cause={}", user.getId(), e.getMessage());
         }
     }
 
@@ -482,9 +482,9 @@ public class NotificationService {
                 notificationRepository.save(notification);
                 fcmService.sendNotification(user.getId(), title, message);
 
-                log.info("Class reminder sent to user: {} for activity: {}", user.getId(), activityName);
+                log.debug("Class reminder sent: userId={}, activity={}", user.getId(), activityName);
             } catch (Exception e) {
-                log.error("Failed to send class reminder to user {}: {}", user.getId(), e.getMessage());
+                log.warn("Failed to send class reminder: userId={}, cause={}", user.getId(), e.getMessage());
             }
         }
     }

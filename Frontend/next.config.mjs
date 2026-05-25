@@ -10,6 +10,14 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
+  // Strip debug-level console calls (log/info/debug) from production bundles.
+  // Errors and warnings are preserved: they are the only frontend logs that
+  // should reach Docker stdout (server-side) or browser devtools (client-side).
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production'
+      ? { exclude: ['error', 'warn'] }
+      : false,
+  },
   // Configuración para archivos estáticos en Docker
   trailingSlash: false,
   

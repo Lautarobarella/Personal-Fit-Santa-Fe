@@ -112,7 +112,7 @@ public class UserService {
                 LocalDate.now(),
                 "Api/User/createNewUser");
 
-        log.info("User upserted: {} ({})", userToCreate.getFullName(), userToCreate.getRole());
+        log.info("User upserted: id={}, role={}", userToCreate.getId(), userToCreate.getRole());
 
         return true;
     }
@@ -137,7 +137,7 @@ public class UserService {
                 LocalDate.now(),
                 "Api/User/createPendingUserRegistration");
 
-        log.info("New pending registration created: {} ({})", pendingUser.getFullName(), pendingUser.getRole());
+        log.info("New pending registration created: id={}, role={}", pendingUser.getId(), pendingUser.getRole());
         return true;
     }
 
@@ -404,7 +404,7 @@ public class UserService {
      */
     @Scheduled(cron = "0 0 3 * * ?")
     public void userStatusDailyCheck() {
-        log.info("Starting daily user status audit...");
+        log.debug("Running job: daily user status audit");
         List<User> users = userRepository.findAllByStatusAndDeletedAtIsNull(UserStatus.ACTIVE);
         List<User> toUpdate = new ArrayList<>();
 
@@ -420,7 +420,7 @@ public class UserService {
                     || !payment.get().getExpiresAt().toLocalDate().isAfter(LocalDate.now())) {
                 u.setStatus(UserStatus.INACTIVE);
                 toUpdate.add(u);
-                log.info("Deactivating user {}: Membership expired.", u.getFullName());
+                log.debug("Deactivating user {}: membership expired", u.getId());
             }
         });
 
@@ -439,11 +439,11 @@ public class UserService {
      */
     @Scheduled(cron = "0 1 0 * * ?")
     public void userBirthdayCheck() {
-        log.info("Checking for birthdays...");
+        log.debug("Running job: birthday check");
         List<User> users = userRepository.findAllByBirthDateAndDeletedAtIsNull(LocalDate.now());
 
         if (!users.isEmpty()) {
-            log.info("Found {} birthdays today.", users.size());
+            log.info("Birthday notifications dispatched: count={}", users.size());
             notificationService.createBirthdayNotification(users, getAllAdmins());
         }
     }
@@ -456,7 +456,7 @@ public class UserService {
      */
     @Scheduled(cron = "0 45 2 * * ?")
     public void userAttendanceCheck() {
-        log.info("Checking attendance streaks...");
+        log.debug("Running job: attendance streak check");
         LocalDateTime dateLimit = LocalDateTime.now().minusDays(7);
 
         // Find users active but absent since dateLimit
@@ -464,7 +464,7 @@ public class UserService {
                 dateLimit.toLocalDate());
 
         if (!users.isEmpty()) {
-            log.info("Sending attendance warnings to {} users.", users.size());
+            log.info("Attendance warnings dispatched: count={}", users.size());
             notificationService.createAttendanceWarningNotification(users, getAllAdmins());
         }
     }
@@ -797,7 +797,7 @@ public class UserService {
             existingUser.setDeletedAt(null);
 
             User restoredUser = userRepository.save(existingUser);
-            log.info("Soft-deleted user reactivated: ID={}, DNI={}", restoredUser.getId(), restoredUser.getDni());
+            log.info("Soft-deleted user reactivated: id={}", restoredUser.getId());
             return restoredUser;
         }
 

@@ -25,7 +25,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             AuthenticationException authException
     ) throws IOException, ServletException {
         
-        log.error("Unauthorized error: {}", authException.getMessage());
+        // Unauthorized hits happen routinely (missing/expired tokens,
+        // anonymous probes). DEBUG keeps logs useful without flooding.
+        log.debug("Unauthorized request: path={}, cause={}",
+                request.getServletPath(), authException.getMessage());
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

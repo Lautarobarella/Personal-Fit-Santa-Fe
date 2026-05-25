@@ -329,7 +329,7 @@ public class ActivityService {
     @Scheduled(cron = "0 */30 * * * *")
     @Transactional
     public void checkCompletedActivies() {
-        log.info("Running job: Check Completed Activities");
+        log.debug("Running job: Check Completed Activities");
         LocalDateTime now = LocalDateTime.now();
 
         List<Activity> activeActivities = activityRepository.findByStatus(ActivityStatus.ACTIVE);
@@ -344,14 +344,13 @@ public class ActivityService {
             if (activityEndTime.isBefore(now)) {
                 activity.setStatus(ActivityStatus.COMPLETED);
                 toUpdate.add(activity);
-                log.info("Activity {} marked COMPLETED. Ended at: {}", activity.getId(), activityEndTime);
+                log.debug("Activity {} marked COMPLETED at {}", activity.getId(), activityEndTime);
 
                 // Auto-mark absentees
                 try {
                     attendanceService.markPendingAttendancesAsAbsent(activity.getId());
-                    log.info("marked pending as absent for activity: {}", activity.getId());
                 } catch (Exception e) {
-                    log.error("Failed to mark absentees for activity {}: {}", activity.getId(), e.getMessage());
+                    log.warn("Failed to mark absentees: activityId={}, cause={}", activity.getId(), e.getMessage());
                 }
 
                 // Handle Recurrence
@@ -373,7 +372,7 @@ public class ActivityService {
                             .build();
 
                     toCreate.add(newActivity);
-                    log.info("Recurring activity created for: {}", nextWeekDate);
+                    log.debug("Recurring activity scheduled for: {}", nextWeekDate);
                 }
             }
         }
@@ -385,7 +384,9 @@ public class ActivityService {
             activityRepository.saveAll(toCreate);
         }
 
-        log.info("Job Complete. Activities Updated: {}, Created: {}", toUpdate.size(), toCreate.size());
+        if (!toUpdate.isEmpty() || !toCreate.isEmpty()) {
+            log.info("Activity job: updated={}, created={}", toUpdate.size(), toCreate.size());
+        }
     }
 
     /**
@@ -395,7 +396,7 @@ public class ActivityService {
     @Scheduled(cron = "0 */30 * * * *")
     public void sendClassReminders() {
         try {
-            log.info("Running job: Class Reminders");
+            log.debug("Running job: Class Reminders");
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime oneHourFromNow = now.plusHours(1);
 
@@ -425,8 +426,8 @@ public class ActivityService {
                     notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(),
                             activity.getDate(), activity.getLocation());
 
-                    log.info("Reminders sent for activity {}: {} users notified",
-                            activity.getName(), enrolledUsers.size());
+                    log.info("Class reminders sent: activityId={}, recipients={}",
+                            activity.getId(), enrolledUsers.size());
                 }
             }
         } catch (Exception e) {
@@ -440,7 +441,7 @@ public class ActivityService {
      * @return Number of successful creations.
      */
     public Integer createBatchActivities(List<ActivityFormTypeDTO> activities) {
-        log.info("Batch processing {} activities", activities.size());
+        log.info("Activity batch import: {} items", activities.size());
 
         List<Activity> activitiesToCreate = new ArrayList<>();
         int successCount = 0;
@@ -472,7 +473,7 @@ public class ActivityService {
 
             } catch (Exception e) {
                 errorCount++;
-                log.error("Batch item skipped: {} - {}", activityDTO.getName(), e.getMessage());
+                log.warn("Batch item skipped: name={}, cause={}", activityDTO.getName(), e.getMessage());
             }
         }
 

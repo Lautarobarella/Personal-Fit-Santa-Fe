@@ -16,7 +16,10 @@ import com.personalfit.models.User;
 import com.personalfit.models.WorkShift;
 import com.personalfit.repository.WorkShiftRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class WorkShiftService {
 
     @Autowired
@@ -100,7 +103,8 @@ public class WorkShiftService {
                 workShiftRepository.save(shift);
 
                 // TODO: Notify Admin and Trainer about auto-close
-                System.out.println("Auto-closed shift for trainer: " + shift.getTrainer().getFullName());
+                log.warn("Auto-closed stale shift: shiftId={}, trainerId={}",
+                        shift.getId(), shift.getTrainer().getId());
             }
         }
     }

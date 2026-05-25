@@ -69,7 +69,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
+            // Invalid/expired tokens are common (idle clients, anonymous
+            // probes). Log at DEBUG and never include the token itself.
+            log.debug("JWT authentication skipped: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

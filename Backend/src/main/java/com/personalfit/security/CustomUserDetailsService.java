@@ -25,7 +25,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
                 .orElseThrow(() -> {
-                    log.error("User not found with email: {}", email);
+                    // Not found during auth is an expected case (typo, ex-user).
+                    log.warn("User not found during authentication: {}", email);
                     return new UsernameNotFoundException("User not found with email: " + email);
                 });
 

@@ -116,7 +116,7 @@ public class PaymentController {
             @PathVariable Integer year,
             @PathVariable Integer month) {
 
-        log.info("Fetching payments for {}/{}", month, year);
+        log.debug("Fetching payments for {}/{}", month, year);
         List<PaymentTypeDTO> payments = paymentService.getPaymentsByMonthAndYear(year, month);
         return ResponseEntity.ok(payments);
     }
@@ -174,7 +174,7 @@ public class PaymentController {
     @GetMapping("/files/{fileId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
-        log.info("Downloading file: ID={}", fileId);
+        log.debug("Downloading file: id={}", fileId);
 
         byte[] fileContent = paymentService.getFileContent(fileId);
         PaymentFile fileInfo = paymentService.getPaymentFileInfo(fileId);
@@ -191,7 +191,7 @@ public class PaymentController {
     @GetMapping("/getFile/{paymentId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId) {
-        log.info("Fetching file for payment: ID={}", paymentId);
+        log.debug("Fetching file for payment: id={}", paymentId);
 
         Payment payment = paymentService.getPaymentWithFile(paymentId);
 
@@ -218,7 +218,7 @@ public class PaymentController {
     @GetMapping("/revenue/current")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MonthlyRevenueDTO> getCurrentMonthRevenue() {
-        log.info("Fetching current month revenue");
+        log.debug("Fetching current month revenue");
         MonthlyRevenueDTO currentRevenue = paymentService.getCurrentMonthRevenue();
         return ResponseEntity.ok(currentRevenue);
     }
@@ -229,7 +229,7 @@ public class PaymentController {
     @GetMapping("/revenue/history")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<MonthlyRevenueDTO>> getArchivedMonthlyRevenues() {
-        log.info("Fetching revenue history");
+        log.debug("Fetching revenue history");
         List<MonthlyRevenueDTO> archivedRevenues = paymentService.getArchivedMonthlyRevenues();
         return ResponseEntity.ok(archivedRevenues);
     }

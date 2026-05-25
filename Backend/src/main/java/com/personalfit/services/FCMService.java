@@ -44,7 +44,8 @@ public class FCMService {
         }
         userTokens.addToken(token);
         userTokensRepository.save(userTokens);
-        log.info("✅ FCM Token registered for user: {}", userId);
+        // Never log the token itself; user id is enough for diagnostics.
+        log.debug("FCM token registered: userId={}", userId);
     }
 
     /**
@@ -56,7 +57,7 @@ public class FCMService {
             UserTokens userTokens = userTokensOpt.get();
             userTokens.removeToken(token);
             userTokensRepository.save(userTokens);
-            log.info("✅ FCM Token unregistered for user: {}", userId);
+            log.debug("FCM token unregistered: userId={}", userId);
         }
     }
 
@@ -70,7 +71,7 @@ public class FCMService {
     public void sendNotification(Long userId, String title, String body) {
         // Check if Firebase is initialized
         if (FirebaseApp.getApps().isEmpty()) {
-            log.error("❌ Firebase not initialized. Cannot send notification to user: {}", userId);
+            log.warn("Firebase not initialized; skipping push to userId={}", userId);
             return;
         }
 
@@ -78,7 +79,7 @@ public class FCMService {
         if (userTokensOpt.isPresent() && !userTokensOpt.get().getTokens().isEmpty()) {
             List<String> tokens = userTokensOpt.get().getTokens();
 
-            log.info("📤 Attempting to send notification to user: {} with {} token(s)", userId, tokens.size());
+            log.debug("Sending push to userId={} with {} token(s)", userId, tokens.size());
 
             // Send to multiple tokens (Multicast)
             MulticastMessage message = MulticastMessage.builder()
@@ -91,17 +92,18 @@ public class FCMService {
 
             try {
                 BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-                log.info("✅ FCM Notification sent to user: {}. Success: {}, Failure: {}", userId,
+                log.debug("Push sent: userId={}, success={}, failure={}", userId,
                         response.getSuccessCount(), response.getFailureCount());
 
                 if (response.getFailureCount() > 0) {
-                    log.warn("⚠️ Some notifications failed. Details: {}", response.getResponses());
+                    // Aggregate, don't dump per-token response objects (verbose).
+                    log.warn("Push partial failure: userId={}, failures={}", userId, response.getFailureCount());
                 }
             } catch (Exception e) {
-                log.error("❌ Error sending FCM notification to user {}: {}", userId, e.getMessage(), e);
+                log.error("Push send error: userId={}, cause={}", userId, e.getMessage());
             }
         } else {
-            log.warn("⚠️ No FCM tokens found for user: {}. Push notification not sent.", userId);
+            log.debug("No FCM tokens for userId={}; push skipped", userId);
         }
     }
 

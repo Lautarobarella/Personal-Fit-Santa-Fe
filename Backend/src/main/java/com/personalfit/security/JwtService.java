@@ -108,19 +108,16 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
-            log.error("JWT token is expired: {}", e.getMessage());
+            // Expected: tokens expire and clients trigger refresh.
+            log.debug("JWT token expired");
             throw e;
-        } catch (UnsupportedJwtException e) {
-            log.error("JWT token is unsupported: {}", e.getMessage());
-            throw e;
-        } catch (MalformedJwtException e) {
-            log.error("Invalid JWT token: {}", e.getMessage());
-            throw e;
-        } catch (SecurityException e) {
-            log.error("Invalid JWT signature: {}", e.getMessage());
+        } catch (UnsupportedJwtException | MalformedJwtException | SecurityException e) {
+            // Tampered / wrong-signature / malformed tokens. Worth a WARN
+            // (security signal) but never log the token contents.
+            log.warn("JWT rejected: {}: {}", e.getClass().getSimpleName(), e.getMessage());
             throw e;
         } catch (IllegalArgumentException e) {
-            log.error("JWT claims string is empty: {}", e.getMessage());
+            log.debug("JWT claims empty");
             throw e;
         }
     }

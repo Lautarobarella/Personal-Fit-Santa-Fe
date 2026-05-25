@@ -53,9 +53,10 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error(`Backend responded with status: ${response.status}`);
       const errorText = await response.text();
-      console.error(`Backend error response: ${errorText}`);
+      // Log only status + fileId. Do not echo backend body to stdout: it
+      // may include payment metadata for an authenticated request.
+      console.warn(`Payment file proxy: status=${response.status} fileId=${fileId}`);
 
       return NextResponse.json(
         { error: "File not found or access denied", details: errorText },
@@ -78,7 +79,10 @@ export async function GET(
       headers,
     });
   } catch (error) {
-    console.error("Error serving file:", error);
+    console.error(
+      "Payment file proxy error:",
+      error instanceof Error ? error.message : "unknown",
+    );
     return NextResponse.json(
       {
         error: "Internal server error",
