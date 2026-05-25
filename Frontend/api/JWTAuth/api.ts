@@ -109,7 +109,7 @@ class JWTPermissionsApi {
         const refreshed = await refreshAccessToken()
         if (refreshed) {
           const retryResponse = await fetch(url, buildRequestConfig())
-          return await this.handleResponse(retryResponse, false)
+          return await this.handleResponse(retryResponse, requireAuth)
         }
       }
 

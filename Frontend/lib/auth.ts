@@ -109,6 +109,8 @@ export const getUserId = (): number | null => {
   return userIdStr ? parseInt(userIdStr, 10) : null
 }
 
+let refreshInFlight: Promise<boolean> | null = null
+
 /**
  * Token Refresh Mechanism.
  * Called automatically by API wrappers when the access token cookie expires.
@@ -121,6 +123,18 @@ export const refreshAccessToken = async (): Promise<boolean> => {
     return false
   }
 
+  if (refreshInFlight) {
+    return refreshInFlight
+  }
+
+  refreshInFlight = requestSessionRefresh().finally(() => {
+    refreshInFlight = null
+  })
+
+  return refreshInFlight
+}
+
+const requestSessionRefresh = async (): Promise<boolean> => {
   try {
     const response = await fetch(buildApiUrl('/api/auth/refresh'), {
       method: 'POST',

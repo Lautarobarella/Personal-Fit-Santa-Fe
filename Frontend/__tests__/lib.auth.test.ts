@@ -1,11 +1,18 @@
-import { hasPermission, isAuthenticated, getUserId } from '@/lib/auth'
+import { hasPermission, isAuthenticated, getUserId, refreshAccessToken } from '@/lib/auth'
 
-// We test the synchronous utility functions that don't need fetch/network.
-// authenticate/logout/refreshAccessToken are integration tests that need a real API.
+const originalFetch = global.fetch
+
+// authenticate/logout are integration tests that need a real API.
 
 describe('lib/auth - utility functions', () => {
   beforeEach(() => {
     localStorage.clear()
+    jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+    global.fetch = originalFetch
   })
 
   describe('getUserId', () => {
@@ -52,6 +59,28 @@ describe('lib/auth - utility functions', () => {
       expect(hasPermission('CLIENT' as any, 'ADMIN' as any)).toBe(false)
       expect(hasPermission('CLIENT' as any, 'TRAINER' as any)).toBe(false)
       expect(hasPermission('CLIENT' as any, 'CLIENT' as any)).toBe(true)
+    })
+  })
+
+  describe('refreshAccessToken', () => {
+    it('deduplica refresh concurrentes en una sola request', async () => {
+      localStorage.setItem('userId', '1')
+      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({
+        tokenType: 'Bearer',
+        user: { id: 1 },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+      const results = await Promise.all([
+        refreshAccessToken(),
+        refreshAccessToken(),
+        refreshAccessToken(),
+      ])
+
+      expect(results).toEqual([true, true, true])
+      expect(global.fetch).toHaveBeenCalledTimes(1)
     })
   })
 })

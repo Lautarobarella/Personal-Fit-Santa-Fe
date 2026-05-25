@@ -6,6 +6,8 @@ jest.mock('@/lib/auth', () => ({
   refreshAccessToken: jest.fn(),
 }))
 
+const originalFetch = global.fetch
+
 describe('jwtPermissionsApi auth refresh', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -14,6 +16,7 @@ describe('jwtPermissionsApi auth refresh', () => {
 
   afterEach(() => {
     jest.restoreAllMocks()
+    global.fetch = originalFetch
   })
 
   it('renews the session and retries the original request after a 401', async () => {
@@ -31,5 +34,39 @@ describe('jwtPermissionsApi auth refresh', () => {
     expect(refreshAccessToken).toHaveBeenCalledTimes(1)
     expect(global.fetch).toHaveBeenCalledTimes(2)
     expect(response).toEqual({ id: 1, email: 'client@test.com' })
+  })
+
+  it('does not retry when refresh fails after a 401', async () => {
+    ;(isAuthenticated as jest.Mock).mockReturnValueOnce(true).mockReturnValueOnce(false)
+    ;(refreshAccessToken as jest.Mock).mockResolvedValue(false)
+    global.fetch = jest.fn().mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+    await expect(jwtPermissionsApi.get('/api/users/info/1')).rejects.toThrow('Authentication required')
+
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not refresh when there is no local session marker', async () => {
+    ;(isAuthenticated as jest.Mock).mockReturnValue(false)
+    global.fetch = jest.fn().mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+    await expect(jwtPermissionsApi.get('/api/users/info/1')).rejects.toThrow('Authentication required')
+
+    expect(refreshAccessToken).not.toHaveBeenCalled()
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws an auth error when the retry still returns 401', async () => {
+    ;(isAuthenticated as jest.Mock).mockReturnValue(true)
+    ;(refreshAccessToken as jest.Mock).mockResolvedValue(true)
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+    await expect(jwtPermissionsApi.get('/api/users/info/1')).rejects.toThrow('Authentication failed')
+
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    expect(global.fetch).toHaveBeenCalledTimes(2)
   })
 })
