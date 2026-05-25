@@ -21,11 +21,10 @@ const mockActivity = {
   status: 'ACTIVE',
 }
 
-// Build week dates starting from Monday of current week
+// Build week dates starting from Sunday of current week
 const getWeekDates = () => {
   const d = new Date(today)
-  const diff = (d.getDay() + 6) % 7
-  d.setDate(d.getDate() - diff)
+  d.setDate(d.getDate() - d.getDay())
   d.setHours(0, 0, 0, 0)
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(d)
@@ -57,7 +56,7 @@ jest.mock('@/hooks/activities/use-activities-page', () => ({
     isTrainer: false,
     trainerFullName: 'Carlos Admin',
     weekDates,
-    dayNames: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+    dayNames: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
     weekActivities: [mockActivity],
     activitiesByDay: weekDates.map((date) => {
       const ad = new Date(date)

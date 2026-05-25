@@ -2,6 +2,7 @@ import { useActivityContext } from "@/contexts/activity-provider"
 import { useSettingsContext } from "@/contexts/settings-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
+import { getActivityToday, getInitialActivitiesWeekStart } from "@/lib/activity-week"
 import { ActivityStatus, ActivityType, UserRole } from "@/types"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
@@ -32,13 +33,7 @@ export function useActivitiesPage() {
   const [hasScrolledToToday, setHasScrolledToToday] = useState(false)
 
   const router = useRouter()
-  const [currentWeek, setCurrentWeek] = useState(() => {
-    const today = new Date()
-    const diffToMonday = (today.getDay() + 6) % 7
-    today.setDate(today.getDate() - diffToMonday)
-    today.setHours(0, 0, 0, 0)
-    return today
-  })
+  const [currentWeek, setCurrentWeek] = useState(() => getInitialActivitiesWeekStart())
 
   // Filtrar actividades por la semana actual
   const activities = useMemo(() => {
@@ -55,7 +50,7 @@ export function useActivitiesPage() {
   // Auto-scroll al día actual
   useEffect(() => {
     if (!loading && !hasScrolledToToday && activities.length > 0) {
-      const today = new Date()
+      const today = getActivityToday()
       today.setHours(0, 0, 0, 0)
 
       const currentWeekStart = new Date(currentWeek)
@@ -119,7 +114,7 @@ export function useActivitiesPage() {
   const isTrainer = user?.role === UserRole.TRAINER
   const trainerFullName = user ? `${user.firstName} ${user.lastName}` : ''
   const weekDates = getWeekDates(currentWeek)
-  const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+  const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
 
   // Filter activities
   const weekActivities = activities.filter((activity: ActivityType) => {
@@ -190,18 +185,14 @@ export function useActivitiesPage() {
   }
 
   const goToToday = () => {
-    const today = new Date()
-    const monday = new Date(today)
-    const diffToMonday = (monday.getDay() + 6) % 7
-    monday.setDate(monday.getDate() - diffToMonday)
-    monday.setHours(0, 0, 0, 0)
-    setCurrentWeek(monday)
+    const initialWeekStart = getInitialActivitiesWeekStart()
+    setCurrentWeek(initialWeekStart)
     setHasScrolledToToday(false)
-    loadActivitiesByWeek(monday)
+    loadActivitiesByWeek(initialWeekStart)
   }
 
   const isToday = (date: Date) => {
-    const today = new Date()
+    const today = getActivityToday()
     return date.toDateString() === today.toDateString()
   }
 

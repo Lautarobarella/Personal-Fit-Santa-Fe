@@ -198,13 +198,13 @@ public class ActivityService {
     /**
      * Scheduling View:
      * Returns activities for the week containing the given date.
-     * Range: Monday (00:00) to Sunday (23:59).
+     * Range: Sunday (00:00) to Saturday (23:59).
      */
     public List<ActivityTypeDTO> getAllActivitiesTypeDtoAtWeek(LocalDate date) {
-        LocalDate startOfWeekDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate startOfWeekDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
         LocalDateTime startOfWeek = startOfWeekDate.atStartOfDay();
 
-        LocalDate endOfWeekDate = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        LocalDate endOfWeekDate = startOfWeekDate.plusDays(6);
         LocalDateTime endOfWeek = endOfWeekDate.atTime(LocalTime.MAX);
 
         List<Activity> allActivities = activityRepository.findByDateBetween(startOfWeek, endOfWeek);

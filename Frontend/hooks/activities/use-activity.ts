@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useSettingsContext } from "@/contexts/settings-provider"
+import { getStartOfWeek } from "@/lib/activity-week"
 import { 
   ActivityType, 
   ActivityDetailInfo, 
@@ -358,16 +359,14 @@ export function useActivity() {
     })
   }, [activities])
 
-  // Función para obtener las fechas de una semana (Lunes a Domingo)
+  // Función para obtener las fechas de una semana (Domingo a Sábado)
   const getWeekDates = useCallback((startDate: Date): Date[] => {
     const dates = []
-    const monday = new Date(startDate)
-    const diffToMonday = (monday.getDay() + 6) % 7 // Convertir domingo=0 a domingo=6, lunes=1 a lunes=0
-    monday.setDate(monday.getDate() - diffToMonday) // Lunes de la semana actual
+    const weekStart = getStartOfWeek(startDate)
 
     for (let i = 0; i < 7; i++) {
-      const date = new Date(monday)
-      date.setDate(monday.getDate() + i)
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + i)
       dates.push(date)
     }
     return dates
