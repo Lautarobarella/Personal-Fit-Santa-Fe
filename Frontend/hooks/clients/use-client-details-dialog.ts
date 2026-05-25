@@ -189,8 +189,6 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
     switch (method) {
       case "CASH":
         return "Efectivo"
-      case "CARD":
-        return "Tarjeta"
       case "TRANSFER":
         return "Transferencia"
       default:

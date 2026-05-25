@@ -78,7 +78,7 @@ class PaymentControllerTest {
                     .clientName("Ana Gomez")
                     .amount(25000.0)
                     .status(PaymentStatus.PAID)
-                    .method(MethodType.CARD)
+                    .method(MethodType.TRANSFER)
                     .build();
 
             when(paymentService.getAllPayments()).thenReturn(Arrays.asList(samplePaymentDTO, payment2));

@@ -69,15 +69,13 @@ describe('Types & Enums - Contract Validation', () => {
   })
 
   describe('MethodType', () => {
-    it('debe tener CASH, CARD, TRANSFER, MERCADOPAGO', () => {
+    it('debe tener CASH y TRANSFER', () => {
       expect(MethodType.CASH).toBe('CASH')
-      expect(MethodType.CARD).toBe('CARD')
       expect(MethodType.TRANSFER).toBe('TRANSFER')
-      expect(MethodType.MERCADOPAGO).toBe('MERCADOPAGO')
     })
 
-    it('debe tener exactamente 4 métodos de pago', () => {
-      expect(Object.keys(MethodType)).toHaveLength(4)
+    it('debe tener exactamente 2 métodos de pago', () => {
+      expect(Object.keys(MethodType)).toHaveLength(2)
     })
   })
 
