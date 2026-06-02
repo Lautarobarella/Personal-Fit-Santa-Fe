@@ -440,7 +440,7 @@ public class UserService {
     @Scheduled(cron = "0 1 0 * * ?")
     public void userBirthdayCheck() {
         log.debug("Running job: birthday check");
-        List<User> users = userRepository.findAllByBirthDateAndDeletedAtIsNull(LocalDate.now());
+        List<User> users = getUsersWithBirthdayOn(LocalDate.now());
 
         if (!users.isEmpty()) {
             log.info("Birthday notifications dispatched: count={}", users.size());
@@ -606,6 +606,15 @@ public class UserService {
 
     public UserStatus getMembershipStatus(User client) {
         return client.getStatus();
+    }
+
+    List<User> getUsersWithBirthdayOn(LocalDate date) {
+        return userRepository.findAllByDeletedAtIsNull().stream()
+                .filter(user -> user.getStatus() != UserStatus.PENDING_APPROVAL)
+                .filter(user -> user.getBirthDate() != null)
+                .filter(user -> user.getBirthDate().getMonthValue() == date.getMonthValue())
+                .filter(user -> user.getBirthDate().getDayOfMonth() == date.getDayOfMonth())
+                .collect(Collectors.toList());
     }
 
     /**

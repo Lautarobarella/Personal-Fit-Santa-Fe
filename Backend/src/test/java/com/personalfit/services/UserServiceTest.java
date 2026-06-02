@@ -3,6 +3,7 @@ package com.personalfit.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -68,7 +69,7 @@ class UserServiceTest {
         Attendance absentThisMonth = buildAttendance(now.minusDays(3), AttendanceStatus.ABSENT);
         Attendance previousMonth = buildAttendance(now.minusMonths(1), AttendanceStatus.PRESENT);
 
-        when(userRepository.findById(client.getId())).thenReturn(Optional.of(client));
+        when(userRepository.findByIdAndDeletedAtIsNull(client.getId())).thenReturn(Optional.of(client));
         when(attendanceRepository.findByUser(client))
                 .thenReturn(List.of(presentThisMonth, lateThisMonth, absentThisMonth, previousMonth));
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(client, PaymentStatus.PAID))
@@ -135,7 +136,7 @@ class UserServiceTest {
                 "image/png",
                 "avatar-content".getBytes());
 
-        when(userRepository.findById(client.getId())).thenReturn(Optional.of(client));
+        when(userRepository.findByIdAndDeletedAtIsNull(client.getId())).thenReturn(Optional.of(client));
         when(userRepository.save(client)).thenReturn(client);
 
         UserTypeDTO uploadedUser = userService.uploadAvatar(client.getId(), avatarFile);
@@ -150,12 +151,46 @@ class UserServiceTest {
         assertFalse(Files.exists(expectedFile));
     }
 
+    @Test
+    void userBirthdayCheck_matchesMonthAndDayIgnoringBirthYear() {
+        LocalDate today = LocalDate.now();
+        User birthdayUser = buildClient(21L);
+        birthdayUser.setBirthDate(today.minusYears(30));
+
+        User sameMonthDifferentDay = buildClient(22L);
+        sameMonthDifferentDay.setBirthDate(today.minusYears(25).plusDays(1));
+
+        User pendingBirthdayUser = buildClient(23L);
+        pendingBirthdayUser.setStatus(UserStatus.PENDING_APPROVAL);
+        pendingBirthdayUser.setBirthDate(today.minusYears(20));
+
+        User admin = buildAdmin(99L);
+
+        when(userRepository.findAllByDeletedAtIsNull())
+                .thenReturn(List.of(birthdayUser, sameMonthDifferentDay, pendingBirthdayUser));
+        when(userRepository.findAllByRoleAndDeletedAtIsNull(UserRole.ADMIN)).thenReturn(List.of(admin));
+
+        userService.userBirthdayCheck();
+
+        verify(notificationService).createBirthdayNotification(List.of(birthdayUser), List.of(admin));
+    }
+
     private User buildClient(Long id) {
         User user = new User();
         user.setId(id);
         user.setFirstName("Cliente");
         user.setLastName(String.valueOf(id));
         user.setRole(UserRole.CLIENT);
+        user.setStatus(UserStatus.ACTIVE);
+        return user;
+    }
+
+    private User buildAdmin(Long id) {
+        User user = new User();
+        user.setId(id);
+        user.setFirstName("Admin");
+        user.setLastName(String.valueOf(id));
+        user.setRole(UserRole.ADMIN);
         user.setStatus(UserStatus.ACTIVE);
         return user;
     }

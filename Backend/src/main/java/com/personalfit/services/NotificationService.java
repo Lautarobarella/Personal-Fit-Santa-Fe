@@ -92,27 +92,25 @@ public class NotificationService {
             }
 
             LocalDateTime now = LocalDateTime.now();
-            int count = 0;
+            List<Notification> notifications = allUsers.stream()
+                    .map(user -> Notification.builder()
+                            .title(title)
+                            .message(message)
+                            .user(user)
+                            .status(NotificationStatus.UNREAD)
+                            .createdAt(now)
+                            .build())
+                    .collect(Collectors.toList());
 
-            for (User user : allUsers) {
-                Notification notification = Notification.builder()
-                        .title(title)
-                        .message(message)
-                        .user(user)
-                        .status(NotificationStatus.UNREAD)
-                        .createdAt(now)
-                        .build();
+            notificationRepository.saveAll(notifications);
 
-                notificationRepository.save(notification);
+            List<Long> userIds = allUsers.stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList());
+            fcmService.sendBulkNotification(userIds, title, message);
 
-                // Trigger External Push
-                fcmService.sendNotification(user.getId(), title, message);
-
-                count++;
-            }
-
-            log.info("Bulk dispatch complete. Title: '{}' | Recipients: {}", title, count);
-            return count;
+            log.info("Bulk notifications stored. Title: '{}' | Recipients: {}", title, allUsers.size());
+            return allUsers.size();
 
         } catch (Exception e) {
             log.error("Bulk notification failed: {}", e.getMessage());
@@ -522,4 +520,3 @@ public class NotificationService {
                 .build();
     }
 }
-
