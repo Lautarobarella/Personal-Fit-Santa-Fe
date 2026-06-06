@@ -2,6 +2,17 @@ import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
 import { NotificationFormType } from "@/lib/types";
 
+export interface BulkNotificationRecipient {
+  id: number;
+  name: string;
+}
+
+export interface BulkNotificationRecipientsResponse {
+  success: boolean;
+  count: number;
+  recipients: BulkNotificationRecipient[];
+}
+
 export async function fetchNotifications(userId: number) {
   try {
     return await jwtPermissionsApi.get(`/api/notifications/user/${userId}`);
@@ -22,14 +33,16 @@ export async function fetchNotificationDetail(id: number) {
   }
 }
 
-export async function newNotification(notification: Omit<NotificationFormType, 'id'>) {
+export async function newNotification(notification: Omit<NotificationFormType, 'id'>, options?: { silent?: boolean }) {
   try {
     return await jwtPermissionsApi.post('/api/notifications/new', notification);
   } catch (error) {
-    if (isValidationError(error)) {
-      handleValidationError(error);
-    } else {
-      handleApiError(error, 'Error al crear la notificación');
+    if (!options?.silent) {
+      if (isValidationError(error)) {
+        handleValidationError(error);
+      } else {
+        handleApiError(error, 'Error al crear la notificación');
+      }
     }
     throw error;
   }
@@ -87,6 +100,15 @@ export async function createBulkNotification(title: string, message: string) {
   } catch (error) {
     console.error('Error creating bulk notification:', error);
     handleApiError(error, 'Error al crear notificaciones masivas');
+    throw error;
+  }
+}
+
+export async function fetchBulkNotificationRecipients(): Promise<BulkNotificationRecipientsResponse> {
+  try {
+    return await jwtPermissionsApi.get('/api/notifications/bulk/recipients');
+  } catch (error) {
+    handleApiError(error, 'Error al cargar los destinatarios de la notificación');
     throw error;
   }
 }

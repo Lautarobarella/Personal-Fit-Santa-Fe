@@ -66,6 +66,18 @@ public class NotificationController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/bulk/recipients")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getBulkNotificationRecipients() {
+        List<Map<String, Object>> recipients = notificationService.getBulkNotificationRecipients();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("count", recipients.size());
+        response.put("recipients", recipients);
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Delete a notification.
      */

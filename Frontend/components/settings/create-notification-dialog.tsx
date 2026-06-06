@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Bell, Send, AlertTriangle, Users, MessageSquare } from "lucide-react"
+import { Bell, Send, AlertTriangle, Users, MessageSquare, CheckCircle2, Clock, Loader2, XCircle } from "lucide-react"
 import { useCreateNotificationDialog } from "@/hooks/settings/use-create-notification-dialog"
 
 interface CreateNotificationDialogProps {
@@ -29,10 +30,14 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
         setMessage,
         isSending,
         isAdmin,
+        progress,
+        progressPercentage,
+        isProgressVisible,
         maxTitleLength,
         maxMessageLength,
         handleSend,
         handleCancel,
+        handleOpenChange,
     } = useCreateNotificationDialog(onOpenChange)
 
     // Si no es administrador, mostrar mensaje de acceso denegado
@@ -63,7 +68,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
@@ -77,115 +82,194 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
 
                 <div className="flex flex-col h-full overflow-hidden">
                     <div className="flex-1 overflow-y-auto space-y-4 p-2">
-                        {/* Info Card */}
-                        <Alert>
-                            <Users className="size-5" />
-                            <AlertDescription>
-                                Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores)
-                                y aparecerá en su sección de notificaciones.
-                            </AlertDescription>
-                        </Alert>
-
-                        {/* Formulario */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <MessageSquare className="size-5" />
-                                    Contenido de la Notificación
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Título */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="title">
-                                        Título *
-                                    </Label>
-                                    <Input
-                                        id="title"
-                                        placeholder="Ej: Cambio de horarios"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        maxLength={maxTitleLength}
-                                        disabled={isSending}
-                                    />
-                                    <p className="text-xs text-muted-foreground text-right">
-                                        {title.length}/{maxTitleLength}
-                                    </p>
-                                </div>
-
-                                {/* Mensaje */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="message">
-                                        Mensaje *
-                                    </Label>
-                                    <Textarea
-                                        id="message"
-                                        placeholder="Escribe aquí el mensaje de la notificación…"
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        maxLength={maxMessageLength}
-                                        rows={6}
-                                        disabled={isSending}
-                                        className="resize-none"
-                                    />
-                                    <p className="text-xs text-muted-foreground text-right">
-                                        {message.length}/{maxMessageLength}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Vista previa */}
-                        {(title || message) && (
-                            <Card className="border-2 border-dashed">
+                        {isProgressVisible ? (
+                            <Card>
                                 <CardHeader>
-                                    <CardTitle className="text-sm">Vista Previa</CardTitle>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        {progress.status === "completed" ? (
+                                            <CheckCircle2 className="size-5 text-success" />
+                                        ) : (
+                                            <Loader2 className="size-5 animate-spin text-primary" />
+                                        )}
+                                        Progreso de envío
+                                    </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {title && (
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Título:</p>
-                                            <p className="font-semibold">{title}</p>
+                                <CardContent className="space-y-5">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between gap-3 text-sm">
+                                            <span className="font-medium">
+                                                {progress.status === "loading"
+                                                    ? "Preparando destinatarios"
+                                                    : progress.status === "completed"
+                                                        ? "Envío finalizado"
+                                                        : "Enviando notificaciones"}
+                                            </span>
+                                            <span className="text-muted-foreground">{progressPercentage}%</span>
                                         </div>
+                                        <Progress value={progressPercentage} />
+                                    </div>
+
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        <div className="rounded-md border bg-muted/30 p-4">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <CheckCircle2 className="size-4 text-success" />
+                                                Enviadas
+                                            </div>
+                                            <p className="mt-2 text-2xl font-semibold">{progress.sent}</p>
+                                        </div>
+                                        <div className="rounded-md border bg-muted/30 p-4">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Clock className="size-4 text-warning" />
+                                                Pendientes
+                                            </div>
+                                            <p className="mt-2 text-2xl font-semibold">{progress.pending}</p>
+                                        </div>
+                                        <div className="rounded-md border bg-muted/30 p-4">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Users className="size-4 text-primary" />
+                                                Total
+                                            </div>
+                                            <p className="mt-2 text-2xl font-semibold">{progress.total}</p>
+                                        </div>
+                                    </div>
+
+                                    {progress.failed > 0 && (
+                                        <Alert variant="destructive">
+                                            <XCircle className="size-4" />
+                                            <AlertDescription>
+                                                No se pudieron enviar {progress.failed} notificaciones.
+                                            </AlertDescription>
+                                        </Alert>
                                     )}
-                                    {message && (
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Mensaje:</p>
-                                            <p className="text-sm text-gray-600">{message}</p>
-                                        </div>
+
+                                    {progress.status === "sending" && progress.currentRecipientName && (
+                                        <p className="text-sm text-muted-foreground">
+                                            Enviando a {progress.currentRecipientName}
+                                        </p>
                                     )}
                                 </CardContent>
                             </Card>
+                        ) : (
+                            <>
+                                {/* Info Card */}
+                                <Alert>
+                                    <Users className="size-5" />
+                                    <AlertDescription>
+                                        Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores)
+                                        y aparecerá en su sección de notificaciones.
+                                    </AlertDescription>
+                                </Alert>
+
+                                {/* Formulario */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                            <MessageSquare className="size-5" />
+                                            Contenido de la Notificación
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {/* Título */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="title">
+                                                Título *
+                                            </Label>
+                                            <Input
+                                                id="title"
+                                                placeholder="Ej: Cambio de horarios"
+                                                value={title}
+                                                onChange={(e) => setTitle(e.target.value)}
+                                                maxLength={maxTitleLength}
+                                                disabled={isSending}
+                                            />
+                                            <p className="text-xs text-muted-foreground text-right">
+                                                {title.length}/{maxTitleLength}
+                                            </p>
+                                        </div>
+
+                                        {/* Mensaje */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="message">
+                                                Mensaje *
+                                            </Label>
+                                            <Textarea
+                                                id="message"
+                                                placeholder="Escribe aquí el mensaje de la notificación…"
+                                                value={message}
+                                                onChange={(e) => setMessage(e.target.value)}
+                                                maxLength={maxMessageLength}
+                                                rows={6}
+                                                disabled={isSending}
+                                                className="resize-none"
+                                            />
+                                            <p className="text-xs text-muted-foreground text-right">
+                                                {message.length}/{maxMessageLength}
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Vista previa */}
+                                {(title || message) && (
+                                    <Card className="border-2 border-dashed">
+                                        <CardHeader>
+                                            <CardTitle className="text-sm">Vista Previa</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {title && (
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Título:</p>
+                                                    <p className="font-semibold">{title}</p>
+                                                </div>
+                                            )}
+                                            {message && (
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Mensaje:</p>
+                                                    <p className="text-sm text-gray-600">{message}</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </>
                         )}
                     </div>
 
                     {/* Footer con botones */}
                     <div className="flex gap-3 p-4 border-t border-border">
-                        <Button
-                            variant="outline"
-                            onClick={handleCancel}
-                            disabled={isSending}
-                            className="flex-1"
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={handleSend}
-                            disabled={isSending || !title.trim() || !message.trim()}
-                            className="flex-1 gap-2"
-                        >
-                            {isSending ? (
-                                <>
-                                    <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                    Enviando…
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="size-4" />
-                                    Enviar Notificación
-                                </>
-                            )}
-                        </Button>
+                        {progress.status === "completed" ? (
+                            <Button onClick={handleCancel} className="flex-1">
+                                Cerrar
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                    disabled={isSending}
+                                    className="flex-1"
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    onClick={handleSend}
+                                    disabled={isSending || !title.trim() || !message.trim()}
+                                    className="flex-1 gap-2"
+                                >
+                                    {isSending ? (
+                                        <>
+                                            <Loader2 className="size-4 animate-spin" />
+                                            Enviando…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="size-4" />
+                                            Enviar Notificación
+                                        </>
+                                    )}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             </DialogContent>

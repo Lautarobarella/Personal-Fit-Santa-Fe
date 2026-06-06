@@ -2,7 +2,9 @@ package com.personalfit.services;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -116,6 +118,31 @@ public class NotificationService {
             log.error("Bulk notification failed: {}", e.getMessage());
             throw new BusinessRuleException("Bulk notification failure: " + e.getMessage(),
                     "Api/Notification/createBulkNotification");
+        }
+    }
+
+    public List<Map<String, Object>> getBulkNotificationRecipients() {
+        try {
+            List<User> recipients = userService.getAllNonAdminUsers();
+
+            if (recipients.isEmpty()) {
+                log.warn("No non-admin users found for bulk notification recipients");
+            } else {
+                log.debug("Bulk notification recipients resolved: count={}", recipients.size());
+            }
+
+            return recipients.stream()
+                    .map(user -> {
+                        Map<String, Object> recipient = new HashMap<>();
+                        recipient.put("id", user.getId());
+                        recipient.put("name", user.getFullName());
+                        return recipient;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Bulk notification recipients lookup failed: cause={}", e.getMessage());
+            throw new BusinessRuleException("Bulk notification recipients lookup failure: " + e.getMessage(),
+                    "Api/Notification/getBulkNotificationRecipients");
         }
     }
 
