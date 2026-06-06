@@ -15,8 +15,7 @@
     "start": "next start",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch --passWithNoTests",
-    "test:coverage": "jest --coverage --passWithNoTests",
-    "doctor": "react-doctor"
+    "test:coverage": "jest --coverage --passWithNoTests"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "1.2.2",
@@ -85,8 +84,7 @@
     "jest-environment-jsdom": "30.2.0",
     "postcss": "8.5.1",
     "tailwindcss": "3.4.17",
-    "typescript": "5.7.2",
-    "react-doctor": "0.2.6"
+    "typescript": "5.7.2"
   },
   "overrides": {
     "rimraf": "6.0.1",
