@@ -8,6 +8,7 @@ import { DatePickerBirthdate } from "@/components/ui/date-picker-birthdate"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, User } from "lucide-react"
 import { BottomNav } from "@/components/ui/bottom-nav"
@@ -140,6 +141,21 @@ export default function NewClientPage() {
                     rows={2}
                   />
                   {errors.address && <p className="text-sm text-error">{errors.address}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="role">Rol</Label>
+                  <Select value={form.role} onValueChange={(value) => handleInputChange("role", value)}>
+                    <SelectTrigger id="role" className={errors.role ? "border-error" : ""}>
+                      <SelectValue placeholder="Seleccionar rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UserRole.CLIENT}>Cliente</SelectItem>
+                      <SelectItem value={UserRole.TRAINER}>Entrenador</SelectItem>
+                      <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.role && <p className="text-sm text-error">{errors.role}</p>}
                 </div>
               </div>
 

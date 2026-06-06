@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/auth-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useClients } from "@/hooks/clients/use-client"
 import { useToast } from "@/hooks/use-toast"
-import { UserRole, type UserFormType } from "@/types"
+import type { UserFormType } from "@/types"
 
 export function useClientForm() {
   const { user } = useAuth()
@@ -49,7 +49,6 @@ export function useClientForm() {
     const payload: UserFormType = {
       ...form,
       password: form.dni.toString(),
-      role: UserRole.CLIENT,
     }
     if (!validateForm(payload)) return
 

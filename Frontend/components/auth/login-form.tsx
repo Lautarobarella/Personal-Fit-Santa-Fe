@@ -102,23 +102,16 @@ export function LoginForm() {
 
             <TabsContent value="register" className="mt-4">
               <form onSubmit={handleRegistrationSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="dni">DNI</Label>
-                    <Input
-                      id="dni"
-                      value={registrationForm.dni}
-                      onChange={(e) => handleRegistrationInputChange("dni", e.target.value)}
-                      placeholder="12345678"
-                      className={registrationErrors.dni ? "border-error" : ""}
-                    />
-                    {registrationErrors.dni && <p className="text-sm text-error">{registrationErrors.dni}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Rol</Label>
-                    <Input value="Cliente" disabled />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dni">DNI</Label>
+                  <Input
+                    id="dni"
+                    value={registrationForm.dni}
+                    onChange={(e) => handleRegistrationInputChange("dni", e.target.value)}
+                    placeholder="12345678"
+                    className={registrationErrors.dni ? "border-error" : ""}
+                  />
+                  {registrationErrors.dni && <p className="text-sm text-error">{registrationErrors.dni}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
