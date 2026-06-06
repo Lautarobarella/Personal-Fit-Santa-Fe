@@ -21,17 +21,21 @@ const messaging = firebase.messaging();
 
 
 // Handle background messages
+// The backend sends DATA-ONLY messages (no `notification` block) so the browser
+// does NOT auto-display anything. We show the notification exactly once here,
+// reading title/body from `data`. (We still fall back to `notification` in case
+// a legacy notification-payload message arrives.)
 messaging.onBackgroundMessage((payload) => {
 
-
-    const notificationTitle = payload.notification?.title || 'Nueva Notificación';
+    const data = payload.data || {};
+    const notificationTitle = data.title || payload.notification?.title || 'Nueva Notificación';
     const notificationOptions = {
-        body: payload.notification?.body || '',
+        body: data.body || payload.notification?.body || '',
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         tag: 'notification-' + Date.now(),
         requireInteraction: false,
-        data: payload.data
+        data: data
     };
 
     return self.registration.showNotification(notificationTitle, notificationOptions);

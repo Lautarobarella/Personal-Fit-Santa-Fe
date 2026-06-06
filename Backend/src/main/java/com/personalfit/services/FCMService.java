@@ -20,7 +20,6 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
-import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
 import com.personalfit.models.UserTokens;
 import com.personalfit.repository.UserTokensRepository;
@@ -261,11 +260,17 @@ public class FCMService {
     }
 
     private MulticastMessage buildMessage(String title, String body, List<String> tokens) {
+        // DATA-ONLY message (no `notification` block) on purpose.
+        //
+        // On web push, when the payload contains a `notification` block the
+        // browser/FCM SDK displays it AUTOMATICALLY, and our service worker's
+        // onBackgroundMessage ALSO calls showNotification() -> the user saw the
+        // SAME notification twice. Sending data-only means the browser does not
+        // auto-display anything; the service worker shows it exactly once,
+        // reading title/body from `data`.
         return MulticastMessage.builder()
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
+                .putData("title", title != null ? title : "")
+                .putData("body", body != null ? body : "")
                 .addAllTokens(tokens)
                 .build();
     }
