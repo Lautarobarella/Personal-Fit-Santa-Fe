@@ -71,6 +71,19 @@ public class NotificationController {
     }
 
     /**
+     * Maintenance (Admin only): enforce one FCM token per user on existing data,
+     * keeping only each user's most recently registered token. Clears inherited
+     * duplicate push deliveries. Safe to run multiple times (idempotent).
+     */
+    @PostMapping("/debug/purge-tokens")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> purgeDuplicateTokens() {
+        Map<String, Object> summary = notificationService.purgeDuplicateFcmTokens();
+        summary.put("success", true);
+        return ResponseEntity.ok(summary);
+    }
+
+    /**
      * Send a broadcast notification to ALL users.
      * Admin only.
      */

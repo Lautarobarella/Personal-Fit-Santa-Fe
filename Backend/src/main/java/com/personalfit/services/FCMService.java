@@ -1,10 +1,13 @@
 package com.personalfit.services;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
@@ -77,6 +80,62 @@ public class FCMService {
         return userTokensRepository.findByUserId(userId)
                 .map(UserTokens::getTokens)
                 .orElseGet(ArrayList::new);
+    }
+
+    /**
+     * One-shot maintenance: enforce the single-token-per-user policy on the
+     * EXISTING data. For every user with more than one (or blank/duplicate)
+     * token, keep only the most recently registered token and drop the rest.
+     *
+     * This clears the "inherited" duplicate push deliveries that pre-date the
+     * single-token policy, without waiting for each user to re-open the app.
+     *
+     * @return summary with usersScanned, usersAffected and tokensRemoved.
+     */
+    public Map<String, Object> purgeDuplicateTokens() {
+        List<UserTokens> all = userTokensRepository.findAll();
+        int usersAffected = 0;
+        int tokensRemoved = 0;
+
+        for (UserTokens userTokens : all) {
+            List<String> current = userTokens.getTokens();
+            if (current == null || current.isEmpty()) {
+                continue;
+            }
+
+            // De-duplicate and drop blanks, preserving registration order.
+            List<String> cleaned = current.stream()
+                    .filter(token -> token != null && !token.isBlank())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // Nothing to do: already a single valid token.
+            if (cleaned.size() == current.size() && cleaned.size() <= 1) {
+                continue;
+            }
+
+            int before = current.size();
+            // Keep the LAST token = the most recently registered device.
+            List<String> kept = cleaned.isEmpty()
+                    ? new ArrayList<>()
+                    : new ArrayList<>(List.of(cleaned.get(cleaned.size() - 1)));
+
+            userTokens.setTokens(kept);
+            userTokensRepository.save(userTokens);
+
+            usersAffected++;
+            tokensRemoved += (before - kept.size());
+        }
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("usersScanned", all.size());
+        summary.put("usersAffected", usersAffected);
+        summary.put("tokensRemoved", tokensRemoved);
+
+        log.info("FCM token purge complete | usersScanned={}, usersAffected={}, tokensRemoved={}",
+                all.size(), usersAffected, tokensRemoved);
+
+        return summary;
     }
 
     /**

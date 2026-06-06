@@ -607,6 +607,15 @@ public class NotificationService {
     }
 
     /**
+     * Maintenance: enforce the single-token-per-user policy on existing data.
+     * Keeps only the most recent FCM token for every user. Use once to clear
+     * inherited duplicate push deliveries.
+     */
+    public Map<String, Object> purgeDuplicateFcmTokens() {
+        return fcmService.purgeDuplicateTokens();
+    }
+
+    /**
      * Masks an FCM token for safe logging/inspection: keeps only a prefix/suffix
      * plus its length, so duplicates can be spotted without exposing full tokens.
      */
