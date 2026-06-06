@@ -279,7 +279,12 @@ export default function SettingsPage() {
         )}
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="space-y-5 p-6">
+            <div className="border-b border-border/60 pb-5 text-center">
+              <p className="text-[11px] text-muted-foreground/60">
+                Desarrollado por Lautaro Barella y Fernando Ale
+              </p>
+            </div>
             <Button variant="destructive" className="w-full" onClick={handleLogout}>
               <LogOut className="size-4 mr-2" />
               Cerrar Sesión
