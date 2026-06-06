@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +71,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class UserService {
+
+    private static final Set<Integer> PROTECTED_CLIENT_DNIS = Set.of(42870789, 42331259);
 
     private static final long MAX_AVATAR_SIZE_BYTES = 5L * 1024L * 1024L;
     private static final long MAX_PENDING_USER_REGISTRATIONS = 99L;
@@ -229,7 +232,16 @@ public class UserService {
         return usersDto.stream()
                 .filter(u -> !u.getRole().equals(UserRole.ADMIN))
                 .filter(u -> u.getStatus() != UserStatus.PENDING_APPROVAL)
+                .filter(u -> !isProtectedClientDni(u.getDni()))
                 .collect(Collectors.toList());
+    }
+
+    public boolean isProtectedClient(User user) {
+        return user != null && user.getRole() == UserRole.CLIENT && isProtectedClientDni(user.getDni());
+    }
+
+    private boolean isProtectedClientDni(Integer dni) {
+        return dni != null && PROTECTED_CLIENT_DNIS.contains(dni);
     }
 
     /**
@@ -341,6 +353,11 @@ public class UserService {
         if (user == null)
             throw new EntityNotFoundException("User cannot be null", "Api/User/updateUserStatus");
 
+        if (status == UserStatus.INACTIVE && isProtectedClient(user)) {
+            log.info("Skipping inactive status update for protected client DNI {}", user.getDni());
+            return;
+        }
+
         user.setStatus(status);
         userRepository.save(user);
         log.info("User status updated for ID {}: {}", user.getId(), status);
@@ -411,6 +428,11 @@ public class UserService {
         users.forEach(u -> {
             if (u.getRole().equals(UserRole.TRAINER) || u.getRole().equals(UserRole.ADMIN))
                 return;
+
+            if (isProtectedClient(u)) {
+                log.debug("Skipping protected client {} in daily status audit", u.getId());
+                return;
+            }
 
             Optional<Payment> payment = paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(u,
                     PaymentStatus.PAID);

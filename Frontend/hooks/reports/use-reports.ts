@@ -5,6 +5,7 @@ import { useRequireAuth } from "@/hooks/use-require-auth"
 import {
   ActivityStatus,
   AttendanceStatus,
+  type AttendanceType,
   MethodType,
   MuscleGroup,
   PaymentStatus,
@@ -16,10 +17,12 @@ import {
   type WorkShift,
 } from "@/types"
 import { getMuscleGroupLabel } from "@/lib/muscle-groups"
+import { attendanceBelongsToProtectedClient, paymentIncludesProtectedClient } from "@/lib/protected-clients"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
 import { fetchActivities, fetchTrainers } from "@/api/activities/activitiesApi"
+import { fetchActivityAttendancesWithUserInfo } from "@/api/attendance/attendanceApi"
 import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
 import { fetchUsers, fetchUserDetail, fetchShiftHistory } from "@/api/clients/usersApi"
 
@@ -70,12 +73,14 @@ export function useReports() {
   const [mounted, setMounted] = useState(false)
   const [isBaseLoading, setIsBaseLoading] = useState(true)
   const [isPaymentsLoading, setIsPaymentsLoading] = useState(false)
+  const [isActivityAttendanceLoading, setIsActivityAttendanceLoading] = useState(false)
 
   // ─── Admin data ─────────────────────────────────────────────────────────
   const [payments, setPayments] = useState<PaymentType[]>([])
   const [previousMonthPayments, setPreviousMonthPayments] = useState<PaymentType[]>([])
   const [allUsers, setAllUsers] = useState<UserType[]>([])
   const [activities, setActivities] = useState<ActivityType[]>([])
+  const [activityAttendances, setActivityAttendances] = useState<Map<number, AttendanceType[]>>(new Map())
   const [trainers, setTrainers] = useState<UserType[]>([])
   const [trainerShifts, setTrainerShifts] = useState<Map<number, WorkShift[]>>(new Map())
 
@@ -118,13 +123,13 @@ export function useReports() {
       return false
     }
     if (user.role === UserRole.ADMIN) {
-      return isBaseLoading || isPaymentsLoading
+      return isBaseLoading || isPaymentsLoading || isActivityAttendanceLoading
     }
     if (user.role === UserRole.CLIENT) {
       return isBaseLoading
     }
     return false
-  }, [isBaseLoading, isPaymentsLoading, user])
+  }, [isActivityAttendanceLoading, isBaseLoading, isPaymentsLoading, user])
 
   // ─── Data loading ─────────────────────────────────────────────────────────
 
@@ -199,8 +204,8 @@ export function useReports() {
 
         if (cancelled) return
 
-        setPayments(selectedPayments)
-        setPreviousMonthPayments(previousPayments)
+        setPayments(selectedPayments.filter((payment) => !paymentIncludesProtectedClient(payment)))
+        setPreviousMonthPayments(previousPayments.filter((payment) => !paymentIncludesProtectedClient(payment)))
       } catch (error) {
         console.error("Error loading monthly report payments:", error)
         if (!cancelled) {
@@ -367,6 +372,51 @@ export function useReports() {
     })
   }, [activities, selectedMonth])
 
+  useEffect(() => {
+    if (!mounted || !user || user.role !== UserRole.ADMIN) return
+
+    const reportableActivities = monthActivities.filter((a) => a.status !== ActivityStatus.CANCELLED)
+    if (reportableActivities.length === 0) {
+      setIsActivityAttendanceLoading(false)
+      setActivityAttendances(new Map())
+      return
+    }
+
+    let cancelled = false
+
+    const loadActivityAttendances = async () => {
+      setIsActivityAttendanceLoading(true)
+      try {
+        const attendanceResults = await Promise.all(
+          reportableActivities.map((activity) =>
+            fetchActivityAttendancesWithUserInfo(activity.id)
+              .then((attendances) => ({ activityId: activity.id, attendances }))
+              .catch(() => ({ activityId: activity.id, attendances: [] }))
+          )
+        )
+
+        if (cancelled) return
+
+        const attendanceMap = new Map<number, AttendanceType[]>()
+        attendanceResults.forEach(({ activityId, attendances }) => {
+          attendanceMap.set(
+            activityId,
+            attendances.filter((attendance) => !attendanceBelongsToProtectedClient(attendance))
+          )
+        })
+        setActivityAttendances(attendanceMap)
+      } finally {
+        if (!cancelled) setIsActivityAttendanceLoading(false)
+      }
+    }
+
+    loadActivityAttendances()
+    return () => { cancelled = true }
+  }, [mounted, monthActivities, user])
+
+  const getReportableParticipantCount = (activity: ActivityType) =>
+    activityAttendances.get(activity.id)?.length ?? 0
+
   const completedActivities = useMemo(
     () => monthActivities.filter((a) => a.status === ActivityStatus.ACTIVE || a.status === ActivityStatus.COMPLETED).length,
     [monthActivities]
@@ -380,9 +430,9 @@ export function useReports() {
   const avgParticipantsPerClass = useMemo(() => {
     const active = monthActivities.filter((a) => a.status !== ActivityStatus.CANCELLED)
     if (active.length === 0) return 0
-    const totalParticipants = active.reduce((sum, a) => sum + a.currentParticipants, 0)
+    const totalParticipants = active.reduce((sum, a) => sum + getReportableParticipantCount(a), 0)
     return Math.round((totalParticipants / active.length) * 10) / 10
-  }, [monthActivities])
+  }, [activityAttendances, monthActivities])
 
   const avgOccupancyRate = useMemo(() => {
     const active = monthActivities.filter(
@@ -390,11 +440,11 @@ export function useReports() {
     )
     if (active.length === 0) return 0
     const totalRate = active.reduce(
-      (sum, a) => sum + (a.currentParticipants / a.maxParticipants) * 100,
+      (sum, a) => sum + (getReportableParticipantCount(a) / a.maxParticipants) * 100,
       0
     )
     return Math.round(totalRate / active.length)
-  }, [monthActivities])
+  }, [activityAttendances, monthActivities])
 
   const clientsNotPaid = useMemo(() => {
     return Math.max(0, activeClients - uniqueClientsPaid)

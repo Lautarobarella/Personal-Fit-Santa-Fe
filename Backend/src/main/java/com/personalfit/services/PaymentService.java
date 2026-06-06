@@ -344,7 +344,7 @@ public class PaymentService {
                 }
             }
             // Update financial metrics
-            updateMonthlyRevenue(payment.getAmount());
+            updateMonthlyRevenue(payment);
         }
 
         paymentRepository.save(payment);
@@ -531,20 +531,18 @@ public class PaymentService {
     private PaymentTypeDTO convertToPaymentTypeDTO(Payment payment) {
         List<PaymentTypeDTO.PaymentUserInfo> associatedUsers = new ArrayList<>();
 
-        if (payment.getUsers() != null && !payment.getUsers().isEmpty()) {
-            // Priority 1: Created By
-            if (payment.getCreatedBy() != null) {
-                associatedUsers.add(PaymentTypeDTO.PaymentUserInfo.builder()
-                        .userId(payment.getCreatedBy().getId())
-                        .userName(payment.getCreatedBy().getFullName())
-                        .userDni(payment.getCreatedBy().getDni())
-                        .build());
-            }
+        if (payment.getCreatedBy() != null) {
+            associatedUsers.add(PaymentTypeDTO.PaymentUserInfo.builder()
+                    .userId(payment.getCreatedBy().getId())
+                    .userName(payment.getCreatedBy().getFullName())
+                    .userDni(payment.getCreatedBy().getDni())
+                    .build());
+        }
 
-            // Priority 2: Other Linked Users
+        if (payment.getUsers() != null && !payment.getUsers().isEmpty()) {
             for (User user : payment.getUsers()) {
                 if (payment.getCreatedBy() != null && user.getId().equals(payment.getCreatedBy().getId())) {
-                    continue; // Skip dupes
+                    continue;
                 }
 
                 associatedUsers.add(PaymentTypeDTO.PaymentUserInfo.builder()
@@ -627,6 +625,11 @@ public class PaymentService {
             List<User> usersWithExpiredMembership = new ArrayList<>();
 
             for (User user : impactedUsers) {
+                if (userService.isProtectedClient(user)) {
+                    log.debug("Skipping protected client {} in monthly payment expiration job", user.getId());
+                    continue;
+                }
+
                 if (!hasAnotherActivePaidMembership(user, now) && user.getStatus() != UserStatus.INACTIVE) {
                     userService.updateUserStatus(user, UserStatus.INACTIVE);
                     usersWithExpiredMembership.add(user);
@@ -711,7 +714,13 @@ public class PaymentService {
      * Called whenever a Payment changes status to PAID.
      */
     @Transactional
-    private void updateMonthlyRevenue(Double amount) {
+    private void updateMonthlyRevenue(Payment payment) {
+        if (paymentIncludesProtectedClient(payment)) {
+            log.info("Skipping monthly revenue update for protected client payment ID {}", payment.getId());
+            return;
+        }
+
+        Double amount = payment.getAmount();
         if (amount == null || amount <= 0) {
             return;
         }
@@ -749,12 +758,17 @@ public class PaymentService {
         LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
-        Double totalRevenue = paymentRepository.calculateConfirmedRevenueInPeriod(startOfMonth, endOfMonth);
-
         List<Payment> paymentsThisMonth = paymentRepository.findAllPaymentsInMonth(startOfMonth, endOfMonth);
-        Integer totalPayments = (int) paymentsThisMonth.stream()
+        List<Payment> countedPayments = paymentsThisMonth.stream()
                 .filter(p -> p.getStatus() == PaymentStatus.PAID)
-                .count();
+                .filter(p -> !paymentIncludesProtectedClient(p))
+                .collect(Collectors.toList());
+
+        Double totalRevenue = countedPayments.stream()
+                .map(Payment::getAmount)
+                .filter(amount -> amount != null)
+                .reduce(0.0, Double::sum);
+        Integer totalPayments = countedPayments.size();
 
         String monthName = now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
 
@@ -793,6 +807,18 @@ public class PaymentService {
                 .archivedAt(revenue.getArchivedAt())
                 .isCurrentMonth(isCurrentMonth)
                 .build();
+    }
+
+    private boolean paymentIncludesProtectedClient(Payment payment) {
+        if (payment == null) {
+            return false;
+        }
+
+        if (userService.isProtectedClient(payment.getCreatedBy())) {
+            return true;
+        }
+
+        return payment.getUsers() != null && payment.getUsers().stream().anyMatch(userService::isProtectedClient);
     }
 
     /**

@@ -9,6 +9,7 @@ import {
   updatePaymentStatus
 } from "@/api/payments/paymentsApi"
 import { useAuth } from "@/contexts/auth-provider"
+import { paymentIncludesProtectedClient } from "@/lib/protected-clients"
 import { MethodType, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types"
 import {
   useMutation,
@@ -167,6 +168,7 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     const currentMonthPayments = payments.filter(p => {
       const paymentDate = p.createdAt ? new Date(p.createdAt) : null
       return p.status === PaymentStatus.PAID &&
+             !paymentIncludesProtectedClient(p) &&
              paymentDate &&
              paymentDate.getMonth() === currentMonth &&
              paymentDate.getFullYear() === currentYear
@@ -226,13 +228,14 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       }
     }
 
-    const paidPayments = payments.filter(p => p.status === PaymentStatus.PAID)
-    const pendingPayments = payments.filter(p => p.status === PaymentStatus.PENDING)
-    const rejectedPayments = payments.filter(p => p.status === PaymentStatus.REJECTED)
+    const metricPayments = payments.filter((payment) => !paymentIncludesProtectedClient(payment))
+    const paidPayments = metricPayments.filter(p => p.status === PaymentStatus.PAID)
+    const pendingPayments = metricPayments.filter(p => p.status === PaymentStatus.PENDING)
+    const rejectedPayments = metricPayments.filter(p => p.status === PaymentStatus.REJECTED)
 
     return {
-      totalAmount: payments.reduce((sum, p) => sum + p.amount, 0),
-      totalCount: payments.length,
+      totalAmount: metricPayments.reduce((sum, p) => sum + p.amount, 0),
+      totalCount: metricPayments.length,
       paidAmount: paidPayments.reduce((sum, p) => sum + p.amount, 0),
       paidCount: paidPayments.length,
       pendingAmount: pendingPayments.reduce((sum, p) => sum + p.amount, 0),
