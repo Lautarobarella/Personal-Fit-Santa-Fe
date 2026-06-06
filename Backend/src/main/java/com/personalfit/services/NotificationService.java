@@ -52,7 +52,8 @@ public class NotificationService {
      * Creates a database record and triggers an immediate FCM push.
      */
     public void createNotification(NotificationFormTypeDTO notification) {
-        User user = userService.getUserById(Long.parseLong(notification.getUserId()));
+        Long userId = parseUserId(notification.getUserId());
+        User user = userService.getUserById(userId);
 
         Notification newNotification = Notification.builder()
                 .title(notification.getTitle())
@@ -536,6 +537,24 @@ public class NotificationService {
     // ===============================
     // HELPERS
     // ===============================
+
+    /**
+     * Safely parses the recipient id coming from the notification form.
+     * A missing or non-numeric id is a client error (400), not a server fault (500).
+     */
+    private Long parseUserId(String rawUserId) {
+        if (rawUserId == null || rawUserId.isBlank()) {
+            throw new BusinessRuleException("Notification recipient (userId) is required",
+                    "Api/Notification/createNotification");
+        }
+
+        try {
+            return Long.parseLong(rawUserId.trim());
+        } catch (NumberFormatException e) {
+            throw new BusinessRuleException("Invalid notification recipient id: " + rawUserId,
+                    "Api/Notification/createNotification");
+        }
+    }
 
     private NotificationTypeDTO convertToNotificationTypeDTO(Notification notification) {
         return NotificationTypeDTO.builder()
