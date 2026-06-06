@@ -47,7 +47,7 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
   if (isLoadingData || !activityId || !selectedActivity || selectedActivity.id !== activityId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }
@@ -60,7 +60,7 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" />
+              <ClipboardList className="size-5" />
               {selectedActivity.name}
             </CardTitle>
           </CardHeader>
@@ -73,7 +73,7 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
         <Card className="mb-24">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Dumbbell className="h-5 w-5" />
+              <Dumbbell className="size-5" />
               {hasExistingSummary ? "Editar Resumen" : "Indicar Resumen"}
             </CardTitle>
           </CardHeader>
@@ -87,16 +87,18 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
                       type="button"
                       variant="outline"
                       role="combobox"
+                      aria-controls="muscle-group-command-list"
+                      aria-expanded={isMuscleGroupComboboxOpen}
                       className="w-full justify-between bg-transparent font-normal"
                     >
                       <span className="truncate text-left">{selectedMuscleGroupLabels}</span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <Command>
                       <CommandInput placeholder="Buscar grupo muscular..." />
-                      <CommandList>
+                      <CommandList id="muscle-group-command-list">
                         <CommandEmpty>Sin resultados.</CommandEmpty>
                         <CommandGroup>
                           {MUSCLE_GROUP_OPTIONS.map((option) => (
@@ -107,7 +109,7 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
                             >
                               <Check
                                 className={cn(
-                                  "mr-2 h-4 w-4",
+                                  "mr-2 size-4",
                                   summaryForm.muscleGroups.includes(option.value) ? "opacity-100" : "opacity-0",
                                 )}
                               />
@@ -175,7 +177,7 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
                   Cancelar
                 </Button>
                 <Button type="submit" className="flex-1" disabled={isSavingSummary || !canSubmitSummary}>
-                  {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSavingSummary && <Loader2 className="mr-2 size-4 animate-spin" />}
                   {hasExistingSummary ? "Actualizar resumen" : "Guardar resumen"}
                 </Button>
               </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { esTimeFormatter } from "@/lib/formatters"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PaymentDetailsDialog } from "@/components/payments/payment-details-dialog"
@@ -82,8 +83,8 @@ export function ClientDetailsDialog({
           <DialogTitle className="sr-only">Detalles del cliente</DialogTitle>
           <DialogDescription className="sr-only">Cargando detalles del cliente</DialogDescription>
           <div className="flex items-center justify-center p-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-2">Cargando detalles del cliente...</span>
+            <div className="animate-spin rounded-full size-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Cargando detalles del cliente…</span>
           </div>
         </DialogContent>
       </Dialog>
@@ -123,7 +124,7 @@ export function ClientDetailsDialog({
                         firstName={selectedClient.firstName}
                         lastName={selectedClient.lastName}
                         avatar={selectedClient.avatar}
-                        className="h-12 w-12"
+                        className="size-12"
                         fallbackClassName="text-lg"
                       />
                       <div>
@@ -138,7 +139,7 @@ export function ClientDetailsDialog({
                 <div className="flex gap-2">
                   {onEdit && (
                     <Button size="sm" variant="outline" onClick={onEdit}>
-                      <Edit className="h-4 w-4" />
+                      <Edit className="size-4" />
                     </Button>
                   )}
                   {onDeactivate && (
@@ -148,7 +149,7 @@ export function ClientDetailsDialog({
                       onClick={onDeactivate}
                       className="text-destructive hover:text-destructive bg-transparent"
                     >
-                      <UserX className="h-4 w-4" />
+                      <UserX className="size-4" />
                     </Button>
                   )}
                 </div>
@@ -184,38 +185,38 @@ export function ClientDetailsDialog({
               <Card className="m-2">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <User className="h-5 w-5" />
+                    <User className="size-5" />
                     Información Personal
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <IdCard className="h-4 w-4 text-muted-foreground" />
+                      <IdCard className="size-4 text-muted-foreground" />
                       <span>{selectedClient.dni}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <Mail className="size-4 text-muted-foreground" />
                       <span>{selectedClient.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <Phone className="size-4 text-muted-foreground" />
                       <span>{selectedClient.phone}</span>
                     </div>
                     {selectedClient.emergencyPhone && (
                       <div className="flex items-center gap-2">
-                        <Ambulance className="h-4 w-4 text-red-500" />
+                        <Ambulance className="size-4 text-red-500" />
                         <span className="text-sm">
                           <span className="text-muted-foreground"></span> {selectedClient.emergencyPhone}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="size-4 text-muted-foreground" />
                       <span>{selectedClient.age} años</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CakeIcon className="h-4 w-4 text-muted-foreground" />
+                      <CakeIcon className="size-4 text-muted-foreground" />
                       <span> {formatDate(selectedClient.birthDate)}</span>
                     </div>
                   </div>
@@ -226,19 +227,19 @@ export function ClientDetailsDialog({
                       <div>
                         <span className="text-muted-foreground text-sm">Dirección:</span>
                         <p className="text-sm mt-1 flex items-start gap-1">
-                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <MapPin className="size-4 text-muted-foreground mt-0.5" />
                           {selectedClient.address}
                         </p>
                         <span className="text-muted-foreground text-sm">Cliente desde:</span>
                         <p className="text-sm mt-1 flex items-start gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <Calendar className="size-4 text-muted-foreground" />
                           <span>{formatDate(selectedClient.joinDate)}</span>
                         </p>
                         {user?.role !== UserRole.CLIENT && (
                           <>
                             <span className="text-muted-foreground text-sm">Rol:</span>
                             <p className="text-sm mt-1 flex items-start gap-1">
-                              <Dice3 className="h-4 w-4 text-muted-foreground" />
+                              <Dice3 className="size-4 text-muted-foreground" />
                               <span>
                                 {selectedClient.role === UserRole.CLIENT && "Cliente"}
                                 {selectedClient.role === UserRole.TRAINER && "Entrenador"}
@@ -271,7 +272,7 @@ export function ClientDetailsDialog({
                 {selectedClient.listActivity.length === 0 && (
                   <Card className="m-2 h-[50vh] flex items-center justify-center">
                     <CardContent className="flex flex-col items-center justify-center h-full">
-                      <Activity className="h-12 w-12 text-muted-foreground mb-2" />
+                      <Activity className="size-12 text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">No hay actividades registradas</p>
                     </CardContent>
                   </Card>
@@ -296,16 +297,13 @@ export function ClientDetailsDialog({
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                          <Calendar className="size-3" />
                           <span>{formatDate(activity.date)}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="size-3" />
                           <span>
-                            {new Intl.DateTimeFormat("es-ES", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }).format(activity.date ? new Date(activity.date) : new Date())}
+                            {esTimeFormatter.format(activity.date ? new Date(activity.date) : new Date())}
                           </span>
                         </div>
                       </div>
@@ -385,7 +383,7 @@ export function ClientDetailsDialog({
                 {selectedClient.listPayments.length === 0 && (
                   <Card className="m-2 h-[50vh] flex items-center justify-center">
                     <CardContent className="py-8 text-center">
-                      <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                      <CreditCard className="size-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">No hay pagos registrados</p>
                     </CardContent>
                   </Card>
@@ -419,7 +417,7 @@ export function ClientDetailsDialog({
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="size-3" />
                         <span>{formatDate(payment.expiresAt)}</span>
                       </div>
                     </CardContent>
@@ -435,7 +433,7 @@ export function ClientDetailsDialog({
                 <Card className="m-2">
                   <CardHeader className="py-2">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
+                      <Activity className="size-5" />
                       Estadísticas de Actividad
                     </CardTitle>
                   </CardHeader>
@@ -466,7 +464,7 @@ export function ClientDetailsDialog({
                   <Card className="m-2">
                     <CardHeader className="py-2">
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
+                        <DollarSign className="size-5" />
                         Estadísticas Financieras
                       </CardTitle>
                     </CardHeader>
@@ -488,11 +486,11 @@ export function ClientDetailsDialog({
                 <Card className="m-2">
                   <CardHeader className="py-2">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
+                      <TrendingUp className="size-5" />
                       Resumen del Cliente
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-2 space-y-2 flex flex-col items-center justify-center h-full">
+                  <CardContent className="p-2 gap-y-2 flex flex-col items-center justify-center h-full">
                     <div className="grid grid-cols-2 gap-3 text-sm w-full items-center justify-items-center">
                       <div className="flex flex-col items-center">
                         <span className="text-muted-foreground text-xs">Estado:</span>

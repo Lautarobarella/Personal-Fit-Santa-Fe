@@ -133,18 +133,18 @@ export function useReports() {
         if (!cancelled) setActivities(activitiesData)
 
         const shiftsMap = new Map<number, WorkShift[]>()
-        const trainerIds = trainersData
-          .filter((t: UserType) => t.role === UserRole.TRAINER)
-          .map((t: UserType) => t.id)
-
-        const shiftPromises = trainerIds.map(async (id: number) => {
-          try {
-            const history = await fetchShiftHistory(id)
-            return { id, history }
-          } catch {
-            return { id, history: [] }
+        const trainerIds = trainersData.reduce((ids: number[], trainer: UserType) => {
+          if (trainer.role === UserRole.TRAINER) {
+            ids.push(trainer.id)
           }
-        })
+          return ids
+        }, [])
+
+        const shiftPromises = trainerIds.map((id: number) =>
+          fetchShiftHistory(id)
+            .then((history) => ({ id, history }))
+            .catch(() => ({ id, history: [] }))
+        )
 
         const shiftResults = await Promise.all(shiftPromises)
         if (!cancelled) {
@@ -248,17 +248,20 @@ export function useReports() {
     const total = paidPayments.length || 1
 
     return methods
-      .map((method) => {
+      .reduce<PaymentMethodBreakdown[]>((breakdown, method) => {
         const filtered = paidPayments.filter((p) => p.method === method)
-        return {
+        if (filtered.length === 0) {
+          return breakdown
+        }
+        breakdown.push({
           method,
           label: methodLabels[method] || method,
           count: filtered.length,
           amount: filtered.reduce((sum, p) => sum + p.amount, 0),
           percentage: Math.round((filtered.length / total) * 100),
-        }
-      })
-      .filter((m) => m.count > 0)
+        })
+        return breakdown
+      }, [])
       .sort((a, b) => b.amount - a.amount)
   }, [paidPayments])
 

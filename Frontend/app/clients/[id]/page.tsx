@@ -35,7 +35,7 @@ export default function EditClientPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }
@@ -50,7 +50,7 @@ export default function EditClientPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <User className="h-5 w-5" />
+              <User className="size-5" />
               {selectedClient.firstName} {selectedClient.lastName}
             </CardTitle>
           </CardHeader>
@@ -108,7 +108,7 @@ export default function EditClientPage() {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Guardar cambios
                 </Button>
               </div>

@@ -8,18 +8,18 @@ import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
-  const router = useRouter()
+  const { push } = useRouter()
 
   useEffect(() => {
     if (user) {
-      router.push("/dashboard")
+      push("/dashboard")
     }
-  }, [user, router])
+  }, [user, push])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }

@@ -56,7 +56,7 @@ export function DesktopSidebar() {
             firstName={user?.firstName}
             lastName={user?.lastName}
             avatar={user?.avatar}
-            className="h-10 w-10 shadow-professional flex-shrink-0"
+            className="size-10 shadow-professional flex-shrink-0"
             fallbackClassName="bg-gradient-primary text-foreground text-sm font-bold"
           />
           <div className="min-w-0">
@@ -89,7 +89,7 @@ export function DesktopSidebar() {
             >
               <item.icon
                 className={cn(
-                  "h-5 w-5 transition-all duration-200 flex-shrink-0",
+                  "size-5 transition-all duration-200 flex-shrink-0",
                   isActive ? "text-primary" : ""
                 )}
               />

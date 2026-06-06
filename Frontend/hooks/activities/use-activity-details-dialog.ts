@@ -1,5 +1,6 @@
 "use client"
 
+import { esLongDateFormatter, esNumericDateTimeFormatter, esTimeFormatter } from "@/lib/formatters"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
 import { useToast } from "@/hooks/use-toast"
@@ -37,29 +38,15 @@ export function useActivityDetailsDialog(
   }, [isOpen])
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(new Date(date))
+    return esLongDateFormatter.format(new Date(date))
   }
 
   const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esTimeFormatter.format(new Date(date))
   }
 
   const formatDateTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esNumericDateTimeFormatter.format(new Date(date))
   }
 
   const getStatusText = (status: string) => {

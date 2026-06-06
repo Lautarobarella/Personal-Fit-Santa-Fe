@@ -37,7 +37,7 @@ export default function NewClientPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              <User className="size-5" />
               Registrar Nuevo Cliente
             </CardTitle>
           </CardHeader>
@@ -164,7 +164,7 @@ export default function NewClientPage() {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isLoading} onClick={handleSubmit} className="flex-1">
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Crear Cliente
                 </Button>
               </div>

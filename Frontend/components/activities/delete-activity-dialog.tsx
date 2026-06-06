@@ -35,7 +35,7 @@ export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }:
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <AlertTriangle className="size-5 text-destructive" />
             Eliminar Actividad
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -46,7 +46,7 @@ export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }:
         <div className="space-y-4">
           {hasParticipants && (
             <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="size-4" />
               <AlertDescription>
                 Esta actividad tiene {activity.currentParticipants} participantes inscritos. Al eliminarla, se
                 cancelarán todas las inscripciones.
@@ -56,7 +56,7 @@ export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }:
 
           {isPastActivity && (
             <Alert>
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="size-4" />
               <AlertDescription>
                 Esta es una actividad pasada. Eliminarla también eliminará todos los registros de asistencia asociados.
               </AlertDescription>
@@ -73,7 +73,7 @@ export function DeleteActivityDialog({ open, onOpenChange, activity, onDelete }:
             disabled={isDeleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isDeleting && <Loader2 className="mr-2 size-4 animate-spin" />}
             Eliminar
           </AlertDialogAction>
         </AlertDialogFooter>

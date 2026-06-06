@@ -1,3 +1,4 @@
+import { esShortDateFormatter, esTimeFormatter } from "@/lib/formatters"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useSettingsContext } from "@/contexts/settings-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
@@ -38,7 +39,7 @@ export function useActivitiesPage() {
   // Filtrar actividades por la semana actual
   const activities = useMemo(() => {
     return getActivitiesByWeek(currentWeek)
-  }, [allActivities, currentWeek, getActivitiesByWeek])
+  }, [currentWeek, getActivitiesByWeek])
 
   // Cargar actividades
   useEffect(() => {
@@ -49,6 +50,8 @@ export function useActivitiesPage() {
 
   // Auto-scroll al día actual
   useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null
+
     if (!loading && !hasScrolledToToday && activities.length > 0) {
       const today = getActivityToday()
       today.setHours(0, 0, 0, 0)
@@ -66,19 +69,25 @@ export function useActivitiesPage() {
           date.toDateString() === today.toDateString()
         )
 
-        if (todayIndex === -1) return
+        if (todayIndex !== -1) {
+          scrollTimeout = setTimeout(() => {
+            const targetElement = document.getElementById(`day-${todayIndex}`)
+            if (targetElement) {
+              targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest'
+              })
+              setHasScrolledToToday(true)
+            }
+          }, 200)
+        }
+      }
+    }
 
-        setTimeout(() => {
-          const targetElement = document.getElementById(`day-${todayIndex}`)
-          if (targetElement) {
-            targetElement.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-              inline: 'nearest'
-            })
-            setHasScrolledToToday(true)
-          }
-        }, 200)
+    return () => {
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout)
       }
     }
   }, [loading, activities, hasScrolledToToday, currentWeek, getWeekDates])
@@ -158,17 +167,11 @@ export function useActivitiesPage() {
 
   // Formatters
   const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esTimeFormatter.format(new Date(date))
   }
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-    }).format(date)
+    return esShortDateFormatter.format(date)
   }
 
   const formatWeekRange = () => {

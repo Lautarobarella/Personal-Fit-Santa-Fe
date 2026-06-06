@@ -61,9 +61,7 @@ const clearAppCache = async (): Promise<void> => {
             try {
                 const registrations = await navigator.serviceWorker.getRegistrations();
 
-                for (const registration of registrations) {
-                    await registration.unregister();
-                }
+                await Promise.all(registrations.map((registration) => registration.unregister()));
             } catch (error) {
                 console.warn('⚠️ [CLEAR-CACHE] Error al desregistrar Service Workers:', error);
             }

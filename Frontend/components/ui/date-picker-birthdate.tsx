@@ -50,7 +50,7 @@ export function DatePickerBirthdate({
   // Step inside selector: "year" first, then "month"
   const [selectorStep, setSelectorStep] = React.useState<"year" | "month">("year")
   // Temporarily chosen year before picking month
-  const [pendingYear, setPendingYear] = React.useState(currentDate.getFullYear())
+  const [pendingYear, setPendingYear] = React.useState(() => currentDate.getFullYear())
 
   const datePickerRef = React.useRef<HTMLDivElement>(null)
   const yearGridRef = React.useRef<HTMLDivElement>(null)
@@ -223,9 +223,9 @@ export function DatePickerBirthdate({
           size="icon"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className="h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+          className="size-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
         >
-          <Calendar className="h-4 w-4" />
+          <Calendar className="size-4" />
         </Button>
       </div>
 
@@ -243,9 +243,9 @@ export function DatePickerBirthdate({
                       size="sm"
                       type="button"
                       onClick={() => setDecadeBase((prev) => prev - 12)}
-                      className="h-8 w-8 p-0 hover:bg-accent"
+                      className="size-8 p-0 hover:bg-accent"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="size-4" />
                     </Button>
                     <span className="font-semibold text-sm text-foreground">
                       {decadeBase} – {decadeBase + 11}
@@ -256,9 +256,9 @@ export function DatePickerBirthdate({
                       type="button"
                       onClick={() => setDecadeBase((prev) => prev + 12)}
                       disabled={decadeBase + 12 > currentYear}
-                      className="h-8 w-8 p-0 hover:bg-accent"
+                      className="size-8 p-0 hover:bg-accent"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="size-4" />
                     </Button>
                   </div>
 
@@ -313,7 +313,7 @@ export function DatePickerBirthdate({
                       onClick={() => setSelectorStep("year")}
                       className="h-8 px-2 hover:bg-accent flex items-center gap-1"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="size-4" />
                       <span className="text-sm">Año</span>
                     </Button>
                     <span className="font-semibold text-sm text-foreground">
@@ -332,7 +332,7 @@ export function DatePickerBirthdate({
                         pendingYear === currentYear && idx > new Date().getMonth()
                       return (
                         <button
-                          key={idx}
+                          key={name}
                           type="button"
                           disabled={isFuture}
                           onClick={() => handleMonthPick(idx)}
@@ -377,9 +377,9 @@ export function DatePickerBirthdate({
                   size="sm"
                   type="button"
                   onClick={goToPreviousMonth}
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="size-8 p-0 hover:bg-accent"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="size-4" />
                 </Button>
 
                 {/* Clickable label to open year/month selector */}
@@ -391,7 +391,7 @@ export function DatePickerBirthdate({
                   <span className="font-semibold text-sm text-foreground capitalize">
                     {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
                 </button>
 
                 <Button
@@ -399,9 +399,9 @@ export function DatePickerBirthdate({
                   size="sm"
                   type="button"
                   onClick={goToNextMonth}
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="size-8 p-0 hover:bg-accent"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="size-4" />
                 </Button>
               </div>
 
@@ -419,14 +419,14 @@ export function DatePickerBirthdate({
 
               {/* Day grid */}
               <div className="grid grid-cols-7 gap-1 px-4 pb-4">
-                {getDaysArray().map(({ day, isCurrentMonth }, index) => (
+                {getDaysArray().map(({ day, isCurrentMonth }) => (
                   <button
                     type="button"
-                    key={index}
+                    key={`${isCurrentMonth ? "current" : day > 15 ? "prev" : "next"}-${day}`}
                     onClick={() => isCurrentMonth && handleDateSelect(day)}
                     disabled={!isCurrentMonth}
                     className={cn(
-                      "h-8 w-8 rounded-md text-sm font-medium transition-colors",
+                      "size-8 rounded-md text-sm font-medium transition-colors",
                       !isCurrentMonth && "text-muted-foreground/30 cursor-default",
                       isCurrentMonth && "hover:bg-accent cursor-pointer",
                       isToday(day) && isCurrentMonth && "bg-accent text-accent-foreground",

@@ -8,7 +8,7 @@ export function usePaymentGracePeriodDialog(open: boolean, onOpenChange: (open: 
   const { paymentGracePeriodDays, updatePaymentGracePeriodValue, isUpdatingPaymentGracePeriod } =
     useSettingsContext()
   const { toast } = useToast()
-  const [days, setDays] = useState(paymentGracePeriodDays.toString())
+  const [days, setDays] = useState(() => paymentGracePeriodDays.toString())
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

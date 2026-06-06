@@ -42,12 +42,12 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                            <AlertTriangle className="size-5 text-destructive" />
                             Acceso Restringido
                         </DialogTitle>
                     </DialogHeader>
                     <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTriangle className="size-4" />
                         <AlertDescription>
                             Solo los administradores pueden enviar notificaciones a los usuarios.
                         </AlertDescription>
@@ -67,7 +67,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
             <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Bell className="h-5 w-5" />
+                        <Bell className="size-5" />
                         Crear Notificación
                     </DialogTitle>
                     <DialogDescription>
@@ -79,7 +79,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                     <div className="flex-1 overflow-y-auto space-y-4 p-2">
                         {/* Info Card */}
                         <Alert>
-                            <Users className="h-5 w-5" />
+                            <Users className="size-5" />
                             <AlertDescription>
                                 Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores)
                                 y aparecerá en su sección de notificaciones.
@@ -90,7 +90,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5" />
+                                    <MessageSquare className="size-5" />
                                     Contenido de la Notificación
                                 </CardTitle>
                             </CardHeader>
@@ -120,7 +120,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                                     </Label>
                                     <Textarea
                                         id="message"
-                                        placeholder="Escribe aquí el mensaje de la notificación..."
+                                        placeholder="Escribe aquí el mensaje de la notificación…"
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
                                         maxLength={maxMessageLength}
@@ -176,12 +176,12 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                         >
                             {isSending ? (
                                 <>
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                    Enviando...
+                                    <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    Enviando…
                                 </>
                             ) : (
                                 <>
-                                    <Send className="h-4 w-4" />
+                                    <Send className="size-4" />
                                     Enviar Notificación
                                 </>
                             )}

@@ -1,5 +1,6 @@
 "use client"
 
+import { esShortDateYearFormatter } from "@/lib/formatters"
 import { fetchPendingUserVerifications, resetClientPasswordToDni } from "@/api/clients/usersApi"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -136,11 +137,7 @@ export function useClientsPage() {
       return "N/A"
     }
 
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(parsedDate)
+    return esShortDateYearFormatter.format(parsedDate)
   }
 
   // ── Handlers ────────────────────────────────────────────────────────

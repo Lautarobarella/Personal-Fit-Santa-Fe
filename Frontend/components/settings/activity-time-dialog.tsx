@@ -36,7 +36,7 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
             <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
+                        <Clock className="size-5" />
                         Tiempos de Actividades
                     </DialogTitle>
                     <DialogDescription>
@@ -46,7 +46,7 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
 
                 {loading ? (
                     <div className="text-center py-4">
-                        <div className="text-muted-foreground">Cargando configuración...</div>
+                        <div className="text-muted-foreground">Cargando configuración…</div>
                     </div>
                 ) : (
                     <div className="flex flex-col h-full overflow-hidden">
@@ -55,7 +55,7 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                             <Card className="m-2">
                                 <CardHeader>
                                     <CardTitle className="text-lg flex items-center gap-2">
-                                        <Clock className="h-5 w-5" />
+                                        <Clock className="size-5" />
                                         Tiempo de Inscripción
                                     </CardTitle>
                                 </CardHeader>
@@ -84,7 +84,7 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                             <Card className="m-2">
                                 <CardHeader>
                                     <CardTitle className="text-lg flex items-center gap-2">
-                                        <Clock className="h-5 w-5" />
+                                        <Clock className="size-5" />
                                         Tiempo de Desinscripción
                                     </CardTitle>
                                 </CardHeader>
@@ -143,8 +143,8 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                                 disabled={saving}
                                 className="flex-1"
                             >
-                                <Save className="h-4 w-4 mr-2" />
-                                {saving ? "Guardando..." : "Guardar"}
+                                <Save className="size-4 mr-2" />
+                                {saving ? "Guardando…" : "Guardar"}
                             </Button>
                         </div>
                     </div>

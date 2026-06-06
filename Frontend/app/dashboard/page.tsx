@@ -53,13 +53,13 @@ function DashboardContent() {
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-background pb-safe-bottom">
-        <MobileHeader title="Cargando..." />
+        <MobileHeader title="Cargando…" />
         <div className="container-centered py-6 space-y-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-2">Cargando dashboard...</span>
+                <div className="animate-spin rounded-full size-8 border-b-2 border-primary"></div>
+                <span className="ml-2">Cargando dashboard…</span>
               </div>
             </CardContent>
           </Card>
@@ -88,17 +88,17 @@ function DashboardContent() {
               </p>
             </div>
             {/* Decoración circular sutil */}
-            <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full" />
-            <div className="absolute -bottom-4 -right-10 w-24 h-24 bg-white/5 rounded-full" />
+            <div className="absolute -top-6 -right-6 size-32 bg-white/10 rounded-full" />
+            <div className="absolute -bottom-4 -right-10 size-24 bg-white/5 rounded-full" />
           </div>
         </div>
 
         {/* Alerts Section - Diseño profesional */}
         {alerts.length > 0 && (
           <div className="space-y-3">
-            {alerts.map((alert, index) => (
+            {alerts.map((alert) => (
               <Card
-                key={index}
+                key={`${alert.type}-${alert.message}`}
                 className={`border-l-4 shadow-professional transition-all duration-200 hover:shadow-professional-lg ${alert.type === "warning"
                   ? "border-l-primary hover:bg-background/50"
                   : alert.type === "info"
@@ -109,9 +109,9 @@ function DashboardContent() {
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {alert.type === "warning" && <AlertTriangle className="h-4 w-4 text-primary flex-shrink-0" />}
-                      {alert.type === "info" && <Bell className="h-4 w-4 text-primary flex-shrink-0" />}
-                      {alert.type === "success" && <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />}
+                      {alert.type === "warning" && <AlertTriangle className="size-4 text-primary flex-shrink-0" />}
+                      {alert.type === "info" && <Bell className="size-4 text-primary flex-shrink-0" />}
+                      {alert.type === "success" && <CheckCircle className="size-4 text-success flex-shrink-0" />}
                       <span className="text-sm font-semibold text-foreground flex-1">{String(alert.message ?? '')}</span>
                     </div>
                     <Button
@@ -121,7 +121,7 @@ function DashboardContent() {
                       onClick={() => alert.onClick ? alert.onClick() : handleNavigation(alert.route ?? '', alert.action ?? '')}
                     >
                       {String(alert.action ?? '')}
-                      <ArrowUpRight className="h-4 w-4 ml-1" />
+                      <ArrowUpRight className="size-4 ml-1" />
                     </Button>
                   </div>
                 </CardContent>
@@ -135,7 +135,7 @@ function DashboardContent() {
             const colSpan = (index === 0 || index === 3) ? "col-span-2" : "col-span-1";
 
             return (
-              <Card key={index} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 min-h-[160px] flex flex-col justify-center ${colSpan} ${
+              <Card key={stat.title} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 min-h-[160px] flex flex-col justify-center ${colSpan} ${
                 stat.color === "success" ? "bg-green-50 dark:bg-green-950/30" :
                 stat.color === "destructive" ? "bg-red-50 dark:bg-red-950/30" :
                 index % 2 === 0 ? "bg-card" : "bg-muted/40 dark:bg-muted/20"
@@ -155,7 +155,7 @@ function DashboardContent() {
                       stat.color === "destructive" ? "bg-red-100 dark:bg-red-900/40" :
                       stat.color === "bg-orange-500" ? "bg-primary/10" : "bg-gray-100 dark:bg-gray-800"
                     }`}>
-                      <stat.icon className={`h-5 w-5 ${
+                      <stat.icon className={`size-5 ${
                         stat.color === "success" ? "text-green-600 dark:text-green-400" :
                         stat.color === "destructive" ? "text-red-600 dark:text-red-400" :
                         stat.color === "bg-orange-500" ? "text-primary" : "text-gray-500 dark:text-gray-400"
@@ -163,14 +163,15 @@ function DashboardContent() {
                     </div>
                     {(stat as any).isRevenue && (
                       <button
+                        type="button"
                         onClick={() => setShowRevenue(!showRevenue)}
                         className="p-1 hover:bg-muted rounded-full transition-colors"
                         aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
                       >
                         {showRevenue ? (
-                          <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          <Eye className="size-4 text-muted-foreground hover:text-foreground" />
                         ) : (
-                          <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          <EyeOff className="size-4 text-muted-foreground hover:text-foreground" />
                         )}
                       </button>
                     )}
@@ -203,7 +204,7 @@ function DashboardContent() {
             <CardHeader className="pb-4">
               <CardTitle className="text-xl font-bold flex items-center gap-3">
                 <div className="p-2 bg-primary/15 dark:bg-primary/20 rounded-xl shadow-sm">
-                  <Zap className="h-6 w-6 text-primary" />
+                  <Zap className="size-6 text-primary" />
                 </div>
                 Acciones Rápidas
               </CardTitle>
@@ -214,7 +215,7 @@ function DashboardContent() {
               if (action.onClick) {
                 return (
                   <Button
-                    key={index}
+                    key={action.title}
                     variant="outline"
                     className={`w-full h-auto p-6 flex flex-col gap-4 border-2 bg-background hover:bg-accent/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group ${
                       action.color === "bg-orange-500"
@@ -224,10 +225,10 @@ function DashboardContent() {
                     onClick={action.onClick}
                     disabled={(action as any).disabled}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
+                    <div className={`size-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
                       action.color === "bg-orange-500" ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"
                     }`}>
-                      <action.icon className="h-7 w-7 text-white" />
+                      <action.icon className="size-7 text-white" />
                     </div>
                     <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
                   </Button>
@@ -235,7 +236,7 @@ function DashboardContent() {
               } else {
                 return (
                   <Button
-                    key={index}
+                    key={action.title}
                     variant="outline"
                     className={`w-full h-auto p-6 flex flex-col gap-4 border-2 bg-background hover:bg-accent/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group ${
                       action.color === "bg-orange-500"
@@ -244,10 +245,10 @@ function DashboardContent() {
                     }`}
                     onClick={() => handleNavigation(action.route!, action.title)}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
+                    <div className={`size-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
                       action.color === "bg-orange-500" ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"
                     }`}>
-                      <action.icon className="h-7 w-7 text-white" />
+                      <action.icon className="size-7 text-white" />
                     </div>
                     <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
                   </Button>
@@ -291,7 +292,7 @@ function DashboardContent() {
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Timer className="h-5 w-5" />
+                <Timer className="size-5" />
                 Horas del mes - {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
               </DialogTitle>
             </DialogHeader>

@@ -184,12 +184,15 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       return []
     }
 
-    return payments
-      .filter((p) => p.status === PaymentStatus.PENDING)
-      .map((p): PendingPaymentType => ({
-        ...p,
-        receiptUrl: buildReceiptUrl(p.receiptId),
-      }))
+    return payments.reduce<PendingPaymentType[]>((pendingPayments, payment) => {
+      if (payment.status === PaymentStatus.PENDING) {
+        pendingPayments.push({
+          ...payment,
+          receiptUrl: buildReceiptUrl(payment.receiptId),
+        })
+      }
+      return pendingPayments
+    }, [])
   }, [payments])
 
   // Función para filtrar pagos por estado
@@ -258,9 +261,11 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       return null
     }
     
-    return userPayments.sort((a, b) => 
-      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-    )[0]
+    return userPayments.reduce((latest, payment) => {
+      const latestTime = new Date(latest.createdAt || 0).getTime()
+      const paymentTime = new Date(payment.createdAt || 0).getTime()
+      return paymentTime > latestTime ? payment : latest
+    })
   }, [payments])
 
   // Función para verificar si un pago está vencido (para pagos pendientes)

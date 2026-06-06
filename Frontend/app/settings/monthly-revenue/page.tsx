@@ -40,18 +40,19 @@ export default function MonthlyRevenuePage() {
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-primary" />
+                                <BarChart3 className="size-5 text-primary" />
                                 <span>Resumen de Ingresos</span>
                             </div>
                             <button
+                                type="button"
                                 onClick={() => setShowAmounts(!showAmounts)}
                                 className="p-2 hover:bg-muted rounded-full transition-colors"
                                 aria-label={showAmounts ? "Ocultar montos" : "Mostrar montos"}
                             >
                                 {showAmounts ? (
-                                    <Eye className="h-4 w-4 text-muted-foreground" />
+                                    <Eye className="size-4 text-muted-foreground" />
                                 ) : (
-                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    <EyeOff className="size-4 text-muted-foreground" />
                                 )}
                             </button>
                         </CardTitle>
@@ -70,12 +71,12 @@ export default function MonthlyRevenuePage() {
                 </Card>
 
                 {/* Mes Actual */}
-                <Card className="border-l-4 border-l-primary">
+                <Card className="shadow-[inset_3px_0_0_hsl(var(--primary))]">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-full">
-                                    <Calendar className="h-5 w-5 text-primary" />
+                                    <Calendar className="size-5 text-primary" />
                                 </div>
                                 <div>
                                     <h3 className="font-semibold capitalize">
@@ -91,7 +92,7 @@ export default function MonthlyRevenuePage() {
                                     {showAmounts ? formatCurrency(currentMonthAmount) : "••••••"}
                                 </div>
                                 <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                                    <TrendingUp className="h-3 w-3" />
+                                    <TrendingUp className="size-3" />
                                     En tiempo real
                                 </p>
                             </div>
@@ -103,15 +104,15 @@ export default function MonthlyRevenuePage() {
                 {isLoading ? (
                     <Card>
                         <CardContent className="p-8 text-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                            <p className="text-muted-foreground mt-4">Cargando historial...</p>
+                            <div className="animate-spin rounded-full size-8 border-b-2 border-primary mx-auto"></div>
+                            <p className="text-muted-foreground mt-4">Cargando historial…</p>
                         </CardContent>
                     </Card>
                 ) : displayRevenues.length > 0 ? (
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <DollarSign className="h-5 w-5" />
+                                <DollarSign className="size-5" />
                                 Historial Mensual
                             </CardTitle>
                         </CardHeader>
@@ -123,7 +124,7 @@ export default function MonthlyRevenuePage() {
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-muted rounded-full">
-                                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                                            <Calendar className="size-4 text-muted-foreground" />
                                         </div>
                                         <div>
                                             <p className="font-medium capitalize">
@@ -149,7 +150,7 @@ export default function MonthlyRevenuePage() {
                 ) : (
                     <Card>
                         <CardContent className="p-8 text-center">
-                            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <BarChart3 className="size-12 text-muted-foreground mx-auto mb-4" />
                             <h3 className="font-semibold text-lg mb-2">Sin historial disponible</h3>
                             <p className="text-muted-foreground">
                                 No hay registros de meses anteriores archivados.
@@ -164,7 +165,7 @@ export default function MonthlyRevenuePage() {
                     <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                             <div className="p-2 bg-primary/10 rounded-full">
-                                <DollarSign className="h-4 w-4 text-primary" />
+                                <DollarSign className="size-4 text-primary" />
                             </div>
                             <div className="text-sm">
                                 <p className="font-medium mb-2">Información sobre los registros</p>

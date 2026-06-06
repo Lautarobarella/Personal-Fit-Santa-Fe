@@ -1,5 +1,6 @@
 "use client"
 
+import { esShortDateYearFormatter, esShortDateYearTimeFormatter } from "@/lib/formatters"
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
@@ -62,11 +63,7 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
         return "N/A"
       }
 
-      return new Intl.DateTimeFormat("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(parsedDate)
+      return esShortDateYearFormatter.format(parsedDate)
     } catch (err) {
       console.error("Error al formatear fecha:", err, date)
       return "N/A"
@@ -86,13 +83,7 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
         return "N/A"
       }
 
-      return new Intl.DateTimeFormat("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(parsedDate)
+      return esShortDateYearTimeFormatter.format(parsedDate)
     } catch (err) {
       console.error("Error al formatear fecha:", err, date)
       return "N/A"
@@ -201,11 +192,12 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
       return null
     }
 
-    const livePaymentsById = new Map(
-      payments
-        .filter((payment) => payment.clientId === selectedClient.id)
-        .map((payment) => [payment.id, payment]),
-    )
+    const livePaymentsById = payments.reduce((map, payment) => {
+      if (payment.clientId === selectedClient.id) {
+        map.set(payment.id, payment)
+      }
+      return map
+    }, new Map<number, (typeof payments)[number]>())
 
     return {
       ...selectedClient,

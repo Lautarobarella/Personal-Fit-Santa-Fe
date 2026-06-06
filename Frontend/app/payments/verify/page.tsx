@@ -43,7 +43,7 @@ export default function PaymentVerificationPage() {
     setTimeout(() => router.replace("/payments"), 2000)
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Check className="h-16 w-16 text-success mb-4" />
+        <Check className="size-16 text-success mb-4" />
         <h2 className="text-2xl font-bold mb-2">{title}</h2>
         {message && <p className="text-muted-foreground mb-6">{message}</p>}
         <Button onClick={() => router.replace("/payments")}>Volver a Pagos</Button>
@@ -55,8 +55,8 @@ export default function PaymentVerificationPage() {
   if (loading || !user || user.role !== UserRole.ADMIN) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin mb-2" />
-        <p className="text-muted-foreground">Cargando pagos pendientes...</p>
+        <Loader2 className="size-8 animate-spin mb-2" />
+        <p className="text-muted-foreground">Cargando pagos pendientes…</p>
       </div>
     )
   }
@@ -101,19 +101,19 @@ export default function PaymentVerificationPage() {
                 <CardContent className="p-2.5">
                   <div className="grid grid-cols-2 gap-2.5 text-sm">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="size-4 text-muted-foreground" />
                       <span className="font-medium truncate">{currentPayment.clientName}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <Calendar className="size-4 text-muted-foreground" />
                       <span className="truncate">{formatDateTime(currentPayment.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <DollarSign className="size-4 text-muted-foreground" />
                       <span className="font-bold">{currentPayment.amount}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Clock className="size-4 text-muted-foreground" />
                       <Badge variant={getStatusColor(currentPayment.status)} className="text-sm px-2 py-1">
                         {getStatusText(currentPayment.status)}
                       </Badge>
@@ -130,7 +130,7 @@ export default function PaymentVerificationPage() {
                     <div className="space-y-1">
                       {currentPayment.associatedUsers.map((user: any, index: number) => (
                         <div key={user.userId} className="flex items-center gap-2 text-sm py-1 px-2 bg-muted/50 rounded">
-                          <User className="h-3 w-3 text-muted-foreground" />
+                          <User className="size-3 text-muted-foreground" />
                           <span className="font-medium">{user.userName}</span>
                           <span className="text-muted-foreground">({user.userDni})</span>
                           {index === 0 && (
@@ -184,7 +184,7 @@ export default function PaymentVerificationPage() {
                   <Label htmlFor="rejectionReason" className="text-sm font-medium">Razón del rechazo</Label>
                   <Textarea
                     id="rejectionReason"
-                    placeholder="Explica por qué se rechaza el pago..."
+                    placeholder="Explica por qué se rechaza el pago…"
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     rows={2}
@@ -202,9 +202,9 @@ export default function PaymentVerificationPage() {
                   disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
                   className="w-1/2 py-2 text-sm font-semibold h-9"
                 >
-                  {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {!isVerifying && <X className="mr-2 h-4 w-4" />}
-                  {isOnCooldown ? "Espera..." : "Rechazar"}
+                  {isVerifying && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  {!isVerifying && <X className="mr-2 size-4" />}
+                  {isOnCooldown ? "Espera…" : "Rechazar"}
                 </Button>
                 <Button
                   variant="default"
@@ -212,9 +212,9 @@ export default function PaymentVerificationPage() {
                   disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
                   className="w-1/2 py-2 text-sm font-semibold h-9"
                 >
-                  {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {!isVerifying && !isOnCooldown && <Check className="mr-2 h-4 w-4" />}
-                  {isVerifying ? "Procesando..." : isOnCooldown ? "Espera..." : "Aprobar"}
+                  {isVerifying && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  {!isVerifying && !isOnCooldown && <Check className="mr-2 size-4" />}
+                  {isVerifying ? "Procesando…" : isOnCooldown ? "Espera…" : "Aprobar"}
                 </Button>
               </div>
             </>

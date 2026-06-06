@@ -20,6 +20,8 @@ export function AuthenticatedImage({
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let objectUrl: string | null = null;
+
     if (!fileId) {
       setImageSrc(fallbackSrc);
       setIsLoading(false);
@@ -41,7 +43,7 @@ export function AuthenticatedImage({
         }
 
         const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
+        objectUrl = URL.createObjectURL(blob);
         setImageSrc(objectUrl);
 
       } catch (err) {
@@ -57,8 +59,8 @@ export function AuthenticatedImage({
 
     // Cleanup function para liberar la URL del objeto
     return () => {
-      if (imageSrc && imageSrc !== fallbackSrc && imageSrc.startsWith('blob:')) {
-        URL.revokeObjectURL(imageSrc);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
       }
     };
   }, [fileId, fallbackSrc]);
@@ -66,7 +68,7 @@ export function AuthenticatedImage({
   if (isLoading) {
     return (
       <div className={`animate-pulse bg-gray-200 ${className}`}>
-        <div className="w-full h-full bg-gray-300 rounded"></div>
+        <div className="size-full bg-gray-300 rounded"></div>
       </div>
     );
   }
@@ -83,4 +85,4 @@ export function AuthenticatedImage({
       }}
     />
   );
-} 
+}

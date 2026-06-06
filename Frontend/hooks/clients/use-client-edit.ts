@@ -1,5 +1,6 @@
 "use client"
 
+import { esShortDateYearFormatter } from "@/lib/formatters"
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-provider"
@@ -90,11 +91,7 @@ export function useClientEdit() {
         return "N/A"
       }
 
-      return new Intl.DateTimeFormat("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(parsedDate)
+      return esShortDateYearFormatter.format(parsedDate)
     } catch (err) {
       console.error("Error al formatear fecha:", err, date)
       return "N/A"

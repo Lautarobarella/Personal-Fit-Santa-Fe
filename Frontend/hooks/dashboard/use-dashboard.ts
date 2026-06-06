@@ -1,3 +1,4 @@
+import { esShortDateTimeFormatter, esTimeFormatter } from "@/lib/formatters"
 import { useActivityContext } from "@/contexts/activity-provider"
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
@@ -10,7 +11,6 @@ import { useToast } from "@/hooks/use-toast"
 import { useTrainer } from "@/hooks/clients/use-trainer"
 import { hasAcceptedTerms } from "@/lib/terms-and-conditions-storage"
 import { ActivityStatus, AttendanceStatus, UserRole } from "@/types"
-import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import {
@@ -60,7 +60,6 @@ export function useDashboard() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const queryClient = useQueryClient()
 
   useRequireAuth()
 
@@ -151,7 +150,7 @@ export function useDashboard() {
         .then((users) => setPendingUserVerificationsCount(Array.isArray(users) ? users.length : 0))
         .catch(() => setPendingUserVerificationsCount(0))
     }
-  }, [loadClients, refreshActivities, user?.role, user?.id, queryClient])
+  }, [checkMembershipStatus, loadClients, refreshActivities, user?.role, user?.id])
 
   useEffect(() => {
     if (mounted && user?.role === UserRole.CLIENT && user?.id) {
@@ -454,9 +453,9 @@ export function useDashboard() {
         const today = new Date();
         const isToday = classDate.toDateString() === today.toDateString();
         if (isToday) {
-          return new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(classDate);
+          return esTimeFormatter.format(classDate);
         } else {
-          return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(classDate);
+          return esShortDateTimeFormatter.format(classDate);
         }
       };
 

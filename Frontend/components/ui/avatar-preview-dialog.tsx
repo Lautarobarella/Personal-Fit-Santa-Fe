@@ -44,7 +44,7 @@ export function AvatarPreviewDialog({
               <img
                 src={imageUrl}
                 alt={`Foto de perfil de ${displayName}`}
-                className="h-full w-full object-cover"
+                className="size-full object-cover"
                 draggable={false}
               />
             </div>
@@ -55,7 +55,7 @@ export function AvatarPreviewDialog({
           </div>
 
           <DialogClose className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white opacity-100 shadow-none outline-none ring-0 ring-offset-0 transition-colors hover:bg-white/20 focus:outline-none focus-visible:outline-none focus-visible:ring-0">
-            <X className="h-4 w-4" />
+            <X className="size-4" />
             <span className="sr-only">Cerrar</span>
           </DialogClose>
         </DialogPrimitive.Content>

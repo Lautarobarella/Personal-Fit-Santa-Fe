@@ -1,5 +1,6 @@
 "use client"
 
+import { esArNumericDateFormatter } from "@/lib/formatters"
 import { approvePendingUser, fetchPendingUserVerifications, rejectPendingUser } from "@/api/clients/usersApi"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
@@ -147,11 +148,7 @@ export function useUserVerify() {
       return "Sin fecha"
     }
 
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(parsedDate)
+    return esArNumericDateFormatter.format(parsedDate)
   }
 
   const getRoleText = (role: string) => {

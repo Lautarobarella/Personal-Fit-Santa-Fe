@@ -74,7 +74,7 @@ export function TermsAndConditionsDialog({
                             </div>
                         ) : (
                             <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">Cargando términos y condiciones...</p>
+                                <p className="text-muted-foreground">Cargando términos y condiciones…</p>
                             </div>
                         )}
                     </ScrollArea>

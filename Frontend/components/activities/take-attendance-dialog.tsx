@@ -129,12 +129,12 @@ export function TakeAttendanceDialog({
           <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="ml-2">Cargando asistencias...</span>
+                <Loader2 className="size-8 animate-spin" />
+                <span className="ml-2">Cargando asistencias…</span>
               </div>
             ) : error ? (
               <div className="flex items-center justify-center h-64">
-                <AlertCircle className="h-8 w-8 text-destructive" />
+                <AlertCircle className="size-8 text-destructive" />
                 <span className="ml-2 text-destructive">Error: {error}</span>
               </div>
             ) : (
@@ -149,7 +149,7 @@ export function TakeAttendanceDialog({
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <Avatar className="h-8 w-8">
+                            <Avatar className="size-8">
                               <AvatarFallback className="text-xs">
                                 {`${attendance.firstName?.[0] ?? ""}${attendance.lastName?.[0] ?? ""}`}
                               </AvatarFallback>
@@ -172,7 +172,7 @@ export function TakeAttendanceDialog({
                               handleAttendanceClick(attendance.id, attendance.status, AttendanceStatus.PRESENT)
                             }
                           >
-                            {updatingAttendanceId === attendance.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {updatingAttendanceId === attendance.id && <Loader2 className="size-3 animate-spin" />}
                             Pres
                           </Button>
                           <Button
@@ -184,7 +184,7 @@ export function TakeAttendanceDialog({
                               handleAttendanceClick(attendance.id, attendance.status, AttendanceStatus.LATE)
                             }
                           >
-                            {updatingAttendanceId === attendance.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {updatingAttendanceId === attendance.id && <Loader2 className="size-3 animate-spin" />}
                             Tard
                           </Button>
                           <Button
@@ -196,7 +196,7 @@ export function TakeAttendanceDialog({
                               handleAttendanceClick(attendance.id, attendance.status, AttendanceStatus.ABSENT)
                             }
                           >
-                            {updatingAttendanceId === attendance.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {updatingAttendanceId === attendance.id && <Loader2 className="size-3 animate-spin" />}
                             Aus
                           </Button>
                         </div>
@@ -207,7 +207,7 @@ export function TakeAttendanceDialog({
                   {queuedAttendances.length === 0 && (
                     <Card className="m-2 h-[35vh] flex items-center justify-center">
                       <CardContent className="flex flex-col items-center justify-center h-full">
-                        <Users className="h-12 w-12 text-muted-foreground mb-2" />
+                        <Users className="size-12 text-muted-foreground mb-2" />
                         <p className="text-muted-foreground">
                           {activityAttendances.length === 0
                             ? "No hay participantes inscritos"

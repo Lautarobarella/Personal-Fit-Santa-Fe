@@ -32,7 +32,7 @@ export default function NotificationsPage() {
       <div className="container-centered pt-4">
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 transform text-muted-foreground" />
             <Input
               type="text"
               placeholder="Buscar notificaciones..."
@@ -89,7 +89,7 @@ export default function NotificationsPage() {
                   disabled={!hasUnread}
                   className="min-w-[180px] bg-transparent"
                 >
-                  <CheckCheck className="mr-2 h-4 w-4" />
+                  <CheckCheck className="mr-2 size-4" />
                   Marcar todas como leidas
                 </Button>
                 <Button
@@ -98,7 +98,7 @@ export default function NotificationsPage() {
                   disabled={!hasActive}
                   className="min-w-[180px] bg-transparent"
                 >
-                  <Archive className="mr-2 h-4 w-4" />
+                  <Archive className="mr-2 size-4" />
                   Archivar todas
                 </Button>
               </div>

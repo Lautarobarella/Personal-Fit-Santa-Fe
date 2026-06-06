@@ -60,7 +60,7 @@ export default function ClientsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }
@@ -86,7 +86,7 @@ export default function ClientsPage() {
               </Link>
               <Link href="/clients/new">
                 <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="size-4 mr-1" />
                   Nuevo
                 </Button>
               </Link>
@@ -98,7 +98,7 @@ export default function ClientsPage() {
       <div className="container-centered py-6 space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             placeholder="Buscar clientes..."
             value={searchTerm}
@@ -109,6 +109,7 @@ export default function ClientsPage() {
 
         <div className="grid grid-cols-3 gap-4">
           <button
+            type="button"
             className={`rounded-2xl transition-all duration-200 ${statusFilter === "ACTIVE" ? "ring-2 ring-green-500/50 bg-green-500/10" : "hover:bg-muted/50"} focus:outline-none`}
             onClick={() => setStatusFilter("ACTIVE")}
           >
@@ -122,6 +123,7 @@ export default function ClientsPage() {
             </Card>
           </button>
           <button
+            type="button"
             className={`rounded-2xl transition-all duration-200 ${statusFilter === "INACTIVE" ? "ring-2 ring-orange-500/50 bg-orange-500/10" : "hover:bg-muted/50"} focus:outline-none`}
             onClick={() => setStatusFilter("INACTIVE")}
           >
@@ -135,6 +137,7 @@ export default function ClientsPage() {
             </Card>
           </button>
           <button
+            type="button"
             className={`rounded-2xl transition-all duration-200 ${statusFilter === "all" ? "ring-2 ring-blue-500/50 bg-blue-500/10" : "hover:bg-muted/50"} focus:outline-none`}
             onClick={() => setStatusFilter("all")}
           >
@@ -178,15 +181,15 @@ export default function ClientsPage() {
 
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
+                        <Mail className="size-3" />
                         <span className="truncate">{client.email}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
+                        <Phone className="size-3" />
                         <span>{client.phone}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="size-3" />
                         <span>Última actividad: {client.lastActivity ? formatDate(client?.lastActivity) : "sin actividad"}</span>
                       </div>
                     </div>
@@ -205,7 +208,7 @@ export default function ClientsPage() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreVertical className="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -243,7 +246,7 @@ export default function ClientsPage() {
               {user.role === UserRole.ADMIN && !searchTerm && clients.length === 0 && (
                 <Link href="/clients/new">
                   <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="size-4 mr-2" />
                     Agregar Cliente
                   </Button>
                 </Link>
@@ -282,7 +285,7 @@ export default function ClientsPage() {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isDeleting && <Loader2 className="mr-2 size-4 animate-spin" />}
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -306,7 +309,7 @@ export default function ClientsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isResettingPassword}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmResetPassword} disabled={isResettingPassword}>
-              {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isResettingPassword && <Loader2 className="mr-2 size-4 animate-spin" />}
               Reiniciar contraseña
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -317,11 +320,11 @@ export default function ClientsPage() {
 
       {user.role === UserRole.ADMIN && pendingVerificationCount > 0 && (
         <Button
-          className="fixed bottom-28 left-1/2 -translate-x-1/2 lg:bottom-8 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
+          className="fixed bottom-28 left-1/2 -translate-x-1/2 lg:bottom-8 z-50 shadow-lg transition-shadow bg-secondary rounded-full p-3"
           size="default"
           onClick={() => router.push("/clients/verify")}
         >
-          <UserCheck className="h-5 w-5" />
+          <UserCheck className="size-5" />
           Verificar ({pendingVerificationCount})
         </Button>
       )}

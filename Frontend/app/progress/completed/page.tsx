@@ -28,7 +28,7 @@ export default function CompletedClassesPage() {
   if (isLoading || !clientDetail) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }
@@ -59,11 +59,11 @@ export default function CompletedClassesPage() {
 
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
+                  <Calendar className="size-3" />
                   <span>{formatDate(activity.date)}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
+                  <Clock className="size-3" />
                   <span>{formatTime(activity.date)}</span>
                 </div>
               </div>

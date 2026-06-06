@@ -106,8 +106,8 @@ export default function ReportsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                <span className="ml-3 text-muted-foreground">Cargando reportes...</span>
+                <div className="animate-spin rounded-full size-8 border-b-2 border-primary" />
+                <span className="ml-3 text-muted-foreground">Cargando reportes…</span>
               </div>
             </CardContent>
           </Card>
@@ -123,12 +123,13 @@ export default function ReportsPage() {
     <Card className="shadow-professional border-0">
       <CardContent className="p-4">
         <button
+          type="button"
           className="w-full flex items-center justify-between"
           onClick={() => setShowMonthPicker(!showMonthPicker)}
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
-              <Calendar className="h-5 w-5 text-primary" />
+              <Calendar className="size-5 text-primary" />
             </div>
             <div className="text-left">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
@@ -138,9 +139,9 @@ export default function ReportsPage() {
             </div>
           </div>
           {showMonthPicker ? (
-            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+            <ChevronUp className="size-5 text-muted-foreground" />
           ) : (
-            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            <ChevronDown className="size-5 text-muted-foreground" />
           )}
         </button>
 
@@ -148,6 +149,7 @@ export default function ReportsPage() {
           <div className="mt-4 grid grid-cols-2 gap-2">
             {monthOptions.map((opt) => (
               <button
+                type="button"
                 key={`${opt.year}-${opt.month}`}
                 className={`p-3 rounded-xl text-sm font-medium capitalize transition-all ${
                   opt.month === selectedMonth.month && opt.year === selectedMonth.year
@@ -186,7 +188,7 @@ export default function ReportsPage() {
           <Card className="shadow-professional border-0 overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-primary" />
+                <CheckCircle className="size-5 text-primary" />
                 Asistencia del Mes
               </CardTitle>
             </CardHeader>
@@ -214,22 +216,22 @@ export default function ReportsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-xl text-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <CheckCircle className="size-5 text-green-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold text-green-700 dark:text-green-400">{clientAttended}</p>
                   <p className="text-xs text-muted-foreground">Presentes</p>
                 </div>
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-xl text-center">
-                  <XCircle className="h-5 w-5 text-red-600 mx-auto mb-1" />
+                  <XCircle className="size-5 text-red-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold text-red-700 dark:text-red-400">{clientAbsences}</p>
                   <p className="text-xs text-muted-foreground">Ausencias</p>
                 </div>
                 <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-xl text-center">
-                  <Clock className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
+                  <Clock className="size-5 text-yellow-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{clientLateArrivals}</p>
                   <p className="text-xs text-muted-foreground">Llegadas tarde</p>
                 </div>
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-xl text-center">
-                  <Target className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                  <Target className="size-5 text-blue-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{clientAttendanceRate}%</p>
                   <p className="text-xs text-muted-foreground">Tasa asistencia</p>
                 </div>
@@ -241,29 +243,29 @@ export default function ReportsPage() {
           <Card className="shadow-professional border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
+                <Activity className="size-5 text-primary" />
                 Entrenamiento
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-muted/50 rounded-xl text-center">
-                  <Zap className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                  <Zap className="size-5 text-orange-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold">{clientBestStreak}</p>
                   <p className="text-xs text-muted-foreground">Mejor racha</p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-xl text-center">
-                  <Flame className="h-5 w-5 text-red-600 mx-auto mb-1" />
+                  <Flame className="size-5 text-red-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold">{clientAvgEffort}/10</p>
                   <p className="text-xs text-muted-foreground">Esfuerzo promedio</p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-xl text-center">
-                  <BarChart3 className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+                  <BarChart3 className="size-5 text-purple-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold">{clientSummariesFilled}</p>
                   <p className="text-xs text-muted-foreground">Resúmenes cargados</p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-xl text-center">
-                  <Dumbbell className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                  <Dumbbell className="size-5 text-blue-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold">{clientUniqueActivities}</p>
                   <p className="text-xs text-muted-foreground">Actividades distintas</p>
                 </div>
@@ -275,7 +277,7 @@ export default function ReportsPage() {
           <Card className="shadow-professional border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
+                <Calendar className="size-5 text-primary" />
                 Distribución Semanal
               </CardTitle>
             </CardHeader>
@@ -302,7 +304,7 @@ export default function ReportsPage() {
             <Card className="shadow-professional border-0">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Dumbbell className="h-5 w-5 text-primary" />
+                  <Dumbbell className="size-5 text-primary" />
                   Grupos Musculares
                 </CardTitle>
               </CardHeader>
@@ -334,9 +336,9 @@ export default function ReportsPage() {
                       ? "Ver menos"
                       : `Ver todos (${clientMuscleGroups.length})`}
                     {expandedMuscles ? (
-                      <ChevronUp className="h-4 w-4 ml-1" />
+                      <ChevronUp className="size-4 ml-1" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 ml-1" />
+                      <ChevronDown className="size-4 ml-1" />
                     )}
                   </Button>
                 )}
@@ -348,7 +350,7 @@ export default function ReportsPage() {
           <Card className="shadow-professional border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
+                <TrendingUp className="size-5 text-primary" />
                 Indicadores del Mes
               </CardTitle>
             </CardHeader>
@@ -410,7 +412,7 @@ export default function ReportsPage() {
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-primary opacity-20" />
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
+              <DollarSign className="size-5 text-primary" />
               Resumen Financiero
             </CardTitle>
           </CardHeader>
@@ -480,7 +482,7 @@ export default function ReportsPage() {
           <Card className="shadow-professional border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-primary" />
+                <CreditCard className="size-5 text-primary" />
                 Métodos de Pago
               </CardTitle>
             </CardHeader>
@@ -509,29 +511,29 @@ export default function ReportsPage() {
         <Card className="shadow-professional border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
+              <Users className="size-5 text-primary" />
               Clientes
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-muted/50 rounded-xl text-center">
-                <UserCheck className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <UserCheck className="size-5 text-green-600 mx-auto mb-1" />
                 <p className="text-2xl font-bold">{uniqueClientsPaid}</p>
                 <p className="text-xs text-muted-foreground">Pagaron</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-xl text-center">
-                <Users className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                <Users className="size-5 text-blue-600 mx-auto mb-1" />
                 <p className="text-2xl font-bold">{activeClients}</p>
                 <p className="text-xs text-muted-foreground">Activos totales</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-xl text-center">
-                <Target className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                <Target className="size-5 text-orange-600 mx-auto mb-1" />
                 <p className="text-2xl font-bold">{collectionRate}%</p>
                 <p className="text-xs text-muted-foreground">Tasa de cobro</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-xl text-center">
-                <TrendingUp className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+                <TrendingUp className="size-5 text-purple-600 mx-auto mb-1" />
                 <p className="text-2xl font-bold">{newClientsThisMonth}</p>
                 <p className="text-xs text-muted-foreground">Nuevos este mes</p>
               </div>
@@ -552,7 +554,7 @@ export default function ReportsPage() {
         <Card className="shadow-professional border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
+              <BarChart3 className="size-5 text-primary" />
               Actividades del Mes
             </CardTitle>
           </CardHeader>
@@ -582,7 +584,7 @@ export default function ReportsPage() {
         <Card className="shadow-professional border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
+              <Clock className="size-5 text-primary" />
               Horas por Entrenador
             </CardTitle>
           </CardHeader>
@@ -608,7 +610,7 @@ export default function ReportsPage() {
                   (trainer) => (
                     <div
                       key={trainer.id}
-                      className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex-1">
                         <p className="text-sm font-semibold">{trainer.name}</p>
@@ -638,9 +640,9 @@ export default function ReportsPage() {
                       ? "Ver menos"
                       : `Ver todos (${trainerHoursData.length})`}
                     {expandedTrainers ? (
-                      <ChevronUp className="h-4 w-4 ml-1" />
+                      <ChevronUp className="size-4 ml-1" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 ml-1" />
+                      <ChevronDown className="size-4 ml-1" />
                     )}
                   </Button>
                 )}
@@ -653,7 +655,7 @@ export default function ReportsPage() {
         <Card className="shadow-professional border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="size-5 text-primary" />
               Indicadores Clave
             </CardTitle>
           </CardHeader>

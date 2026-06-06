@@ -26,7 +26,7 @@ export default function ProgressPage() {
   if (isLoading || !clientDetail) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }
@@ -39,7 +39,7 @@ export default function ProgressPage() {
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 p-3 bg-primary/10 rounded-full w-fit">
-              <TrendingUp className="h-8 w-8 text-primary" />
+              <TrendingUp className="size-8 text-primary" />
             </div>
             <CardTitle className="text-2xl">Progreso Personal</CardTitle>
           </CardHeader>
@@ -51,7 +51,7 @@ export default function ProgressPage() {
               onClick={() => router.push("/progress/completed")}
             >
               <div className="flex items-center gap-3 text-left">
-                <Calendar className="h-5 w-5 text-primary" />
+                <Calendar className="size-5 text-primary" />
                 <div>
                   <p className="font-medium">Clases Completadas</p>
                   <p className="text-sm text-muted-foreground">Ver listado y resumenes</p>
@@ -62,7 +62,7 @@ export default function ProgressPage() {
 
             <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg">
               <div className="flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-secondary" />
+                <TrendingUp className="size-5 text-secondary" />
                 <div>
                   <p className="font-medium">Promedio de Esfuerzo</p>
                   <p className="text-sm text-muted-foreground">Segun tus resumenes cargados</p>

@@ -1,5 +1,6 @@
 "use client"
 
+import { esNumericDateTimeFormatter } from "@/lib/formatters"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentStatus, PaymentType } from "@/lib/types"
@@ -24,13 +25,7 @@ export function usePaymentVerificationDialog(
   }, [open, paymentId, fetchSinglePayment])
 
   const formatDateTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esNumericDateTimeFormatter.format(new Date(date))
   }
 
   const handleStatusUpdate = async (status: "paid" | "rejected") => {

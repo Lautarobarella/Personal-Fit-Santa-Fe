@@ -75,21 +75,21 @@ export function DetailsActivityDialog({
       case AttendanceStatus.PRESENT:
         return (
           <Badge variant="success">
-            <CheckCircle className="h-3 w-3 mr-1" />
+            <CheckCircle className="size-3 mr-1" />
             Presente
           </Badge>
         )
       case AttendanceStatus.ABSENT:
         return (
           <Badge variant="destructive">
-            <AlertCircle className="h-3 w-3 mr-1" />
+            <AlertCircle className="size-3 mr-1" />
             Ausente
           </Badge>
         )
       case AttendanceStatus.LATE:
         return (
           <Badge className="border-transparent bg-yellow-500 text-white hover:bg-yellow-500">
-            <Clock3 className="h-3 w-3 mr-1" />
+            <Clock3 className="size-3 mr-1" />
             Tardanza
           </Badge>
         )
@@ -97,7 +97,7 @@ export function DetailsActivityDialog({
       default:
         return (
           <Badge variant="warning">
-            <MailWarningIcon className="h-3 w-3 mr-1" />
+            <MailWarningIcon className="size-3 mr-1" />
             Pendiente
           </Badge>
         )
@@ -123,7 +123,7 @@ export function DetailsActivityDialog({
                       disabled={selectedActivity.status === ActivityStatus.COMPLETED}
                       onClick={onEdit}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="size-4" />
                     </Button>
                   )}
                   {onDelete && (
@@ -134,7 +134,7 @@ export function DetailsActivityDialog({
                       onClick={onDelete}
                       className="text-error bg-transparent"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="size-4" />
                     </Button>
                   )}
                 </div>
@@ -162,7 +162,7 @@ export function DetailsActivityDialog({
                   <Card className="m-2">
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
+                        <Calendar className="size-5" />
                         Informacion Basica
                       </CardTitle>
                     </CardHeader>
@@ -187,7 +187,7 @@ export function DetailsActivityDialog({
                       <div>
                         <span className="text-muted-foreground text-sm">Entrenador:</span>
                         <div className="flex items-center gap-2 mt-1">
-                          <Avatar className="h-6 w-6">
+                          <Avatar className="size-6">
                             <AvatarFallback className="text-xs">
                               {selectedActivity.trainerName
                                 .split(" ")
@@ -203,7 +203,7 @@ export function DetailsActivityDialog({
                         <div>
                           <span className="text-muted-foreground text-sm">Ubicacion:</span>
                           <p className="font-medium flex items-center gap-1 mt-1">
-                            <MapPin className="h-4 w-4" />
+                            <MapPin className="size-4" />
                             Gimnasio principal
                           </p>
                         </div>
@@ -214,7 +214,7 @@ export function DetailsActivityDialog({
                   <Card className="m-2">
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5" />
+                        <TrendingUp className="size-5" />
                         Estadisticas
                       </CardTitle>
                     </CardHeader>
@@ -268,7 +268,7 @@ export function DetailsActivityDialog({
                         className="bg-transparent"
                         onClick={openTakeAttendanceDialog}
                       >
-                        <UserCheck className="h-4 w-4 mr-2" />
+                        <UserCheck className="size-4 mr-2" />
                         Tomar Asistencia
                       </Button>
                     )}
@@ -288,7 +288,7 @@ export function DetailsActivityDialog({
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
+                            <Avatar className="size-8">
                               <AvatarFallback className="text-xs">
                                 {`${participant.firstName[0] ?? ""}${participant.lastName[0] ?? ""}`}
                               </AvatarFallback>
@@ -320,13 +320,13 @@ export function DetailsActivityDialog({
                                 <SelectValue placeholder={getAttendanceStatusLabel(participant.status)} />
                               </SelectTrigger>
                               <SelectContent align="end">
-                                {attendanceStatusOptions
-                                  .filter((status) => status !== participant.status)
-                                  .map((status) => (
+                                {attendanceStatusOptions.map((status) =>
+                                  status === participant.status ? null : (
                                     <SelectItem key={`${participant.id}-${status}`} value={status}>
                                       {getAttendanceStatusLabel(status)}
                                     </SelectItem>
-                                  ))}
+                                  )
+                                )}
                               </SelectContent>
                             </Select>
                           ) : (
@@ -349,11 +349,11 @@ export function DetailsActivityDialog({
                           <div className="mt-3 ml-11 p-3 rounded-md border bg-muted/40 space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                                <Dumbbell className="h-3 w-3" />
+                                <Dumbbell className="size-3" />
                                 Resumen
                               </p>
                               <Badge variant="outline" className="text-xs">
-                                <Gauge className="h-3 w-3 mr-1" />
+                                <Gauge className="size-3 mr-1" />
                                 {participant.summary.effortLevel}/10
                               </Badge>
                             </div>
@@ -379,7 +379,7 @@ export function DetailsActivityDialog({
                   {selectedActivity.participants.length === 0 && (
                     <Card>
                       <CardContent className="py-8 text-center">
-                        <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <Users className="size-12 mx-auto text-muted-foreground mb-2" />
                         <p className="text-muted-foreground">No hay participantes inscritos</p>
                       </CardContent>
                     </Card>
@@ -391,7 +391,7 @@ export function DetailsActivityDialog({
                 <Card className="m-2">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <User className="h-5 w-5" />
+                      <User className="size-5" />
                       Informacion de Creacion
                     </CardTitle>
                   </CardHeader>

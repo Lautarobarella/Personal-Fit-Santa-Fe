@@ -1,5 +1,6 @@
 "use client"
 
+import { esMonthFormatter, esMonthYearFormatter } from "@/lib/formatters"
 import { PaymentDetailsDialog } from "@/components/payments/payment-details-dialog"
 import { PaymentVerificationDialog } from "@/components/payments/payment-verification-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -77,7 +78,7 @@ export default function PaymentsPage() {
                                 disabled={!canCreateNewPayment}
                                 className={!canCreateNewPayment ? "opacity-50 cursor-not-allowed" : undefined}
                             >
-                                <Plus className="h-4 w-4 mr-1" />
+                                <Plus className="size-4 mr-1" />
                                 Nuevo
                             </Button>
                         )}
@@ -90,7 +91,7 @@ export default function PaymentsPage() {
                 {user?.role === UserRole.ADMIN && (
                     <div className="space-y-4">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
                             <Input
                                 placeholder="Buscar por cliente..."
                                 value={searchTerm}
@@ -107,7 +108,7 @@ export default function PaymentsPage() {
                             >
                                 <SelectTrigger>
                                     <SelectValue>
-                                        {new Intl.DateTimeFormat("es-ES", { month: "long" }).format(new Date(2024, selectedMonth - 1))}
+                                        {esMonthFormatter.format(new Date(2024, selectedMonth - 1))}
                                     </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
@@ -117,7 +118,7 @@ export default function PaymentsPage() {
 
                                         return Array.from({ length: maxMonth }, (_, i) => (
                                             <SelectItem key={i + 1} value={(i + 1).toString()}>
-                                                {new Intl.DateTimeFormat("es-ES", { month: "long" }).format(new Date(2024, i))}
+                                                {esMonthFormatter.format(new Date(2024, i))}
                                             </SelectItem>
                                         ))
                                     })()}
@@ -159,7 +160,7 @@ export default function PaymentsPage() {
                             <div className="flex items-center gap-3">
                                 {activePayment ? (
                                     <>
-                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                        <CheckCircle className="size-5 text-green-600" />
                                         <div className="flex-1">
                                             <h3 className="font-semibold text-green-800">Plan Vigente</h3>
                                             <p className="text-sm text-green-700">
@@ -169,7 +170,7 @@ export default function PaymentsPage() {
                                     </>
                                 ) : pendingPayment ? (
                                     <>
-                                        <Clock className="h-5 w-5 text-yellow-600" />
+                                        <Clock className="size-5 text-yellow-600" />
                                         <div className="flex-1">
                                             <h3 className="font-semibold text-yellow-800">Pago Pendiente</h3>
                                             <p className="text-sm text-yellow-700">
@@ -179,7 +180,7 @@ export default function PaymentsPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <AlertCircle className="h-5 w-5 text-red-600" />
+                                        <AlertCircle className="size-5 text-red-600" />
                                         <div className="flex-1">
                                             <h3 className="font-semibold text-red-800">Membresía Vencida</h3>
                                             <p className="text-sm text-yellow-700">
@@ -201,7 +202,7 @@ export default function PaymentsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground font-bold">
-                                        Ingresos de {new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date(selectedYear, selectedMonth - 1))}
+                                        Ingresos de {esMonthYearFormatter.format(new Date(selectedYear, selectedMonth - 1))}
                                     </p>
                                     <p className="text-2xl font-bold text-foreground">
                                         {isLoadingAdminPayments ? "..." : (showRevenue ? formatCurrency(totalRevenue) : "••••••")}
@@ -209,17 +210,18 @@ export default function PaymentsPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
+                                        type="button"
                                         onClick={() => setShowRevenue(!showRevenue)}
                                         className="p-1 hover:bg-muted rounded-full transition-colors"
                                         aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
                                     >
                                         {showRevenue ? (
-                                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                            <Eye className="size-4 text-muted-foreground hover:text-foreground" />
                                         ) : (
-                                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                            <EyeOff className="size-4 text-muted-foreground hover:text-foreground" />
                                         )}
                                     </button>
-                                    <DollarSign className="h-8 w-8 text-green-600" />
+                                    <DollarSign className="size-8 text-green-600" />
                                 </div>
                             </div>
                         </CardContent>
@@ -240,11 +242,11 @@ export default function PaymentsPage() {
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <User className="h-4 w-4 text-muted-foreground" />
+                                                <User className="size-4 text-muted-foreground" />
                                                 <h3 className="font-medium">{p.clientName}</h3>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Calendar className="h-3 w-3" />
+                                                <Calendar className="size-3" />
                                                 <span>{formatDate(p.createdAt)}</span>
                                                 <span>•</span>
                                                 <span>Vence: {formatDate(p.expiresAt)}</span>
@@ -278,11 +280,11 @@ export default function PaymentsPage() {
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <User className="h-4 w-4 text-muted-foreground" />
+                                                <User className="size-4 text-muted-foreground" />
                                                 <h3 className="font-medium">{p.clientName}</h3>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Calendar className="h-3 w-3" />
+                                                <Calendar className="size-3" />
                                                 <span>{formatDate(p.createdAt)}</span>
                                                 <span>•</span>
                                                 <span>Vence: {formatDate(p.expiresAt)}</span>
@@ -309,7 +311,7 @@ export default function PaymentsPage() {
                                                     handleVerificationClick(p.id)
                                                 }}
                                             >
-                                                <Eye className="h-4 w-4 mr-2" />
+                                                <Eye className="size-4 mr-2" />
                                                 Verificar Pago
                                             </Button>
                                         )}
@@ -347,11 +349,11 @@ export default function PaymentsPage() {
             {/* Botón flotante de verificación - Solo visible para admins con pagos pendientes */}
             {user?.role === UserRole.ADMIN && pendingPayments.length > 0 && (
                 <Button
-                    className="fixed bottom-28 left-1/2 -translate-x-1/2 lg:bottom-8 z-50 shadow-lg transition-shadow bg-secondary rounded-full px-3 py-3"
+                    className="fixed bottom-28 left-1/2 -translate-x-1/2 lg:bottom-8 z-50 shadow-lg transition-shadow bg-secondary rounded-full p-3"
                     size="default"
                     onClick={() => router.push("/payments/verify")}
                 >
-                    <FileCheck className="h-5 w-5" />
+                    <FileCheck className="size-5" />
                     Verificar ({pendingPayments.length})
                 </Button>
             )}

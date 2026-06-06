@@ -40,7 +40,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <FileImage className="h-5 w-5" />
+            <FileImage className="size-5" />
             Detalles del Pago
           </DialogTitle>
           <DialogDescription>
@@ -55,19 +55,19 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <User className="size-4 text-muted-foreground" />
                   <span className="font-medium">{selectedPayment.clientName}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <Calendar className="size-4 text-muted-foreground" />
                   <span>{formatDateTime(selectedPayment.createdAt as Date)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="size-4 text-muted-foreground" />
                   <span className="font-bold text-lg">${selectedPayment.amount}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Clock className="size-4 text-muted-foreground" />
                   <Badge variant={getStatusColor(selectedPayment.status)}>{getStatusText(selectedPayment.status)}</Badge>
                 </div>
               </div>
@@ -90,7 +90,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
                 <div className="space-y-2">
                   {selectedPayment.associatedUsers.map((user: any, index: number) => (
                     <div key={user.userId} className="flex items-center gap-3 p-2 bg-muted/50 rounded">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="size-4 text-muted-foreground" />
                       <div className="flex-1">
                         <span className="font-medium">{user.userName}</span>
                         <span className="text-muted-foreground ml-2">({user.userDni})</span>
@@ -140,7 +140,7 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
             ) : (
               <Card className="m-2">
                 <CardContent className="py-8 text-center">
-                  <FileImage className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                  <FileImage className="size-12 mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No hay comprobante subido</p>
                 </CardContent>
               </Card>

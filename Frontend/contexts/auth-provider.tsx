@@ -5,7 +5,7 @@ import type React from "react"
 import { authenticate, logout as authLogout, isAuthenticated, getUserId } from "@/lib/auth"
 import { fetchCurrentUserById } from "@/api/clients/usersApi"
 import type { UserType } from "@/lib/types"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 /**
  * Authentication Context Interface
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Reloads the full user profile object from the backend using the stored User ID.
    * Used during initialization and after profile edits.
    */
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (isAuthenticated()) {
       const userId = getUserId()
       if (userId) {
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setUser(null)
     }
-  }
+  }, [])
 
   /**
    * Effect: Session Initialization
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Login Handler
    * Bridges the UI form with the auth library and updates local state on success.
    */
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     setLoading(true)
     try {
       const authenticatedUser = await authenticate(email, password)
@@ -142,18 +142,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   /**
    * Logout Handler
    * Clears state and persists logout to storage.
    */
-  const logout = (deviceToken?: string) => {
+  const logout = useCallback((deviceToken?: string) => {
     setUser(null)
     authLogout(deviceToken)
-  }
+  }, [])
 
-  return <AuthContext.Provider value={{ user, login, logout, loading, refreshUser }}>{children}</AuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({ user, login, logout, loading, refreshUser }),
+    [loading, login, logout, refreshUser, user],
+  )
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }
 
 /**

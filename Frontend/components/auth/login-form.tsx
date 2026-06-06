@@ -89,12 +89,12 @@ export function LoginForm() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Iniciar Sesión
                 </Button>
               </form>
@@ -211,7 +211,7 @@ export function LoginForm() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isRegistering}>
-                  {isRegistering && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isRegistering && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Solicitar Validación
                 </Button>
               </form>

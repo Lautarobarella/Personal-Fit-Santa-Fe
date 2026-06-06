@@ -11,7 +11,7 @@ export function VersionChecker() {
     const [isChecking, setIsChecking] = useState(true);
 
     useEffect(() => {
-
+        let reloadTimeout: ReturnType<typeof setTimeout> | null = null;
 
         const checkVersion = async () => {
             try {
@@ -19,7 +19,7 @@ export function VersionChecker() {
 
                 if (cacheCleared) {
                     // Esperar un momento antes de recargar para que los logs se registren
-                    setTimeout(() => {
+                    reloadTimeout = setTimeout(() => {
                         window.location.reload();
                     }, 100);
 
@@ -37,6 +37,12 @@ export function VersionChecker() {
         };
 
         checkVersion();
+
+        return () => {
+            if (reloadTimeout) {
+                clearTimeout(reloadTimeout);
+            }
+        };
     }, []);
 
     // Mostrar un loader mínimo mientras verifica la versión
@@ -45,8 +51,8 @@ export function VersionChecker() {
         return (
             <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                    <p className="text-sm text-muted-foreground">Verificando versión...</p>
+                    <div className="size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground">Verificando versión…</p>
                 </div>
             </div>
         );

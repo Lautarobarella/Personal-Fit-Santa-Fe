@@ -23,6 +23,111 @@ interface DatePickerScrollProps {
   disabled?: boolean
 }
 
+interface ScrollSelectorProps {
+  items: { value: number; label: string }[]
+  value: number
+  onChange: (value: number) => void
+  className?: string
+  scrollRef?: React.RefObject<HTMLDivElement | null>
+}
+
+function ScrollSelector({
+  items,
+  value,
+  className: selectorClassName,
+  scrollRef
+}: ScrollSelectorProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [centerValue, setCenterValue] = React.useState(value)
+  const itemHeight = 40 // Consistent with the parent logic
+
+  // Connect the internal local ref to the parent's passed ref
+  React.useEffect(() => {
+    if (scrollRef && containerRef.current) {
+      (scrollRef as any).current = containerRef.current
+    }
+  }, [scrollRef])
+
+  // Effect: Initial scroll positioning
+  // When the component mounts or value changes externally, scroll to the correct item.
+  React.useEffect(() => {
+    if (containerRef.current) {
+      const selectedIndex = items.findIndex(item => item.value === value)
+      if (selectedIndex !== -1) {
+        containerRef.current.scrollTo({
+          // Scroll so the item is centered.
+          // -itemHeight * 2 offsets the padding to center it visually.
+          top: selectedIndex * itemHeight - itemHeight * 2,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }, [value, items])
+
+  // Effect: Scroll Event Listener
+  // Tracks scroll position to update the 'highlighted' center value in real-time.
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const updateCenterValue = () => {
+      const scrollTop = container.scrollTop
+      const containerHeight = container.clientHeight
+      const centerPosition = scrollTop + containerHeight / 2
+      const paddingTop = 80 // py-20
+
+      const rawIndex = (centerPosition - paddingTop) / itemHeight
+      const centerIndex = Math.round(rawIndex) - 1
+      const clampedIndex = Math.max(0, Math.min(items.length - 1, centerIndex))
+
+      setCenterValue(items[clampedIndex]?.value || value)
+    }
+
+    const handleScroll = () => {
+      updateCenterValue()
+    }
+
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    updateCenterValue() // Initial calculation
+
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [items, value])
+
+  return (
+    <div className={cn("relative", selectorClassName)}>
+      <div
+        ref={containerRef}
+        className="h-48 overflow-y-scroll overflow-x-hidden scrollbar-hide"
+        style={{ scrollSnapType: 'y mandatory' }}
+      >
+        {/* Padding is essential to allow the first and last items to reach the center */}
+        <div className="py-20">
+          {items.map((item) => (
+            <div
+              key={item.value}
+              className={cn(
+                "h-10 flex items-center justify-center transition-all duration-200",
+                "text-base font-medium select-none",
+                // Highlight logic: scale and color change if it's the center item
+                item.value === centerValue
+                  ? "text-orange-500 font-bold scale-110"
+                  : "text-muted-foreground"
+              )}
+              style={{ scrollSnapAlign: 'center' }}
+            >
+              {item.label}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Visual Overlay: The selection window (horizontal lines) */}
+      <div className="absolute inset-0 pointer-events-none flex items-center">
+        <div className="w-full h-10 border-t border-b border-border bg-accent/20"></div>
+      </div>
+    </div>
+  )
+}
+
 /**
  * DatePickerScroll
  * 
@@ -225,117 +330,6 @@ export function DatePickerScroll({
     setIsOpen(false)
   }
 
-  // --- Sub-Component: Scroll Selector ---
-
-  /**
-   * ScrollSelector
-   * Reusable component for the scrollable list of items (Day, Month, Year).
-   * Handles auto-scrolling to initial value and visual highlighting.
-   */
-  const ScrollSelector = ({
-    items,
-    value,
-    onChange,
-    className: selectorClassName,
-    scrollRef
-  }: {
-    items: { value: number; label: string }[]
-    value: number
-    onChange: (value: number) => void
-    className?: string
-    scrollRef?: React.RefObject<HTMLDivElement | null>
-  }) => {
-    const containerRef = React.useRef<HTMLDivElement>(null)
-    const [centerValue, setCenterValue] = React.useState(value)
-    const itemHeight = 40 // Consistent with the parent logic
-
-    // Connect the internal local ref to the parent's passed ref
-    React.useEffect(() => {
-      if (scrollRef && containerRef.current) {
-        (scrollRef as any).current = containerRef.current
-      }
-    }, [scrollRef])
-
-    // Effect: Initial scroll positioning
-    // When the component mounts or value changes externally, scroll to the correct item.
-    React.useEffect(() => {
-      if (containerRef.current) {
-        const selectedIndex = items.findIndex(item => item.value === value)
-        if (selectedIndex !== -1) {
-          containerRef.current.scrollTo({
-            // Scroll so the item is centered. 
-            // -itemHeight * 2 offsets the padding to center it visually.
-            top: selectedIndex * itemHeight - itemHeight * 2,
-            behavior: 'smooth'
-          })
-        }
-      }
-    }, [value, items])
-
-    // Effect: Scroll Event Listener
-    // Tracks scroll position to update the 'highlighted' center value in real-time.
-    React.useEffect(() => {
-      const container = containerRef.current
-      if (!container) return
-
-      const updateCenterValue = () => {
-        const scrollTop = container.scrollTop
-        const containerHeight = container.clientHeight
-        const centerPosition = scrollTop + containerHeight / 2
-        const paddingTop = 80 // py-20
-
-        const rawIndex = (centerPosition - paddingTop) / itemHeight
-        const centerIndex = Math.round(rawIndex) - 1
-        const clampedIndex = Math.max(0, Math.min(items.length - 1, centerIndex))
-
-        setCenterValue(items[clampedIndex]?.value || value)
-      }
-
-      const handleScroll = () => {
-        updateCenterValue()
-      }
-
-      container.addEventListener('scroll', handleScroll, { passive: true })
-      updateCenterValue() // Initial calculation
-
-      return () => container.removeEventListener('scroll', handleScroll)
-    }, [items, value])
-
-    return (
-      <div className={cn("relative", selectorClassName)}>
-        <div
-          ref={containerRef}
-          className="h-48 overflow-y-scroll overflow-x-hidden scrollbar-hide"
-          style={{ scrollSnapType: 'y mandatory' }}
-        >
-          {/* Padding is essential to allow the first and last items to reach the center */}
-          <div className="py-20">
-            {items.map((item) => (
-              <div
-                key={item.value}
-                className={cn(
-                  "h-10 flex items-center justify-center transition-all duration-200",
-                  "text-base font-medium select-none",
-                  // Highlight logic: scale and color change if it's the center item
-                  item.value === centerValue
-                    ? "text-orange-500 font-bold scale-110"
-                    : "text-muted-foreground"
-                )}
-                style={{ scrollSnapAlign: 'center' }}
-              >
-                {item.label}
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Visual Overlay: The selection window (horizontal lines) */}
-        <div className="absolute inset-0 pointer-events-none flex items-center">
-          <div className="w-full h-10 border-t border-b border-border bg-accent/20"></div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className={cn("relative", className)} ref={datePickerRef}>
       {/* Trigger Input and Button */}
@@ -355,9 +349,9 @@ export function DatePickerScroll({
           size="icon"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className="h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+          className="size-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
         >
-          <Calendar className="h-4 w-4" />
+          <Calendar className="size-4" />
         </Button>
       </div>
 
@@ -365,7 +359,12 @@ export function DatePickerScroll({
       {isOpen && (
         <>
           {/* Backdrop Overlay */}
-          <div className="fixed inset-0 bg-black/50 z-40" onClick={handleCancel} />
+          <button
+            type="button"
+            aria-label="Cerrar selector de fecha"
+            className="fixed inset-0 bg-black/50 z-40 cursor-default"
+            onClick={handleCancel}
+          />
 
           {/* Modal Container */}
           <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-card border border-border rounded-2xl shadow-professional-lg z-50 max-w-sm mx-auto">

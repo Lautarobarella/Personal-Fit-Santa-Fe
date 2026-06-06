@@ -1,5 +1,6 @@
 "use client"
 
+import { esNumericDateFormatter, esTimeFormatter } from "@/lib/formatters"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useRequireAuth } from "@/hooks/use-require-auth"
@@ -56,19 +57,12 @@ export function useCompletedClasses() {
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return "N/A"
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(new Date(date))
+    return esNumericDateFormatter.format(new Date(date))
   }
 
   const formatTime = (date: Date | string | null) => {
     if (!date) return "--:--"
-    return new Intl.DateTimeFormat("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esTimeFormatter.format(new Date(date))
   }
 
   return {

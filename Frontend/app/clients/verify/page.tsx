@@ -42,7 +42,7 @@ export default function UserVerificationPage() {
     const hasReviewedUsers = reviewedCount > 0
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
-        <Check className="h-16 w-16 text-success mb-4" />
+        <Check className="size-16 text-success mb-4" />
         <h2 className="text-2xl font-bold mb-2">
           {hasReviewedUsers ? "Verificacion completada" : "No hay usuarios pendientes"}
         </h2>
@@ -59,8 +59,8 @@ export default function UserVerificationPage() {
   if (loading || !user || user.role !== UserRole.ADMIN) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin mb-2" />
-        <p className="text-muted-foreground">Cargando usuarios pendientes...</p>
+        <Loader2 className="size-8 animate-spin mb-2" />
+        <p className="text-muted-foreground">Cargando usuarios pendientes…</p>
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function UserVerificationPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <UserCheck className="h-5 w-5 text-primary" />
+                        <UserCheck className="size-5 text-primary" />
                         {currentUser.firstName} {currentUser.lastName}
                       </h2>
                       <p className="text-sm text-muted-foreground">DNI {currentUser.dni}</p>
@@ -110,33 +110,33 @@ export default function UserVerificationPage() {
               <Card>
                 <CardContent className="p-3 space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <Mail className="size-4 text-muted-foreground" />
                     <span>{currentUser.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <Phone className="size-4 text-muted-foreground" />
                     <span>{currentUser.phone}</span>
                   </div>
                   {currentUser.emergencyPhone && (
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <Phone className="size-4 text-muted-foreground" />
                       <span>Emergencia: {currentUser.emergencyPhone}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Clock className="size-4 text-muted-foreground" />
                     <span>Nacimiento: {formatDate(currentUser.birthDate)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                    <ShieldCheck className="size-4 text-muted-foreground" />
                     <span>Rol solicitado: {getRoleText(currentUser.role)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
+                    <User className="size-4 text-muted-foreground" />
                     <span>Solicitud creada: {formatDate(currentUser.joinDate)}</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <MapPin className="size-4 text-muted-foreground mt-0.5" />
                     <span>{currentUser.address}</span>
                   </div>
                 </CardContent>
@@ -149,9 +149,9 @@ export default function UserVerificationPage() {
                   disabled={isProcessing || isOnCooldown || !currentUser}
                   className="w-1/2 py-2 text-sm font-semibold h-9"
                 >
-                  {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {!isProcessing && <X className="mr-2 h-4 w-4" />}
-                  {isOnCooldown ? "Espera..." : "Rechazar"}
+                  {isProcessing && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  {!isProcessing && <X className="mr-2 size-4" />}
+                  {isOnCooldown ? "Espera…" : "Rechazar"}
                 </Button>
 
                 <Button
@@ -160,9 +160,9 @@ export default function UserVerificationPage() {
                   disabled={isProcessing || isOnCooldown || !currentUser}
                   className="w-1/2 py-2 text-sm font-semibold h-9"
                 >
-                  {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {!isProcessing && <Check className="mr-2 h-4 w-4" />}
-                  {isOnCooldown ? "Espera..." : "Aprobar"}
+                  {isProcessing && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  {!isProcessing && <Check className="mr-2 size-4" />}
+                  {isOnCooldown ? "Espera…" : "Aprobar"}
                 </Button>
               </div>
             </>

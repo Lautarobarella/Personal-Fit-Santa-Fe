@@ -51,7 +51,7 @@ export function useTrainer() {
         if (activeIsToday) {
             checkInTime = active!.startTime;
         } else if (todayShifts.length > 0) {
-            const sorted = [...todayShifts].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+            const sorted = todayShifts.toSorted((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
             checkInTime = sorted[0].startTime;
             const lastCompleted = sorted[sorted.length - 1];
             if (lastCompleted.endTime) {

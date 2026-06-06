@@ -97,27 +97,27 @@ export default function SettingsPage() {
                     firstName={user?.firstName}
                     lastName={user?.lastName}
                     avatar={user?.avatar}
-                    className="h-16 w-16"
+                    className="size-16"
                     fallbackClassName="text-lg"
                   />
                   <Button
                     type="button"
                     size="icon"
                     variant="secondary"
-                    className="absolute -bottom-2 -left-2 h-8 w-8 rounded-full shadow-md"
+                    className="absolute -bottom-2 -left-2 size-8 rounded-full shadow-md"
                     onClick={() => hasCustomAvatar ? setShowRemoveAvatarDialog(true) : fileInputRef.current?.click()}
                     disabled={isUpdatingAvatar}
                     aria-label={hasCustomAvatar ? "Quitar imagen de perfil" : "Subir imagen de perfil"}
                   >
                     {isUpdatingAvatar ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                     ) : hasCustomAvatar ? (
                       <div className="relative">
-                        <Camera className="h-4 w-4" />
-                        <X className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-background text-destructive" />
+                        <Camera className="size-4" />
+                        <X className="absolute -bottom-1 -right-1 size-3 rounded-full bg-background text-destructive" />
                       </div>
                     ) : (
-                      <ImagePlus className="h-4 w-4" />
+                      <ImagePlus className="size-4" />
                     )}
                   </Button>
                 </div>
@@ -130,11 +130,11 @@ export default function SettingsPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 shrink-0"
+                      className="size-9 shrink-0"
                       onClick={() => router.push("/settings/edit")}
                       aria-label="Editar perfil"
                     >
-                      <NotebookPen className="h-4 w-4" />
+                      <NotebookPen className="size-4" />
                     </Button>
                   </div>
                   <p className="text-sm text-primary capitalize">
@@ -149,6 +149,7 @@ export default function SettingsPage() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="Seleccionar foto de perfil"
                 className="hidden"
                 onChange={handleSelectAvatar}
               />
@@ -159,14 +160,14 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5" />
+              <Smartphone className="size-5" />
               Apariencia
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Moon className="h-5 w-5 text-muted-foreground" />
+                <Moon className="size-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Modo Oscuro</p>
                   <p className="text-sm text-muted-foreground">
@@ -186,14 +187,14 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5" />
+              <Smartphone className="size-5" />
               Recursos
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-muted-foreground" />
+                <FileText className="size-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Términos y Condiciones</p>
                 </div>
@@ -209,7 +210,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+                <Shield className="size-5" />
                 <span>Administración</span>
               </CardTitle>
             </CardHeader>
@@ -219,7 +220,7 @@ export default function SettingsPage() {
                 className="w-full justify-start bg-transparent"
                 onClick={() => setShowMonthlyFeeDialog(true)}
               >
-                <DollarSign className="h-4 w-4 mr-3" />
+                <DollarSign className="size-4 mr-3" />
                 <span className="sm:hidden">Valor cuota</span>
                 <span className="hidden sm:inline">Establecer valor de la cuota</span>
               </Button>
@@ -229,7 +230,7 @@ export default function SettingsPage() {
                 className="w-full justify-start bg-transparent"
                 onClick={() => setShowActivityTimesDialog(true)}
               >
-                <Clock className="h-4 w-4 mr-3" />
+                <Clock className="size-4 mr-3" />
                 <span className="sm:hidden">Tiempos act.</span>
                 <span className="hidden sm:inline">Configurar tiempos de actividades</span>
               </Button>
@@ -239,7 +240,7 @@ export default function SettingsPage() {
                 className="w-full justify-start bg-transparent"
                 onClick={() => setShowMaxActivitiesDialog(true)}
               >
-                <Users className="h-4 w-4 mr-3" />
+                <Users className="size-4 mr-3" />
                 <span className="sm:hidden">Max. act./dia</span>
                 <span className="hidden sm:inline">Máximo de actividades por día</span>
               </Button>
@@ -249,7 +250,7 @@ export default function SettingsPage() {
                 className="w-full justify-start bg-transparent"
                 onClick={() => setShowPaymentGracePeriodDialog(true)}
               >
-                <CreditCard className="h-4 w-4 mr-3" />
+                <CreditCard className="size-4 mr-3" />
                 <span className="sm:hidden">Per. gracia pago</span>
                 <span className="hidden sm:inline">Período de gracia de pago</span>
               </Button>
@@ -259,7 +260,7 @@ export default function SettingsPage() {
                 className="w-full justify-start bg-transparent"
                 onClick={() => router.push("/settings/monthly-revenue")}
               >
-                <BarChart3 className="h-4 w-4 mr-3" />
+                <BarChart3 className="size-4 mr-3" />
                 <span className="sm:hidden">Ingresos mes</span>
                 <span className="hidden sm:inline">Registro de ingresos mensuales</span>
               </Button>
@@ -269,7 +270,7 @@ export default function SettingsPage() {
                 className="w-full justify-start"
                 onClick={() => setShowCreateNotificationDialog(true)}
               >
-                <Bell className="h-4 w-4 mr-3" />
+                <Bell className="size-4 mr-3" />
                 <span className="sm:hidden">Notificar</span>
                 <span className="hidden sm:inline">Generar notificación</span>
               </Button>
@@ -280,7 +281,7 @@ export default function SettingsPage() {
         <Card>
           <CardContent className="p-6">
             <Button variant="destructive" className="w-full" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="size-4 mr-2" />
               Cerrar Sesión
             </Button>
           </CardContent>

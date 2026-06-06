@@ -199,9 +199,9 @@ export function DatePicker({
           size="icon"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className="h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+          className="size-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
         >
-          <Calendar className="h-4 w-4" />
+          <Calendar className="size-4" />
         </Button>
       </div>
 
@@ -218,18 +218,18 @@ export function DatePicker({
                 size="sm"
                 type="button"
                 onClick={goToNextMonth}
-                className="h-6 w-6 p-0 hover:bg-accent"
+                className="size-6 p-0 hover:bg-accent"
               >
-                <ChevronUp className="h-3 w-3" />
+                <ChevronUp className="size-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 type="button"
                 onClick={goToPreviousMonth}
-                className="h-6 w-6 p-0 hover:bg-accent"
+                className="size-6 p-0 hover:bg-accent"
               >
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="size-3" />
               </Button>
             </div>
           </div>
@@ -245,16 +245,18 @@ export function DatePicker({
 
           {/* Calendario */}
           <div className="grid grid-cols-7 gap-1 px-4 pb-4">
-            {getDaysArray().map(({ day, isCurrentMonth }, index) => {
+            {getDaysArray().map(({ day, isCurrentMonth }) => {
               const isDisabled = !isCurrentMonth || isPastDate(day)
+              const dayKey = `${isCurrentMonth ? "current" : day > 15 ? "prev" : "next"}-${day}`
               
               return (
                 <button
-                  key={index}
+                  type="button"
+                  key={dayKey}
                   onClick={() => !isDisabled && handleDateSelect(day)}
                   disabled={isDisabled}
                   className={cn(
-                    "h-8 w-8 rounded-md text-sm font-medium transition-colors",
+                    "size-8 rounded-md text-sm font-medium transition-colors",
                     (!isCurrentMonth || isPastDate(day)) && "text-muted-foreground/50 cursor-default",
                     isCurrentMonth && !isPastDate(day) && "hover:bg-accent cursor-pointer",
                     isToday(day) && !isPastDate(day) && "bg-accent text-accent-foreground",

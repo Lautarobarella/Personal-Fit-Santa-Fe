@@ -1,5 +1,6 @@
 "use client"
 
+import { esShortDateYearFormatter, esTimeFormatter } from "@/lib/formatters"
 import { useToast } from "@/hooks/use-toast"
 import { ActivityType } from "@/lib/types"
 import { useState } from "react"
@@ -14,18 +15,11 @@ export function useEnrollActivityDialog(
   const { toast } = useToast()
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(date))
+    return esShortDateYearFormatter.format(new Date(date))
   }
 
   const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esTimeFormatter.format(new Date(date))
   }
 
   const handleAction = async () => {

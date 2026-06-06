@@ -17,6 +17,8 @@ export function usePaymentReceipt(
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    let objectUrl: string | null = null
+
     if (!fileId) {
       setIsLoading(false)
       return
@@ -34,7 +36,7 @@ export function usePaymentReceipt(
         }
 
         const blob = await response.blob()
-        const objectUrl = URL.createObjectURL(blob)
+        objectUrl = URL.createObjectURL(blob)
 
         setFileData({
           url: objectUrl,
@@ -52,8 +54,8 @@ export function usePaymentReceipt(
     loadFile()
 
     return () => {
-      if (fileData?.url && fileData.url.startsWith("blob:")) {
-        URL.revokeObjectURL(fileData.url)
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
       }
     }
   }, [fileId, fileName])

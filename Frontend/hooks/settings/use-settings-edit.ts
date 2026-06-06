@@ -1,5 +1,6 @@
 "use client"
 
+import { esShortDateYearFormatter } from "@/lib/formatters"
 import { updateUserPassword, updateUserProfile } from "@/api/clients/usersApi"
 import { useAuth } from "@/contexts/auth-provider"
 import { useRequireAuth } from "@/hooks/use-require-auth"
@@ -221,11 +222,7 @@ export function useSettingsEdit() {
         return "N/A"
       }
 
-      return new Intl.DateTimeFormat("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(parsedDate)
+      return esShortDateYearFormatter.format(parsedDate)
     } catch (err) {
       console.error("Error al formatear fecha:", err, date)
       return "N/A"

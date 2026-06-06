@@ -1,5 +1,6 @@
 "use client"
 
+import { esNumericDateTimeFormatter } from "@/lib/formatters"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { usePaymentContext } from "@/contexts/payment-provider"
@@ -88,13 +89,7 @@ export function usePaymentVerify() {
   // ── Formatters ──────────────────────────────────────────────────────
 
   const formatDateTime = (date: Date | string | null) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date ?? "N/A"))
+    return esNumericDateTimeFormatter.format(new Date(date ?? "N/A"))
   }
 
   const getStatusColor = (status: string) => {

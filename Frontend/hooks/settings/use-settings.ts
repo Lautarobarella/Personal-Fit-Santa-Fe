@@ -88,7 +88,7 @@ export function useSettings() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   // Cargar configuraciones al montar el hook - solo si hay usuario autenticado
   useEffect(() => {

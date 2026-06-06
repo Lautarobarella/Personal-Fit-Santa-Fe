@@ -162,9 +162,9 @@ export function TimePicker({
           size="icon"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className="h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+          className="size-10 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
         >
-          <Clock className="h-4 w-4" />
+          <Clock className="size-4" />
         </Button>
       </div>
 
@@ -196,9 +196,9 @@ export function TimePicker({
                   variant="ghost"
                   size="sm"
                   onClick={incrementHour}
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="size-8 p-0 hover:bg-accent"
                 >
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp className="size-4" />
                 </Button>
                 <div className="text-2xl font-bold text-foreground py-2 min-w-[3rem] text-center">
                   {selectedHour.toString().padStart(2, '0')}
@@ -208,9 +208,9 @@ export function TimePicker({
                   variant="ghost"
                   size="sm"
                   onClick={decrementHour}
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="size-8 p-0 hover:bg-accent"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="size-4" />
                 </Button>
               </div>
 
@@ -223,9 +223,9 @@ export function TimePicker({
                   variant="ghost"
                   size="sm"
                   onClick={incrementMinute}
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="size-8 p-0 hover:bg-accent"
                 >
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp className="size-4" />
                 </Button>
                 <div className="text-2xl font-bold text-foreground py-2 min-w-[3rem] text-center">
                   {selectedMinute.toString().padStart(2, '0')}
@@ -235,9 +235,9 @@ export function TimePicker({
                   variant="ghost"
                   size="sm"
                   onClick={decrementMinute}
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="size-8 p-0 hover:bg-accent"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="size-4" />
                 </Button>
               </div>
             </div>

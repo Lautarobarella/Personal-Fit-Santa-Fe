@@ -34,7 +34,7 @@ export function PaymentReceiptDisplay({
         return (
             <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`}>
                 <div className="w-full h-64 bg-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-gray-500">Cargando...</div>
+                    <div className="text-gray-500">Cargando…</div>
                 </div>
             </div>
         );
@@ -43,7 +43,7 @@ export function PaymentReceiptDisplay({
     if (error || !fileData) {
         return (
             <div className={`border rounded-lg p-8 text-center ${className}`}>
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                <FileText className="size-12 mx-auto text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">No se pudo cargar el comprobante</p>
             </div>
         );
@@ -63,10 +63,11 @@ export function PaymentReceiptDisplay({
                             style={{ height: pdfHeight }}
                             title="Comprobante PDF"
                             loading="lazy"
+                            sandbox="allow-downloads"
                         />
                     </div>
                 ) : isImage ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                    <div className="size-full flex items-center justify-center bg-gray-50">
                         <img
                             src={fileData.url}
                             alt="Comprobante de pago"
@@ -76,7 +77,7 @@ export function PaymentReceiptDisplay({
                     </div>
                 ) : (
                     <div className="bg-gray-50 p-8 text-center">
-                        <FileText className="h-16 w-16 mx-auto text-gray-600 mb-4" />
+                        <FileText className="size-16 mx-auto text-gray-600 mb-4" />
                         <p className="text-lg font-medium text-gray-900 mb-2">Archivo adjunto</p>
                         <p className="text-sm text-gray-600">
                             Tipo: {fileData.type}
@@ -93,7 +94,7 @@ export function PaymentReceiptDisplay({
                         onClick={handleViewFullSize}
                         className="bg-transparent"
                     >
-                        <Eye className="h-4 w-4 mr-2" />
+                        <Eye className="size-4 mr-2" />
                         Ver completo
                     </Button>
                     <Button
@@ -102,7 +103,7 @@ export function PaymentReceiptDisplay({
                         onClick={handleDownload}
                         className="bg-transparent"
                     >
-                        <Download className="h-4 w-4 mr-2" />
+                        <Download className="size-4 mr-2" />
                         Descargar
                     </Button>
                 </div>

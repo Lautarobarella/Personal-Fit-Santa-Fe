@@ -34,7 +34,7 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
       <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <DollarSign className="size-5" />
             Configurar Cuota Mensual
           </DialogTitle>
           <DialogDescription>
@@ -44,7 +44,7 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
 
         {loading ? (
           <div className="text-center py-4">
-            <div className="text-muted-foreground">Cargando configuración...</div>
+            <div className="text-muted-foreground">Cargando configuración…</div>
           </div>
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
@@ -53,7 +53,7 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
               <Card className="m-2">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
+                    <DollarSign className="size-5" />
                     Valor de la Cuota Mensual
                   </CardTitle>
                 </CardHeader>
@@ -113,8 +113,8 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
                 disabled={loading || isSaving || !monthlyFeeInput.trim()}
                 className="flex-1"
               >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Guardando..." : "Guardar"}
+                <Save className="size-4 mr-2" />
+                {isSaving ? "Guardando…" : "Guardar"}
               </Button>
             </div>
           </div>

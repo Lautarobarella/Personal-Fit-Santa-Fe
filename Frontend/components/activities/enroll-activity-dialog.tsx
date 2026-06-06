@@ -55,19 +55,19 @@ export function EnrollActivityDialog({
                   
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <Calendar className="size-4 text-muted-foreground" />
                       <span>{formatDate(activity.date)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Clock className="size-4 text-muted-foreground" />
                       <span>{formatTime(activity.date)} ({activity.duration} min)</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <MapPin className="size-4 text-muted-foreground" />
                       <span>{activity.location}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <Users className="size-4 text-muted-foreground" />
                       <span>{activity.currentParticipants}/{activity.maxParticipants} participantes</span>
                     </div>
                   </div>
@@ -90,7 +90,7 @@ export function EnrollActivityDialog({
             disabled={isLoading}
             className={isEnrolled ? "bg-destructive hover:bg-destructive/90" : ""}
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
             {isEnrolled ? "Desinscribirse" : "Inscribirse"}
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -35,7 +35,7 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
       <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <Users className="size-5" />
             Máximo de Actividades por Día
           </DialogTitle>
           <DialogDescription>
@@ -45,7 +45,7 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
 
         {loading ? (
           <div className="text-center py-4">
-            <div className="text-muted-foreground">Cargando configuración...</div>
+            <div className="text-muted-foreground">Cargando configuración…</div>
           </div>
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
@@ -54,7 +54,7 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
               <Card className="m-2">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5" />
+                    <Users className="size-5" />
                     Límite de Inscripciones Diarias
                   </CardTitle>
                 </CardHeader>
@@ -114,8 +114,8 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
                 disabled={saving || isUpdatingMaxActivitiesPerDay}
                 className="flex-1"
               >
-                <Save className="h-4 w-4 mr-2" />
-                {saving || isUpdatingMaxActivitiesPerDay ? "Guardando..." : "Guardar"}
+                <Save className="size-4 mr-2" />
+                {saving || isUpdatingMaxActivitiesPerDay ? "Guardando…" : "Guardar"}
               </Button>
             </div>
           </div>

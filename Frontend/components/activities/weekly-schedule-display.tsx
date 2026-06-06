@@ -29,7 +29,7 @@ export function WeeklyScheduleDisplay({ weeklySchedule, className = "" }: Weekly
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Calendar className="h-4 w-4 text-muted-foreground" />
+      <Calendar className="size-4 text-muted-foreground" />
       <div className="flex gap-1">
         {selectedDays.map((day, index) => (
           <Badge key={day?.key} variant="secondary" className="text-xs">

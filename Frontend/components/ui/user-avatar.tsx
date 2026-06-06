@@ -46,9 +46,8 @@ export function UserAvatar({
 
   return (
     <>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         className="group inline-flex cursor-zoom-in rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={`Abrir foto de perfil de ${displayName}`}
         onClick={(event) => {
@@ -64,7 +63,7 @@ export function UserAvatar({
         }}
       >
         {avatarContent}
-      </div>
+      </button>
 
       <AvatarPreviewDialog
         open={isPreviewOpen}

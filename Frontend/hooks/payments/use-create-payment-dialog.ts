@@ -1,5 +1,6 @@
 "use client"
 
+import { esMonthYearFormatter } from "@/lib/formatters"
 import type React from "react"
 
 import { usePaymentContext } from "@/contexts/payment-provider"
@@ -54,11 +55,13 @@ export function useCreatePaymentDialog(
   const { monthlyFee } = useSettings()
   const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dniFieldIdCounter = useRef(1)
   const paymentFlowMode: PaymentFlowMode = options.paymentFlowMode ?? "default"
   const expectedDniCount = options.expectedDniCount
 
   const [isCreating, setIsCreating] = useState(false)
   const [clientDnis, setClientDnis] = useState<string[]>([""])
+  const [dniFieldIds, setDniFieldIds] = useState<string[]>(["dni-field-1"])
   const [validatedUsers, setValidatedUsers] = useState<ValidatedUser[]>([])
   const [debounceTimers, setDebounceTimers] = useState<Array<ReturnType<typeof setTimeout> | null>>([])
   const [baseAmount, setBaseAmount] = useState("")
@@ -93,12 +96,18 @@ export function useCreatePaymentDialog(
     hasActivePlan: false,
   })
 
+  const createDniFieldId = useCallback(() => {
+    dniFieldIdCounter.current += 1
+    return `dni-field-${dniFieldIdCounter.current}`
+  }, [])
+
   const initializeDniInputs = useCallback((count: number) => {
     const safeCount = Math.max(1, count)
     setClientDnis(Array.from({ length: safeCount }, () => ""))
+    setDniFieldIds(Array.from({ length: safeCount }, () => createDniFieldId()))
     setValidatedUsers(Array.from({ length: safeCount }, () => createEmptyValidatedUser()))
     setDebounceTimers(Array.from({ length: safeCount }, () => null))
-  }, [])
+  }, [createDniFieldId])
 
   const resetFormState = useCallback(() => {
     debounceTimers.forEach((timer) => {
@@ -123,7 +132,74 @@ export function useCreatePaymentDialog(
     }
   }, [debounceTimers, fixedDniCount, getDefaultPaymentDates, initializeDniInputs])
 
+  const resetFormStateRef = useRef(resetFormState)
+
   useEffect(() => {
+    resetFormStateRef.current = resetFormState
+  }, [resetFormState])
+
+  const validateDni = useCallback(async (index: number, dniString: string) => {
+    try {
+      const dni = parseInt(dniString, 10)
+      if (isNaN(dni)) {
+        throw new Error("El DNI debe ser un número válido")
+      }
+
+      const { fetchUserByDni } = await import("@/api/clients/usersApi")
+      const fetchedUser = await fetchUserByDni(dni)
+      const hasActivePlan = fetchedUser.status === "ACTIVE"
+
+      setValidatedUsers((previous) => {
+        const next = [...previous]
+        next[index] = {
+          dni,
+          name: fetchedUser.name,
+          isValid: true,
+          isValidating: false,
+          hasActivePlan,
+        }
+        return next
+      })
+    } catch (error: any) {
+      console.error("Error validando DNI:", error)
+      let errorMessage = "Error inesperado"
+
+      if (
+        error?.response?.status === 404 ||
+        error?.status === 404 ||
+        error?.code === 404 ||
+        (error?.message && error.message.includes("404"))
+      ) {
+        errorMessage = "DNI no encontrado"
+      } else if (
+        error?.message?.includes("Network Error") ||
+        error?.message?.includes("ERR_NETWORK") ||
+        error?.code === "NETWORK_ERROR"
+      ) {
+        errorMessage = "Error de conexión"
+      } else if (error?.message === "El DNI debe ser un número válido") {
+        errorMessage = error.message
+      } else if (error?.message) {
+        if (error.message.includes("DNI") || error.message.includes("usuario")) {
+          errorMessage = error.message
+        } else {
+          errorMessage = "DNI no encontrado"
+        }
+      }
+
+      setValidatedUsers((previous) => {
+        const next = [...previous]
+        next[index] = {
+          dni: 0, name: "", isValid: false, isValidating: false, hasActivePlan: false, errorMessage,
+        }
+        return next
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    let validationTimeout: ReturnType<typeof setTimeout> | null = null
+
     if (open && user && monthlyFee > 0) {
       const initialCount = hasFixedDniCount ? fixedDniCount : 1
       initializeDniInputs(initialCount)
@@ -135,13 +211,19 @@ export function useCreatePaymentDialog(
           next[0] = userDniString
           return next
         })
-        setTimeout(() => {
+        validationTimeout = setTimeout(() => {
           validateDni(0, userDniString)
         }, 100)
       }
       setBaseAmount(monthlyFee.toString())
     }
-  }, [open, user, monthlyFee, hasFixedDniCount, fixedDniCount, isGroupFlow])
+
+    return () => {
+      if (validationTimeout) {
+        clearTimeout(validationTimeout)
+      }
+    }
+  }, [fixedDniCount, hasFixedDniCount, initializeDniInputs, isGroupFlow, monthlyFee, open, user, validateDni])
 
   useEffect(() => {
     const validUsersCount = validatedUsers.filter((u) => u.isValid).length
@@ -155,8 +237,9 @@ export function useCreatePaymentDialog(
   }, [baseAmount, validatedUsers])
 
   useEffect(() => {
+    const resetFormStateOnUnmount = resetFormStateRef.current
     return () => {
-      resetFormState()
+      resetFormStateOnUnmount()
     }
   }, [])
 
@@ -164,7 +247,7 @@ export function useCreatePaymentDialog(
     if (!open) {
       resetFormState()
     }
-  }, [open])
+  }, [open, resetFormState])
 
   const addDniField = () => {
     if (hasFixedDniCount) {
@@ -172,6 +255,7 @@ export function useCreatePaymentDialog(
     }
 
     setClientDnis((prev) => [...prev, ""])
+    setDniFieldIds((prev) => [...prev, createDniFieldId()])
     setValidatedUsers((prev) => [
       ...prev,
       { dni: 0, name: "", isValid: false, isValidating: false, hasActivePlan: false },
@@ -189,6 +273,7 @@ export function useCreatePaymentDialog(
         clearTimeout(debounceTimers[index]!)
       }
       setClientDnis((prev) => prev.filter((_, i) => i !== index))
+      setDniFieldIds((prev) => prev.filter((_, i) => i !== index))
       setValidatedUsers((prev) => prev.filter((_, i) => i !== index))
       setDebounceTimers((prev) => prev.filter((_, i) => i !== index))
     }
@@ -227,72 +312,13 @@ export function useCreatePaymentDialog(
     setDebounceTimers(newTimers)
   }
 
-  const validateDni = async (index: number, dniString: string) => {
-    try {
-      const dni = parseInt(dniString, 10)
-      if (isNaN(dni)) {
-        throw new Error("El DNI debe ser un número válido")
-      }
-
-      const { fetchUserByDni } = await import("@/api/clients/usersApi")
-      const fetchedUser = await fetchUserByDni(dni)
-      const hasActivePlan = fetchedUser.status === "ACTIVE"
-
-      const newValidatedUsers = [...validatedUsers]
-      newValidatedUsers[index] = {
-        dni,
-        name: fetchedUser.name,
-        isValid: true,
-        isValidating: false,
-        hasActivePlan,
-      }
-
-      setValidatedUsers(newValidatedUsers)
-    } catch (error: any) {
-      console.error("Error validando DNI:", error)
-      const newValidatedUsers = [...validatedUsers]
-      let errorMessage = "Error inesperado"
-
-      if (
-        error?.response?.status === 404 ||
-        error?.status === 404 ||
-        error?.code === 404 ||
-        (error?.message && error.message.includes("404"))
-      ) {
-        errorMessage = "DNI no encontrado"
-      } else if (
-        error?.message?.includes("Network Error") ||
-        error?.message?.includes("ERR_NETWORK") ||
-        error?.code === "NETWORK_ERROR"
-      ) {
-        errorMessage = "Error de conexión"
-      } else if (error?.message === "El DNI debe ser un número válido") {
-        errorMessage = error.message
-      } else if (error?.message) {
-        if (error.message.includes("DNI") || error.message.includes("usuario")) {
-          errorMessage = error.message
-        } else {
-          errorMessage = "DNI no encontrado"
-        }
-      }
-
-      newValidatedUsers[index] = {
-        dni: 0, name: "", isValid: false, isValidating: false, hasActivePlan: false, errorMessage,
-      }
-      setValidatedUsers(newValidatedUsers)
-    }
-  }
-
   const generateMonthOptions = () => {
     const options = []
     const now = new Date()
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() + i, 1)
       const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
-      const monthLabel = new Intl.DateTimeFormat("es-ES", {
-        month: "long",
-        year: "numeric",
-      }).format(date)
+      const monthLabel = esMonthYearFormatter.format(date)
       options.push({ value: monthStr, label: monthLabel })
     }
     return options
@@ -551,6 +577,7 @@ export function useCreatePaymentDialog(
     completedDniCount,
     validUsersCount,
     clientDnis,
+    dniFieldIds,
     validatedUsers,
     baseAmount,
     setBaseAmount,

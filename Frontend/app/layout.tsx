@@ -88,7 +88,7 @@ export default function RootLayout({
                     <NotificationsProvider>
                       <div className="min-h-screen h-[100dvh] overflow-hidden bg-background">
                         <DesktopSidebar />
-                        <main className="relative h-full w-full overflow-y-auto overflow-x-hidden lg:ml-64 lg:w-[calc(100%-16rem)]">
+                        <main className="relative size-full overflow-y-auto overflow-x-hidden lg:ml-64 lg:w-[calc(100%-16rem)]">
                           {children}
                         </main>
                       </div>

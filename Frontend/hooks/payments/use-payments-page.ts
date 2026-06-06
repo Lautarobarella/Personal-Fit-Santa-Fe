@@ -1,5 +1,6 @@
 "use client"
 
+import { esArDecimalFormatter, esShortDateYearFormatter } from "@/lib/formatters"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -56,8 +57,8 @@ export function usePaymentsPage() {
 
   // Admin state
   const currentDate = new Date()
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(() => currentDate.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(() => currentDate.getMonth() + 1)
 
   const { payments, isLoading } = usePaymentContext()
 
@@ -113,7 +114,7 @@ export function usePaymentsPage() {
     if (!date) {
       return ""
     }
-    return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(new Date(date))
+    return esShortDateYearFormatter.format(new Date(date))
   }
 
   const getStatusColor = (status: string) => {
@@ -137,11 +138,7 @@ export function usePaymentsPage() {
   }
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("es-AR", {
-      style: "decimal",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount)
+    return esArDecimalFormatter.format(amount)
   }
 
   const getMethodText = (method: MethodType) => {
@@ -166,7 +163,7 @@ export function usePaymentsPage() {
     )
   })
 
-  const sortedAllPayments = [...filteredPayments].sort(
+  const sortedAllPayments = filteredPayments.toSorted(
     (a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
   )
 

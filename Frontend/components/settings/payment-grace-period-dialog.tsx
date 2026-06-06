@@ -28,7 +28,7 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
       <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+            <Clock className="size-5" />
             Período de Gracia de Pago
           </DialogTitle>
           <DialogDescription>
@@ -42,7 +42,7 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
             <Card className="m-2">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+                  <Clock className="size-5" />
                   Período de Gracia
                 </CardTitle>
               </CardHeader>
@@ -111,7 +111,7 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
               onClick={handleSubmit}
               className="flex-1"
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="size-4 mr-2" />
               {isUpdatingPaymentGracePeriod ? "Actualizando..." : "Guardar"}
             </Button>
           </div>

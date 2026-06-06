@@ -44,7 +44,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
         <Card className="mb-24">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+              <Calendar className="size-5" />
               Editar Actividad
             </CardTitle>
           </CardHeader>
@@ -107,7 +107,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
               {/* Schedule */}
               <div className="space-y-4">
                 <h3 className="text-md font-medium flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+                  <Clock className="size-5" />
                   Horario
                 </h3>
 
@@ -155,10 +155,10 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
               <div className="space-y-4 pt-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-md font-medium flex items-center gap-2">
-                    <Repeat className="h-5 w-5" />
+                    <Repeat className="size-5" />
                     Repetir semanalmente
                   </h3>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-x-2">
                     <Switch
                       id="recurring"
                       checked={form.isRecurring}
@@ -179,7 +179,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
               {/* Capacity */}
               <div className="space-y-4">
                 <h3 className="text-md font-medium flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                  <Users className="size-5" />
                   Capacidad
                 </h3>
                 <div className="space-y-2">
@@ -201,7 +201,7 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Actualizar Actividad
                 </Button>
               </div>

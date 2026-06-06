@@ -1,5 +1,6 @@
 "use client"
 
+import { esYearFormatter } from "@/lib/formatters"
 import { DeleteActivityDialog } from "@/components/activities/delete-activity-dialog"
 import { DetailsActivityDialog } from "@/components/activities/details-activity-dialog"
 import { EnrollActivityDialog } from "@/components/activities/enroll-activity-dialog"
@@ -75,7 +76,7 @@ export default function ActivitiesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="size-8 animate-spin" />
       </div>
     )
   }
@@ -85,14 +86,14 @@ export default function ActivitiesPage() {
       case ActivityStatus.COMPLETED:
         return (
           <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">
-            <CheckCircle className="h-3 w-3 mr-1" />
+            <CheckCircle className="size-3 mr-1" />
             Finalizada
           </Badge>
         )
       case ActivityStatus.CANCELLED:
         return (
           <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">
-            <X className="h-3 w-3 mr-1" />
+            <X className="size-3 mr-1" />
             Cancelada
           </Badge>
         )
@@ -108,7 +109,7 @@ export default function ActivitiesPage() {
         actions={
           canManageActivities ? (
               <Button size="sm" onClick={() => {router.push('/activities/new')}}>
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="size-4 mr-1" />
                 Nueva
               </Button>
           ) : null
@@ -120,13 +121,13 @@ export default function ActivitiesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className="bg-transparent">
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="size-4" />
                 </Button>
 
                 <div className="text-center">
                   <h2 className="font-semibold text-lg">{formatWeekRange()}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(weekDates[0])}
+                    {esYearFormatter.format(weekDates[0])}
                   </p>
                 </div>
 
@@ -136,13 +137,13 @@ export default function ActivitiesPage() {
                   onClick={() => navigateWeek("next")}
                   className="bg-transparent"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="size-4" />
                 </Button>
               </div>
 
               <div className="flex justify-center mt-3">
                 <Button variant="outline" size="sm" onClick={goToToday} className="bg-transparent">
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <Calendar className="size-4 mr-2" />
                   Hoy
                 </Button>
               </div>
@@ -154,7 +155,7 @@ export default function ActivitiesPage() {
         <Card>
           <CardContent className="p-4 space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar actividades o entrenadores..."
                 value={searchTerm}
@@ -185,7 +186,7 @@ export default function ActivitiesPage() {
         <div className="space-y-4">
           {activitiesByDay.map((day, dayIndex) => {
             return (
-              <Card key={dayIndex} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
+              <Card key={day.date.toISOString()} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -194,7 +195,7 @@ export default function ActivitiesPage() {
                           {dayNames[dayIndex]}
                         </div>
                         <div
-                          className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full w-9 h-9 flex items-center justify-center" : ""}`}
+                          className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full size-9 flex items-center justify-center" : ""}`}
                         >
                           {day.date.getDate()}
                         </div>
@@ -225,8 +226,8 @@ export default function ActivitiesPage() {
                               {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-8 w-8 p-0">
-                                      <MoreVertical className="h-4 w-4" />
+                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 size-8 p-0">
+                                      <MoreVertical className="size-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
@@ -248,8 +249,8 @@ export default function ActivitiesPage() {
                               {isTrainer && activity.trainerName === trainerFullName && activity.status !== ActivityStatus.COMPLETED && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-8 w-8 p-0">
-                                      <MoreVertical className="h-4 w-4" />
+                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 size-8 p-0">
+                                      <MoreVertical className="size-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
@@ -280,11 +281,11 @@ export default function ActivitiesPage() {
 
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4" />
+                                      <MapPin className="size-4" />
                                       <span>{activity.location}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                      <Clock className="h-4 w-4" />
+                                      <Clock className="size-4" />
                                       <span className="font-medium text-foreground">{formatTime(activity.date)}</span>
                                       <span>({activity.duration}min)</span>
                                     </div>
@@ -294,7 +295,7 @@ export default function ActivitiesPage() {
 
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
+                                  <Avatar className="size-6">
                                     <AvatarFallback className="text-xs">
                                       {activity.trainerName
                                         .split(" ")
@@ -345,7 +346,7 @@ export default function ActivitiesPage() {
                                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                   <span>Capacidad</span>
                                   <div className="flex items-center gap-1">
-                                    <Users className="h-3 w-3" />
+                                    <Users className="size-3" />
                                     <span>{activity.currentParticipants}/{activity.maxParticipants}</span>
                                   </div>
                                 </div>
@@ -370,7 +371,7 @@ export default function ActivitiesPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <Calendar className="size-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No hay actividades programadas</p>
                     </div>
                   )}

@@ -26,7 +26,7 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full size-8 border-b-2 border-gray-900" />
       </div>
     )
   }
@@ -34,7 +34,7 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
   if (!filteredNotifications || filteredNotifications.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Bell className="h-12 w-12 text-gray-400 mb-4" />
+        <Bell className="size-12 text-gray-400 mb-4" />
         <p className="text-gray-500">No tienes notificaciones</p>
       </div>
     )
@@ -73,7 +73,7 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
                     onClick={() => handleMarkAsRead(notification.id)}
                     title="Marcar como leída"
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="size-4" />
                   </Button>
                 )}
                 
@@ -84,7 +84,7 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
                     onClick={() => handleArchive(notification.id)}
                     title="Archivar"
                   >
-                    <Archive className="h-4 w-4" />
+                    <Archive className="size-4" />
                   </Button>
                 )}
                 
@@ -95,7 +95,7 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
                   title="Eliminar"
                   className="text-red-500 hover:text-red-600 hover:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
             </div>

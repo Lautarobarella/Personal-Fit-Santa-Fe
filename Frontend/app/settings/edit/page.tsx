@@ -45,7 +45,7 @@ export default function EditProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              <User className="size-5" />
               Datos Personales
             </CardTitle>
           </CardHeader>
@@ -53,7 +53,7 @@ export default function EditProfilePage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
                 <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
+                  <Shield className="size-4" />
                   Información de la cuenta
                 </h3>
                 <div className="grid grid-cols-1 gap-3">
@@ -84,7 +84,7 @@ export default function EditProfilePage() {
 
               <div className="space-y-4">
                 <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                  <UserRoundPen className="h-4 w-4" />
+                  <UserRoundPen className="size-4" />
                   Datos de contacto
                 </h3>
 
@@ -135,7 +135,7 @@ export default function EditProfilePage() {
               <div className="space-y-4 p-4 border rounded-lg">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                    <LockKeyhole className="h-4 w-4" />
+                    <LockKeyhole className="size-4" />
                     Cambiar contraseña
                   </h3>
                   <span className="text-xs text-muted-foreground">
@@ -162,7 +162,7 @@ export default function EditProfilePage() {
                       aria-label={passwordVisibility.current ? "Ocultar contraseña" : "Mostrar contraseña"}
                       disabled={isLoading}
                     >
-                      {passwordVisibility.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {passwordVisibility.current ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
                 </div>
@@ -186,7 +186,7 @@ export default function EditProfilePage() {
                       aria-label={passwordVisibility.next ? "Ocultar contraseña" : "Mostrar contraseña"}
                       disabled={isLoading}
                     >
-                      {passwordVisibility.next ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {passwordVisibility.next ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export default function EditProfilePage() {
                       aria-label={passwordVisibility.confirm ? "Ocultar contraseña" : "Mostrar contraseña"}
                       disabled={isLoading}
                     >
-                      {passwordVisibility.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {passwordVisibility.confirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
                 </div>
@@ -237,7 +237,7 @@ export default function EditProfilePage() {
                   className="flex-1"
                   disabled={isLoading || !profileData.address || !profileData.phone}
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="size-4 mr-2" />
                   {isLoading ? "Guardando..." : "Guardar"}
                 </Button>
               </div>

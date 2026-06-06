@@ -53,6 +53,7 @@ export function CreatePaymentDialog({
         completedDniCount,
         validUsersCount,
         clientDnis,
+        dniFieldIds,
         validatedUsers,
         baseAmount,
         amount,
@@ -86,7 +87,7 @@ export function CreatePaymentDialog({
 
                 <DialogHeader>
                     <DialogTitle className="text-left flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
+                        <DollarSign className="size-5" />
                         Crear Pago Mensual
                     </DialogTitle>
                     <DialogDescription className="text-left">
@@ -125,7 +126,7 @@ export function CreatePaymentDialog({
                                 )}
 
                                 {clientDnis.map((dni, index) => (
-                                    <div key={index} className="space-y-2">
+                                    <div key={dniFieldIds[index]} className="space-y-2">
                                         {/* Fila del input DNI y botón eliminar */}
                                         <div className="flex items-center gap-2">
                                             <div className="flex-1 relative">
@@ -153,7 +154,7 @@ export function CreatePaymentDialog({
                                                 />
                                                 {validatedUsers[index]?.isValidating && (
                                                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                                        <Loader2 className="size-4 animate-spin text-blue-500" />
                                                     </div>
                                                 )}
                                             </div>
@@ -164,9 +165,9 @@ export function CreatePaymentDialog({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => removeDniField(index)}
-                                                    className="text-red-600 hover:text-red-700 h-10 w-10 p-0 flex-shrink-0"
+                                                    className="text-red-600 hover:text-red-700 size-10 p-0 flex-shrink-0"
                                                 >
-                                                    <X className="h-4 w-4" />
+                                                    <X className="size-4" />
                                                 </Button>
                                             )}
                                         </div>
@@ -176,7 +177,7 @@ export function CreatePaymentDialog({
                                             {/* Validación positiva */}
                                             {validatedUsers[index]?.isValid && (
                                                 <div className="flex items-center gap-1 text-sm text-green-600">
-                                                    <Check className="h-3 w-3" />
+                                                    <Check className="size-3" />
                                                     <span>{validatedUsers[index].name}</span>
                                                 </div>
                                             )}
@@ -184,7 +185,7 @@ export function CreatePaymentDialog({
                                             {/* Validación negativa */}
                                             {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                                                    <AlertCircle className="size-3 text-muted-foreground" />
                                                     <span>{validatedUsers[index].errorMessage}</span>
                                                 </div>
                                             )}
@@ -192,8 +193,8 @@ export function CreatePaymentDialog({
                                             {/* Estado de validación en progreso */}
                                             {validatedUsers[index]?.isValidating && (
                                                 <div className="flex items-center gap-1 text-sm text-blue-600">
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                    <span>Verificando DNI...</span>
+                                                    <Loader2 className="size-3 animate-spin" />
+                                                    <span>Verificando DNI…</span>
                                                 </div>
                                             )}
                                         </div>
@@ -298,17 +299,24 @@ export function CreatePaymentDialog({
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label className="flex items-center gap-2">
-                                            <FileImage className="h-4 w-4" />
+                                            <FileImage className="size-4" />
                                             Subir Comprobante *
                                         </Label>
                                     </div>
                                     <div className="space-y-4">
                                         {!selectedFile ? (
                                             <div className="border-2 border-dashed p-6 text-center rounded-lg">
-                                                <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                                <Upload className="size-12 mx-auto text-muted-foreground mb-4" />
                                                 <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
                                                 <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
-                                                <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept="image/*,.pdf"
+                                                    aria-label="Seleccionar comprobante de pago"
+                                                    className="hidden"
+                                                    onChange={handleFileSelect}
+                                                />
                                             </div>
                                         ) : (
                                             <div>
@@ -318,18 +326,18 @@ export function CreatePaymentDialog({
                                                             <img src={previewUrl} alt="Comprobante" className="w-full max-h-64 object-contain" />
                                                         ) : (
                                                             <div className="p-8 text-center text-sm text-muted-foreground">
-                                                                Procesando comprobante...
+                                                                Procesando comprobante…
                                                             </div>
                                                         )
                                                     ) : (
                                                         <div className="p-8 text-center">
-                                                            <FileImage className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                                                            <FileImage className="size-16 mx-auto text-muted-foreground mb-4" />
                                                             <p className="font-medium">{selectedFile.name}</p>
                                                             <p className="text-sm text-muted-foreground">Archivo PDF</p>
                                                         </div>
                                                     )}
                                                     <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
-                                                        <X className="h-4 w-4" />
+                                                        <X className="size-4" />
                                                     </Button>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
@@ -372,8 +380,8 @@ export function CreatePaymentDialog({
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder={
                                             paymentMethod === MethodType.CASH
-                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo..."
-                                                : "Notas adicionales sobre el pago..."
+                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo…"
+                                                : "Notas adicionales sobre el pago…"
                                         }
                                     />
                                 </div>
@@ -401,11 +409,11 @@ export function CreatePaymentDialog({
                             onClick={handleSubmit}
                         >
                             {isCreating ? (
-                                <Loader2 className="animate-spin mr-1 h-4 w-4" />
+                                <Loader2 className="animate-spin mr-1 size-4" />
                             ) : (
-                                <Check className="mr-1 h-4 w-4" />
+                                <Check className="mr-1 size-4" />
                             )}
-                            {isCreating ? "Creando..." : "Aceptar"}
+                            {isCreating ? "Creando…" : "Aceptar"}
                         </Button>
                     </div>
                 </DialogFooter>

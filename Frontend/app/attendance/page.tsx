@@ -47,7 +47,7 @@ export default function AttendancePage() {
                     <CardContent>
                         {loadingActivities ? (
                             <div className="flex justify-center p-4">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <Loader2 className="size-6 animate-spin text-primary" />
                             </div>
                         ) : activities.length === 0 ? (
                             <p className="text-center text-muted-foreground py-4">No tienes clases asignadas para hoy.</p>
@@ -76,16 +76,16 @@ export default function AttendancePage() {
                                 <CardTitle className="text-lg">Lista de Alumnos</CardTitle>
                                 <CardDescription>{participants.length} inscritos</CardDescription>
                             </div>
-                            <Users className="h-5 w-5 text-muted-foreground" />
+                            <Users className="size-5 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {loadingParticipants ? (
                                 <div className="flex justify-center p-8">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <Loader2 className="size-8 animate-spin text-primary" />
                                 </div>
                             ) : participants.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
-                                    <Users className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                    <Users className="size-12 mx-auto mb-2 opacity-20" />
                                     <p>No hay alumnos inscritos en esta clase.</p>
                                 </div>
                             ) : (
@@ -109,7 +109,7 @@ export default function AttendancePage() {
                                                     onClick={() => handleStatusUpdate(participant.id, AttendanceStatus.PRESENT)}
                                                     disabled={updating === participant.id}
                                                 >
-                                                    {updating === participant.id && participant.status !== AttendanceStatus.PRESENT ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+                                                    {updating === participant.id && participant.status !== AttendanceStatus.PRESENT ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle className="size-4 mr-1" />}
                                                     Presente
                                                 </Button>
 
@@ -118,11 +118,11 @@ export default function AttendancePage() {
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        className="size-8 text-muted-foreground hover:text-destructive"
                                                         onClick={() => handleStatusUpdate(participant.id, AttendanceStatus.ABSENT)}
                                                         disabled={updating === participant.id}
                                                     >
-                                                        <XCircle className="h-4 w-4" />
+                                                        <XCircle className="size-4" />
                                                     </Button>
                                                 )}
                                             </div>

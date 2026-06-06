@@ -1,5 +1,6 @@
 "use client"
 
+import { esNumericDateTimeFormatter } from "@/lib/formatters"
 import { useAttendance } from "@/hooks/attendance/use-attendance"
 import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus } from "@/lib/types"
@@ -31,13 +32,7 @@ export function useAttendanceActivityDialog(
   }, [activityId, open, loadActivityAttendances])
 
   const formatDateTime = (date: Date | string) => {
-    return new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+    return esNumericDateTimeFormatter.format(new Date(date))
   }
 
   const stats = getAttendanceStats()

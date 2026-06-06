@@ -36,12 +36,12 @@ export function MobileHeader({
         <div className="flex items-center gap-3">
           {showBack && (
             <Button variant="ghost" size="sm" onClick={onBack} className="rounded-full hover:bg-accent">
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="size-5" />
             </Button>
           )}
           {showMenu && (
             <Button variant="ghost" size="sm" onClick={onMenuClick} className="rounded-full hover:bg-accent">
-              <Menu className="h-5 w-5" />
+              <Menu className="size-5" />
             </Button>
           )}
           <h1 className="text-xl font-bold text-foreground truncate">{title}</h1>
@@ -51,10 +51,10 @@ export function MobileHeader({
           {actions}
           <Link href="/notifications">
             <Button variant="ghost" size="sm" className="relative rounded-full hover:bg-accent">
-              <Bell className="h-5 w-5" />
+              <Bell className="size-5" />
               {unreadCount > 0 && (
                 <Badge
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center bg-primary text-primary-foreground border-2 border-background"
+                  className="absolute -top-1 -right-1 size-5 rounded-full p-0 text-xs flex items-center justify-center bg-primary text-primary-foreground border-2 border-background"
                 >
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </Badge>
@@ -67,7 +67,7 @@ export function MobileHeader({
               firstName={user?.firstName}
               lastName={user?.lastName}
               avatar={user?.avatar}
-              className="h-9 w-9 shadow-professional"
+              className="size-9 shadow-professional"
               fallbackClassName="bg-gradient-primary text-foreground text-sm font-bold"
             />
           </div>

@@ -31,7 +31,7 @@ export default function ChangePasswordPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <LockKeyhole className="h-5 w-5" />
+                            <LockKeyhole className="size-5" />
                             Cambiar Contraseña
                         </CardTitle>
                     </CardHeader>
@@ -59,9 +59,9 @@ export default function ChangePasswordPage() {
                                         disabled={isLoading}
                                     >
                                         {passwordVisibility.current ? (
-                                            <EyeOff className="h-4 w-4" />
+                                            <EyeOff className="size-4" />
                                         ) : (
-                                            <Eye className="h-4 w-4" />
+                                            <Eye className="size-4" />
                                         )}
                                     </button>
                                 </div>
@@ -89,9 +89,9 @@ export default function ChangePasswordPage() {
                                         disabled={isLoading}
                                     >
                                         {passwordVisibility.new ? (
-                                            <EyeOff className="h-4 w-4" />
+                                            <EyeOff className="size-4" />
                                         ) : (
-                                            <Eye className="h-4 w-4" />
+                                            <Eye className="size-4" />
                                         )}
                                     </button>
                                 </div>
@@ -122,9 +122,9 @@ export default function ChangePasswordPage() {
                                         disabled={isLoading}
                                     >
                                         {passwordVisibility.confirm ? (
-                                            <EyeOff className="h-4 w-4" />
+                                            <EyeOff className="size-4" />
                                         ) : (
-                                            <Eye className="h-4 w-4" />
+                                            <Eye className="size-4" />
                                         )}
                                     </button>
                                 </div>
@@ -146,7 +146,7 @@ export default function ChangePasswordPage() {
                                     className="flex-1"
                                     disabled={isLoading || !passwords.current || !passwords.new || !passwords.confirm}
                                 >
-                                    <LockKeyhole className="h-4 w-4 mr-2" />
+                                    <LockKeyhole className="size-4 mr-2" />
                                     {isLoading ? "Guardando..." : "Guardar"}
                                 </Button>
                             </div>

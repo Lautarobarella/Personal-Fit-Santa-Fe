@@ -61,13 +61,8 @@ export function useDiagnostics() {
     setIsRunning(true)
     setEndpoints([])
 
-    const results: EndpointStatus[] = []
-
-    for (const endpoint of ENDPOINTS_TO_TEST) {
-      const result = await checkEndpoint(endpoint)
-      results.push(result)
-      setEndpoints([...results])
-    }
+    const results = await Promise.all(ENDPOINTS_TO_TEST.map(checkEndpoint))
+    setEndpoints(results)
 
     setIsRunning(false)
   }

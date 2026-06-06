@@ -34,7 +34,7 @@ interface PaymentDialogConfig {
 export default function NewPaymentPage() {
   const { createPayment } = usePaymentContext()
   const { user } = useAuth()
-  const router = useRouter()
+  const { push } = useRouter()
 
   useRequireAuth()
 
@@ -51,9 +51,7 @@ export default function NewPaymentPage() {
     return parsed
   }, [groupSizeInput])
 
-  const canCurrentUserCreatePayment = useMemo(() => {
-    return !!user
-  }, [user])
+  const canCurrentUserCreatePayment = !!user
 
   const canContinue = useMemo(() => {
     if (!canCurrentUserCreatePayment) {
@@ -88,7 +86,7 @@ export default function NewPaymentPage() {
   const handleModeDialogOpenChange = (open: boolean) => {
     setModeDialogOpen(open)
     if (!open && !paymentDialogConfig) {
-      router.push("/payments")
+      push("/payments")
     }
   }
 
@@ -113,7 +111,7 @@ export default function NewPaymentPage() {
 
   const handlePaymentDialogChange = (open: boolean) => {
     if (!open) {
-      router.push("/payments")
+      push("/payments")
     }
   }
 
@@ -141,7 +139,7 @@ export default function NewPaymentPage() {
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <User className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                    <User className="mt-0.5 size-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Pago Individual</p>
                       <p className="text-sm text-muted-foreground">Registra un pago para un solo cliente.</p>
@@ -158,7 +156,7 @@ export default function NewPaymentPage() {
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <Users className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                    <Users className="mt-0.5 size-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Pago Grupal</p>
                       <p className="text-sm text-muted-foreground">Registra un pago para varios clientes.</p>
@@ -190,7 +188,7 @@ export default function NewPaymentPage() {
 
             <DialogFooter className="gap-3">
               <Button onClick={handleContinueToPayment} disabled={!canContinue} className="w-full sm:w-auto">Continuar</Button>
-              <Button variant="outline" onClick={() => router.push("/payments")} className="w-full sm:w-auto">Cancelar</Button>
+              <Button variant="outline" onClick={() => push("/payments")} className="w-full sm:w-auto">Cancelar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

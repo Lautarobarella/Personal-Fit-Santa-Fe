@@ -56,7 +56,7 @@ export function BottomNav() {
             >
               <item.icon
                 className={cn(
-                  "h-5 w-5 transition-all duration-200",
+                  "size-5 transition-all duration-200",
                   isActive ? "text-primary scale-110" : "group-hover:scale-105"
                 )}
               />
