@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
 import { fetchActivities, fetchTrainers } from "@/api/activities/activitiesApi"
-import { fetchAllPayments } from "@/api/payments/paymentsApi"
+import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
 import { fetchUsers, fetchUserDetail, fetchShiftHistory } from "@/api/clients/usersApi"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -54,16 +54,26 @@ export interface MuscleGroupStat {
   percentage: number
 }
 
+const isCollectedPayment = (payment: PaymentType) =>
+  payment.status === PaymentStatus.PAID || payment.status === PaymentStatus.EXPIRED
+
+const getPreviousMonth = ({ month, year }: { month: number; year: number }) => ({
+  month: month === 0 ? 11 : month - 1,
+  year: month === 0 ? year - 1 : year,
+})
+
 export function useReports() {
   const { user } = useAuth()
   const router = useRouter()
   useRequireAuth()
 
   const [mounted, setMounted] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isBaseLoading, setIsBaseLoading] = useState(true)
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(false)
 
   // ─── Admin data ─────────────────────────────────────────────────────────
   const [payments, setPayments] = useState<PaymentType[]>([])
+  const [previousMonthPayments, setPreviousMonthPayments] = useState<PaymentType[]>([])
   const [allUsers, setAllUsers] = useState<UserType[]>([])
   const [activities, setActivities] = useState<ActivityType[]>([])
   const [trainers, setTrainers] = useState<UserType[]>([])
@@ -103,6 +113,19 @@ export function useReports() {
     return d.toLocaleDateString("es-ES", { month: "long", year: "numeric" })
   }, [selectedMonth])
 
+  const isLoading = useMemo(() => {
+    if (!user) {
+      return false
+    }
+    if (user.role === UserRole.ADMIN) {
+      return isBaseLoading || isPaymentsLoading
+    }
+    if (user.role === UserRole.CLIENT) {
+      return isBaseLoading
+    }
+    return false
+  }, [isBaseLoading, isPaymentsLoading, user])
+
   // ─── Data loading ─────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -115,17 +138,15 @@ export function useReports() {
     let cancelled = false
 
     const loadData = async () => {
-      setIsLoading(true)
+      setIsBaseLoading(true)
       try {
-        const [paymentsData, usersData, trainersData] = await Promise.all([
-          fetchAllPayments(),
+        const [usersData, trainersData] = await Promise.all([
           fetchUsers(),
           fetchTrainers(),
         ])
 
         if (cancelled) return
 
-        setPayments(paymentsData)
         setAllUsers(usersData)
         setTrainers(trainersData)
 
@@ -154,13 +175,46 @@ export function useReports() {
       } catch (error) {
         console.error("Error loading report data:", error)
       } finally {
-        if (!cancelled) setIsLoading(false)
+        if (!cancelled) setIsBaseLoading(false)
       }
     }
 
     loadData()
     return () => { cancelled = true }
   }, [mounted, user])
+
+  useEffect(() => {
+    if (!mounted || !user || user.role !== UserRole.ADMIN) return
+
+    let cancelled = false
+
+    const loadMonthlyPayments = async () => {
+      setIsPaymentsLoading(true)
+      try {
+        const previousMonth = getPreviousMonth(selectedMonth)
+        const [selectedPayments, previousPayments] = await Promise.all([
+          fetchPaymentsByMonthAndYear(selectedMonth.year, selectedMonth.month + 1),
+          fetchPaymentsByMonthAndYear(previousMonth.year, previousMonth.month + 1),
+        ])
+
+        if (cancelled) return
+
+        setPayments(selectedPayments)
+        setPreviousMonthPayments(previousPayments)
+      } catch (error) {
+        console.error("Error loading monthly report payments:", error)
+        if (!cancelled) {
+          setPayments([])
+          setPreviousMonthPayments([])
+        }
+      } finally {
+        if (!cancelled) setIsPaymentsLoading(false)
+      }
+    }
+
+    loadMonthlyPayments()
+    return () => { cancelled = true }
+  }, [mounted, selectedMonth, user])
 
   // ─── Client data loading ──────────────────────────────────────────────────
 
@@ -170,14 +224,14 @@ export function useReports() {
     let cancelled = false
 
     const loadClientData = async () => {
-      setIsLoading(true)
+      setIsBaseLoading(true)
       try {
         const detail = await fetchUserDetail(user.id)
         if (!cancelled) setClientDetail(detail)
       } catch (error) {
         console.error("Error loading client report data:", error)
       } finally {
-        if (!cancelled) setIsLoading(false)
+        if (!cancelled) setIsBaseLoading(false)
       }
     }
 
@@ -195,7 +249,7 @@ export function useReports() {
   }, [payments, selectedMonth])
 
   const paidPayments = useMemo(
-    () => monthPayments.filter((p) => p.status === PaymentStatus.PAID),
+    () => monthPayments.filter(isCollectedPayment),
     [monthPayments]
   )
 
@@ -359,21 +413,10 @@ export function useReports() {
   }, [allUsers, selectedMonth])
 
   const prevMonthRevenue = useMemo(() => {
-    const prevMonth = selectedMonth.month === 0 ? 11 : selectedMonth.month - 1
-    const prevYear = selectedMonth.month === 0 ? selectedMonth.year - 1 : selectedMonth.year
-
-    const prevPayments = payments.filter((p) => {
-      const d = p.createdAt ? new Date(p.createdAt) : null
-      return (
-        d &&
-        d.getMonth() === prevMonth &&
-        d.getFullYear() === prevYear &&
-        p.status === PaymentStatus.PAID
-      )
-    })
-
-    return prevPayments.reduce((sum, p) => sum + p.amount, 0)
-  }, [payments, selectedMonth])
+    return previousMonthPayments
+      .filter(isCollectedPayment)
+      .reduce((sum, p) => sum + p.amount, 0)
+  }, [previousMonthPayments])
 
   const revenueChange = useMemo(() => {
     if (prevMonthRevenue === 0) return null
