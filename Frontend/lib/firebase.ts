@@ -77,7 +77,7 @@ export const getToken = async () => {
             return null;
         }
     } catch (error) {
-        console.error("❌ An error occurred while retrieving token:", error);
+        console.warn("⚠️ Failed to retrieve FCM token:", error);
         return null;
     }
 };

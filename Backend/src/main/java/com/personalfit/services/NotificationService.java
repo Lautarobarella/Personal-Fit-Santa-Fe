@@ -65,13 +65,15 @@ public class NotificationService {
         try {
             notificationRepository.save(newNotification);
             log.debug("Notification created: userId={}, title={}", user.getId(), notification.getTitle());
-
-            // Trigger External Push
-            fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
-
         } catch (Exception e) {
             throw new BusinessRuleException("Failed to create notification: " + e.getMessage(),
                     "Api/Notification/createNotification");
+        }
+
+        try {
+            fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
+        } catch (Exception e) {
+            log.warn("Failed to send notification push: userId={}, cause={}", user.getId(), e.getMessage());
         }
     }
 
