@@ -44,7 +44,7 @@ public class NotificationController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> newNotification(@RequestBody NotificationFormTypeDTO notification) {
         // Entry log: confirms the request hit the endpoint and what recipient it targets.
-        log.info("POST /api/notifications/new | rawUserId='{}'",
+        log.debug("POST /api/notifications/new | rawUserId='{}'",
                 notification != null ? notification.getUserId() : "<null body>");
 
         notificationService.createNotification(notification);
@@ -54,9 +54,20 @@ public class NotificationController {
         response.put("success", true);
 
         // Exit log: only reached when the whole flow succeeded (HTTP 200).
-        log.info("POST /api/notifications/new | OK | rawUserId='{}'",
+        log.debug("POST /api/notifications/new | OK | rawUserId='{}'",
                 notification != null ? notification.getUserId() : "<null body>");
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Diagnostic (Admin only): inspect everything stored about a user's
+     * notifications and FCM tokens, looked up by DNI. Useful to debug
+     * duplicate push deliveries (token accumulation).
+     */
+    @GetMapping("/debug/user/{dni}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getUserNotificationDiagnostics(@PathVariable Integer dni) {
+        return ResponseEntity.ok(notificationService.getUserNotificationDiagnostics(dni));
     }
 
     /**

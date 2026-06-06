@@ -61,18 +61,18 @@ public class NotificationService {
             throw new BusinessRuleException("Notification payload is required",
                     "Api/Notification/createNotification");
         }
-        log.info("createNotification START | rawUserId='{}' | titleLen={} | messageLen={}",
+        log.debug("createNotification START | rawUserId='{}' | titleLen={} | messageLen={}",
                 notification.getUserId(),
                 notification.getTitle() != null ? notification.getTitle().length() : null,
                 notification.getMessage() != null ? notification.getMessage().length() : null);
 
         // [STEP 1] Parse the recipient id. A null/non-numeric id is a client error (400).
         Long userId = parseUserId(notification.getUserId());
-        log.info("createNotification STEP 1 OK | parsed userId={}", userId);
+        log.debug("createNotification STEP 1 OK | parsed userId={}", userId);
 
         // [STEP 2] Resolve the recipient. A missing user raises EntityNotFoundException (404).
         User user = userService.getUserById(userId);
-        log.info("createNotification STEP 2 OK | recipient resolved userId={}, name={}",
+        log.debug("createNotification STEP 2 OK | recipient resolved userId={}, name={}",
                 user.getId(), user.getFullName());
 
         Notification newNotification = Notification.builder()
@@ -86,7 +86,7 @@ public class NotificationService {
         // [STEP 3] Persist the in-app notification. DB failures map to 400 (BusinessRuleException).
         try {
             notificationRepository.save(newNotification);
-            log.info("createNotification STEP 3 OK | notification persisted | id={}, userId={}, title='{}'",
+            log.debug("createNotification STEP 3 OK | notification persisted | id={}, userId={}, title='{}'",
                     newNotification.getId(), user.getId(), notification.getTitle());
         } catch (Exception e) {
             log.error("createNotification STEP 3 FAILED | could not persist notification | userId={}, cause={}",
@@ -98,9 +98,9 @@ public class NotificationService {
         // [STEP 4] Fire the push notification. This is best-effort and MUST NOT fail the request:
         // any FCM error is swallowed here so the in-app notification is still considered created.
         try {
-            log.info("createNotification STEP 4 | dispatching FCM push | userId={}", user.getId());
+            log.debug("createNotification STEP 4 | dispatching FCM push | userId={}", user.getId());
             fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
-            log.info("createNotification STEP 4 OK | FCM dispatch returned | userId={}", user.getId());
+            log.debug("createNotification STEP 4 OK | FCM dispatch returned | userId={}", user.getId());
         } catch (Exception e) {
             // Intentionally NOT rethrown: a push failure should never produce a 500.
             log.warn("createNotification STEP 4 SKIPPED | FCM push failed (non-blocking) | userId={}, cause={}",
@@ -567,6 +567,61 @@ public class NotificationService {
     }
 
     // ===============================
+    // DIAGNOSTICS
+    // ===============================
+
+    /**
+     * Diagnostic: dumps everything we store about a user's notifications,
+     * looked up by DNI. Admin-only. Intended to investigate duplicate push
+     * deliveries (e.g. how many FCM tokens a user has accumulated).
+     */
+    public Map<String, Object> getUserNotificationDiagnostics(Integer dni) {
+        User user = userService.getUserByDni(dni);
+
+        List<String> tokens = fcmService.getTokens(user.getId());
+        List<String> maskedTokens = tokens.stream()
+                .map(this::maskToken)
+                .collect(Collectors.toList());
+
+        List<Notification> notifications = notificationRepository.findByUser(user);
+        long unread = notifications.stream()
+                .filter(n -> n.getStatus() == NotificationStatus.UNREAD)
+                .count();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", user.getId());
+        data.put("dni", user.getDni());
+        data.put("name", user.getFullName());
+        data.put("fcmTokenCount", tokens.size());
+        data.put("fcmTokens", maskedTokens);
+        data.put("notificationCount", notifications.size());
+        data.put("unreadCount", unread);
+
+        // Logged too, so it shows up directly in the docker logs.
+        log.info("Notification diagnostics | dni={}, userId={}, name={}, fcmTokenCount={}, "
+                + "notificationCount={}, unread={}",
+                user.getDni(), user.getId(), user.getFullName(), tokens.size(), notifications.size(), unread);
+        log.info("Notification diagnostics | dni={}, tokens={}", user.getDni(), maskedTokens);
+
+        return data;
+    }
+
+    /**
+     * Masks an FCM token for safe logging/inspection: keeps only a prefix/suffix
+     * plus its length, so duplicates can be spotted without exposing full tokens.
+     */
+    private String maskToken(String token) {
+        if (token == null) {
+            return "null";
+        }
+        if (token.length() <= 12) {
+            return token + " (len=" + token.length() + ")";
+        }
+        return token.substring(0, 8) + "..." + token.substring(token.length() - 4)
+                + " (len=" + token.length() + ")";
+    }
+
+    // ===============================
     // HELPERS
     // ===============================
 
@@ -585,7 +640,7 @@ public class NotificationService {
 
         try {
             Long parsed = Long.parseLong(rawUserId.trim());
-            log.info("parseUserId OK | rawUserId='{}' -> userId={}", rawUserId, parsed);
+            log.debug("parseUserId OK | rawUserId='{}' -> userId={}", rawUserId, parsed);
             return parsed;
         } catch (NumberFormatException e) {
             // e.g. the literal string "undefined"/"null" coming from a bad frontend payload.

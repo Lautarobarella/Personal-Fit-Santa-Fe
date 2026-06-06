@@ -48,18 +48,35 @@ public class FCMService {
             return;
         }
 
-        Optional<UserTokens> userTokensOpt = userTokensRepository.findByUserId(userId);
-        UserTokens userTokens;
-        if (userTokensOpt.isPresent()) {
-            userTokens = userTokensOpt.get();
-        } else {
-            userTokens = UserTokens.builder()
-                    .userId(userId)
-                    .build();
-        }
-        userTokens.addToken(token.trim());
+        String trimmedToken = token.trim();
+
+        UserTokens userTokens = userTokensRepository.findByUserId(userId)
+                .orElseGet(() -> UserTokens.builder().userId(userId).build());
+
+        int previousCount = userTokens.getTokens() != null ? userTokens.getTokens().size() : 0;
+
+        // Single-token-per-user policy.
+        // Each user keeps ONLY their most recently registered device token.
+        // Rationale: the same physical device kept registering new tokens over
+        // time (FCM token rotation / service-worker re-subscription), leaving
+        // several *valid* tokens that all pointed to the same device. FCM then
+        // delivered the push once per token, so users saw the SAME notification
+        // duplicated. Replacing the list with a single token guarantees exactly
+        // one delivery per user.
+        userTokens.setTokens(new ArrayList<>(List.of(trimmedToken)));
         userTokensRepository.save(userTokens);
-        log.info("FCM token registered: userId={}, totalTokens={}", userId, userTokens.getTokens().size());
+
+        log.info("FCM token registered (single-token policy): userId={}, previousTokens={}, now=1",
+                userId, previousCount);
+    }
+
+    /**
+     * Diagnostic helper: returns the FCM tokens currently stored for a user.
+     */
+    public List<String> getTokens(Long userId) {
+        return userTokensRepository.findByUserId(userId)
+                .map(UserTokens::getTokens)
+                .orElseGet(ArrayList::new);
     }
 
     /**
@@ -88,7 +105,7 @@ public class FCMService {
      * @param body   The body content of the notification.
      */
     public void sendNotification(Long userId, String title, String body) {
-        log.info("sendNotification START | userId={}", userId);
+        log.debug("sendNotification START | userId={}", userId);
 
         // Check if Firebase is initialized
         if (FirebaseApp.getApps().isEmpty()) {
@@ -212,7 +229,10 @@ public class FCMService {
                 tokensToRemove.add(tokenBatch.get(index));
             }
 
-            log.warn("Push token failed: userId={}, tokenIndex={}, messagingError={}, errorCode={}, cause={}",
+            // Per-token failures are expected (stale/uninstalled devices) and very
+            // noisy in bulk sends. Keep them at DEBUG; the aggregated success/failure
+            // summary is logged once at INFO in sendNotification().
+            log.debug("Push token failed: userId={}, tokenIndex={}, messagingError={}, errorCode={}, cause={}",
                     userId,
                     batchStartIndex + index,
                     messagingErrorCode,
