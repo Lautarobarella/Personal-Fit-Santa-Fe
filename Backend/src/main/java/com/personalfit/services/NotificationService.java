@@ -52,8 +52,28 @@ public class NotificationService {
      * Creates a database record and triggers an immediate FCM push.
      */
     public void createNotification(NotificationFormTypeDTO notification) {
+        // [STEP 0] Log the raw payload exactly as it arrives from the client.
+        // This is the single most useful line to diagnose the recurring 500s:
+        // it shows whether userId/title/message actually reached the backend.
+        if (notification == null) {
+            log.error("createNotification received a NULL body. The request reached the controller but Jackson "
+                    + "could not bind the JSON payload.");
+            throw new BusinessRuleException("Notification payload is required",
+                    "Api/Notification/createNotification");
+        }
+        log.info("createNotification START | rawUserId='{}' | titleLen={} | messageLen={}",
+                notification.getUserId(),
+                notification.getTitle() != null ? notification.getTitle().length() : null,
+                notification.getMessage() != null ? notification.getMessage().length() : null);
+
+        // [STEP 1] Parse the recipient id. A null/non-numeric id is a client error (400).
         Long userId = parseUserId(notification.getUserId());
+        log.info("createNotification STEP 1 OK | parsed userId={}", userId);
+
+        // [STEP 2] Resolve the recipient. A missing user raises EntityNotFoundException (404).
         User user = userService.getUserById(userId);
+        log.info("createNotification STEP 2 OK | recipient resolved userId={}, name={}",
+                user.getId(), user.getFullName());
 
         Notification newNotification = Notification.builder()
                 .title(notification.getTitle())
@@ -63,19 +83,31 @@ public class NotificationService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        // [STEP 3] Persist the in-app notification. DB failures map to 400 (BusinessRuleException).
         try {
             notificationRepository.save(newNotification);
-            log.debug("Notification created: userId={}, title={}", user.getId(), notification.getTitle());
+            log.info("createNotification STEP 3 OK | notification persisted | id={}, userId={}, title='{}'",
+                    newNotification.getId(), user.getId(), notification.getTitle());
         } catch (Exception e) {
+            log.error("createNotification STEP 3 FAILED | could not persist notification | userId={}, cause={}",
+                    user.getId(), e.getMessage(), e);
             throw new BusinessRuleException("Failed to create notification: " + e.getMessage(),
                     "Api/Notification/createNotification");
         }
 
+        // [STEP 4] Fire the push notification. This is best-effort and MUST NOT fail the request:
+        // any FCM error is swallowed here so the in-app notification is still considered created.
         try {
+            log.info("createNotification STEP 4 | dispatching FCM push | userId={}", user.getId());
             fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
+            log.info("createNotification STEP 4 OK | FCM dispatch returned | userId={}", user.getId());
         } catch (Exception e) {
-            log.warn("Failed to send notification push: userId={}, cause={}", user.getId(), e.getMessage());
+            // Intentionally NOT rethrown: a push failure should never produce a 500.
+            log.warn("createNotification STEP 4 SKIPPED | FCM push failed (non-blocking) | userId={}, cause={}",
+                    user.getId(), e.getMessage(), e);
         }
+
+        log.info("createNotification END | success | userId={}", user.getId());
     }
 
     /**
@@ -544,13 +576,21 @@ public class NotificationService {
      */
     private Long parseUserId(String rawUserId) {
         if (rawUserId == null || rawUserId.isBlank()) {
+            // This is the prime suspect for the historical 500s: an empty/missing id.
+            log.error("parseUserId FAILED | recipient id is null or blank | rawUserId='{}'. "
+                    + "The client sent a request to /notifications/new without a valid userId.", rawUserId);
             throw new BusinessRuleException("Notification recipient (userId) is required",
                     "Api/Notification/createNotification");
         }
 
         try {
-            return Long.parseLong(rawUserId.trim());
+            Long parsed = Long.parseLong(rawUserId.trim());
+            log.info("parseUserId OK | rawUserId='{}' -> userId={}", rawUserId, parsed);
+            return parsed;
         } catch (NumberFormatException e) {
+            // e.g. the literal string "undefined"/"null" coming from a bad frontend payload.
+            log.error("parseUserId FAILED | recipient id is not numeric | rawUserId='{}'. "
+                    + "Previously this threw an uncaught NumberFormatException and surfaced as HTTP 500.", rawUserId);
             throw new BusinessRuleException("Invalid notification recipient id: " + rawUserId,
                     "Api/Notification/createNotification");
         }

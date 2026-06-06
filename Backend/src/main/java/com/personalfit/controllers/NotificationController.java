@@ -21,11 +21,14 @@ import com.personalfit.dto.Notification.NotificationFormTypeDTO;
 import com.personalfit.dto.Notification.NotificationTypeDTO;
 import com.personalfit.services.NotificationService;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Controller for Notification Management.
  * Handles the creation (Admin only) and consumption (Users) of system
  * notifications.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
@@ -40,10 +43,19 @@ public class NotificationController {
     @PostMapping("/new")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> newNotification(@RequestBody NotificationFormTypeDTO notification) {
+        // Entry log: confirms the request hit the endpoint and what recipient it targets.
+        log.info("POST /api/notifications/new | rawUserId='{}'",
+                notification != null ? notification.getUserId() : "<null body>");
+
         notificationService.createNotification(notification);
+
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Notification created successfully");
         response.put("success", true);
+
+        // Exit log: only reached when the whole flow succeeded (HTTP 200).
+        log.info("POST /api/notifications/new | OK | rawUserId='{}'",
+                notification != null ? notification.getUserId() : "<null body>");
         return ResponseEntity.ok(response);
     }
 

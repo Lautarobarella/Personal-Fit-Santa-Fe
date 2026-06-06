@@ -88,9 +88,11 @@ public class FCMService {
      * @param body   The body content of the notification.
      */
     public void sendNotification(Long userId, String title, String body) {
+        log.info("sendNotification START | userId={}", userId);
+
         // Check if Firebase is initialized
         if (FirebaseApp.getApps().isEmpty()) {
-            log.warn("Firebase not initialized; skipping push to userId={}", userId);
+            log.warn("sendNotification | Firebase not initialized; skipping push to userId={}", userId);
             return;
         }
 
