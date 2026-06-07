@@ -103,9 +103,12 @@ export function useFCM() {
     useEffect(() => {
         onMessageListener().then((payload: any) => {
             if (payload) {
-                // Display the notification content as a toast
-                toast(payload.notification?.title || "Nueva Notificación", {
-                    description: payload.notification?.body,
+                // The backend sends DATA-ONLY messages, so title/body live in
+                // `payload.data`. Fall back to `payload.notification` for any
+                // legacy notification-payload message.
+                const data = payload.data || {};
+                toast(data.title || payload.notification?.title || "Nueva Notificación", {
+                    description: data.body || payload.notification?.body,
                 });
             }
         }).catch(err => {
