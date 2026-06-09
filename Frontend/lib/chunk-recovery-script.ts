@@ -28,6 +28,36 @@ export const CHUNK_RECOVERY_SCRIPT = `(function () {
   var MAX_RELOADS = 2;
   var WINDOW_MS = 30000;
   var CACHE_BUST_PARAM = '__pfr';
+  var LOG_ENDPOINT = '/client-log';
+
+  // Reporte remoto de errores: manda el error a stdout del server de Next para
+  // verlo en 'docker logs personalfit-frontend'. Usa sendBeacon para que el
+  // envío sobreviva aunque la página se recargue/navegue inmediatamente.
+  var _reported = {};
+  function report(payload) {
+    try {
+      payload = payload || {};
+      payload.url = payload.url || (window.location && window.location.href);
+      payload.userAgent = payload.userAgent || (navigator && navigator.userAgent);
+      // Dedup simple por (source + message) dentro de la misma carga de página.
+      var key = (payload.source || '') + '|' + (payload.message || payload.resource || '');
+      if (_reported[key]) return;
+      _reported[key] = true;
+
+      var body = JSON.stringify(payload);
+      if (navigator && navigator.sendBeacon) {
+        var blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon(LOG_ENDPOINT, blob);
+      } else {
+        fetch(LOG_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
 
   function looksLikeLoadError(input) {
     if (!input) return false;
@@ -119,7 +149,8 @@ export const CHUNK_RECOVERY_SCRIPT = `(function () {
   window.__pfChunkRecovery = {
     looksLikeLoadError: looksLikeLoadError,
     recover: recover,
-    forceReload: forceReload
+    forceReload: forceReload,
+    report: report
   };
 
   // 1) Fallos de carga de recursos (script/link). Estos NUNCA llegan a un error
@@ -128,16 +159,28 @@ export const CHUNK_RECOVERY_SCRIPT = `(function () {
     var target = event && event.target;
     if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
       var src = target.src || target.href || '';
+      report({ source: 'resource', resource: src });
       if (src.indexOf('/_next/') !== -1) { recover(); return; }
+      return;
     }
-    if (event && looksLikeLoadError(event.message || (event.error && event.error.message))) {
-      recover();
-    }
+    var msg = event && (event.message || (event.error && event.error.message));
+    report({
+      source: 'window.onerror',
+      message: msg ? String(msg) : null,
+      stack: event && event.error && event.error.stack
+    });
+    if (looksLikeLoadError(msg)) recover();
   }, true);
 
   // 2) Dynamic imports fallidos => promesa rechazada.
   window.addEventListener('unhandledrejection', function (event) {
-    if (looksLikeLoadError(event && event.reason)) recover();
+    var reason = event && event.reason;
+    report({
+      source: 'unhandledrejection',
+      message: reason ? String(reason.message || reason) : null,
+      stack: reason && reason.stack
+    });
+    if (looksLikeLoadError(reason)) recover();
   });
 
   // 3) Al cargar OK: limpiar el query param de cache-busting de la URL y resetear

@@ -1,17 +1,14 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 /**
- * global-error.tsx captura errores que ocurren en el layout raíz (incluida la
- * hidratación). Reemplaza por completo al layout, por eso debe renderizar su
- * propio <html>/<body>. Usa estilos inline a propósito: si el error fue por un
- * chunk que no cargó, las hojas de estilo de la app podrían no estar disponibles.
+ * global-error.tsx captura errores del layout raíz (incluida la hidratación).
+ * Reemplaza por completo al layout, por eso renderiza su propio <html>/<body>
+ * con estilos inline (si falló un chunk, las hojas de estilo podrían faltar).
  *
- * Estrategia: si el error parece un fallo de carga de chunk, intentamos la
- * recuperación automática (reload con cache-busting). Si esa recuperación ya se
- * agotó (guarda anti-loop), mostramos una UI amigable con un botón que limpia
- * todo y recarga —el equivalente self-service a "borrá la caché del navegador".
+ *  - Si el error parece fallo de carga de chunk: recuperación automática.
+ *  - Siempre: reporta a /client-log (docker logs) y permite copiar los detalles.
  */
 export default function GlobalError({
     error,
@@ -19,19 +16,43 @@ export default function GlobalError({
     error: Error & { digest?: string }
     reset: () => void
 }) {
+    const [copied, setCopied] = useState(false)
+
     useEffect(() => {
         const rec = (typeof window !== "undefined" && (window as any).__pfChunkRecovery) || null
+        rec?.report?.({
+            source: "global-error-boundary",
+            message: error?.message ?? null,
+            stack: error?.stack ?? null,
+            digest: error?.digest ?? null,
+        })
         if (rec && rec.looksLikeLoadError(error)) {
             rec.recover()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [error])
+
+    const details = [
+        `mensaje: ${error?.message ?? "(sin mensaje)"}`,
+        `digest: ${error?.digest ?? "(none)"}`,
+        `url: ${typeof window !== "undefined" ? window.location.href : ""}`,
+        `userAgent: ${typeof navigator !== "undefined" ? navigator.userAgent : ""}`,
+        `stack:\n${error?.stack ?? "(sin stack)"}`,
+    ].join("\n")
 
     const handleForceReload = () => {
         const rec = (typeof window !== "undefined" && (window as any).__pfChunkRecovery) || null
-        if (rec) {
-            rec.forceReload()
-        } else if (typeof window !== "undefined") {
-            window.location.reload()
+        if (rec) rec.forceReload()
+        else if (typeof window !== "undefined") window.location.reload()
+    }
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(details)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        } catch {
+            /* el <textarea> de abajo permite seleccionar y copiar a mano */
         }
     }
 
@@ -50,7 +71,7 @@ export default function GlobalError({
                     padding: "24px",
                 }}
             >
-                <div style={{ maxWidth: "420px", textAlign: "center" }}>
+                <div style={{ maxWidth: "440px", width: "100%", textAlign: "center" }}>
                     <div
                         style={{
                             width: "56px",
@@ -69,11 +90,11 @@ export default function GlobalError({
                         ↻
                     </div>
                     <h1 style={{ fontSize: "20px", margin: "0 0 8px", fontWeight: 600 }}>
-                        Hay una nueva versión disponible
+                        Ocurrió un error
                     </h1>
-                    <p style={{ fontSize: "15px", lineHeight: 1.5, color: "#4b5563", margin: "0 0 24px" }}>
-                        Estamos actualizando la aplicación. Tocá el botón para recargar con la
-                        última versión.
+                    <p style={{ fontSize: "15px", lineHeight: 1.5, color: "#4b5563", margin: "0 0 20px" }}>
+                        Probá recargar la aplicación. Si el problema sigue, copiá los detalles y
+                        envialos al soporte.
                     </p>
                     <button
                         onClick={handleForceReload}
@@ -90,6 +111,43 @@ export default function GlobalError({
                     >
                         Recargar aplicación
                     </button>
+
+                    <div style={{ marginTop: "20px" }}>
+                        <button
+                            onClick={handleCopy}
+                            style={{
+                                background: "transparent",
+                                border: "none",
+                                color: "#FF7A30",
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                textDecoration: "underline",
+                            }}
+                        >
+                            {copied ? "¡Copiado!" : "Copiar detalles del error"}
+                        </button>
+                        <textarea
+                            readOnly
+                            value={details}
+                            onFocus={(e) => e.currentTarget.select()}
+                            style={{
+                                marginTop: "10px",
+                                width: "100%",
+                                height: "120px",
+                                fontSize: "11px",
+                                lineHeight: 1.4,
+                                color: "#6b7280",
+                                background: "#f3f4f6",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "8px",
+                                padding: "8px",
+                                boxSizing: "border-box",
+                                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                resize: "none",
+                            }}
+                        />
+                    </div>
                 </div>
             </body>
         </html>
