@@ -1,6 +1,7 @@
 import { ZoomPrevention } from "@/components/providers/zoom-prevention"
 import { ThemeProvider } from "@/components/theme-provider"
 import { VersionChecker } from "@/components/providers/version-checker"
+import { CHUNK_RECOVERY_SCRIPT } from "@/lib/chunk-recovery-script"
 import { Toaster } from "@/components/ui/toaster"
 import { DesktopSidebar } from "@/components/ui/desktop-sidebar"
 import { ActivityProvider } from "@/contexts/activity-provider"
@@ -52,6 +53,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          Recuperación ante chunks obsoletos tras un deploy. Debe ir PRIMERO en
+          el <head> para registrar sus listeners antes de que se cargue cualquier
+          chunk de la app. Ver lib/chunk-recovery-script.ts.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: CHUNK_RECOVERY_SCRIPT }} />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

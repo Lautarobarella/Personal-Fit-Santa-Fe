@@ -33,6 +33,25 @@ const nextConfig = {
           },
         ],
       },
+      // Prevención de chunks obsoletos: forzamos que los DOCUMENTOS HTML siempre
+      // se revaliden con el servidor. Así, tras un deploy que regenera el buildId
+      // y los hashes de los chunks, el navegador (y cualquier proxy que respete
+      // estos headers) trae el HTML nuevo con referencias válidas en lugar de
+      // servir HTML cacheado que apunta a chunks ya borrados.
+      //
+      // El patrón excluye /_next/static y /_next/image (assets inmutables con su
+      // propio Cache-Control de 1 año) y cualquier ruta con extensión de archivo
+      // (.png, .json, .js, .ico, etc.), de modo que SOLO afecta a las rutas de
+      // página (/, /dashboard, /clients, ...).
+      {
+        source: '/((?!_next/static|_next/image|.*\\.).*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, must-revalidate',
+          },
+        ],
+      },
     ]
   },
   
