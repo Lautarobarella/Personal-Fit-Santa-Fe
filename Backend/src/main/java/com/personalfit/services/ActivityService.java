@@ -281,6 +281,7 @@ public class ActivityService {
                 .name(activity.getName())
                 .description(activity.getDescription())
                 .location(activity.getLocation())
+                .trainerId(activity.getTrainer().getId())
                 .trainerName(activity.getTrainer().getFullName())
                 .date(activity.getDate())
                 .duration(activity.getDuration())

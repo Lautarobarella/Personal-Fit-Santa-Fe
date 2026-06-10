@@ -7,11 +7,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.personalfit.dto.Payment.MonthlyRevenueDTO;
 import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
@@ -34,11 +31,9 @@ import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.exceptions.EntityNotFoundException;
 import com.personalfit.exceptions.FileException;
-import com.personalfit.models.MonthlyRevenue;
 import com.personalfit.models.Payment;
 import com.personalfit.models.PaymentFile;
 import com.personalfit.models.User;
-import com.personalfit.repository.MonthlyRevenueRepository;
 import com.personalfit.repository.PaymentFileRepository;
 import com.personalfit.repository.PaymentRepository;
 
@@ -54,8 +49,7 @@ import lombok.extern.slf4j.Slf4j;
  * of payments.
  * 2. File Handling: Manages storage and retrieval of payment receipts
  * (images/PDFs).
- * 3. Revenue Analytics: Calculates real-time and historical revenue data.
- * 4. Automated Jobs: Scheduled tasks for expiration checks and payment
+ * 3. Automated Jobs: Scheduled tasks for expiration checks and payment
  * reminders.
  * 
  * Integrations:
@@ -81,9 +75,6 @@ public class PaymentService {
 
     @Autowired
     private PaymentFileRepository paymentFileRepository;
-
-    @Autowired
-    private MonthlyRevenueRepository monthlyRevenueRepository;
 
     @Autowired
     @Lazy // Circular dependency breaker: UserService also depends on PaymentService
@@ -320,7 +311,6 @@ public class PaymentService {
      * 
      * Side Effects:
      * - Activates users upon approval (PAID).
-     * - Updates Revenue Stats instantly upon approval.
      */
     @Transactional
     public void updatePaymentStatus(Long paymentId, PaymentStatusUpdateDTO statusUpdate) {
@@ -343,8 +333,6 @@ public class PaymentService {
                     updateUserStatusIfPaid(user, payment);
                 }
             }
-            // Update financial metrics
-            updateMonthlyRevenue(payment);
         }
 
         paymentRepository.save(payment);
@@ -729,155 +717,6 @@ public class PaymentService {
             log.info("Payment reminders sent for {} payments", upcomingPayments.size());
         } catch (Exception e) {
             log.error("Error in reminder job", e);
-        }
-    }
-
-    // ===== REVENUE ANALYTICS =====
-
-    /**
-     * Updates the running total for the current month's revenue in the DB.
-     * Called whenever a Payment changes status to PAID.
-     */
-    @Transactional
-    private void updateMonthlyRevenue(Payment payment) {
-        if (paymentIncludesProtectedClient(payment)) {
-            log.info("Skipping monthly revenue update for protected client payment ID {}", payment.getId());
-            return;
-        }
-
-        Double amount = payment.getAmount();
-        if (amount == null || amount <= 0) {
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now(clock);
-        Integer year = now.getYear();
-        Integer month = now.getMonthValue();
-
-        MonthlyRevenue monthlyRevenue = monthlyRevenueRepository.findByYearAndMonth(year, month)
-                .orElse(MonthlyRevenue.builder()
-                        .year(year)
-                        .month(month)
-                        .totalRevenue(0.0)
-                        .totalPayments(0)
-                        .createdAt(now)
-                        .build());
-
-        monthlyRevenue.addRevenue(amount);
-        monthlyRevenueRepository.save(monthlyRevenue);
-
-        log.debug("Monthly revenue updated: year={}, month={}, amount={}, total={}",
-                year, month, amount, monthlyRevenue.getTotalRevenue());
-    }
-
-    /**
-     * Real-Time Revenue Calculation.
-     * Computes the sum of all verified payments for the current month on-the-fly.
-     * Used for the Dashboard stats widget.
-     */
-    public MonthlyRevenueDTO getCurrentMonthRevenue() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        Integer year = now.getYear();
-        Integer month = now.getMonthValue();
-
-        LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
-
-        List<Payment> paymentsThisMonth = paymentRepository.findAllPaymentsInMonth(startOfMonth, endOfMonth);
-        List<Payment> countedPayments = paymentsThisMonth.stream()
-                .filter(p -> p.getStatus() == PaymentStatus.PAID)
-                .filter(p -> !paymentIncludesProtectedClient(p))
-                .collect(Collectors.toList());
-
-        Double totalRevenue = countedPayments.stream()
-                .map(Payment::getAmount)
-                .filter(amount -> amount != null)
-                .reduce(0.0, Double::sum);
-        Integer totalPayments = countedPayments.size();
-
-        String monthName = now.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
-
-        log.debug("Current month revenue computed: year={}, month={}, totalRevenue={}, totalPayments={}",
-                year, month, totalRevenue, totalPayments);
-
-        return MonthlyRevenueDTO.builder()
-                .year(year)
-                .month(month)
-                .monthName(monthName)
-                .totalRevenue(totalRevenue)
-                .totalPayments(totalPayments)
-                .isCurrentMonth(true)
-                .build();
-    }
-
-    public List<MonthlyRevenueDTO> getArchivedMonthlyRevenues() {
-        return monthlyRevenueRepository.findArchivedRevenues().stream()
-                .map(revenue -> convertToMonthlyRevenueDTO(revenue, false))
-                .collect(Collectors.toList());
-    }
-
-    private MonthlyRevenueDTO convertToMonthlyRevenueDTO(MonthlyRevenue revenue, boolean isCurrentMonth) {
-        String monthName = java.time.Month.of(revenue.getMonth())
-                .getDisplayName(TextStyle.FULL, Locale.forLanguageTag("es-ES"));
-
-        return MonthlyRevenueDTO.builder()
-                .id(revenue.getId())
-                .year(revenue.getYear())
-                .month(revenue.getMonth())
-                .monthName(monthName)
-                .totalRevenue(revenue.getTotalRevenue())
-                .totalPayments(revenue.getTotalPayments())
-                .createdAt(revenue.getCreatedAt())
-                .updatedAt(revenue.getUpdatedAt())
-                .archivedAt(revenue.getArchivedAt())
-                .isCurrentMonth(isCurrentMonth)
-                .build();
-    }
-
-    private boolean paymentIncludesProtectedClient(Payment payment) {
-        if (payment == null) {
-            return false;
-        }
-
-        if (userService.isProtectedClient(payment.getCreatedBy())) {
-            return true;
-        }
-
-        return payment.getUsers() != null && payment.getUsers().stream().anyMatch(userService::isProtectedClient);
-    }
-
-    /**
-     * CRON JOB: Monthly Archival (1st of month, 00:00).
-     * "Freezes" the revenue stats for the previous month to ensure historical
-     * accuracy.
-     */
-    @Scheduled(cron = "0 0 0 1 * ?")
-    @Transactional
-    public void archiveMonthlyRevenue() {
-        try {
-            log.info("Archiving previous month revenue...");
-
-            LocalDateTime now = LocalDateTime.now(clock);
-            LocalDateTime lastMonth = now.minusMonths(1);
-            Integer lastYear = lastMonth.getYear();
-            Integer lastMonthNumber = lastMonth.getMonthValue();
-
-            Optional<MonthlyRevenue> lastMonthRevenue = monthlyRevenueRepository
-                    .findByYearAndMonth(lastYear, lastMonthNumber);
-
-            if (lastMonthRevenue.isPresent()) {
-                MonthlyRevenue revenue = lastMonthRevenue.get();
-                revenue.setArchivedAt(now);
-                monthlyRevenueRepository.save(revenue);
-                log.info("Archived: {}/{}", lastMonthNumber, lastYear);
-            } else {
-                log.info("No revenue found for previous month: Year={}, Month={}", lastYear, lastMonthNumber);
-            }
-
-            log.info("Monthly revenue archival process completed successfully");
-
-        } catch (Exception e) {
-            log.error("Error archiving revenue", e);
         }
     }
 

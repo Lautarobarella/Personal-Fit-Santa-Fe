@@ -105,15 +105,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                         "WHERE p.status = 'PAID' " +
                         "AND p.expiresAt < :expirationCutoff")
         List<Payment> findPaidPaymentsExpiringBefore(@Param("expirationCutoff") LocalDateTime expirationCutoff);
-
-        // ===== REVENUE QUERIES =====
-
-        /**
-         * Calculates total confirmed revenue within a period.
-         */
-        @Query("SELECT COALESCE(SUM(p.amount), 0.0) FROM Payment p " +
-                        "WHERE p.status = 'PAID' " +
-                        "AND p.verifiedAt >= :startDate AND p.verifiedAt < :endDate")
-        Double calculateConfirmedRevenueInPeriod(@Param("startDate") LocalDateTime startDate,
-                        @Param("endDate") LocalDateTime endDate);
 }

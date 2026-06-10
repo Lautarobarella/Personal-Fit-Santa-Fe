@@ -2,7 +2,7 @@ import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
 import { compressFile, validatePaymentFile } from "@/lib/file-compression";
-import { MonthlyRevenue, NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
+import { NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
 
 /**
  * Unified Payment API Wrapper
@@ -205,23 +205,6 @@ export async function updatePaymentStatus(
  */
 export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
   return buildFileUrl(receiptId);
-}
-
-// ==========================================
-// ANALYTICS & REVENUE
-// ==========================================
-
-/**
- * Retrieves historical financial data for reporting.
- * Access restricted to Admin role.
- */
-export async function fetchArchivedMonthlyRevenues(): Promise<MonthlyRevenue[]> {
-  try {
-    return await jwtPermissionsApi.get('/api/payments/revenue/history');
-  } catch (error) {
-    handleApiError(error, 'Error al cargar el historial de ingresos');
-    return [];
-  }
 }
 
 

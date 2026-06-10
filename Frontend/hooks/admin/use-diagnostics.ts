@@ -14,7 +14,6 @@ interface EndpointStatus {
 const ENDPOINTS_TO_TEST = [
   { name: "Health Check", url: "/api/health" },
   { name: "Payments API", url: "/api/payments/getAll" },
-  { name: "Revenue History", url: "/api/payments/revenue/history" },
 ]
 
 export function useDiagnostics() {

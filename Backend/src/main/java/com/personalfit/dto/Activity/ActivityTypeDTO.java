@@ -20,6 +20,7 @@ public class ActivityTypeDTO {
     private String name;
     private String description;
     private String location;
+    private Long trainerId;
     private String trainerName;
     private LocalDateTime date;
     private Integer duration;

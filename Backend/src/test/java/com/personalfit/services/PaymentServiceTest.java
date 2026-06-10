@@ -34,7 +34,6 @@ import com.personalfit.enums.UserStatus;
 import com.personalfit.exceptions.BusinessRuleException;
 import com.personalfit.models.Payment;
 import com.personalfit.models.User;
-import com.personalfit.repository.MonthlyRevenueRepository;
 import com.personalfit.repository.PaymentFileRepository;
 import com.personalfit.repository.PaymentRepository;
 
@@ -49,9 +48,6 @@ class PaymentServiceTest {
 
     @Mock
     private PaymentFileRepository paymentFileRepository;
-
-    @Mock
-    private MonthlyRevenueRepository monthlyRevenueRepository;
 
     @Mock
     private UserService userService;

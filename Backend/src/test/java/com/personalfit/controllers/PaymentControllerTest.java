@@ -2,7 +2,6 @@ package com.personalfit.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.personalfit.dto.Payment.MonthlyRevenueDTO;
 import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
@@ -35,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Tests for PaymentController.
- * Covers payment CRUD, batch creation, status updates, file downloads, and revenue analytics.
+ * Covers payment CRUD, batch creation, status updates and file downloads.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -250,57 +249,6 @@ class PaymentControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(header().string("Content-Disposition", "inline; filename=receipt.pdf"))
                     .andExpect(content().contentType(MediaType.APPLICATION_PDF));
-        }
-    }
-
-    @Nested
-    @DisplayName("Revenue Endpoints")
-    class RevenueTests {
-
-        @Test
-        @DisplayName("GET /api/payments/revenue/current - should return current month revenue")
-        void getCurrentRevenue_Admin_ReturnsRevenue() throws Exception {
-            MonthlyRevenueDTO revenue = MonthlyRevenueDTO.builder()
-                    .year(2026)
-                    .month(3)
-                    .monthName("marzo")
-                    .totalRevenue(150000.0)
-                    .totalPayments(6)
-                    .isCurrentMonth(true)
-                    .build();
-
-            when(paymentService.getCurrentMonthRevenue()).thenReturn(revenue);
-
-            mockMvc.perform(get("/api/payments/revenue/current")
-                            .with(user("admin").roles("ADMIN")))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalRevenue").value(150000.0))
-                    .andExpect(jsonPath("$.totalPayments").value(6))
-                    .andExpect(jsonPath("$.isCurrentMonth").value(true));
-        }
-
-        @Test
-        @DisplayName("GET /api/payments/revenue/history - should return archived revenues")
-        void getRevenueHistory_Admin_ReturnsList() throws Exception {
-            MonthlyRevenueDTO jan = MonthlyRevenueDTO.builder()
-                    .year(2026).month(1).monthName("enero").totalRevenue(120000.0).build();
-            MonthlyRevenueDTO feb = MonthlyRevenueDTO.builder()
-                    .year(2026).month(2).monthName("febrero").totalRevenue(135000.0).build();
-
-            when(paymentService.getArchivedMonthlyRevenues()).thenReturn(Arrays.asList(jan, feb));
-
-            mockMvc.perform(get("/api/payments/revenue/history")
-                            .with(user("admin").roles("ADMIN")))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(2));
-        }
-
-        @Test
-        @DisplayName("GET /api/payments/revenue/current - should deny non-admin")
-        void getCurrentRevenue_Client_Returns403() throws Exception {
-            mockMvc.perform(get("/api/payments/revenue/current")
-                            .with(user("client").roles("CLIENT")))
-                    .andExpect(status().isForbidden());
         }
     }
 

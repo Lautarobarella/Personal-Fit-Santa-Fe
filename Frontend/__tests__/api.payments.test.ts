@@ -1,7 +1,6 @@
 import { jwtPermissionsApi } from '@/api/JWTAuth/api'
 import {
   fetchAllPayments,
-  fetchArchivedMonthlyRevenues,
   fetchPaymentDetails,
   fetchUserPayments
 } from '@/api/payments/paymentsApi'
@@ -35,26 +34,6 @@ describe('paymentsApi', () => {
     ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce({ id: 1, receiptId: null })
     await fetchPaymentDetails(1)
     expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/payments/info/1')
-  })
-
-  it('fetchArchivedMonthlyRevenues llama al endpoint correcto', async () => {
-    const mockArchivedRevenues = [
-      { 
-        id: 1, 
-        year: 2025, 
-        month: 7, 
-        monthName: 'julio',
-        totalRevenue: 45000, 
-        totalPayments: 3, 
-        isCurrentMonth: false 
-      }
-    ]
-    ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce(mockArchivedRevenues)
-    
-    const result = await fetchArchivedMonthlyRevenues()
-    
-    expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/payments/revenue/history')
-    expect(result).toEqual(mockArchivedRevenues)
   })
 })
 

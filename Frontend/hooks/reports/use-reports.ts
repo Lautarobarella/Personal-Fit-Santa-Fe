@@ -14,7 +14,6 @@ import {
   type PaymentType,
   type UserDetailInfo,
   type UserType,
-  type WorkShift,
 } from "@/types"
 import { getMuscleGroupLabel } from "@/lib/muscle-groups"
 import { attendanceBelongsToProtectedClient, paymentIncludesProtectedClient } from "@/lib/protected-clients"
@@ -24,7 +23,7 @@ import { useEffect, useMemo, useState } from "react"
 import { fetchActivities, fetchTrainers } from "@/api/activities/activitiesApi"
 import { fetchActivityAttendancesWithUserInfo } from "@/api/attendance/attendanceApi"
 import { fetchPaymentsByMonthAndYear } from "@/api/payments/paymentsApi"
-import { fetchUsers, fetchUserDetail, fetchShiftHistory } from "@/api/clients/usersApi"
+import { fetchUsers, fetchUserDetail } from "@/api/clients/usersApi"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ export interface TrainerHours {
   name: string
   totalHours: number
   daysWorked: number
-  shiftsCount: number
+  classesCount: number
 }
 
 export interface PaymentMethodBreakdown {
@@ -65,6 +64,16 @@ const getPreviousMonth = ({ month, year }: { month: number; year: number }) => (
   year: month === 0 ? year - 1 : year,
 })
 
+/** Unique ids of every client covered by the given payments (owner + associated). */
+const collectPayingClientIds = (payments: PaymentType[]) => {
+  const clientIds = new Set<number>()
+  payments.forEach((p) => {
+    clientIds.add(p.clientId)
+    p.associatedUsers?.forEach((u) => clientIds.add(u.userId))
+  })
+  return clientIds
+}
+
 export function useReports() {
   const { user } = useAuth()
   const router = useRouter()
@@ -82,7 +91,6 @@ export function useReports() {
   const [activities, setActivities] = useState<ActivityType[]>([])
   const [activityAttendances, setActivityAttendances] = useState<Map<number, AttendanceType[]>>(new Map())
   const [trainers, setTrainers] = useState<UserType[]>([])
-  const [trainerShifts, setTrainerShifts] = useState<Map<number, WorkShift[]>>(new Map())
 
   // ─── Client data ────────────────────────────────────────────────────────
   const [clientDetail, setClientDetail] = useState<UserDetailInfo | null>(null)
@@ -157,26 +165,6 @@ export function useReports() {
 
         const activitiesData = await fetchActivities()
         if (!cancelled) setActivities(activitiesData)
-
-        const shiftsMap = new Map<number, WorkShift[]>()
-        const trainerIds = trainersData.reduce((ids: number[], trainer: UserType) => {
-          if (trainer.role === UserRole.TRAINER) {
-            ids.push(trainer.id)
-          }
-          return ids
-        }, [])
-
-        const shiftPromises = trainerIds.map((id: number) =>
-          fetchShiftHistory(id)
-            .then((history) => ({ id, history }))
-            .catch(() => ({ id, history: [] }))
-        )
-
-        const shiftResults = await Promise.all(shiftPromises)
-        if (!cancelled) {
-          shiftResults.forEach(({ id, history }) => shiftsMap.set(id, history))
-          setTrainerShifts(shiftsMap)
-        }
       } catch (error) {
         console.error("Error loading report data:", error)
       } finally {
@@ -278,24 +266,33 @@ export function useReports() {
     [monthPayments]
   )
 
-  const uniqueClientsPaid = useMemo(() => {
-    const clientIds = new Set<number>()
-    paidPayments.forEach((p) => {
-      clientIds.add(p.clientId)
-      p.associatedUsers?.forEach((u) => clientIds.add(u.userId))
-    })
-    return clientIds.size
-  }, [paidPayments])
+  // Clients covered by a collected payment in the SELECTED month.
+  const paidClientIds = useMemo(() => collectPayingClientIds(paidPayments), [paidPayments])
+  const uniqueClientsPaid = paidClientIds.size
 
-  const activeClients = useMemo(
-    () => allUsers.filter((u) => u.status === "ACTIVE" && u.role === UserRole.CLIENT).length,
-    [allUsers]
+  // Clients who started the month with an active plan = clients covered by a
+  // collected payment during the PREVIOUS month. Computed from payments (not
+  // from the user's current status) so it stays correct for past months.
+  const prevMonthPaidClientIds = useMemo(
+    () => collectPayingClientIds(previousMonthPayments.filter(isCollectedPayment)),
+    [previousMonthPayments]
   )
+  const activeClientsAtMonthStart = prevMonthPaidClientIds.size
 
   const collectionRate = useMemo(() => {
-    if (activeClients === 0) return 0
-    return Math.round((uniqueClientsPaid / activeClients) * 100)
-  }, [uniqueClientsPaid, activeClients])
+    if (activeClientsAtMonthStart === 0) return 0
+    return Math.round((uniqueClientsPaid / activeClientsAtMonthStart) * 100)
+  }, [uniqueClientsPaid, activeClientsAtMonthStart])
+
+  // Of the clients active at month start, how many paid this month again.
+  const retentionRate = useMemo(() => {
+    if (prevMonthPaidClientIds.size === 0) return null
+    let retained = 0
+    prevMonthPaidClientIds.forEach((id) => {
+      if (paidClientIds.has(id)) retained++
+    })
+    return Math.round((retained / prevMonthPaidClientIds.size) * 100)
+  }, [prevMonthPaidClientIds, paidClientIds])
 
   const paymentMethodBreakdown = useMemo((): PaymentMethodBreakdown[] => {
     const methodLabels: Record<string, string> = {
@@ -329,48 +326,42 @@ export function useReports() {
     return Math.round(totalRevenue / paidPayments.length)
   }, [totalRevenue, paidPayments])
 
-  const trainerHoursData = useMemo((): TrainerHours[] => {
-    const result: TrainerHours[] = []
-
-    trainers.forEach((trainer) => {
-      const shifts = trainerShifts.get(trainer.id) || []
-      const monthShifts = shifts.filter((s) => {
-        const d = new Date(s.startTime)
-        return (
-          d.getMonth() === selectedMonth.month &&
-          d.getFullYear() === selectedMonth.year &&
-          (s.status === "COMPLETED" || s.status === "AUTO_CLOSED")
-        )
-      })
-
-      const totalHours = monthShifts.reduce((sum, s) => sum + (s.totalHours || 0), 0)
-      const daysWorked = new Set(
-        monthShifts.map((s) => new Date(s.startTime).toDateString())
-      ).size
-
-      result.push({
-        id: trainer.id,
-        name: `${trainer.firstName} ${trainer.lastName}`,
-        totalHours: Math.round(totalHours * 10) / 10,
-        daysWorked,
-        shiftsCount: monthShifts.length,
-      })
-    })
-
-    return result.sort((a, b) => b.totalHours - a.totalHours)
-  }, [trainers, trainerShifts, selectedMonth])
-
-  const totalTrainerHours = useMemo(
-    () => trainerHoursData.reduce((sum, t) => sum + t.totalHours, 0),
-    [trainerHoursData]
-  )
-
   const monthActivities = useMemo(() => {
     return activities.filter((a) => {
       const d = new Date(a.date)
       return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year
     })
   }, [activities, selectedMonth])
+
+  // Hours worked per trainer, derived from the month's classes (duration is in
+  // minutes). Previously this came from NFC check-in/check-out shifts, which
+  // were rarely registered and reported 0 hours even with a full schedule.
+  const trainerHoursData = useMemo((): TrainerHours[] => {
+    const dictatedActivities = monthActivities.filter((a) => a.status !== ActivityStatus.CANCELLED)
+
+    return trainers
+      .map((trainer) => {
+        const trainerActivities = dictatedActivities.filter((a) => a.trainerId === trainer.id)
+        const totalHours = trainerActivities.reduce((sum, a) => sum + (a.duration || 0), 0) / 60
+        const daysWorked = new Set(
+          trainerActivities.map((a) => new Date(a.date).toDateString())
+        ).size
+
+        return {
+          id: trainer.id,
+          name: `${trainer.firstName} ${trainer.lastName}`,
+          totalHours: Math.round(totalHours * 10) / 10,
+          daysWorked,
+          classesCount: trainerActivities.length,
+        }
+      })
+      .sort((a, b) => b.totalHours - a.totalHours)
+  }, [trainers, monthActivities])
+
+  const totalTrainerHours = useMemo(
+    () => trainerHoursData.reduce((sum, t) => sum + t.totalHours, 0),
+    [trainerHoursData]
+  )
 
   useEffect(() => {
     if (!mounted || !user || user.role !== UserRole.ADMIN) return
@@ -446,9 +437,15 @@ export function useReports() {
     return Math.round(totalRate / active.length)
   }, [activityAttendances, monthActivities])
 
+  // Clients who started the month with an active plan but have no collected
+  // payment in the selected month yet.
   const clientsNotPaid = useMemo(() => {
-    return Math.max(0, activeClients - uniqueClientsPaid)
-  }, [activeClients, uniqueClientsPaid])
+    let count = 0
+    prevMonthPaidClientIds.forEach((id) => {
+      if (!paidClientIds.has(id)) count++
+    })
+    return count
+  }, [prevMonthPaidClientIds, paidClientIds])
 
   const newClientsThisMonth = useMemo(() => {
     return allUsers.filter((u) => {
@@ -641,8 +638,9 @@ export function useReports() {
     averageTicket,
     paymentMethodBreakdown,
     uniqueClientsPaid,
-    activeClients,
+    activeClientsAtMonthStart,
     collectionRate,
+    retentionRate,
     clientsNotPaid,
     newClientsThisMonth,
     completedActivities,

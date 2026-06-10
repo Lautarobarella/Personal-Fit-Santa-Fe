@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.personalfit.dto.Payment.MonthlyRevenueDTO;
 import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
@@ -35,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Controller for Payment & Financial Management.
- * Handles payment processing (Manual, Batch, Webhooks), file uploads
- * (receipts), and revenue statistics.
+ * Handles payment processing (Manual, Batch, Webhooks) and file uploads
+ * (receipts).
  */
 @Slf4j
 @RestController
@@ -208,29 +207,4 @@ public class PaymentController {
                 .body(fileContent);
     }
 
-    // ========================
-    // REVENUE ENDPOINTS
-    // ========================
-
-    /**
-     * Get Current Month Revenue stats (Admin only).
-     */
-    @GetMapping("/revenue/current")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<MonthlyRevenueDTO> getCurrentMonthRevenue() {
-        log.debug("Fetching current month revenue");
-        MonthlyRevenueDTO currentRevenue = paymentService.getCurrentMonthRevenue();
-        return ResponseEntity.ok(currentRevenue);
-    }
-
-    /**
-     * Get Historical Monthly Revenue stats (Admin only).
-     */
-    @GetMapping("/revenue/history")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<MonthlyRevenueDTO>> getArchivedMonthlyRevenues() {
-        log.debug("Fetching revenue history");
-        List<MonthlyRevenueDTO> archivedRevenues = paymentService.getArchivedMonthlyRevenues();
-        return ResponseEntity.ok(archivedRevenues);
-    }
 }

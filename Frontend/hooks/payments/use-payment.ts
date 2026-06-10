@@ -92,19 +92,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   const createPaymentMutation = useMutation({
     mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isAutomaticPayment: boolean }) =>
       createPayment(data.paymentData, data.isAutomaticPayment),
-    onSuccess: async (response, variables) => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] })
-
-      const isAutomaticPayment = variables.isAutomaticPayment
-      if (isAutomaticPayment) {
-        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
-
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
-        }, 1000)
-      }
     },
   })
 
@@ -139,16 +128,6 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
       })
 
       queryClient.invalidateQueries({ queryKey: ["payments"] })
-      
-      if (variables.status === "paid") {
-        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-        queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
-        
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-          queryClient.invalidateQueries({ queryKey: ["monthlyRevenue", "current"] })
-        }, 1000)
-      }
     },
   })
 

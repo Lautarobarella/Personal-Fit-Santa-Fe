@@ -79,9 +79,6 @@ export function usePaymentsPage() {
     }
     const queryKey = user?.role === UserRole.ADMIN ? ["payments", "admin"] : ["payments", user.id]
     queryClient.invalidateQueries({ queryKey })
-    if (user?.role === UserRole.ADMIN) {
-      queryClient.invalidateQueries({ queryKey: ["monthlyRevenue"] })
-    }
   }, [user?.id, user?.role, queryClient])
 
   const {

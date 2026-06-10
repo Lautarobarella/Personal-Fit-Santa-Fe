@@ -52,8 +52,9 @@ export default function ReportsPage() {
     averageTicket,
     paymentMethodBreakdown,
     uniqueClientsPaid,
-    activeClients,
+    activeClientsAtMonthStart,
     collectionRate,
+    retentionRate,
     clientsNotPaid,
     newClientsThisMonth,
     completedActivities,
@@ -524,8 +525,8 @@ export default function ReportsPage() {
               </div>
               <div className="p-3 bg-muted/50 rounded-xl text-center">
                 <Users className="size-5 text-blue-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold">{activeClients}</p>
-                <p className="text-xs text-muted-foreground">Activos totales</p>
+                <p className="text-2xl font-bold">{activeClientsAtMonthStart}</p>
+                <p className="text-xs text-muted-foreground">Activos al inicio del mes</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-xl text-center">
                 <Target className="size-5 text-orange-600 mx-auto mb-1" />
@@ -543,7 +544,7 @@ export default function ReportsPage() {
               <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
                 <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
                   ⚠️ {clientsNotPaid} cliente{clientsNotPaid !== 1 ? "s" : ""} activo
-                  {clientsNotPaid !== 1 ? "s" : ""} sin pago registrado este mes
+                  {clientsNotPaid !== 1 ? "s" : ""} el mes anterior todavía sin pago este mes
                 </p>
               </div>
             )}
@@ -615,7 +616,7 @@ export default function ReportsPage() {
                       <div className="flex-1">
                         <p className="text-sm font-semibold">{trainer.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {trainer.daysWorked} días · {trainer.shiftsCount} turnos
+                          {trainer.daysWorked} días · {trainer.classesCount} clases
                         </p>
                       </div>
                       <div className="text-right">
@@ -661,23 +662,34 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Ingreso por cliente activo</span>
+              <span className="text-sm text-muted-foreground">Ingreso promedio por cliente</span>
               <span className="text-sm font-bold">
-                ${activeClients > 0 ? Math.round(totalRevenue / activeClients).toLocaleString("es-AR") : 0}
+                ${uniqueClientsPaid > 0 ? Math.round(totalRevenue / uniqueClientsPaid).toLocaleString("es-AR") : 0}
               </span>
             </div>
             <Separator />
+            {retentionRate !== null && (
+              <>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-muted-foreground">Retención de clientes</span>
+                  <span className="text-sm font-bold">{retentionRate}%</span>
+                </div>
+                <Separator />
+              </>
+            )}
             <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Costo por hora (horas totales)</span>
+              <span className="text-sm text-muted-foreground">Ingreso por hora de clase</span>
               <span className="text-sm font-bold">
-                ${totalTrainerHours > 0 ? Math.round(totalRevenue / totalTrainerHours).toLocaleString("es-AR") : "—"}/hs
+                {totalTrainerHours > 0
+                  ? `$${Math.round(totalRevenue / totalTrainerHours).toLocaleString("es-AR")}/hs`
+                  : "—"}
               </span>
             </div>
             <Separator />
             <div className="flex items-center justify-between py-2">
               <span className="text-sm text-muted-foreground">Clientes por entrenador</span>
               <span className="text-sm font-bold">
-                {trainers.length > 0 ? Math.round(activeClients / trainers.length) : 0}
+                {trainers.length > 0 ? Math.round(uniqueClientsPaid / trainers.length) : 0}
               </span>
             </div>
             <Separator />

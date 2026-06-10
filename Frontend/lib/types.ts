@@ -35,7 +35,6 @@ export {
   type PaymentType,
   type PaymentUserInfo,
   type NewPaymentInput,
-  type MonthlyRevenue,
   type Notification,
   type NotificationDetailInfo,
   type NotificationFormType,

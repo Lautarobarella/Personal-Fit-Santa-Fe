@@ -5,7 +5,6 @@ import {
   fetchPaymentDetails,
   fetchPaymentsByMonthAndYear,
   updatePaymentStatus,
-  fetchArchivedMonthlyRevenues,
 } from '@/api/payments/paymentsApi'
 
 jest.mock('@/api/JWTAuth/api', () => ({
@@ -110,22 +109,6 @@ describe('paymentsApi - extended', () => {
           rejectionReason: 'Comprobante inválido',
         })
       )
-    })
-  })
-
-  describe('fetchArchivedMonthlyRevenues', () => {
-    it('llama GET /api/payments/revenue/history', async () => {
-      const mockRevenues = [
-        { year: 2026, month: 1, monthName: 'enero', totalRevenue: 120000 },
-        { year: 2026, month: 2, monthName: 'febrero', totalRevenue: 135000 },
-      ]
-      ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce(mockRevenues)
-
-      const result = await fetchArchivedMonthlyRevenues()
-
-      expect(jwtPermissionsApi.get).toHaveBeenCalledWith('/api/payments/revenue/history')
-      expect(result).toHaveLength(2)
-      expect(result[0].monthName).toBe('enero')
     })
   })
 })

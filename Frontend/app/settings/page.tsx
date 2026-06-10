@@ -25,7 +25,6 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { useSettingsPage } from "@/hooks/settings/use-settings-page"
 import { UserRole } from "@/types"
 import {
-  BarChart3,
   Bell,
   Camera,
   Clock,
@@ -253,16 +252,6 @@ export default function SettingsPage() {
                 <CreditCard className="size-4 mr-3" />
                 <span className="sm:hidden">Per. gracia pago</span>
                 <span className="hidden sm:inline">Período de gracia de pago</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full justify-start bg-transparent"
-                onClick={() => router.push("/settings/monthly-revenue")}
-              >
-                <BarChart3 className="size-4 mr-3" />
-                <span className="sm:hidden">Ingresos mes</span>
-                <span className="hidden sm:inline">Registro de ingresos mensuales</span>
               </Button>
 
               <Button

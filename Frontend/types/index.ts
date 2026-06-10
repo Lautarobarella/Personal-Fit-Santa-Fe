@@ -149,6 +149,7 @@ export interface ActivityType {
   name: string
   description: string
   location: string
+  trainerId: number
   trainerName: string
   date: Date
   duration: number
@@ -314,19 +315,6 @@ export interface NewPaymentInput {
   method: MethodType
   notes?: string
   file?: File
-}
-
-export interface MonthlyRevenue {
-  id: number
-  year: number
-  month: number
-  monthName: string
-  totalRevenue: number
-  totalPayments: number
-  createdAt: Date | string | null
-  updatedAt: Date | string | null
-  archivedAt: Date | string | null
-  isCurrentMonth: boolean
 }
 
 // ─── Notifications ──────────────────────────────────────────────────────────
