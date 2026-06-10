@@ -1,6 +1,5 @@
 "use client"
 
-import { esNumericDateTimeFormatter } from "@/lib/formatters"
 import { useAttendance } from "@/hooks/attendance/use-attendance"
 import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus } from "@/lib/types"
@@ -30,10 +29,6 @@ export function useAttendanceActivityDialog(
       loadActivityAttendances(activityId)
     }
   }, [activityId, open, loadActivityAttendances])
-
-  const formatDateTime = (date: Date | string) => {
-    return esNumericDateTimeFormatter.format(new Date(date))
-  }
 
   const stats = getAttendanceStats()
 
@@ -94,7 +89,6 @@ export function useAttendanceActivityDialog(
     isAttending,
     updatingAttendanceId,
     stats,
-    formatDateTime,
     handleMarkStatus,
     handleClose,
   }

@@ -66,6 +66,7 @@ export function DetailsActivityDialog({
     presentParticipants,
     lateParticipants,
     absentParticipants,
+    attendedParticipants,
     occupancyRate,
     reloadActivityDetail,
   } = useActivityDetailsDialog(activityId, isOpen)
@@ -229,7 +230,7 @@ export function DetailsActivityDialog({
                           <div className="text-sm text-muted-foreground">Ocupacion</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-secondary">{presentParticipants.length}</div>
+                          <div className="text-2xl font-bold text-secondary">{attendedParticipants.length}</div>
                           <div className="text-sm text-muted-foreground">Asistieron</div>
                         </div>
                         <div className="text-center">

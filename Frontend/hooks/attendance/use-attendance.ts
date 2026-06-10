@@ -113,7 +113,9 @@ export function useAttendance() {
   // FUNCIONES DE UTILIDAD
   // ===============================
 
-  // Función para obtener estadísticas de asistencia de una actividad
+  // Función para obtener estadísticas de asistencia de una actividad.
+  // Los buckets son disjuntos: una tardanza es una asistencia (cuenta en
+  // `attended`) pero no un "presente" — si no, se contaría dos veces.
   const getAttendanceStats = useCallback(() => {
     if (!activityAttendances.length) {
       return {
@@ -121,17 +123,20 @@ export function useAttendance() {
         absent: 0,
         late: 0,
         pending: 0,
+        attended: 0,
         total: 0
       }
     }
 
+    const present = activityAttendances.filter(a => a.status === AttendanceStatus.PRESENT).length
+    const late = activityAttendances.filter(a => a.status === AttendanceStatus.LATE).length
+
     return {
-      present: activityAttendances.filter(
-        (a) => a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE,
-      ).length,
+      present,
+      late,
       absent: activityAttendances.filter(a => a.status === AttendanceStatus.ABSENT).length,
-      late: activityAttendances.filter(a => a.status === AttendanceStatus.LATE).length,
       pending: activityAttendances.filter(a => a.status === AttendanceStatus.PENDING).length,
+      attended: present + late,
       total: activityAttendances.length
     }
   }, [activityAttendances])

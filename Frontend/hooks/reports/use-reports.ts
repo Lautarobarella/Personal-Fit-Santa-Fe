@@ -480,10 +480,18 @@ export function useReports() {
     })
   }, [clientDetail, selectedMonth])
 
+  // Attended = on time + late. A late arrival is still an attendance; the
+  // strict "present" count exists so it is not displayed twice next to the
+  // late-arrivals counter.
   const clientAttended = useMemo(
     () => clientMonthActivities.filter(
       (a) => a.clientStatus === AttendanceStatus.PRESENT || a.clientStatus === AttendanceStatus.LATE
     ).length,
+    [clientMonthActivities]
+  )
+
+  const clientPresentOnTime = useMemo(
+    () => clientMonthActivities.filter((a) => a.clientStatus === AttendanceStatus.PRESENT).length,
     [clientMonthActivities]
   )
 
@@ -653,6 +661,7 @@ export function useReports() {
 
     // Client metrics
     clientAttended,
+    clientPresentOnTime,
     clientAbsences,
     clientLateArrivals,
     clientAttendanceRate,

@@ -140,12 +140,13 @@ export function useActivityDetailsDialog(
     setIsTakeAttendanceOpen(true)
   }
 
+  // Disjoint buckets: a LATE participant attended (counts toward "Asistieron")
+  // but is NOT a "Presente" — otherwise the same person shows up in two badges.
   const presentParticipants =
-    selectedActivity?.participants.filter(
-      (p) => p.status === AttendanceStatus.PRESENT || p.status === AttendanceStatus.LATE,
-    ) ?? []
+    selectedActivity?.participants.filter((p) => p.status === AttendanceStatus.PRESENT) ?? []
   const lateParticipants = selectedActivity?.participants.filter((p) => p.status === AttendanceStatus.LATE) ?? []
   const absentParticipants = selectedActivity?.participants.filter((p) => p.status === AttendanceStatus.ABSENT) ?? []
+  const attendedParticipants = [...presentParticipants, ...lateParticipants]
   const occupancyRate = selectedActivity
     ? Math.round((selectedActivity.currentParticipants / selectedActivity.maxParticipants) * 100)
     : 0
@@ -176,6 +177,7 @@ export function useActivityDetailsDialog(
     presentParticipants,
     lateParticipants,
     absentParticipants,
+    attendedParticipants,
     occupancyRate,
     reloadActivityDetail: () => loadActivityDetail(activityId),
   }

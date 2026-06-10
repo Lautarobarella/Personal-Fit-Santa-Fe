@@ -65,6 +65,7 @@ export default function ReportsPage() {
     totalTrainerHours,
     trainers,
     clientAttended,
+    clientPresentOnTime,
     clientAbsences,
     clientLateArrivals,
     clientAttendanceRate,
@@ -218,7 +219,7 @@ export default function ReportsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-xl text-center">
                   <CheckCircle className="size-5 text-green-600 mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-400">{clientAttended}</p>
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-400">{clientPresentOnTime}</p>
                   <p className="text-xs text-muted-foreground">Presentes</p>
                 </div>
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-xl text-center">
