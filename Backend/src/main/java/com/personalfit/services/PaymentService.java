@@ -663,6 +663,22 @@ public class PaymentService {
     }
 
     /**
+     * True if the user already loaded the fee covering the period after the
+     * given expiring payment: another PAID payment, or a PENDING one awaiting
+     * admin verification, that expires later than the current one.
+     */
+    private boolean hasUpcomingFeeAlreadyLoaded(User user, Payment expiringPayment) {
+        List<Payment> candidates = new ArrayList<>();
+        candidates.addAll(paymentRepository.findByUserAndStatus(user, PaymentStatus.PAID));
+        candidates.addAll(paymentRepository.findByUserAndStatus(user, PaymentStatus.PENDING));
+
+        return candidates.stream()
+                .filter(p -> !p.getId().equals(expiringPayment.getId()))
+                .map(Payment::getExpiresAt)
+                .anyMatch(expiresAt -> expiresAt != null && expiresAt.isAfter(expiringPayment.getExpiresAt()));
+    }
+
+    /**
      * CRON JOB: Daily Reminders (01:00 AM).
      * Notify users 3 days BEFORE expected expiration.
      */
@@ -693,12 +709,21 @@ public class PaymentService {
             }
 
             for (Payment payment : upcomingPayments) {
+                int remindedUsers = 0;
                 for (User user : payment.getUsers()) {
+                    // Skip clients that already loaded the fee covering the next
+                    // period: they must stop receiving the due-soon reminder.
+                    if (hasUpcomingFeeAlreadyLoaded(user, payment)) {
+                        log.info("Skipping payment reminder: userId={} already loaded next fee", user.getId());
+                        continue;
+                    }
+
                     notificationService.sendPaymentDueReminder(user, payment.getAmount(),
                             payment.getExpiresAt().toLocalDate());
+                    remindedUsers++;
                 }
                 log.info("Payment reminder sent for payment ID: {} to {} users",
-                        payment.getId(), payment.getUsers().size());
+                        payment.getId(), remindedUsers);
             }
 
             log.info("Payment reminders sent for {} payments", upcomingPayments.size());

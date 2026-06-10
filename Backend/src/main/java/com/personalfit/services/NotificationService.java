@@ -97,9 +97,10 @@ public class NotificationService {
 
         // [STEP 4] Fire the push notification. This is best-effort and MUST NOT fail the request:
         // any FCM error is swallowed here so the in-app notification is still considered created.
+        // Dispatched asynchronously, same delivery context as the bulk path.
         try {
             log.debug("createNotification STEP 4 | dispatching FCM push | userId={}", user.getId());
-            fcmService.sendNotification(user.getId(), notification.getTitle(), notification.getMessage());
+            fcmService.sendNotificationAsync(user.getId(), notification.getTitle(), notification.getMessage());
             log.debug("createNotification STEP 4 OK | FCM dispatch returned | userId={}", user.getId());
         } catch (Exception e) {
             // Intentionally NOT rethrown: a push failure should never produce a 500.
@@ -323,51 +324,17 @@ public class NotificationService {
         LocalDateTime now = LocalDateTime.now();
 
         // 1. Notify individual users
-        for (User user : users) {
-            try {
-                String title = "Membresia vencida";
-                String message = "Tu membresia ha vencido. Renovala para seguir usando nuestros servicios.";
-
-                Notification notification = Notification.builder()
-                        .title(title)
-                        .message(message)
-                        .user(user)
-                        .status(NotificationStatus.UNREAD)
-                        .createdAt(now)
-                        .build();
-
-                notificationRepository.save(notification);
-                fcmService.sendNotification(user.getId(), title, message);
-
-                log.debug("Expiration alert sent: userId={}", user.getId());
-            } catch (Exception e) {
-                log.warn("Failed to send expiration alert: userId={}, cause={}", user.getId(), e.getMessage());
-            }
-        }
+        storeAndPushToGroup(users,
+                "Membresia vencida",
+                "Tu membresia ha vencido. Renovala para seguir usando nuestros servicios.",
+                now);
 
         // 2. Notify Admins (Summary)
-        if (!users.isEmpty() && !admins.isEmpty()) {
-            for (User admin : admins) {
-                try {
-                    String title = "Membresias vencidas";
-                    String message = users.size() + " usuario(s) tienen la membresia vencida hoy.";
-
-                    Notification notification = Notification.builder()
-                            .title(title)
-                            .message(message)
-                            .user(admin)
-                            .status(NotificationStatus.UNREAD)
-                            .createdAt(now)
-                            .build();
-
-                    notificationRepository.save(notification);
-                    fcmService.sendNotification(admin.getId(), title, message);
-
-                    log.debug("Expiration summary sent: adminId={}", admin.getId());
-                } catch (Exception e) {
-                    log.warn("Failed to send expiration summary: adminId={}, cause={}", admin.getId(), e.getMessage());
-                }
-            }
+        if (!users.isEmpty()) {
+            storeAndPushToGroup(admins,
+                    "Membresias vencidas",
+                    users.size() + " usuario(s) tienen la membresia vencida hoy.",
+                    now);
         }
     }
 
@@ -378,56 +345,38 @@ public class NotificationService {
     public void createBirthdayNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. Wish the users
-        for (User user : users) {
-            try {
-                String title = "Feliz cumpleanos";
-                String message = "Feliz cumpleanos " + user.getFirstName() + ". Te deseamos un gran dia.";
+        // 1. Wish the users (personalized message -> stored in batch, pushed
+        // per-user through the async FCM path)
+        try {
+            String title = "Feliz cumpleanos";
 
-                Notification notification = Notification.builder()
-                        .title(title)
-                        .message(message)
-                        .user(user)
-                        .status(NotificationStatus.UNREAD)
-                        .createdAt(now)
-                        .build();
+            List<Notification> wishes = users.stream()
+                    .map(user -> Notification.builder()
+                            .title(title)
+                            .message("Feliz cumpleanos " + user.getFirstName() + ". Te deseamos un gran dia.")
+                            .user(user)
+                            .status(NotificationStatus.UNREAD)
+                            .createdAt(now)
+                            .build())
+                    .collect(Collectors.toList());
 
-                notificationRepository.save(notification);
-                fcmService.sendNotification(user.getId(), title, message);
+            notificationRepository.saveAll(wishes);
 
-                log.debug("Birthday wish sent: userId={}", user.getId());
-            } catch (Exception e) {
-                log.warn("Failed to send birthday wish: userId={}, cause={}", user.getId(), e.getMessage());
-            }
+            wishes.forEach(wish -> fcmService.sendNotificationAsync(
+                    wish.getUser().getId(), wish.getTitle(), wish.getMessage()));
+
+            log.info("Birthday wishes stored & push dispatched: recipients={}", users.size());
+        } catch (Exception e) {
+            log.warn("Failed to send birthday wishes: cause={}", e.getMessage());
         }
 
         // 2. Alert Admins (so they can greet users personally)
-        if (!users.isEmpty() && !admins.isEmpty()) {
-            for (User admin : admins) {
-                try {
-                    String userNames = users.stream()
-                            .map(User::getFullName)
-                            .collect(Collectors.joining(", "));
+        if (!users.isEmpty()) {
+            String userNames = users.stream()
+                    .map(User::getFullName)
+                    .collect(Collectors.joining(", "));
 
-                    String title = "Cumpleanos de hoy";
-                    String message = "Cumplen hoy: " + userNames;
-
-                    Notification notification = Notification.builder()
-                            .title(title)
-                            .message(message)
-                            .user(admin)
-                            .status(NotificationStatus.UNREAD)
-                            .createdAt(now)
-                            .build();
-
-                    notificationRepository.save(notification);
-                    fcmService.sendNotification(admin.getId(), title, message);
-
-                    log.debug("Birthday report sent: adminId={}", admin.getId());
-                } catch (Exception e) {
-                    log.warn("Failed to send birthday report: adminId={}, cause={}", admin.getId(), e.getMessage());
-                }
-            }
+            storeAndPushToGroup(admins, "Cumpleanos de hoy", "Cumplen hoy: " + userNames, now);
         }
     }
 
@@ -439,51 +388,17 @@ public class NotificationService {
     public void createAttendanceWarningNotification(List<User> users, List<User> admins) {
         LocalDateTime now = LocalDateTime.now();
 
-        for (User user : users) {
-            try {
-                String title = "Te extranamos";
-                String message = "Pasaron mas de 7 dias desde tu ultima visita. Volve y segui cumpliendo tus objetivos.";
-
-                Notification notification = Notification.builder()
-                        .title(title)
-                        .message(message)
-                        .user(user)
-                        .status(NotificationStatus.UNREAD)
-                        .createdAt(now)
-                        .build();
-
-                notificationRepository.save(notification);
-                fcmService.sendNotification(user.getId(), title, message);
-
-                log.debug("Absence warning sent: userId={}", user.getId());
-            } catch (Exception e) {
-                log.warn("Failed to send absence warning: userId={}, cause={}", user.getId(), e.getMessage());
-            }
-        }
+        storeAndPushToGroup(users,
+                "Te extranamos",
+                "Pasaron mas de 7 dias desde tu ultima visita. Volve y segui cumpliendo tus objetivos.",
+                now);
 
         // Notify Admins about at-risk users
-        if (!users.isEmpty() && !admins.isEmpty()) {
-            for (User admin : admins) {
-                try {
-                    String title = "Usuarios en riesgo (ausentes > 7 dias)";
-                    String message = users.size() + " usuario(s) llevan mas de una semana sin asistir.";
-
-                    Notification notification = Notification.builder()
-                            .title(title)
-                            .message(message)
-                            .user(admin)
-                            .status(NotificationStatus.UNREAD)
-                            .createdAt(now)
-                            .build();
-
-                    notificationRepository.save(notification);
-                    fcmService.sendNotification(admin.getId(), title, message);
-
-                    log.debug("Absence report sent: adminId={}", admin.getId());
-                } catch (Exception e) {
-                    log.warn("Failed to send absence report: adminId={}, cause={}", admin.getId(), e.getMessage());
-                }
-            }
+        if (!users.isEmpty()) {
+            storeAndPushToGroup(admins,
+                    "Usuarios en riesgo (ausentes > 7 dias)",
+                    users.size() + " usuario(s) llevan mas de una semana sin asistir.",
+                    now);
         }
     }
 
@@ -509,7 +424,7 @@ public class NotificationService {
                     .build();
 
             notificationRepository.save(notification);
-            fcmService.sendNotification(user.getId(), title, message);
+            fcmService.sendNotificationAsync(user.getId(), title, message);
 
             log.debug("Payment reminder sent: userId={}", user.getId());
         } catch (Exception e) {
@@ -523,29 +438,46 @@ public class NotificationService {
      */
     public void sendBulkClassReminder(List<User> users, String activityName,
             LocalDateTime activityDate, String location) {
-        LocalDateTime now = LocalDateTime.now();
+        String message = String.format("Recordatorio: '%s' empieza pronto en %s.", activityName, location);
+        storeAndPushToGroup(users, "Recordatorio de clase", message, LocalDateTime.now());
+    }
 
-        for (User user : users) {
-            try {
-                String title = "Recordatorio de clase";
-                // Formatting date nicely could be an improvement here
-                String message = String.format("Recordatorio: '%s' empieza pronto en %s.", activityName, location);
+    /**
+     * Shared delivery path for automated system alerts (cron-triggered).
+     *
+     * Mirrors createBulkNotification — the flow verified in production to
+     * deliver pushes correctly: persist every in-app notification in a single
+     * saveAll, then hand the recipient ids to the async FCM bulk dispatcher.
+     * The previous per-user save + synchronous fcm send ran FCM network I/O
+     * on the scheduler thread and pushes never went out reliably.
+     */
+    private void storeAndPushToGroup(List<User> recipients, String title, String message, LocalDateTime createdAt) {
+        if (recipients == null || recipients.isEmpty()) {
+            return;
+        }
 
-                Notification notification = Notification.builder()
-                        .title(title)
-                        .message(message)
-                        .user(user)
-                        .status(NotificationStatus.UNREAD)
-                        .createdAt(now)
-                        .build();
+        try {
+            List<Notification> notifications = recipients.stream()
+                    .map(user -> Notification.builder()
+                            .title(title)
+                            .message(message)
+                            .user(user)
+                            .status(NotificationStatus.UNREAD)
+                            .createdAt(createdAt)
+                            .build())
+                    .collect(Collectors.toList());
 
-                notificationRepository.save(notification);
-                fcmService.sendNotification(user.getId(), title, message);
+            notificationRepository.saveAll(notifications);
 
-                log.debug("Class reminder sent: userId={}, activity={}", user.getId(), activityName);
-            } catch (Exception e) {
-                log.warn("Failed to send class reminder: userId={}, cause={}", user.getId(), e.getMessage());
-            }
+            List<Long> userIds = recipients.stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList());
+            fcmService.sendBulkNotification(userIds, title, message);
+
+            log.info("Automated notification stored & push dispatched: title='{}', recipients={}",
+                    title, recipients.size());
+        } catch (Exception e) {
+            log.warn("Failed to send automated notification: title='{}', cause={}", title, e.getMessage());
         }
     }
 

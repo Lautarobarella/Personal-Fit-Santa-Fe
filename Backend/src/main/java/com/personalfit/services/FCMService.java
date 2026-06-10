@@ -233,6 +233,22 @@ public class FCMService {
     }
 
     /**
+     * Async variant of {@link #sendNotification(Long, String, String)} for a
+     * single recipient. Runs on the async executor — the exact same delivery
+     * context as {@link #sendBulkNotification(List, String, String)}, which is
+     * the path verified to deliver pushes reliably — so scheduled jobs and
+     * request threads never block on FCM network I/O and a slow or failing
+     * push cannot stall the (single-threaded) Spring scheduler.
+     *
+     * NOTE: must be invoked from another bean (proxied call) for @Async to
+     * apply; all current callers live in NotificationService / tasks.
+     */
+    @Async
+    public void sendNotificationAsync(Long userId, String title, String body) {
+        sendNotification(userId, title, body);
+    }
+
+    /**
      * Sends a push notification to a list of users.
      * Currently iterates through the list to send individual notifications.
      */

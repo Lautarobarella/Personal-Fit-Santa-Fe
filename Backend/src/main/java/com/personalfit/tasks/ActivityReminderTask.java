@@ -13,6 +13,7 @@ import com.personalfit.models.Activity;
 import com.personalfit.models.Notification;
 import com.personalfit.repository.ActivityRepository;
 import com.personalfit.repository.NotificationRepository;
+import com.personalfit.services.FCMService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,6 +26,9 @@ public class ActivityReminderTask {
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private FCMService fcmService;
 
     // Run every 15 minutes
     @Scheduled(cron = "0 */15 * * * *")
@@ -53,6 +57,8 @@ public class ActivityReminderTask {
                     notification.setUser(activity.getTrainer());
 
                     notificationRepository.save(notification);
+                    fcmService.sendNotificationAsync(activity.getTrainer().getId(),
+                            notification.getTitle(), notification.getMessage());
                     log.info("Reminder sent to trainer {} for activity {}", activity.getTrainer().getEmail(),
                             activity.getName());
                 }
