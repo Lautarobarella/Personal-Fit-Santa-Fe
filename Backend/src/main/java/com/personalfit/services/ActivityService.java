@@ -428,7 +428,7 @@ public class ActivityService {
 
                 if (!enrolledUsers.isEmpty()) {
                     notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(),
-                            activity.getDate(), activity.getLocation());
+                            activity.getLocation());
 
                     log.info("Class reminders sent: activityId={}, recipients={}",
                             activity.getId(), enrolledUsers.size());

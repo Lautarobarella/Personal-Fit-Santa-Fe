@@ -436,8 +436,7 @@ public class NotificationService {
      * Reminder: Upcoming Class.
      * Batch notification for class participants.
      */
-    public void sendBulkClassReminder(List<User> users, String activityName,
-            LocalDateTime activityDate, String location) {
+    public void sendBulkClassReminder(List<User> users, String activityName, String location) {
         String message = String.format("Recordatorio: '%s' empieza pronto en %s.", activityName, location);
         storeAndPushToGroup(users, "Recordatorio de clase", message, LocalDateTime.now());
     }

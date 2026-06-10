@@ -157,12 +157,18 @@ public class FCMService {
 
     /**
      * Sends a push notification to a specific user.
-     * 
+     *
+     * Private on purpose: this performs blocking FCM network I/O, so external
+     * callers must go through {@link #sendNotificationAsync(Long, String, String)}
+     * or {@link #sendBulkNotification(List, String, String)}, which run it on
+     * the async executor. A synchronous call from a @Scheduled job is what
+     * originally kept automated alerts from being pushed.
+     *
      * @param userId The ID of the recipient user.
      * @param title  The title of the notification.
      * @param body   The body content of the notification.
      */
-    public void sendNotification(Long userId, String title, String body) {
+    private void sendNotification(Long userId, String title, String body) {
         log.debug("sendNotification START | userId={}", userId);
 
         // Check if Firebase is initialized
