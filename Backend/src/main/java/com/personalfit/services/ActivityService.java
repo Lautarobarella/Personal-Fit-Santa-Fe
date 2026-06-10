@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
@@ -394,26 +395,31 @@ public class ActivityService {
     }
 
     /**
-     * Cron Job: Class Reminders (Every 2 mins).
-     * Sends push notifications to enrolled users 1 hour before class.
+     * Cron Job: Class Reminders (Every 15 mins).
+     * Notifies enrolled users exactly ONCE per class, 30 minutes before it
+     * starts.
      */
-    @Scheduled(cron = "0 */30 * * * *")
+    @Scheduled(cron = "0 */15 * * * *")
     public void sendClassReminders() {
         try {
             log.debug("Running job: Class Reminders");
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime oneHourFromNow = now.plusHours(1);
+            // Truncate to the minute so consecutive runs tile the timeline with
+            // no millisecond gaps or overlaps at the window edges.
+            LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-            // Look for classes starting approx 1 hour from now (+/- 30m window)
-            // Note: This logic seems broad, it might re-notify if run every 2 mins.
-            // Better logic would be ensuring we haven't notified yet, but keeping as-is for
-            // documentation.
-            LocalDateTime windowStart = oneHourFromNow.minusMinutes(30);
-            LocalDateTime windowEnd = oneHourFromNow.plusMinutes(30);
+            // Half-open window [now+30m, now+45m) aligned with the 15-minute
+            // cron: every class falls in exactly ONE run, so each user gets a
+            // single reminder, sent 30-44 minutes before start. The previous
+            // version scanned a 60-minute-wide window every 30 minutes, so the
+            // same class matched 2-3 consecutive runs and enrolled users
+            // received the same reminder several times.
+            LocalDateTime windowStart = now.plusMinutes(30);
+            LocalDateTime windowEnd = windowStart.plusMinutes(15);
 
             List<Activity> upcomingActivities = activityRepository.findByDateBetween(windowStart, windowEnd)
                     .stream()
                     .filter(activity -> activity.getStatus() == ActivityStatus.ACTIVE)
+                    .filter(activity -> activity.getDate().isBefore(windowEnd))
                     .collect(Collectors.toList());
 
             if (upcomingActivities.isEmpty()) {
