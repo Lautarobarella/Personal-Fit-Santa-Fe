@@ -51,7 +51,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    // lang="es" es crítico: la app está íntegramente en español. Declarar "en"
+    // hacía que Chrome (Android) detectara contenido español en página "inglesa"
+    // y aplicara traducción automática. Google Translate envuelve los nodos de
+    // texto en <font>, y cuando React intenta remover sus propios nodos lanza
+    // NotFoundError: removeChild (crash de toda la página).
+    <html lang="es" suppressHydrationWarning>
       <head>
         {/*
           Recuperación ante chunks obsoletos tras un deploy. Debe ir PRIMERO en

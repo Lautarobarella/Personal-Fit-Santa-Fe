@@ -26,7 +26,10 @@ import { NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
  */
 export async function fetchAllPayments(): Promise<PaymentType[]> {
   try {
-    return await jwtPermissionsApi.get('/api/payments/getAll');
+    // El cliente API devuelve null ante respuestas vacías o no-JSON; garantizar
+    // array para que los .filter()/.map() de los consumidores nunca exploten.
+    const response = await jwtPermissionsApi.get('/api/payments/getAll');
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar los pagos');
     return [];
@@ -42,7 +45,8 @@ export async function fetchAllPayments(): Promise<PaymentType[]> {
  */
 export async function fetchPaymentsByMonthAndYear(year: number, month: number): Promise<PaymentType[]> {
   try {
-    return await jwtPermissionsApi.get(`/api/payments/getAll/${year}/${month}`);
+    const response = await jwtPermissionsApi.get(`/api/payments/getAll/${year}/${month}`);
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar los pagos del mes');
     return [];
@@ -57,7 +61,8 @@ export async function fetchPaymentsByMonthAndYear(year: number, month: number): 
  */
 export async function fetchUserPayments(userId: number): Promise<PaymentType[]> {
   try {
-    return await jwtPermissionsApi.get(`/api/payments/${userId}`);
+    const response = await jwtPermissionsApi.get(`/api/payments/${userId}`);
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar los pagos del usuario');
     return [];

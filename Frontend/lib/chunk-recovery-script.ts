@@ -24,6 +24,35 @@
  * no depende de ningún chunk.
  */
 export const CHUNK_RECOVERY_SCRIPT = `(function () {
+  // ---------------------------------------------------------------------
+  // Parche defensivo del DOM (Google Translate / manipulación externa).
+  // Chrome en Android puede traducir la página automáticamente: Google
+  // Translate envuelve los nodos de texto en <font>, "robándoselos" a React.
+  // Cuando React luego intenta removeChild/insertBefore sobre un nodo que ya
+  // no es hijo de donde él cree, el navegador lanza NotFoundError y toda la
+  // app muere en el error boundary. Este es el workaround documentado en
+  // facebook/react#11538: si el nodo no es hijo real, degradar a no-op en vez
+  // de explotar. Solo afecta el caso que hoy es un crash garantizado.
+  // ---------------------------------------------------------------------
+  if (typeof Node === 'function' && Node.prototype) {
+    var origRemoveChild = Node.prototype.removeChild;
+    Node.prototype.removeChild = function (child) {
+      if (child && child.parentNode !== this) {
+        report({ source: 'dom-patch', message: 'removeChild sobre nodo ajeno (¿Google Translate?)' });
+        return child;
+      }
+      return origRemoveChild.apply(this, arguments);
+    };
+    var origInsertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function (newNode, referenceNode) {
+      if (referenceNode && referenceNode.parentNode !== this) {
+        report({ source: 'dom-patch', message: 'insertBefore con referencia ajena (¿Google Translate?)' });
+        return newNode;
+      }
+      return origInsertBefore.apply(this, arguments);
+    };
+  }
+
   var SS_KEY = '__pf_recovery__';
   var MAX_RELOADS = 2;
   var WINDOW_MS = 30000;

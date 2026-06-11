@@ -7,8 +7,10 @@ import { AttendanceType, AttendanceStatus } from "@/lib/types";
  */
 export async function fetchActivityAttendances(activityId: number): Promise<AttendanceType[]> {
   try {
+    // El cliente API devuelve null ante respuestas vacías o no-JSON; garantizar
+    // array para que los .filter()/.map() de los consumidores nunca exploten.
     const response = await jwtPermissionsApi.get(`/api/attendance/activity/${activityId}`);
-    return response;
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar las asistencias de la actividad');
     return [];
@@ -21,7 +23,7 @@ export async function fetchActivityAttendances(activityId: number): Promise<Atte
 export async function fetchActivityAttendancesWithUserInfo(activityId: number): Promise<AttendanceType[]> {
   try {
     const response = await jwtPermissionsApi.get(`/api/attendance/activity/${activityId}/with-user-info`);
-    return response;
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar las asistencias de la actividad con información de usuario');
     return [];
@@ -34,7 +36,7 @@ export async function fetchActivityAttendancesWithUserInfo(activityId: number): 
 export async function fetchUserAttendances(userId: number): Promise<AttendanceType[]> {
   try {
     const response = await jwtPermissionsApi.get(`/api/attendance/user/${userId}`);
-    return response;
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar las asistencias del usuario');
     return [];

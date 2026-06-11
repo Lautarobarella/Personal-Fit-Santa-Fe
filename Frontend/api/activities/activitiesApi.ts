@@ -9,7 +9,10 @@ import {
 
 export async function fetchActivities() {
   try {
-    return await jwtPermissionsApi.get('/api/activities/getAll');
+    // El cliente API devuelve null ante respuestas vacías o no-JSON; garantizar
+    // array para que los .filter()/.map() de los consumidores nunca exploten.
+    const response = await jwtPermissionsApi.get('/api/activities/getAll');
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar las actividades');
     return [];
@@ -25,7 +28,8 @@ export async function fetchActivitiesByDate(date: Date) {
       const day = pad(date.getDate())
       return `${year}-${month}-${day}`
     }
-    return await jwtPermissionsApi.get(`/api/activities/getAllByWeek/${formatTime(date)}`);
+    const response = await jwtPermissionsApi.get(`/api/activities/getAllByWeek/${formatTime(date)}`);
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar las actividades por fecha');
     return [];
@@ -114,7 +118,8 @@ export async function isUserEnrolled(activityId: number, userId: number) {
 
 export async function fetchTrainers() {
   try {
-    return await jwtPermissionsApi.get('/api/users/trainers');
+    const response = await jwtPermissionsApi.get('/api/users/trainers');
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar los entrenadores');
     return [];

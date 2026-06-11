@@ -15,7 +15,11 @@ export interface BulkNotificationRecipientsResponse {
 
 export async function fetchNotifications(userId: number) {
   try {
-    return await jwtPermissionsApi.get(`/api/notifications/user/${userId}`);
+    // El cliente API devuelve null ante respuestas vacías o no-JSON. El default
+    // `= []` de useQuery solo cubre undefined, así que un null llegaría a los
+    // .filter() del provider del layout y tumbaría toda la app. Garantizar array.
+    const response = await jwtPermissionsApi.get(`/api/notifications/user/${userId}`);
+    return Array.isArray(response) ? response : [];
   } catch (error) {
     handleApiError(error, 'Error al cargar las notificaciones');
     return [];
