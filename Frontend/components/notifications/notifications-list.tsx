@@ -1,9 +1,9 @@
 "use client"
 
 import { useNotificationsList } from "@/hooks/notifications/use-notifications-list"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Bell, Check, Archive, Trash2 } from "lucide-react"
 import { NotificationStatus } from "@/lib/types"
 import { format } from "date-fns"
@@ -26,81 +26,82 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full size-8 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full size-8 border-b-2 border-primary" />
       </div>
     )
   }
 
   if (!filteredNotifications || filteredNotifications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Bell className="size-12 text-gray-400 mb-4" />
-        <p className="text-gray-500">No tienes notificaciones</p>
+      <div className="rounded-xl border border-dashed py-12 text-center">
+        <Bell className="mx-auto mb-3 size-10 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">No tienes notificaciones</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {filteredNotifications.map((notification) => (
-        <Card 
-          key={notification.id} 
-          className={notification.status === NotificationStatus.UNREAD ? "border-l-4 border-l-orange-500" : ""}
+        <div
+          key={notification.id}
+          className={cn(
+            "rounded-xl border p-4 transition-colors",
+            notification.status === NotificationStatus.UNREAD && "border-l-4 border-l-primary",
+          )}
         >
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">{notification.title}</h3>
-                  {notification.status === NotificationStatus.UNREAD && (
-                    <Badge variant="default" className="text-xs">Nueva</Badge>
-                  )}
-                  {notification.status === NotificationStatus.ARCHIVED && (
-                    <Badge variant="secondary" className="text-xs">Archivada</Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600">{notification.message}</p>
-                <p className="text-xs text-gray-400">
-                  {format(new Date(notification.createdAt), "PPp", { locale: es })}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-1">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="truncate font-semibold">{notification.title}</h3>
                 {notification.status === NotificationStatus.UNREAD && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleMarkAsRead(notification.id)}
-                    title="Marcar como leída"
-                  >
-                    <Check className="size-4" />
-                  </Button>
+                  <Badge variant="default" className="shrink-0 text-xs">Nueva</Badge>
                 )}
-                
-                {notification.status !== NotificationStatus.ARCHIVED && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleArchive(notification.id)}
-                    title="Archivar"
-                  >
-                    <Archive className="size-4" />
-                  </Button>
+                {notification.status === NotificationStatus.ARCHIVED && (
+                  <Badge variant="secondary" className="shrink-0 text-xs">Archivada</Badge>
                 )}
-                
+              </div>
+              <p className="text-sm text-muted-foreground">{notification.message}</p>
+              <p className="text-xs text-muted-foreground/70">
+                {format(new Date(notification.createdAt), "PPp", { locale: es })}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1">
+              {notification.status === NotificationStatus.UNREAD && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleDelete(notification.id)}
-                  title="Eliminar"
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  onClick={() => handleMarkAsRead(notification.id)}
+                  title="Marcar como leída"
                 >
-                  <Trash2 className="size-4" />
+                  <Check className="size-4" />
                 </Button>
-              </div>
+              )}
+
+              {notification.status !== NotificationStatus.ARCHIVED && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleArchive(notification.id)}
+                  title="Archivar"
+                >
+                  <Archive className="size-4" />
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(notification.id)}
+                title="Eliminar"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   )

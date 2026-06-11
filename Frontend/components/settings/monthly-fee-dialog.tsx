@@ -1,11 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -31,10 +32,12 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
+      <DialogContent className="lg:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="size-5" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <DollarSign className="size-4 text-primary" />
+            </span>
             Configurar Cuota Mensual
           </DialogTitle>
           <DialogDescription>
@@ -43,63 +46,52 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
         </DialogHeader>
 
         {loading ? (
-          <div className="text-center py-4">
-            <div className="text-muted-foreground">Cargando configuración…</div>
-          </div>
+          <DialogBody>
+            <div className="py-4 text-center text-muted-foreground">Cargando configuración…</div>
+          </DialogBody>
         ) : (
-          <div className="flex flex-col h-full overflow-hidden">
-            <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+          <>
+            <DialogBody className="space-y-4">
               {/* Configuración de Cuota */}
-              <Card className="m-2">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="size-5" />
-                    Valor de la Cuota Mensual
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="monthlyFee">Valor de la cuota ($)</Label>
-                    <Input
-                      id="monthlyFee"
-                      type="number"
-                      placeholder="Ingresa el valor de la cuota"
-                      min="0"
-                      step="0.01"
-                      value={monthlyFeeInput}
-                      onChange={(e) => setMonthlyFeeInput(e.target.value)}
-                      disabled={loading || isSaving}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Este será el monto base que se cobrará mensualmente a cada cliente.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border p-4">
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="h-5 w-1 rounded-full bg-primary" />
+                  Valor de la Cuota Mensual
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyFee">Valor de la cuota ($)</Label>
+                  <Input
+                    id="monthlyFee"
+                    type="number"
+                    placeholder="Ingresa el valor de la cuota"
+                    min="0"
+                    step="0.01"
+                    value={monthlyFeeInput}
+                    onChange={(e) => setMonthlyFeeInput(e.target.value)}
+                    disabled={loading || isSaving}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este será el monto base que se cobrará mensualmente a cada cliente.
+                  </p>
+                </div>
+              </div>
 
               {/* Información adicional */}
-              <Card className="m-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Información Importante</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-muted p-3 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Consideraciones:</strong>
-                      <br />
-                      • El valor se aplicará a todos los nuevos pagos generados.
-                      <br />
-                      • Los pagos pendientes mantendrán su valor original.
-                      <br />
-                      • Se recomienda notificar a los clientes sobre cambios en la cuota.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+              <div className="rounded-xl border p-4">
+                <h4 className="mb-2 text-sm font-semibold">Información Importante</h4>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Consideraciones:</strong>
+                  <br />
+                  • El valor se aplicará a todos los nuevos pagos generados.
+                  <br />
+                  • Los pagos pendientes mantendrán su valor original.
+                  <br />
+                  • Se recomienda notificar a los clientes sobre cambios en la cuota.
+                </p>
+              </div>
+            </DialogBody>
 
-            {/* Botones */}
-            <div className="flex gap-3 p-4 border-t border-border">
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={handleCancel}
@@ -116,8 +108,8 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
                 <Save className="size-4 mr-2" />
                 {isSaving ? "Guardando…" : "Guardar"}
               </Button>
-            </div>
-          </div>
+            </DialogFooter>
+          </>
         )}
       </DialogContent>
     </Dialog>

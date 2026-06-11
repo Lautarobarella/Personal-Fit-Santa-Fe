@@ -3,7 +3,6 @@
 import { PaymentReceiptDisplay } from "@/components/payments/payment-receipt-display"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Textarea } from "@/components/ui/textarea"
@@ -36,13 +35,13 @@ export default function PaymentVerificationPage() {
   if (isVerificationComplete) {
     const hasReviewedPayments = reviewedCount > 0
     const title = hasReviewedPayments ? "¡Verificación Completada!" : "No hay pagos pendientes"
-    const message = hasReviewedPayments 
+    const message = hasReviewedPayments
       ? `Has verificado ${reviewedCount} pagos exitosamente.`
       : undefined
 
     setTimeout(() => router.replace("/payments"), 2000)
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 text-center">
         <Check className="size-16 text-success mb-4" />
         <h2 className="text-2xl font-bold mb-2">{title}</h2>
         {message && <p className="text-muted-foreground mb-6">{message}</p>}
@@ -61,111 +60,115 @@ export default function PaymentVerificationPage() {
     )
   }
 
-  // Render principal
+  const verifyActionsDisabled =
+    isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0
+
+  // Render principal — compacto: sin scroll salvo pantallas muy chicas
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader
         title="Verificar Pagos"
         showBack
         onBack={() => router.replace("/payments")}
       />
 
-      {/* Progress section - Fixed */}
-      <div className="flex-shrink-0 px-3 py-2">
-        <div className="flex items-center justify-between text-sm mb-1.5">
-          <span className="font-medium">Progreso</span>
-          <span className="text-muted-foreground">
-            {reviewedCount} completados, {paymentQueue.length} pendientes
-          </span>
+      <div className="container-centered space-y-2 py-3 pb-6">
+        {/* Progreso */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
+            <span className="font-medium">Progreso</span>
+            <span className="text-right text-muted-foreground">
+              {reviewedCount} completados, {paymentQueue.length} pendientes
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{
+                width: initialPendingCount.current
+                  ? `${(reviewedCount / initialPendingCount.current) * 100}%`
+                  : "0%",
+              }}
+            />
+          </div>
         </div>
-        <div className="w-full bg-muted rounded-full h-1.5 mb-2">
-          <div
-            className="bg-primary h-1.5 rounded-full transition-all duration-300"
-            style={{
-              width: initialPendingCount.current 
-                ? `${(reviewedCount / initialPendingCount.current) * 100}%`
-                : "0%"
-            }}
-          />
-        </div>
-      </div>
 
-      {/* Scrollable content area */}
-      <div className="flex-1 px-3 pb-safe">
-        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"} space-y-2 pb-24`}>
+        <div className={`transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`}>
           {/* Renderiza solo si hay currentPayment */}
           {currentPayment && (
-            <>
-              {/* Payment details card */}
-              <Card className="mb-2">
-                <CardContent className="p-2.5">
+            <div className="grid gap-2 lg:grid-cols-2 lg:items-start">
+              {/* Columna: datos del pago */}
+              <div className="space-y-2">
+                {/* Detalle del pago */}
+                <div className="rounded-xl border p-3">
                   <div className="grid grid-cols-2 gap-2.5 text-sm">
-                    <div className="flex items-center gap-2">
-                      <User className="size-4 text-muted-foreground" />
-                      <span className="font-medium truncate">{currentPayment.clientName}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <User className="size-4 shrink-0 text-primary/70" />
+                      <span className="truncate font-medium">{currentPayment.clientName}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="size-4 text-muted-foreground" />
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Calendar className="size-4 shrink-0 text-muted-foreground" />
                       <span className="truncate">{formatDateTime(currentPayment.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="size-4 text-muted-foreground" />
+                      <DollarSign className="size-4 shrink-0 text-primary/70" />
                       <span className="font-bold">{currentPayment.amount}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="size-4 text-muted-foreground" />
-                      <Badge variant={getStatusColor(currentPayment.status)} className="text-sm px-2 py-1">
+                      <Clock className="size-4 shrink-0 text-muted-foreground" />
+                      <Badge variant={getStatusColor(currentPayment.status)} className="px-2 text-xs">
                         {getStatusText(currentPayment.status)}
                       </Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Associated Users card - Solo mostrar si hay múltiples usuarios */}
-              {currentPayment.associatedUsers && currentPayment.associatedUsers.length > 1 && (
-                <Card className="mb-2">
-                  <CardContent className="p-2.5">
-                    <Label className="text-sm font-medium mb-1.5 block">Clientes Relacionados ({currentPayment.associatedUsers.length})</Label>
-                    <div className="space-y-1">
-                      {currentPayment.associatedUsers.map((user: any, index: number) => (
-                        <div key={user.userId} className="flex items-center gap-2 text-sm py-1 px-2 bg-muted/50 rounded">
-                          <User className="size-3 text-muted-foreground" />
-                          <span className="font-medium">{user.userName}</span>
-                          <span className="text-muted-foreground">({user.userDni})</span>
+                {/* Clientes relacionados - Solo mostrar si hay múltiples usuarios */}
+                {currentPayment.associatedUsers && currentPayment.associatedUsers.length > 1 && (
+                  <div className="rounded-xl border p-3">
+                    <p className="mb-1.5 text-sm font-medium">
+                      Clientes Relacionados ({currentPayment.associatedUsers.length})
+                    </p>
+                    <div className="divide-y">
+                      {currentPayment.associatedUsers.map((assocUser: any, index: number) => (
+                        <div key={assocUser.userId} className="flex items-center gap-2 py-1.5 text-sm">
+                          <User className="size-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate font-medium">{assocUser.userName}</span>
+                          <span className="shrink-0 text-muted-foreground">({assocUser.userDni})</span>
                           {index === 0 && (
-                            <Badge variant="outline" className="text-xs ml-auto">Creador</Badge>
+                            <Badge variant="outline" className="ml-auto shrink-0 text-xs">Creador</Badge>
                           )}
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                )}
 
-              {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
-              {currentPayment.notes && (
-                <Card className="mb-2">
-                  <CardContent className="p-2.5">
-                    <Label className="text-sm font-medium mb-1.5 block">
+                {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
+                {currentPayment.notes && (
+                  <div className="rounded-xl border p-3">
+                    <p className="mb-1.5 text-sm font-medium">
                       {currentPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
-                    </Label>
-                    <div className={`p-2 rounded text-sm ${
-                      currentPayment.method === MethodType.CASH 
-                        ? "bg-amber-50 border border-amber-200 text-amber-800" 
-                        : "bg-muted/50"
-                    }`}>
+                    </p>
+                    <div
+                      className={`rounded-lg p-2 text-sm ${
+                        currentPayment.method === MethodType.CASH
+                          ? "border border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400"
+                          : "bg-muted/50"
+                      }`}
+                    >
                       {currentPayment.notes}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                )}
+              </div>
 
-              {/* Receipt section - Solo para métodos que NO sean efectivo */}
-              {currentPayment.method !== MethodType.CASH && (
-                <Card className="mb-2">
-                  <CardContent className="p-2.5">
-                    <Label className="text-sm font-medium mb-1.5 block">Comprobante de Pago</Label>
+              {/* Columna: comprobante y decisión */}
+              <div className="space-y-2">
+                {/* Comprobante - Solo para métodos que NO sean efectivo */}
+                {currentPayment.method !== MethodType.CASH && (
+                  <div className="rounded-xl border p-3">
+                    <p className="mb-1.5 text-sm font-medium">Comprobante de Pago</p>
                     <PaymentReceiptDisplay
                       fileId={currentPayment.receiptId}
                       fileName={`comprobante-${currentPayment.clientName}-${currentPayment.id}`}
@@ -174,50 +177,50 @@ export default function PaymentVerificationPage() {
                       pdfHeight="280px"
                       imageHeight="280px"
                     />
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                )}
 
-              {/* Rejection reason */}
-              <Card className="mb-2">
-                <CardContent className="p-2.5">
-                  <Label htmlFor="rejectionReason" className="text-sm font-medium">Razón del rechazo</Label>
+                {/* Razón del rechazo */}
+                <div className="rounded-xl border p-3">
+                  <Label htmlFor="rejectionReason" className="text-sm font-medium">
+                    Razón del rechazo
+                  </Label>
                   <Textarea
                     id="rejectionReason"
                     placeholder="Explica por qué se rechaza el pago…"
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     rows={2}
-                    className="resize-none text-sm mt-1.5"
+                    className="mt-1.5 resize-none text-sm"
                     disabled={!currentPayment}
                   />
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Action buttons - now in normal flow */}
-              <div className="flex gap-2 mt-4">
-                <Button
-                  variant="secondary"
-                  onClick={() => handleStatusUpdate("rejected")}
-                  disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
-                  className="w-1/2 py-2 text-sm font-semibold h-9"
-                >
-                  {isVerifying && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  {!isVerifying && <X className="mr-2 size-4" />}
-                  {isOnCooldown ? "Espera…" : "Rechazar"}
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => handleStatusUpdate("paid")}
-                  disabled={isVerifying || isOnCooldown || !currentPayment || loading || pendingPayments.length === 0}
-                  className="w-1/2 py-2 text-sm font-semibold h-9"
-                >
-                  {isVerifying && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  {!isVerifying && !isOnCooldown && <Check className="mr-2 size-4" />}
-                  {isVerifying ? "Procesando…" : isOnCooldown ? "Espera…" : "Aprobar"}
-                </Button>
+                {/* Acciones */}
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleStatusUpdate("rejected")}
+                    disabled={verifyActionsDisabled}
+                    className="h-9 flex-1 text-sm font-semibold"
+                  >
+                    {isVerifying && <Loader2 className="mr-2 size-4 animate-spin" />}
+                    {!isVerifying && <X className="mr-2 size-4" />}
+                    {isOnCooldown ? "Espera…" : "Rechazar"}
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => handleStatusUpdate("paid")}
+                    disabled={verifyActionsDisabled}
+                    className="h-9 flex-1 text-sm font-semibold"
+                  >
+                    {isVerifying && <Loader2 className="mr-2 size-4 animate-spin" />}
+                    {!isVerifying && !isOnCooldown && <Check className="mr-2 size-4" />}
+                    {isVerifying ? "Procesando…" : isOnCooldown ? "Espera…" : "Aprobar"}
+                  </Button>
+                </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

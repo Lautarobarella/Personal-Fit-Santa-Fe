@@ -147,8 +147,6 @@ export interface UserFormType {
 export interface ActivityType {
   id: number
   name: string
-  description: string
-  location: string
   trainerId: number
   trainerName: string
   date: Date
@@ -164,8 +162,6 @@ export interface ActivityType {
 export interface ActivityDetailInfo {
   id: number
   name: string
-  description: string
-  location: string
   trainerId: number
   trainerName: string
   date: Date
@@ -185,8 +181,6 @@ export interface ActivityDetailInfo {
 export interface ActivityFormType {
   id?: string
   name: string
-  description: string
-  location: string
   trainerId: string
   date: string
   time: string

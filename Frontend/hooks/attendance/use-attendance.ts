@@ -13,6 +13,10 @@ import {
 import { AttendanceType, AttendanceStatus } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-provider"
 
+// Referencia estable para cuando la query no tiene datos: un `= []` inline
+// crearía un array nuevo por render y dispararía efectos que dependen de él.
+const NO_ATTENDANCES: AttendanceType[] = []
+
 /**
  * Tipos para el estado del hook
  */
@@ -50,7 +54,7 @@ export function useAttendance() {
 
   // Query para asistencias de una actividad específica con información de usuario
   const {
-    data: activityAttendances = [],
+    data: activityAttendances = NO_ATTENDANCES,
     isLoading: isLoadingActivityAttendances,
     error: attendancesError,
     refetch: refetchActivityAttendances,
@@ -64,7 +68,7 @@ export function useAttendance() {
 
   // Query para asistencias de un usuario específico
   const {
-    data: userAttendances = [],
+    data: userAttendances = NO_ATTENDANCES,
     isLoading: isLoadingUserAttendances,
     refetch: refetchUserAttendances,
   } = useQuery<AttendanceType[]>({

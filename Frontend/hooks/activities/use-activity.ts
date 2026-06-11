@@ -61,8 +61,6 @@ export function useActivity() {
   // Estado del formulario
   const [form, setForm] = useState<ActivityFormType>({
     name: "",
-    description: "",
-    location: "",
     trainerId: "",
     date: "",
     time: "",
@@ -201,8 +199,6 @@ export function useActivity() {
   const resetForm = useCallback(() => {
     setForm({
       name: "",
-      description: "",
-      location: "",
       trainerId: "",
       date: "",
       time: "",

@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
 interface TakeAttendanceDialogProps {
   open: boolean
@@ -67,8 +67,17 @@ export function TakeAttendanceDialog({
   activityId,
   onAttendanceUpdated,
 }: TakeAttendanceDialogProps) {
-  const [attendanceQueueIds, setAttendanceQueueIds] = useState<number[]>([])
-  const [hasInitializedQueue, setHasInitializedQueue] = useState(false)
+  // La "cola" se deriva de los datos: un participante sale de la lista cuando
+  // se lo marca en esta sesión. Solo persistimos los ids ya marcados, y la
+  // sesión se reinicia al cerrar el dialog (en el handler, no en un efecto).
+  const [markedIds, setMarkedIds] = useState<number[]>([])
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setMarkedIds([])
+    }
+    onOpenChange(nextOpen)
+  }
 
   const {
     activityAttendances,
@@ -79,27 +88,11 @@ export function TakeAttendanceDialog({
     stats,
     handleMarkStatus,
     handleClose,
-  } = useAttendanceActivityDialog(activityId, open, onOpenChange, onAttendanceUpdated)
-
-  useEffect(() => {
-    if (!open) {
-      setAttendanceQueueIds([])
-      setHasInitializedQueue(false)
-      return
-    }
-
-    if (!hasInitializedQueue && activityAttendances.length > 0) {
-      setAttendanceQueueIds(activityAttendances.map((attendance) => attendance.id))
-      setHasInitializedQueue(true)
-    }
-  }, [open, hasInitializedQueue, activityAttendances])
+  } = useAttendanceActivityDialog(activityId, open, handleOpenChange, onAttendanceUpdated)
 
   const queuedAttendances = useMemo(
-    () =>
-      attendanceQueueIds
-        .map((id) => activityAttendances.find((attendance) => attendance.id === id))
-        .filter((attendance): attendance is (typeof activityAttendances)[number] => attendance !== undefined),
-    [attendanceQueueIds, activityAttendances],
+    () => activityAttendances.filter((attendance) => !markedIds.includes(attendance.id)),
+    [activityAttendances, markedIds],
   )
 
   const handleAttendanceClick = async (
@@ -113,7 +106,7 @@ export function TakeAttendanceDialog({
 
     const success = await handleMarkStatus(attendanceId, nextStatus)
     if (success) {
-      setAttendanceQueueIds((currentQueue) => currentQueue.filter((id) => id !== attendanceId))
+      setMarkedIds((prev) => [...prev, attendanceId])
     }
   }
 
@@ -125,7 +118,7 @@ export function TakeAttendanceDialog({
   ]
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="pr-10">Tomar Asistencia</DialogTitle>

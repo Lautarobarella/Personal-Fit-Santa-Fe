@@ -60,8 +60,6 @@ class ActivityControllerTest {
     void setUp() {
         validActivityForm = ActivityFormTypeDTO.builder()
                 .name("Yoga Matutino")
-                .description("Clase de yoga para principiantes")
-                .location("Sala A")
                 .trainerId("1")
                 .date(LocalDate.now().plusDays(1))
                 .time(LocalTime.of(9, 0))
@@ -194,8 +192,6 @@ class ActivityControllerTest {
             ActivityDetailInfoDTO detail = ActivityDetailInfoDTO.builder()
                     .id(1L)
                     .name("Yoga Matutino")
-                    .description("Clase de yoga")
-                    .location("Sala A")
                     .trainerName("Laura")
                     .duration(60)
                     .maxParticipants(15)

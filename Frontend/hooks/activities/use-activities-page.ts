@@ -236,6 +236,14 @@ export function useActivitiesPage() {
     )
   }
 
+  // La card abre el dialog de detalles solo para quienes gestionan la clase:
+  // admin siempre, trainer en sus propias clases. Los clientes no acceden al
+  // detalle (su única acción es inscribirse/desinscribirse o cargar resumen).
+  const canViewDetails = (activity: ActivityType) => {
+    if (canManageActivities) return true
+    return isTrainer && activity.trainerName === trainerFullName
+  }
+
   const getClientActionVariant = (activity: ActivityType): "default" | "outline" | "secondary" => {
     if (canSubmitSummary(activity)) {
       return hasSubmittedSummary(activity) ? "outline" : "default"
@@ -395,6 +403,7 @@ export function useActivitiesPage() {
     getClientActionLabel,
     isClientActionDisabled,
     getClientActionVariant,
+    canViewDetails,
     canSubmitSummary,
     hasSubmittedSummary,
 

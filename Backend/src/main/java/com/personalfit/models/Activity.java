@@ -31,8 +31,6 @@ public class Activity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    private String description;
-    private String location;
     private Integer slots;
     private LocalDateTime date;
     private LocalDateTime createdAt;

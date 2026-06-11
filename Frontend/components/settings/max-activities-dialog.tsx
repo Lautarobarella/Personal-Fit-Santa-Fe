@@ -1,11 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -32,10 +33,12 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
+      <DialogContent className="lg:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="size-5" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <Users className="size-4 text-primary" />
+            </span>
             Máximo de Actividades por Día
           </DialogTitle>
           <DialogDescription>
@@ -44,63 +47,52 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
         </DialogHeader>
 
         {loading ? (
-          <div className="text-center py-4">
-            <div className="text-muted-foreground">Cargando configuración…</div>
-          </div>
+          <DialogBody>
+            <div className="py-4 text-center text-muted-foreground">Cargando configuración…</div>
+          </DialogBody>
         ) : (
-          <div className="flex flex-col h-full overflow-hidden">
-            <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+          <>
+            <DialogBody className="space-y-4">
               {/* Configuración de Máximo de Actividades */}
-              <Card className="m-2">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="size-5" />
-                    Límite de Inscripciones Diarias
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="maxActivities">
-                      Máximo de actividades por día
-                    </Label>
-                    <Input
-                      id="maxActivities"
-                      type="number"
-                      min="1"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder="1"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Los clientes no podrán inscribirse a más de {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} en el mismo día.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border p-4">
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="h-5 w-1 rounded-full bg-primary" />
+                  Límite de Inscripciones Diarias
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="maxActivities">
+                    Máximo de actividades por día
+                  </Label>
+                  <Input
+                    id="maxActivities"
+                    type="number"
+                    min="1"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="1"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Los clientes no podrán inscribirse a más de {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} en el mismo día.
+                  </p>
+                </div>
+              </div>
 
               {/* Ejemplo explicativo */}
-              <Card className="m-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Ejemplo de Funcionamiento</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-muted p-3 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Con límite de {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} por día:</strong>
-                      <br />
-                      • Un cliente puede inscribirse a máximo {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} en una misma fecha.
-                      <br />
-                      • Si intenta inscribirse a más actividades en el mismo día, el sistema lo impedirá.
-                      <br />
-                      • Esta limitación ayuda a distribuir mejor las inscripciones y evitar sobrecargas.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+              <div className="rounded-xl border p-4">
+                <h4 className="mb-2 text-sm font-semibold">Ejemplo de Funcionamiento</h4>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Con límite de {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} por día:</strong>
+                  <br />
+                  • Un cliente puede inscribirse a máximo {parseInt(inputValue) || 1} actividad{(parseInt(inputValue) || 1) !== 1 ? 'es' : ''} en una misma fecha.
+                  <br />
+                  • Si intenta inscribirse a más actividades en el mismo día, el sistema lo impedirá.
+                  <br />
+                  • Esta limitación ayuda a distribuir mejor las inscripciones y evitar sobrecargas.
+                </p>
+              </div>
+            </DialogBody>
 
-            {/* Botones */}
-            <div className="flex gap-3 p-4 border-t border-border">
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={handleCancel}
@@ -117,8 +109,8 @@ export function MaxActivitiesDialog({ open, onOpenChange }: MaxActivitiesDialogP
                 <Save className="size-4 mr-2" />
                 {saving || isUpdatingMaxActivitiesPerDay ? "Guardando…" : "Guardar"}
               </Button>
-            </div>
-          </div>
+            </DialogFooter>
+          </>
         )}
       </DialogContent>
     </Dialog>

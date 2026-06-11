@@ -65,7 +65,6 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-muted-foreground">
-            <p>{selectedActivity.description}</p>
             <p>Entrenador: {selectedActivity.trainerName}</p>
           </CardContent>
         </Card>

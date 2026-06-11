@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
 import { Calendar, Clock, Loader2, Repeat, Users } from "lucide-react"
 
 interface EditActivityPageProps {
@@ -61,17 +60,6 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                     value={form.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="Ej: Yoga Matutino"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descripción</Label>
-                  <Textarea
-                    id="description"
-                    value={form.description}
-                    onChange={(e) => handleInputChange("description", e.target.value)}
-                    placeholder="Describe la actividad, nivel requerido, etc."
-                    rows={3}
                   />
                 </div>
 
@@ -138,16 +126,6 @@ export default function EditActivityPage({ params }: EditActivityPageProps) {
                       <SelectItem value="120">120 minutos</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Ubicación</Label>
-                  <Input
-                    id="location"
-                    value={form.location}
-                    onChange={(e) => handleInputChange("location", e.target.value)}
-                    placeholder="Ej: Gimnasio principal"
-                  />
                 </div>
               </div>
 

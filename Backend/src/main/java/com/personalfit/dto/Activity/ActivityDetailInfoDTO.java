@@ -17,8 +17,6 @@ import com.personalfit.enums.ActivityStatus;
 public class ActivityDetailInfoDTO {
     private Long id;
     private String name;
-    private String description;
-    private String location;
     private Long trainerId;
     private String trainerName;
     private LocalDateTime date;

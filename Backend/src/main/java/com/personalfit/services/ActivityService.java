@@ -75,8 +75,6 @@ public class ActivityService {
 
         Activity newActivity = Activity.builder()
                 .name(activity.getName())
-                .description(activity.getDescription())
-                .location(activity.getLocation())
                 .slots(Integer.parseInt(activity.getMaxParticipants()))
                 .date(LocalDateTime.of(activityDate, activityTime))
                 .repeatEveryWeek(activity.getIsRecurring() != null ? activity.getIsRecurring() : false)
@@ -119,8 +117,6 @@ public class ActivityService {
         }
 
         existingActivity.setName(activity.getName());
-        existingActivity.setDescription(activity.getDescription());
-        existingActivity.setLocation(activity.getLocation());
         existingActivity.setSlots(Integer.parseInt(activity.getMaxParticipants()));
         existingActivity.setDuration(Integer.parseInt(activity.getDuration()));
         existingActivity.setTrainer(trainer);
@@ -174,8 +170,6 @@ public class ActivityService {
         return ActivityDetailInfoDTO.builder()
                 .id(act.getId())
                 .name(act.getName())
-                .description(act.getDescription())
-                .location(act.getLocation())
                 .trainerId(act.getTrainer().getId())
                 .trainerName(act.getTrainer().getFullName())
                 .date(act.getDate())
@@ -279,8 +273,6 @@ public class ActivityService {
         return ActivityTypeDTO.builder()
                 .id(activity.getId())
                 .name(activity.getName())
-                .description(activity.getDescription())
-                .location(activity.getLocation())
                 .trainerId(activity.getTrainer().getId())
                 .trainerName(activity.getTrainer().getFullName())
                 .date(activity.getDate())
@@ -365,8 +357,6 @@ public class ActivityService {
 
                     Activity newActivity = Activity.builder()
                             .name(activity.getName())
-                            .description(activity.getDescription())
-                            .location(activity.getLocation())
                             .slots(activity.getSlots())
                             .date(nextWeekDate)
                             .repeatEveryWeek(true)
@@ -434,8 +424,7 @@ public class ActivityService {
                         .collect(Collectors.toList());
 
                 if (!enrolledUsers.isEmpty()) {
-                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName(),
-                            activity.getLocation());
+                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName());
 
                     log.info("Class reminders sent: activityId={}, recipients={}",
                             activity.getId(), enrolledUsers.size());
@@ -467,8 +456,6 @@ public class ActivityService {
 
                 Activity newActivity = Activity.builder()
                         .name(activityDTO.getName())
-                        .description(activityDTO.getDescription())
-                        .location(activityDTO.getLocation())
                         .slots(Integer.parseInt(activityDTO.getMaxParticipants()))
                         .date(LocalDateTime.of(activityDate, activityTime))
                         .repeatEveryWeek(activityDTO.getIsRecurring() != null ? activityDTO.getIsRecurring() : false)

@@ -2,11 +2,12 @@
 
 import { Clock, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
@@ -33,10 +34,12 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh] overflow-hidden">
+            <DialogContent className="lg:max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Clock className="size-5" />
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <Clock className="size-4 text-primary" />
+                        </span>
                         Tiempos de Actividades
                     </DialogTitle>
                     <DialogDescription>
@@ -45,91 +48,76 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                 </DialogHeader>
 
                 {loading ? (
-                    <div className="text-center py-4">
-                        <div className="text-muted-foreground">Cargando configuración…</div>
-                    </div>
+                    <DialogBody>
+                        <div className="py-4 text-center text-muted-foreground">Cargando configuración…</div>
+                    </DialogBody>
                 ) : (
-                    <div className="flex flex-col h-full overflow-hidden">
-                        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+                    <>
+                        <DialogBody className="space-y-4">
                             {/* Tiempo de Inscripción */}
-                            <Card className="m-2">
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        <Clock className="size-5" />
-                                        Tiempo de Inscripción
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="registration-time">
-                                            Tiempo de Inscripción (horas)
-                                        </Label>
-                                        <Input
-                                            id="registration-time"
-                                            type="number"
-                                            min="0"
-                                            max="720"
-                                            value={regTime}
-                                            onChange={(e) => setRegTime(e.target.value)}
-                                            placeholder="24"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Tiempo mínimo antes del inicio para inscribirse en una actividad.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <div className="rounded-xl border p-4">
+                                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    Tiempo de Inscripción
+                                </h4>
+                                <div className="space-y-2">
+                                    <Label htmlFor="registration-time">
+                                        Tiempo de Inscripción (horas)
+                                    </Label>
+                                    <Input
+                                        id="registration-time"
+                                        type="number"
+                                        min="0"
+                                        max="720"
+                                        value={regTime}
+                                        onChange={(e) => setRegTime(e.target.value)}
+                                        placeholder="24"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Tiempo mínimo antes del inicio para inscribirse en una actividad.
+                                    </p>
+                                </div>
+                            </div>
 
                             {/* Tiempo de Desinscripción */}
-                            <Card className="m-2">
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        <Clock className="size-5" />
-                                        Tiempo de Desinscripción
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="unregistration-time">
-                                            Tiempo de Desinscripción (horas)
-                                        </Label>
-                                        <Input
-                                            id="unregistration-time"
-                                            type="number"
-                                            min="0"
-                                            max="6"
-                                            value={unregTime}
-                                            onChange={(e) => setUnregTime(e.target.value)}
-                                            placeholder="3"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Tiempo mínimo antes del inicio para desinscribirse de una actividad.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <div className="rounded-xl border p-4">
+                                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    Tiempo de Desinscripción
+                                </h4>
+                                <div className="space-y-2">
+                                    <Label htmlFor="unregistration-time">
+                                        Tiempo de Desinscripción (horas)
+                                    </Label>
+                                    <Input
+                                        id="unregistration-time"
+                                        type="number"
+                                        min="0"
+                                        max="6"
+                                        value={unregTime}
+                                        onChange={(e) => setUnregTime(e.target.value)}
+                                        placeholder="3"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Tiempo mínimo antes del inicio para desinscribirse de una actividad.
+                                    </p>
+                                </div>
+                            </div>
 
                             {/* Ejemplo explicativo */}
-                            <Card className="m-2">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Ejemplo de Funcionamiento</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="bg-muted p-3 rounded-lg">
-                                        <p className="text-sm text-muted-foreground">
-                                            <strong>Actividad programada a las 9:00 AM:</strong>
-                                            <br />
-                                            • Con 24h de inscripción: disponible para inscripción desde las 9:00 AM del día anterior.
-                                            <br />
-                                            • Con 3h de desinscripción: posible desinscribirse hasta las 6:00 AM del mismo día.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+                            <div className="rounded-xl border p-4">
+                                <h4 className="mb-2 text-sm font-semibold">Ejemplo de Funcionamiento</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    <strong>Actividad programada a las 9:00 AM:</strong>
+                                    <br />
+                                    • Con 24h de inscripción: disponible para inscripción desde las 9:00 AM del día anterior.
+                                    <br />
+                                    • Con 3h de desinscripción: posible desinscribirse hasta las 6:00 AM del mismo día.
+                                </p>
+                            </div>
+                        </DialogBody>
 
-                        {/* Botones */}
-                        <div className="flex gap-3 p-4 border-t border-border">
+                        <DialogFooter>
                             <Button
                                 variant="outline"
                                 onClick={handleCancel}
@@ -146,8 +134,8 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                                 <Save className="size-4 mr-2" />
                                 {saving ? "Guardando…" : "Guardar"}
                             </Button>
-                        </div>
-                    </div>
+                        </DialogFooter>
+                    </>
                 )}
             </DialogContent>
         </Dialog>

@@ -32,9 +32,9 @@ export function PaymentReceiptDisplay({
 
     if (isLoading) {
         return (
-            <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`}>
-                <div className="w-full h-64 bg-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-gray-500">Cargando…</div>
+            <div className={`animate-pulse rounded-xl border ${className}`}>
+                <div className="flex h-64 w-full items-center justify-center rounded-xl bg-muted">
+                    <div className="text-sm text-muted-foreground">Cargando…</div>
                 </div>
             </div>
         );
@@ -42,9 +42,9 @@ export function PaymentReceiptDisplay({
 
     if (error || !fileData) {
         return (
-            <div className={`border rounded-lg p-8 text-center ${className}`}>
-                <FileText className="size-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No se pudo cargar el comprobante</p>
+            <div className={`rounded-xl border border-dashed py-10 text-center ${className}`}>
+                <FileText className="mx-auto mb-2 size-10 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No se pudo cargar el comprobante</p>
             </div>
         );
     }
@@ -54,7 +54,7 @@ export function PaymentReceiptDisplay({
 
     return (
         <div className={`space-y-3 ${className}`}>
-            <div className="border rounded-lg overflow-hidden" style={{ height: isImage ? imageHeight : 'auto' }}>
+            <div className="overflow-hidden rounded-xl border" style={{ height: isImage ? imageHeight : 'auto' }}>
                 {isPDF ? (
                     <div className="w-full">
                         <iframe
@@ -67,7 +67,7 @@ export function PaymentReceiptDisplay({
                         />
                     </div>
                 ) : isImage ? (
-                    <div className="size-full flex items-center justify-center bg-gray-50">
+                    <div className="flex size-full items-center justify-center bg-muted/40">
                         <img
                             src={fileData.url}
                             alt="Comprobante de pago"
@@ -76,10 +76,10 @@ export function PaymentReceiptDisplay({
                         />
                     </div>
                 ) : (
-                    <div className="bg-gray-50 p-8 text-center">
-                        <FileText className="size-16 mx-auto text-gray-600 mb-4" />
-                        <p className="text-lg font-medium text-gray-900 mb-2">Archivo adjunto</p>
-                        <p className="text-sm text-gray-600">
+                    <div className="bg-muted/40 p-8 text-center">
+                        <FileText className="mx-auto mb-4 size-16 text-muted-foreground" />
+                        <p className="mb-2 text-lg font-medium">Archivo adjunto</p>
+                        <p className="text-sm text-muted-foreground">
                             Tipo: {fileData.type}
                         </p>
                     </div>

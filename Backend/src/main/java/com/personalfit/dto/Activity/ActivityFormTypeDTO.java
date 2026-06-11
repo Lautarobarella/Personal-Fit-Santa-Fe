@@ -14,8 +14,6 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class ActivityFormTypeDTO {
     private String name;
-    private String description;
-    private String location;
     private String trainerId; // Parsear a Integer
     private LocalDate date; // Opcional - se usa fecha actual si no se proporciona
     private LocalTime time; // HH:mm:ss

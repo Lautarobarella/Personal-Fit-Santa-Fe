@@ -66,8 +66,6 @@ export function useActivityEdit(params: Promise<{ id: string }>) {
       setForm({
         id: selectedActivity.id.toString(),
         name: selectedActivity.name,
-        description: selectedActivity.description || "",
-        location: selectedActivity.location || "",
         trainerId: selectedActivity.trainerId?.toString() || "",
         date: dateString,
         time: timeString,

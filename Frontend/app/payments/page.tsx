@@ -6,12 +6,12 @@ import { PaymentVerificationDialog } from "@/components/payments/payment-verific
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usePaymentsPage } from "@/hooks/payments/use-payments-page"
+import { PaymentType } from "@/lib/types"
 import { UserRole } from "@/types"
 
 import {
@@ -27,6 +27,103 @@ import {
     Search,
     User,
 } from "lucide-react"
+
+interface PaymentListProps {
+    payments: PaymentType[]
+    forcePendingBadge?: boolean
+    canVerify?: boolean
+    onDetails: (_paymentId: number) => void
+    onVerify: (_paymentId: number) => void
+    formatDate: (_date: Date | string | null) => string
+    getMethodText: (_method: PaymentType["method"]) => string
+    getStatusColor: (_status: string) => "success" | "warning" | "destructive" | "secondary"
+    getStatusText: (_status: string) => string
+}
+
+function PaymentList({
+    payments,
+    forcePendingBadge,
+    canVerify,
+    onDetails,
+    onVerify,
+    formatDate,
+    getMethodText,
+    getStatusColor,
+    getStatusText,
+}: PaymentListProps) {
+    if (payments.length === 0) {
+        return (
+            <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+                No hay pagos para mostrar
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-2">
+            {payments.map((p) => (
+                <div key={p.id} className="overflow-hidden rounded-xl border transition-colors hover:bg-muted/40">
+                    <button
+                        type="button"
+                        className="w-full px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-label={`Ver detalles del pago de ${p.clientName}`}
+                        onClick={() => onDetails(p.id)}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <User className="size-4 shrink-0 text-primary/70" />
+                                    <h3 className="truncate font-medium">{p.clientName}</h3>
+                                </div>
+                                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Calendar className="size-3 shrink-0" />
+                                    <span>{formatDate(p.createdAt)}</span>
+                                    <span>•</span>
+                                    <span>Vence: {formatDate(p.expiresAt)}</span>
+                                </div>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Método: {getMethodText(p.method)}
+                                </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                                <div className="text-lg font-bold">${p.amount}</div>
+                                {forcePendingBadge ? (
+                                    <Badge variant="warning" className="text-xs">
+                                        Pendiente
+                                    </Badge>
+                                ) : (
+                                    <Badge variant={getStatusColor(p.status)} className="text-xs">
+                                        {getStatusText(p.status)}
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+
+                        {p.rejectionReason && (
+                            <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/10 p-2 text-sm text-destructive">
+                                <strong>Razón:</strong> {p.rejectionReason}
+                            </div>
+                        )}
+                    </button>
+
+                    {forcePendingBadge && canVerify && (
+                        <div className="px-4 pb-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full bg-transparent"
+                                onClick={() => onVerify(p.id)}
+                            >
+                                <Eye className="size-4 mr-2" />
+                                Verificar Pago
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    )
+}
 
 export default function PaymentsPage() {
     const {
@@ -89,9 +186,9 @@ export default function PaymentsPage() {
             <div className="container-centered py-6 space-y-6">
                 {/* Search y filtros */}
                 {user?.role === UserRole.ADMIN && (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Buscar por cliente..."
                                 value={searchTerm}
@@ -153,172 +250,113 @@ export default function PaymentsPage() {
                     </div>
                 )}
 
-                {/* Card informativa para clientes */}
+                {/* Estado de membresía del cliente — banner plano */}
                 {user?.role === UserRole.CLIENT && (
-                    <Card className={`${activePayment ? 'bg-green-50 border-green-200' : pendingPayment ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                {activePayment ? (
-                                    <>
-                                        <CheckCircle className="size-5 text-green-600" />
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-green-800">Plan Vigente</h3>
-                                            <p className="text-sm text-green-700">
-                                                Tu plan está activo hasta {formatDate(activePayment.expiresAt)}
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : pendingPayment ? (
-                                    <>
-                                        <Clock className="size-5 text-yellow-600" />
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-yellow-800">Pago Pendiente</h3>
-                                            <p className="text-sm text-yellow-700">
-                                                Tu pago está pendiente de verificación
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AlertCircle className="size-5 text-red-600" />
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-red-800">Membresía Vencida</h3>
-                                            <p className="text-sm text-yellow-700">
-                                                Tu membresía ha expirado.<br />
-                                                Presiona en <span className="font-semibold text-red-800">&apos;Nuevo&apos;</span> para registrar tu pago.
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <div
+                        className={`flex items-center gap-3 rounded-xl border p-4 ${
+                            activePayment
+                                ? "border-green-500/30 bg-green-500/5"
+                                : pendingPayment
+                                    ? "border-yellow-500/30 bg-yellow-500/5"
+                                    : "border-destructive/30 bg-destructive/5"
+                        }`}
+                    >
+                        {activePayment ? (
+                            <>
+                                <CheckCircle className="size-5 shrink-0 text-green-600" />
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-green-700 dark:text-green-400">Plan Vigente</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Tu plan está activo hasta {formatDate(activePayment.expiresAt)}
+                                    </p>
+                                </div>
+                            </>
+                        ) : pendingPayment ? (
+                            <>
+                                <Clock className="size-5 shrink-0 text-yellow-600" />
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-yellow-700 dark:text-yellow-400">Pago Pendiente</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Tu pago está pendiente de verificación
+                                    </p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <AlertCircle className="size-5 shrink-0 text-destructive" />
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-destructive">Membresía Vencida</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Tu membresía ha expirado. Presioná en{" "}
+                                        <span className="font-semibold text-destructive">&apos;Nuevo&apos;</span> para
+                                        registrar tu pago.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 )}
 
-                {/* Stats - Solo para admin */}
+                {/* Ingresos del mes — solo admin */}
                 {user?.role === UserRole.ADMIN && (
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-bold">
-                                        Ingresos de {esMonthYearFormatter.format(new Date(selectedYear, selectedMonth - 1))}
-                                    </p>
-                                    <p className="text-2xl font-bold text-foreground">
-                                        {isLoadingAdminPayments ? "..." : (showRevenue ? formatCurrency(totalRevenue) : "••••••")}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowRevenue(!showRevenue)}
-                                        className="p-1 hover:bg-muted rounded-full transition-colors"
-                                        aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
-                                    >
-                                        {showRevenue ? (
-                                            <Eye className="size-4 text-muted-foreground hover:text-foreground" />
-                                        ) : (
-                                            <EyeOff className="size-4 text-muted-foreground hover:text-foreground" />
-                                        )}
-                                    </button>
-                                    <DollarSign className="size-8 text-green-600" />
-                                </div>
+                    <div className="rounded-2xl border p-4">
+                        <div className="flex items-start justify-between gap-2">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                Ingresos de {esMonthYearFormatter.format(new Date(selectedYear, selectedMonth - 1))}
+                            </p>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                                <DollarSign className="size-4 text-primary/70" />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRevenue(!showRevenue)}
+                                    className="rounded-full p-0.5 transition-colors hover:bg-muted"
+                                    aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
+                                >
+                                    {showRevenue ? (
+                                        <Eye className="size-4 text-muted-foreground" />
+                                    ) : (
+                                        <EyeOff className="size-4 text-muted-foreground" />
+                                    )}
+                                </button>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                        <p className="mt-2 text-2xl font-semibold tracking-tight">
+                            {isLoadingAdminPayments ? "..." : (showRevenue ? formatCurrency(totalRevenue) : "••••••")}
+                        </p>
+                    </div>
                 )}
 
-                {/* Payments Tabs */}
+                {/* Listado de pagos */}
                 <Tabs defaultValue="all" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="pending">{pendingPayments.length} Pendientes </TabsTrigger>
                         <TabsTrigger value="all">Todos</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="all" className="space-y-3 mt-4">
-                        {sortedAllPayments.map((p) => (
-                            <Card key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleDetailsClick(p.id)}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <User className="size-4 text-muted-foreground" />
-                                                <h3 className="font-medium">{p.clientName}</h3>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Calendar className="size-3" />
-                                                <span>{formatDate(p.createdAt)}</span>
-                                                <span>•</span>
-                                                <span>Vence: {formatDate(p.expiresAt)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                                <span>Método: {getMethodText(p.method)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-lg">${p.amount}</div>
-                                            <Badge variant={getStatusColor(p.status)} className="text-xs">
-                                                {getStatusText(p.status)}
-                                            </Badge>
-                                        </div>
-                                    </div>
-
-                                    {p.rejectionReason && (
-                                        <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
-                                            <strong>Razón:</strong> {p.rejectionReason}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
+                    <TabsContent value="all" className="mt-4">
+                        <PaymentList
+                            payments={sortedAllPayments}
+                            onDetails={handleDetailsClick}
+                            onVerify={handleVerificationClick}
+                            formatDate={formatDate}
+                            getMethodText={getMethodText}
+                            getStatusColor={getStatusColor}
+                            getStatusText={getStatusText}
+                        />
                     </TabsContent>
 
-                    <TabsContent value="pending" className="space-y-3 mt-4">
-                        {pendingPayments.map((p) => (
-                            <Card key={p.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleDetailsClick(p.id)}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <User className="size-4 text-muted-foreground" />
-                                                <h3 className="font-medium">{p.clientName}</h3>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Calendar className="size-3" />
-                                                <span>{formatDate(p.createdAt)}</span>
-                                                <span>•</span>
-                                                <span>Vence: {formatDate(p.expiresAt)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                                <span>Método: {getMethodText(p.method)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-lg">${p.amount}</div>
-                                            <Badge variant="warning" className="text-xs">
-                                                Pendiente
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {user?.role === UserRole.ADMIN && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex-1 bg-transparent"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleVerificationClick(p.id)
-                                                }}
-                                            >
-                                                <Eye className="size-4 mr-2" />
-                                                Verificar Pago
-                                            </Button>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                    <TabsContent value="pending" className="mt-4">
+                        <PaymentList
+                            payments={pendingPayments}
+                            forcePendingBadge
+                            canVerify={user?.role === UserRole.ADMIN}
+                            onDetails={handleDetailsClick}
+                            onVerify={handleVerificationClick}
+                            formatDate={formatDate}
+                            getMethodText={getMethodText}
+                            getStatusColor={getStatusColor}
+                            getStatusText={getStatusText}
+                        />
                     </TabsContent>
                 </Tabs>
 

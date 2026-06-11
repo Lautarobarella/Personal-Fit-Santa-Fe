@@ -5,7 +5,6 @@ import { NotificationStatus } from "@/types"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Archive, CheckCheck, Search } from "lucide-react"
 import { NotificationsList } from "@/components/notifications/notifications-list"
@@ -56,7 +55,7 @@ export default function NotificationsPage() {
                 )}
               </div>
             </TabsTrigger>
-            <TabsTrigger value="read" className="text-sm">Leidas</TabsTrigger>
+            <TabsTrigger value="read" className="text-sm">Leídas</TabsTrigger>
             <TabsTrigger value="archived" className="text-sm">Archivadas</TabsTrigger>
           </TabsList>
 
@@ -77,33 +76,32 @@ export default function NotificationsPage() {
         </Tabs>
 
         {notifications.length > 0 && (
-          <Card className="mb-4 mt-8">
-            <CardHeader>
-              <CardTitle className="text-lg">Acciones Rapidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleMarkAllAsRead}
-                  disabled={!hasUnread}
-                  className="min-w-[180px] bg-transparent"
-                >
-                  <CheckCheck className="mr-2 size-4" />
-                  Marcar todas como leidas
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleArchiveAll}
-                  disabled={!hasActive}
-                  className="min-w-[180px] bg-transparent"
-                >
-                  <Archive className="mr-2 size-4" />
-                  Archivar todas
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <section className="mb-4 mt-8">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-primary" />
+              <h3 className="text-base font-semibold">Acciones Rápidas</h3>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={handleMarkAllAsRead}
+                disabled={!hasUnread}
+                className="flex-1 bg-transparent"
+              >
+                <CheckCheck className="mr-2 size-4" />
+                Marcar todas como leídas
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleArchiveAll}
+                disabled={!hasActive}
+                className="flex-1 bg-transparent"
+              >
+                <Archive className="mr-2 size-4" />
+                Archivar todas
+              </Button>
+            </div>
+          </section>
         )}
       </div>
 

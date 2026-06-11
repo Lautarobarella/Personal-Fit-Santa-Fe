@@ -73,7 +73,7 @@ describe('activitiesApi', () => {
 
   describe('fetchActivityDetail', () => {
     it('llama GET /api/activities/{id}', async () => {
-      const mockDetail = { id: 1, name: 'Yoga', description: 'Clase de yoga', maxParticipants: 15 }
+      const mockDetail = { id: 1, name: 'Yoga', maxParticipants: 15 }
       ;(jwtPermissionsApi.get as jest.Mock).mockResolvedValueOnce(mockDetail)
 
       const result = await fetchActivityDetail(1)
@@ -90,8 +90,6 @@ describe('activitiesApi', () => {
 
       const activity = {
         name: 'Yoga',
-        description: 'Clase de yoga',
-        location: 'Sala A',
         trainerId: '1',
         date: '2026-03-03',
         time: '09:00',
@@ -114,8 +112,6 @@ describe('activitiesApi', () => {
       const activity = {
         id: '1',
         name: 'Yoga Avanzado',
-        description: 'Clase avanzada',
-        location: 'Sala B',
         trainerId: '2',
         date: '2026-03-04',
         time: '10:00',

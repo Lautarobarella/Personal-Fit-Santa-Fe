@@ -5,11 +5,12 @@ import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
 import { TermsAndConditionsDialog } from "@/components/dashboard/terms-and-conditions-dialog"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Separator } from "@/components/ui/separator"
 import { useDashboard } from "@/hooks/dashboard/use-dashboard"
+import { cn } from "@/lib/utils"
 import { UserRole } from "@/types"
 import {
   AlertTriangle,
@@ -19,9 +20,47 @@ import {
   Eye,
   EyeOff,
   Timer,
-  Zap
 } from "lucide-react"
 import { useEffect, useState } from "react"
+
+const getStatValueClass = (color: string) => {
+  switch (color) {
+    case "success":
+      return "text-green-600 dark:text-green-400"
+    case "destructive":
+      return "text-red-600 dark:text-red-400"
+    case "bg-orange-500":
+    case "warning":
+      return "text-primary"
+    default:
+      return "text-foreground"
+  }
+}
+
+const getStatIconClass = (color: string) => {
+  switch (color) {
+    case "success":
+      return "text-green-600/70 dark:text-green-400/70"
+    case "destructive":
+      return "text-red-600/70 dark:text-red-400/70"
+    case "bg-orange-500":
+    case "warning":
+      return "text-primary/70"
+    default:
+      return "text-muted-foreground"
+  }
+}
+
+const getAlertClasses = (type: string) => {
+  switch (type) {
+    case "success":
+      return "border-green-500/30 bg-green-500/5"
+    case "info":
+      return "border-border bg-muted/40"
+    default:
+      return "border-primary/30 bg-primary/5"
+  }
+}
 
 function DashboardContent() {
   const {
@@ -69,194 +108,172 @@ function DashboardContent() {
     )
   }
 
+  // Con cantidad impar de stats, la primera ocupa el ancho completo para que
+  // la grilla quede balanceada.
+  const statSpansTwo = (index: number) => stats.length % 2 === 1 && index === 0
+
+  // DashboardContent se monta solo en el cliente (gate de `mounted` del
+  // wrapper), por lo que estas fechas nunca se evalúan durante SSR.
+  const currentMonthLabel = new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" })
+
   return (
     <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader title={`Hola, ${user.firstName}`} />
 
       <div className="container-centered h-full py-6 space-y-6">
-        {/* Solicitud de permisos de notificación para clientes */}
-
-        {/* Welcome Section - Hero con gradiente naranja */}
-        <div className="relative overflow-hidden rounded-3xl shadow-professional-lg">
-          {/* Fondo con gradiente naranja */}
-          <div className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 dark:from-primary/90 dark:via-primary/80 dark:to-primary/60 px-6 py-7 rounded-3xl">
-            <div className="relative z-10">
-              <p className="text-white/80 text-sm font-medium">Bienvenido de vuelta</p>
-              <h2 className="text-white text-2xl font-bold mt-1">{user.firstName} {user.lastName}</h2>
-              <p className="text-white/70 text-xs mt-2">
-                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </p>
-            </div>
-            {/* Decoración circular sutil */}
-            <div className="absolute -top-6 -right-6 size-32 bg-white/10 rounded-full" />
-            <div className="absolute -bottom-4 -right-10 size-24 bg-white/5 rounded-full" />
+        {/* Bienvenida — cartel naranja del gimnasio */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 px-6 py-7 shadow-professional-lg dark:from-primary/90 dark:via-primary/80 dark:to-primary/60">
+          <div className="relative z-10">
+            <p className="text-sm font-medium text-white/80">Bienvenido de vuelta</p>
+            <h2 className="mt-1 text-2xl font-bold text-white">
+              {user.firstName} {user.lastName}
+            </h2>
+            {/* Solo se renderiza en cliente (gate de `mounted`), la fecha no
+                puede divergir entre server y browser */}
+            <p className="mt-2 text-xs capitalize text-white/70" suppressHydrationWarning>
+              {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
           </div>
+          <div className="absolute -right-6 -top-6 size-32 rounded-full bg-white/10" />
+          <div className="absolute -bottom-4 -right-10 size-24 rounded-full bg-white/5" />
         </div>
 
-        {/* Alerts Section - Diseño profesional */}
+        {/* Alertas — banners planos */}
         {alerts.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {alerts.map((alert) => (
-              <Card
+              <div
                 key={`${alert.type}-${alert.message}`}
-                className={`border-l-4 shadow-professional transition-all duration-200 hover:shadow-professional-lg ${alert.type === "warning"
-                  ? "border-l-primary hover:bg-background/50"
-                  : alert.type === "info"
-                    ? "border-l-primary hover:bg-background/50"
-                    : "border-l-success bg-success/5 hover:bg-success/10"
-                  }`}
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border p-3",
+                  getAlertClasses(alert.type),
+                )}
               >
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {alert.type === "warning" && <AlertTriangle className="size-4 text-primary flex-shrink-0" />}
-                      {alert.type === "info" && <Bell className="size-4 text-primary flex-shrink-0" />}
-                      {alert.type === "success" && <CheckCircle className="size-4 text-success flex-shrink-0" />}
-                      <span className="text-sm font-semibold text-foreground flex-1">{String(alert.message ?? '')}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`text-xs font-medium hover:bg-background/50 rounded-xl flex-shrink-0 ${!alert.action ? 'hidden' : ''}`}
-                      onClick={() => alert.onClick ? alert.onClick() : handleNavigation(alert.route ?? '', alert.action ?? '')}
-                    >
-                      {String(alert.action ?? '')}
-                      <ArrowUpRight className="size-4 ml-1" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {alert.type === "warning" && (
+                    <AlertTriangle className="size-4 shrink-0 text-primary" />
+                  )}
+                  {alert.type === "info" && (
+                    <Bell className="size-4 shrink-0 text-muted-foreground" />
+                  )}
+                  {alert.type === "success" && (
+                    <CheckCircle className="size-4 shrink-0 text-green-600" />
+                  )}
+                  <span className="text-sm font-medium">{String(alert.message ?? "")}</span>
+                </div>
+                {alert.action && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs font-medium text-primary hover:text-primary"
+                    onClick={() =>
+                      alert.onClick
+                        ? alert.onClick()
+                        : handleNavigation(alert.route ?? "", alert.action ?? "")
+                    }
+                  >
+                    {String(alert.action ?? "")}
+                    <ArrowUpRight className="size-4 ml-1" />
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat, index) => {
-            const colSpan = (index === 0 || index === 3) ? "col-span-2" : "col-span-1";
-
-            return (
-              <Card key={stat.title} className={`relative overflow-hidden shadow-professional hover:shadow-professional-lg transition-all duration-300 border-0 min-h-[160px] flex flex-col justify-center ${colSpan} ${
-                stat.color === "success" ? "bg-green-50 dark:bg-green-950/30" :
-                stat.color === "destructive" ? "bg-red-50 dark:bg-red-950/30" :
-                index % 2 === 0 ? "bg-card" : "bg-muted/40 dark:bg-muted/20"
-              }`}>
-                {/* Barra lateral de acento */}
-                <div className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${
-                  stat.color === "success" ? "bg-green-500" :
-                  stat.color === "destructive" ? "bg-red-500" :
-                  stat.color === "bg-orange-500" ? "bg-primary" : "bg-gray-300 dark:bg-gray-600"
-                }`} />
-
-                <CardContent className="p-5 pl-5 flex flex-col justify-center h-full">
-
-                  <div className="absolute top-4 right-4 flex items-center gap-1">
-                    <div className={`p-1.5 rounded-lg ${
-                      stat.color === "success" ? "bg-green-100 dark:bg-green-900/40" :
-                      stat.color === "destructive" ? "bg-red-100 dark:bg-red-900/40" :
-                      stat.color === "bg-orange-500" ? "bg-primary/10" : "bg-gray-100 dark:bg-gray-800"
-                    }`}>
-                      <stat.icon className={`size-5 ${
-                        stat.color === "success" ? "text-green-600 dark:text-green-400" :
-                        stat.color === "destructive" ? "text-red-600 dark:text-red-400" :
-                        stat.color === "bg-orange-500" ? "text-primary" : "text-gray-500 dark:text-gray-400"
-                      }`} />
-                    </div>
-                    {(stat as any).isRevenue && (
-                      <button
-                        type="button"
-                        onClick={() => setShowRevenue(!showRevenue)}
-                        className="p-1 hover:bg-muted rounded-full transition-colors"
-                        aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
-                      >
-                        {showRevenue ? (
-                          <Eye className="size-4 text-muted-foreground hover:text-foreground" />
-                        ) : (
-                          <EyeOff className="size-4 text-muted-foreground hover:text-foreground" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="pr-16">
-                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{String(stat.title ?? '')}</p>
-                    <p className={`${stat.dynamicFontSize || "text-3xl"} font-bold ${
-                      stat.color === "success" ? "text-green-700 dark:text-green-400" :
-                      stat.color === "destructive" ? "text-red-700 dark:text-red-400" :
-                      stat.color === "bg-orange-500" ? "text-primary" : "text-foreground"
-                    } mb-2 tracking-tight`}>{String(stat.value ?? '')}</p>
-                    <p className={`text-xs font-medium ${stat.color === "success" ? "text-green-600 dark:text-green-500" : stat.color === "destructive" ? "text-red-600 dark:text-red-500" : "text-muted-foreground"}`}>{String(stat.description ?? '')}</p>
-                  </div>
-
-                  {/* Elemento decorativo naranja */}
-                  <div className={`absolute bottom-0 left-0 w-full h-0.5 ${
-                    stat.color === "bg-orange-500" ? "bg-primary/40" : "bg-gray-200 dark:bg-gray-700"
-                  }`} />
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Quick Actions - Diseño profesional */}
-        <Card className="shadow-professional border-0 overflow-hidden">
-          {/* Header con acento naranja */}
-          <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent dark:from-primary/10 dark:via-primary/5 dark:to-transparent">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-bold flex items-center gap-3">
-                <div className="p-2 bg-primary/15 dark:bg-primary/20 rounded-xl shadow-sm">
-                  <Zap className="size-6 text-primary" />
-                </div>
-                Acciones Rápidas
-              </CardTitle>
-            </CardHeader>
+        {/* Estadísticas — un único panel con divisores */}
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-primary" />
+            <h3 className="text-base font-semibold">Tu resumen</h3>
           </div>
-          <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, index) => {
-              if (action.onClick) {
-                return (
-                  <Button
-                    key={action.title}
-                    variant="outline"
-                    className={`w-full h-auto p-6 flex flex-col gap-4 border-2 bg-background hover:bg-accent/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group ${
-                      action.color === "bg-orange-500"
-                        ? "border-primary/20 hover:border-primary/50"
-                        : "border-border/50 hover:border-gray-400/50 dark:hover:border-gray-500/50"
-                    }`}
-                    onClick={action.onClick}
-                    disabled={(action as any).disabled}
-                  >
-                    <div className={`size-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
-                      action.color === "bg-orange-500" ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"
-                    }`}>
-                      <action.icon className="size-7 text-white" />
+          <div className="overflow-hidden rounded-2xl border">
+            <div className="grid grid-cols-2 gap-px bg-border">
+              {stats.map((stat, index) => (
+                <div
+                  key={stat.title}
+                  className={cn("bg-background p-4", statSpansTwo(index) && "col-span-2")}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {String(stat.title ?? "")}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <stat.icon className={cn("size-4", getStatIconClass(stat.color))} />
+                      {stat.isRevenue && (
+                        <button
+                          type="button"
+                          onClick={() => setShowRevenue(!showRevenue)}
+                          className="rounded-full p-0.5 transition-colors hover:bg-muted"
+                          aria-label={showRevenue ? "Ocultar ingresos" : "Mostrar ingresos"}
+                        >
+                          {showRevenue ? (
+                            <Eye className="size-4 text-muted-foreground" />
+                          ) : (
+                            <EyeOff className="size-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
-                  </Button>
-                )
-              } else {
-                return (
-                  <Button
-                    key={action.title}
-                    variant="outline"
-                    className={`w-full h-auto p-6 flex flex-col gap-4 border-2 bg-background hover:bg-accent/50 shadow-professional hover:shadow-professional-lg transition-all duration-300 rounded-2xl group ${
-                      action.color === "bg-orange-500"
-                        ? "border-primary/20 hover:border-primary/50"
-                        : "border-border/50 hover:border-gray-400/50 dark:hover:border-gray-500/50"
-                    }`}
-                    onClick={() => handleNavigation(action.route!, action.title)}
+                  </div>
+                  <p
+                    className={cn(
+                      "mt-2 font-semibold tracking-tight",
+                      stat.dynamicFontSize || "text-2xl",
+                      getStatValueClass(stat.color),
+                    )}
                   >
-                    <div className={`size-14 rounded-2xl flex items-center justify-center shadow-professional group-hover:scale-110 transition-transform duration-300 ${
-                      action.color === "bg-orange-500" ? "bg-primary" : "bg-gray-400 dark:bg-gray-600"
-                    }`}>
-                      <action.icon className="size-7 text-white" />
-                    </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">{String(action.title ?? '')}</span>
-                  </Button>
-                )
-              }
-            })}
-          </CardContent>
-        </Card>
+                    {String(stat.value ?? "")}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {String(stat.description ?? "")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Acciones rápidas — tiles sueltos, sin card contenedora */}
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-primary" />
+            <h3 className="text-base font-semibold">Acciones Rápidas</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {quickActions.map((action) => (
+              <button
+                key={action.title}
+                type="button"
+                disabled={action.disabled}
+                onClick={() =>
+                  action.onClick ? action.onClick() : handleNavigation(action.route!, action.title)
+                }
+                className="group flex flex-col items-center gap-2.5 rounded-xl border bg-background p-4 transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+              >
+                {/* Secuencia naranja/gris definida por el color de cada acción */}
+                <span
+                  className={cn(
+                    "flex size-11 items-center justify-center rounded-xl transition-colors",
+                    action.color === "bg-orange-500"
+                      ? "bg-primary/10 group-hover:bg-primary/15"
+                      : "bg-muted group-hover:bg-muted/80",
+                  )}
+                >
+                  <action.icon
+                    className={cn(
+                      "size-5",
+                      action.color === "bg-orange-500" ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                </span>
+                <span className="text-center text-sm font-medium leading-tight">
+                  {String(action.title ?? "")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
 
       <BottomNav />
@@ -281,7 +298,12 @@ function DashboardContent() {
       {trainerAttendanceDialog.activityId && (
         <AttendanceActivityDialog
           open={trainerAttendanceDialog.open}
-          onOpenChange={(open) => setTrainerAttendanceDialog({ open, activityId: open ? trainerAttendanceDialog.activityId : null })}
+          onOpenChange={(open) =>
+            setTrainerAttendanceDialog({
+              open,
+              activityId: open ? trainerAttendanceDialog.activityId : null,
+            })
+          }
           activityId={trainerAttendanceDialog.activityId}
         />
       )}
@@ -293,14 +315,14 @@ function DashboardContent() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Timer className="size-5" />
-                Horas del mes - {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                Horas del mes - {currentMonthLabel}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 mt-2">
               {(() => {
-                const monthlyData = getMonthlyHours();
-                const totalMonth = monthlyData.reduce((sum, d) => sum + d.totalHours, 0);
-                const daysWithHours = monthlyData.filter(d => d.totalHours > 0);
+                const monthlyData = getMonthlyHours()
+                const totalMonth = monthlyData.reduce((sum, d) => sum + d.totalHours, 0)
+                const daysWithHours = monthlyData.filter((d) => d.totalHours > 0)
                 return (
                   <>
                     <div className="flex items-center justify-between p-3 bg-primary/10 rounded-xl">
@@ -309,22 +331,31 @@ function DashboardContent() {
                     </div>
                     <Separator />
                     {daysWithHours.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-6">No hay horas registradas este mes.</p>
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No hay horas registradas este mes.
+                      </p>
                     ) : (
                       daysWithHours.map((day) => {
-                        const [y, m, d] = day.date.split('-').map(Number);
-                        const dateObj = new Date(y, m - 1, d);
-                        const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+                        const [y, m, d] = day.date.split("-").map(Number)
+                        const dateObj = new Date(y, m - 1, d)
+                        const dayName = dateObj.toLocaleDateString("es-ES", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                        })
                         return (
-                          <div key={day.date} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
+                          <div
+                            key={day.date}
+                            className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50"
+                          >
                             <span className="text-sm capitalize">{dayName}</span>
                             <span className="text-sm font-semibold">{day.totalHours.toFixed(1)} hs</span>
                           </div>
-                        );
+                        )
                       })
                     )}
                   </>
-                );
+                )
               })()}
             </div>
           </DialogContent>

@@ -3,16 +3,15 @@
 import { PaymentReceiptDisplay } from "@/components/payments/payment-receipt-display"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { usePaymentDetailsDialog } from "@/hooks/payments/use-payment-details-dialog"
 import { MethodType, PaymentStatus } from "@/lib/types"
 import { Calendar, Clock, DollarSign, FileImage, User } from "lucide-react"
@@ -37,10 +36,10 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="lg:max-w-4xl">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileImage className="size-5" />
+            <FileImage className="size-5 text-primary" />
             Detalles del Pago
           </DialogTitle>
           <DialogDescription>
@@ -48,118 +47,109 @@ export function PaymentDetailsDialog({ open, onOpenChange, paymentId }: PaymentD
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4 max-h-[60vh]">
+        <DialogBody className="space-y-4">
           {/* Payment Info */}
-          <Card className="m-2">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <User className="size-4 text-muted-foreground" />
-                  <span className="font-medium">{selectedPayment.clientName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="size-4 text-muted-foreground" />
-                  <span>{formatDateTime(selectedPayment.createdAt as Date)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="size-4 text-muted-foreground" />
-                  <span className="font-bold text-lg">${selectedPayment.amount}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="size-4 text-muted-foreground" />
-                  <Badge variant={getStatusColor(selectedPayment.status)}>{getStatusText(selectedPayment.status)}</Badge>
-                </div>
+          <div className="rounded-xl border p-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="size-4 text-muted-foreground" />
+                <span className="font-medium">{selectedPayment.clientName}</span>
               </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-muted-foreground" />
+                <span>{formatDateTime(selectedPayment.createdAt as Date)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="size-4 text-muted-foreground" />
+                <span className="text-lg font-bold">${selectedPayment.amount}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="size-4 text-muted-foreground" />
+                <Badge variant={getStatusColor(selectedPayment.status)}>{getStatusText(selectedPayment.status)}</Badge>
+              </div>
+            </div>
 
-              {selectedPayment.receiptUrl && (
-                <div className="mt-3 pt-3 border-t">
-                  <span className="text-sm text-muted-foreground">
-                    Comprobante subido: {formatDateTime(selectedPayment.createdAt as Date)}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {selectedPayment.receiptUrl && (
+              <p className="mt-3 border-t pt-3 text-sm text-muted-foreground">
+                Comprobante subido: {formatDateTime(selectedPayment.createdAt as Date)}
+              </p>
+            )}
+          </div>
 
-          {/* Associated Users card - Solo mostrar si hay múltiples usuarios */}
+          {/* Associated Users - Solo mostrar si hay múltiples usuarios */}
           {selectedPayment.associatedUsers && selectedPayment.associatedUsers.length > 1 && (
-            <Card className="m-2">
-              <CardContent className="p-4">
-                <Label className="text-sm font-medium mb-3 block">Clientes Relacionados ({selectedPayment.associatedUsers.length})</Label>
-                <div className="space-y-2">
-                  {selectedPayment.associatedUsers.map((user: any, index: number) => (
-                    <div key={user.userId} className="flex items-center gap-3 p-2 bg-muted/50 rounded">
-                      <User className="size-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <span className="font-medium">{user.userName}</span>
-                        <span className="text-muted-foreground ml-2">({user.userDni})</span>
-                      </div>
-                      {index === 0 && (
-                        <Badge variant="outline" className="text-xs">Creador</Badge>
-                      )}
+            <div className="rounded-xl border">
+              <h4 className="flex items-center gap-2 px-4 pb-2 pt-4 text-sm font-semibold">
+                <span className="h-5 w-1 rounded-full bg-primary" />
+                Clientes Relacionados ({selectedPayment.associatedUsers.length})
+              </h4>
+              <div className="divide-y border-t">
+                {selectedPayment.associatedUsers.map((user: any, index: number) => (
+                  <div key={user.userId} className="flex items-center gap-3 px-4 py-3 text-sm">
+                    <User className="size-4 text-muted-foreground" />
+                    <div className="flex-1">
+                      <span className="font-medium">{user.userName}</span>
+                      <span className="ml-2 text-muted-foreground">({user.userDni})</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    {index === 0 && (
+                      <Badge variant="outline" className="text-xs">Creador</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Notas del pago - Mostrar siempre si existen, más prominente para efectivo */}
           {selectedPayment.notes && (
-            <Card className="m-2">
-              <CardContent className="p-4">
-                <Label className="text-sm font-medium mb-2 block">
-                  {selectedPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
-                </Label>
-                <div className={`p-3 rounded text-sm ${
-                  selectedPayment.method === MethodType.CASH 
-                    ? "bg-amber-50 border border-amber-200 text-amber-800" 
-                    : "bg-muted/50"
-                }`}>
-                  {selectedPayment.notes}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border p-4">
+              <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                <span className="h-5 w-1 rounded-full bg-primary" />
+                {selectedPayment.method === MethodType.CASH ? "Detalles del Pago en Efectivo" : "Notas del Pago"}
+              </h4>
+              <div className={`rounded-lg p-3 text-sm ${
+                selectedPayment.method === MethodType.CASH
+                  ? "border border-amber-200 bg-amber-50 text-amber-800"
+                  : "bg-muted/50"
+              }`}>
+                {selectedPayment.notes}
+              </div>
+            </div>
           )}
 
           {/* Receipt Display - Solo para métodos que NO sean efectivo */}
           {selectedPayment.method !== MethodType.CASH && (
             selectedPayment.receiptId ? (
-              <Card className="m-2">
-                <CardContent className="p-4">
-                  <Label className="text-sm font-medium mb-2 block">Comprobante de Pago</Label>
-                  <PaymentReceiptDisplay
-                    fileId={selectedPayment.receiptId}
-                    fileName={`comprobante-${selectedPayment.clientName}-${selectedPayment.id}`}
-                    className=""
-                    showActions={true}
-                  />
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border p-4">
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="h-5 w-1 rounded-full bg-primary" />
+                  Comprobante de Pago
+                </h4>
+                <PaymentReceiptDisplay
+                  fileId={selectedPayment.receiptId}
+                  fileName={`comprobante-${selectedPayment.clientName}-${selectedPayment.id}`}
+                  className=""
+                  showActions={true}
+                />
+              </div>
             ) : (
-              <Card className="m-2">
-                <CardContent className="py-8 text-center">
-                  <FileImage className="size-12 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No hay comprobante subido</p>
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border border-dashed py-10 text-center">
+                <FileImage className="mx-auto mb-2 size-10 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No hay comprobante subido</p>
+              </div>
             )
           )}
 
           {/* Rejection Reason */}
           {selectedPayment.status === PaymentStatus.REJECTED && selectedPayment.rejectionReason && (
-            <Card className="m-2 border-destructive">
-              <CardContent className="p-4">
-                <Label className="text-sm font-medium text-destructive mb-2 block">Razón del Rechazo</Label>
-                <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{selectedPayment.rejectionReason}</p>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border border-destructive/50 p-4">
+              <h4 className="mb-2 text-sm font-semibold text-destructive">Razón del Rechazo</h4>
+              <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{selectedPayment.rejectionReason}</p>
+            </div>
           )}
-        </div>
+        </DialogBody>
 
-        {/* Fixed footer with close button only */}
-        <DialogFooter className="flex-shrink-0 pt-6 border-t mt-4">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

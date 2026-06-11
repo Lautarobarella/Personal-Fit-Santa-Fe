@@ -10,9 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useEnrollActivityDialog } from "@/hooks/activities/use-enroll-activity-dialog"
-import { Loader2, Users, Calendar, Clock, MapPin } from "lucide-react"
+import { Loader2, Users, Calendar, Clock } from "lucide-react"
 import { ActivityType } from "@/lib/types"
 
 interface EnrollActivityDialogProps {
@@ -46,39 +45,29 @@ export function EnrollActivityDialog({
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-center text-lg">{activity.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{activity.description}</p>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="size-4 text-muted-foreground" />
-                      <span>{formatDate(activity.date)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="size-4 text-muted-foreground" />
-                      <span>{formatTime(activity.date)} ({activity.duration} min)</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="size-4 text-muted-foreground" />
-                      <span>{activity.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="size-4 text-muted-foreground" />
-                      <span>{activity.currentParticipants}/{activity.maxParticipants} participantes</span>
-                    </div>
+              <div className="rounded-xl border p-4">
+                <p className="text-center text-base font-semibold text-foreground">{activity.name}</p>
+                <div className="mt-3 space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="size-4 text-muted-foreground" />
+                    <span>{formatDate(activity.date)}</span>
                   </div>
-                  
-                  <div className="text-center pt-2 border-t">
-                    {isEnrolled
-                      ? `¿Estás seguro de que deseas desinscribirte de "${activity.name}"?`
-                      : `Presiona aceptar para inscribirte a "${activity.name}".`}
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="size-4 text-muted-foreground" />
+                    <span>{formatTime(activity.date)} ({activity.duration} min)</span>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="size-4 text-muted-foreground" />
+                    <span>{activity.currentParticipants}/{activity.maxParticipants} participantes</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-center text-sm">
+                {isEnrolled
+                  ? `¿Estás seguro de que deseas desinscribirte de "${activity.name}"?`
+                  : `Presiona aceptar para inscribirte a "${activity.name}".`}
+              </p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react"
 import {
   Activity,
   BarChart3,
+  Bell,
   Calendar,
   CheckCircle,
   Clock,
@@ -502,31 +503,35 @@ export function useDashboard() {
     }
   }
 
-  // --- Quick actions por rol ---
+  // --- Quick actions por rol (cantidad par para una grilla balanceada) ---
   const getQuickActionsForRole = (): QuickAction[] => {
     if (!user) return []
 
+    // El color alterna naranja/gris en secuencia; la vista lo usa como acento.
     if (user.role === UserRole.ADMIN) {
       return [
         { title: "Tomar Asistencia", onClick: () => openNextActivityAttendance(), icon: CheckCircle, color: "bg-orange-500" },
         { title: "Mis Actividades", onClick: () => navigateToNextTrainerActivity(), icon: Activity, color: "bg-gray-500" },
-        { title: "Verificar Pagos", route: "/payments/verify", icon: CreditCard, color: "bg-gray-500" },
+        { title: "Verificar Pagos", route: "/payments/verify", icon: CreditCard, color: "bg-orange-500" },
         { title: "Verificar Usuarios", route: "/clients/verify", icon: UserCheck, color: "bg-gray-500" },
         { title: "Ver Reportes", route: "/reports", icon: TrendingUp, color: "bg-orange-500" },
+        { title: "Gestionar Clientes", route: "/clients", icon: Users, color: "bg-gray-500" },
       ]
     } else if (user.role === UserRole.TRAINER) {
       return [
         { title: "Mis Actividades", onClick: () => navigateToNextTrainerActivity(), icon: Activity, color: "bg-orange-500" },
         { title: "Tomar Asistencia", onClick: () => openNextActivityAttendance(), icon: CheckCircle, color: "bg-gray-500" },
-        { title: "Horas del Mes", onClick: () => setShowMonthlyHours(true), icon: Timer, color: "bg-gray-500" },
+        { title: "Horas del Mes", onClick: () => setShowMonthlyHours(true), icon: Timer, color: "bg-orange-500" },
+        { title: "Notificaciones", route: "/notifications", icon: Bell, color: "bg-gray-500" },
       ]
     } else {
       return [
         { title: "Ver Actividades", route: "/activities", icon: Activity, color: "bg-orange-500" },
-        { title: "Mi Resumen", route: "/reports", icon: BarChart3, color: "bg-orange-500" },
-        { title: "Mi Progreso", route: "/progress", icon: TrendingUp, color: "bg-gray-500" },
+        { title: "Mi Resumen", route: "/reports", icon: BarChart3, color: "bg-gray-500" },
+        { title: "Mi Progreso", route: "/progress", icon: TrendingUp, color: "bg-orange-500" },
         { title: "Realizar Pago", route: "/payments", icon: CreditCard, color: "bg-gray-500" },
-        { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-gray-500" },
+        { title: "Mi Perfil", onClick: () => setShowProfileDialog(true), icon: Users, color: "bg-orange-500" },
+        { title: "Notificaciones", route: "/notifications", icon: Bell, color: "bg-gray-500" },
       ]
     }
   }

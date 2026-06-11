@@ -3,14 +3,13 @@
 import { useClientForm } from "@/hooks/clients/use-client-form"
 import { UserRole } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DatePickerBirthdate } from "@/components/ui/date-picker-birthdate"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, User } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { BottomNav } from "@/components/ui/bottom-nav"
 
 
@@ -34,144 +33,156 @@ export default function NewClientPage() {
       <MobileHeader title="Nuevo Cliente" showBack onBack={() => router.back()} />
 
       <div className="container-centered py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="size-5" />
-              Registrar Nuevo Cliente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Información Personal</h3>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">DNI</Label>
-                  <Input
-                    id="dni"
-                    value={form.dni}
-                    onChange={(e) => handleInputChange("dni", e.target.value)}
-                    placeholder="123456789"
-                    className={errors.dni ? "border-error" : ""}
-                  />
-                  {errors.dni && <p className="text-sm text-error">{errors.dni}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">Nombre</Label>
-                  <Input
-                    id="firstName"
-                    value={form.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
-                    placeholder="Nombre"
-                    className={errors.firstName ? "border-error" : ""}
-                  />
-                  {errors.firstName && <p className="text-sm text-error">{errors.firstName}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Apellido</Label>
-                  <Input
-                    id="lastName"
-                    value={form.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
-                    placeholder="Apellido"
-                    className={errors.firstName ? "border-error" : ""}
-                  />
-                  {errors.firstName && <p className="text-sm text-error">{errors.firstName}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="email@email.com"
-                    className={errors.email ? "border-error" : ""}
-                  />
-                  {errors.email && <p className="text-sm text-error">{errors.email}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="+34 666 123 456"
-                    className={errors.phone ? "border-error" : ""}
-                  />
-                  {errors.phone && <p className="text-sm text-error">{errors.phone}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="emergencyPhone">Teléfono de Emergencia</Label>
-                  <Input
-                    id="emergencyPhone"
-                    type="tel"
-                    value={form.emergencyPhone || ""}
-                    onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
-                    placeholder="342 666 789012"
-                    className={errors.emergencyPhone ? "border-error" : ""}
-                  />
-                  {errors.emergencyPhone && <p className="text-sm text-error">{errors.emergencyPhone}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
-                  <DatePickerBirthdate
-                    value={form.birthDate}
-                    onChange={(date) => handleInputChange("birthDate", date)}
-                  />
-                  {errors.birthDate && <p className="text-sm text-error">{errors.birthDate}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Dirección</Label>
-                  <Textarea
-                    id="address"
-                    value={form.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                    placeholder="Calle, número, ciudad, código postal"
-                    rows={2}
-                  />
-                  {errors.address && <p className="text-sm text-error">{errors.address}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Rol</Label>
-                  <Select value={form.role} onValueChange={(value) => handleInputChange("role", value)}>
-                    <SelectTrigger id="role" className={errors.role ? "border-error" : ""}>
-                      <SelectValue placeholder="Seleccionar rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={UserRole.CLIENT}>Cliente</SelectItem>
-                      <SelectItem value={UserRole.TRAINER}>Entrenador</SelectItem>
-                      <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.role && <p className="text-sm text-error">{errors.role}</p>}
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Información personal */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-primary" />
+              <h3 className="text-base font-semibold">Información Personal</h3>
+            </div>
+            <div className="space-y-4 rounded-xl border p-4">
+              <div className="space-y-2">
+                <Label htmlFor="dni">DNI</Label>
+                <Input
+                  id="dni"
+                  value={form.dni}
+                  onChange={(e) => handleInputChange("dni", e.target.value)}
+                  placeholder="123456789"
+                  className={errors.dni ? "border-destructive" : ""}
+                />
+                {errors.dni && <p className="text-sm text-destructive">{errors.dni}</p>}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 bg-transparent">
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading} onClick={handleSubmit} className="flex-1">
-                  {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  Crear Cliente
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Nombre</Label>
+                <Input
+                  id="firstName"
+                  value={form.firstName}
+                  onChange={(e) => handleInputChange("firstName", e.target.value)}
+                  placeholder="Nombre"
+                  className={errors.firstName ? "border-destructive" : ""}
+                />
+                {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
               </div>
-            </form>
-          </CardContent>
-        </Card>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Apellido</Label>
+                <Input
+                  id="lastName"
+                  value={form.lastName}
+                  onChange={(e) => handleInputChange("lastName", e.target.value)}
+                  placeholder="Apellido"
+                  className={errors.firstName ? "border-destructive" : ""}
+                />
+                {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
+              </div>
+            </div>
+          </section>
+
+          {/* Datos de contacto */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+              <h3 className="text-base font-semibold">Datos de contacto</h3>
+            </div>
+            <div className="space-y-4 rounded-xl border p-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="email@email.com"
+                  className={errors.email ? "border-destructive" : ""}
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Teléfono</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  placeholder="+34 666 123 456"
+                  className={errors.phone ? "border-destructive" : ""}
+                />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="emergencyPhone">Teléfono de Emergencia</Label>
+                <Input
+                  id="emergencyPhone"
+                  type="tel"
+                  value={form.emergencyPhone || ""}
+                  onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
+                  placeholder="342 666 789012"
+                  className={errors.emergencyPhone ? "border-destructive" : ""}
+                />
+                {errors.emergencyPhone && <p className="text-sm text-destructive">{errors.emergencyPhone}</p>}
+              </div>
+            </div>
+          </section>
+
+          {/* Información adicional */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-primary" />
+              <h3 className="text-base font-semibold">Información adicional</h3>
+            </div>
+            <div className="space-y-4 rounded-xl border p-4">
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                <DatePickerBirthdate
+                  value={form.birthDate}
+                  onChange={(date) => handleInputChange("birthDate", date)}
+                />
+                {errors.birthDate && <p className="text-sm text-destructive">{errors.birthDate}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Dirección</Label>
+                <Textarea
+                  id="address"
+                  value={form.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  placeholder="Calle, número, ciudad, código postal"
+                  rows={2}
+                />
+                {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Rol</Label>
+                <Select value={form.role} onValueChange={(value) => handleInputChange("role", value)}>
+                  <SelectTrigger id="role" className={errors.role ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Seleccionar rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UserRole.CLIENT}>Cliente</SelectItem>
+                    <SelectItem value={UserRole.TRAINER}>Entrenador</SelectItem>
+                    <SelectItem value={UserRole.ADMIN}>Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
+              </div>
+            </div>
+          </section>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 bg-transparent">
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading} onClick={handleSubmit} className="flex-1">
+              {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Crear Cliente
+            </Button>
+          </div>
+        </form>
       </div>
       <BottomNav />
     </div>

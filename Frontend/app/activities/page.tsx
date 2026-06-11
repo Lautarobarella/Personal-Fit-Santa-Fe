@@ -15,22 +15,24 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import { ActivityStatus, ActivityType, UserRole } from "@/types"
 import {
-  Calendar,
-  CheckCircle,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Loader2,
-  MapPin,
   MoreVertical,
   Plus,
   Search,
   Users,
-  X,
 } from "lucide-react"
 
+const getTrainerInitials = (trainerName: string) =>
+  trainerName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
 
 export default function ActivitiesPage() {
   const {
@@ -62,6 +64,7 @@ export default function ActivitiesPage() {
     getClientActionLabel,
     isClientActionDisabled,
     getClientActionVariant,
+    canViewDetails,
     navigateWeek,
     goToToday,
     handleDeleteActivity,
@@ -81,25 +84,143 @@ export default function ActivitiesPage() {
     )
   }
 
-  const getActivityStatusBadge = (activity: ActivityType) => {
-    switch (activity.status) {
-      case ActivityStatus.COMPLETED:
-        return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">
-            <CheckCircle className="size-3 mr-1" />
-            Finalizada
-          </Badge>
-        )
-      case ActivityStatus.CANCELLED:
-        return (
-          <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">
-            <X className="size-3 mr-1" />
-            Cancelada
-          </Badge>
-        )
-      default:
-        return null
-    }
+  const renderActivityCard = (activity: ActivityType) => {
+    const isCompleted = activity.status === ActivityStatus.COMPLETED
+    const isCancelled = activity.status === ActivityStatus.CANCELLED
+    const isClickable = canViewDetails(activity)
+    const isFull = activity.currentParticipants >= activity.maxParticipants
+    const occupancy = activity.maxParticipants > 0
+      ? activity.currentParticipants / activity.maxParticipants
+      : 0
+    const showAdminMenu = canManageActivities && !isCompleted
+    const showTrainerMenu = isTrainer && activity.trainerName === trainerFullName && !isCompleted
+
+    return (
+      <Card
+        key={activity.id}
+        role={isClickable ? "button" : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        aria-label={isClickable ? `Ver detalles de ${activity.name}` : undefined}
+        onClick={isClickable ? () => handleDetailsClick(activity) : undefined}
+        onKeyDown={
+          isClickable
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  handleDetailsClick(activity)
+                }
+              }
+            : undefined
+        }
+        className={cn(
+          "overflow-hidden transition-colors duration-200",
+          isCompleted && "opacity-60",
+          isClickable &&
+            "cursor-pointer hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start gap-4">
+            {/* Horario */}
+            <div className="w-14 shrink-0 border-r pr-3 text-center">
+              <p className="text-sm font-semibold leading-none">{formatTime(activity.date)}</p>
+              <p className="mt-1 text-[11px] leading-none text-muted-foreground">{activity.duration} min</p>
+            </div>
+
+            {/* Nombre y entrenador */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="truncate text-base font-semibold">{activity.name}</h3>
+                {isCancelled && (
+                  <Badge variant="destructive" className="shrink-0 text-[10px]">
+                    Cancelada
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Avatar className="size-5">
+                  <AvatarFallback className="text-[10px]">
+                    {getTrainerInitials(activity.trainerName)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate">{activity.trainerName}</span>
+              </div>
+            </div>
+
+            {(showAdminMenu || showTrainerMenu) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-mr-2 -mt-2 size-8 shrink-0 p-0"
+                    aria-label="Opciones de la actividad"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {showAdminMenu && (
+                    <DropdownMenuItem onClick={() => router.push(`/activities/edit/${activity.id}`)}>
+                      Editar
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
+                    Tomar asistencia
+                  </DropdownMenuItem>
+                  {showAdminMenu && (
+                    <DropdownMenuItem
+                      className="text-error"
+                      onClick={() => handleDeleteActivity(activity)}
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          {/* Capacidad + acción del cliente */}
+          <div className="mt-4 flex items-end justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Capacidad</span>
+                <span className="flex items-center gap-1 font-medium">
+                  <Users className="size-3" />
+                  {activity.currentParticipants}/{activity.maxParticipants}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    isFull ? "bg-destructive" : occupancy > 0.8 ? "bg-warning" : "bg-primary",
+                  )}
+                  style={{ width: `${Math.min(occupancy * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {user?.role === UserRole.CLIENT && (
+              <Button
+                size="sm"
+                variant={getClientActionVariant(activity)}
+                disabled={isClientActionDisabled(activity)}
+                className="shrink-0 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleClientPrimaryAction(activity)
+                }}
+              >
+                {getClientActionLabel(activity)}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -108,65 +229,65 @@ export default function ActivitiesPage() {
         title="Actividades"
         actions={
           canManageActivities ? (
-              <Button size="sm" onClick={() => {router.push('/activities/new')}}>
-                <Plus className="size-4 mr-1" />
-                Nueva
-              </Button>
+            <Button size="sm" onClick={() => router.push("/activities/new")}>
+              <Plus className="size-4 mr-1" />
+              Nueva
+            </Button>
           ) : null
         }
       />
 
       <div className="container-centered py-6 space-y-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")} className="bg-transparent">
-                  <ChevronLeft className="size-4" />
-                </Button>
-
-                <div className="text-center">
-                  <h2 className="font-semibold text-lg">{formatWeekRange()}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {esYearFormatter.format(weekDates[0])}
-                  </p>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigateWeek("next")}
-                  className="bg-transparent"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-
-              <div className="flex justify-center mt-3">
-                <Button variant="outline" size="sm" onClick={goToToday} className="bg-transparent">
-                  <Calendar className="size-4 mr-2" />
-                  Hoy
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-
-        {/* Filters */}
+        {/* Barra de navegación semanal + filtros */}
         <Card>
-          <CardContent className="p-4 space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar actividades o entrenadores..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          <CardContent className="p-3 space-y-3">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigateWeek("prev")}
+                className="size-9 shrink-0 p-0"
+                aria-label="Semana anterior"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+
+              <div className="flex-1 text-center">
+                <h2 className="font-semibold leading-tight">{formatWeekRange()}</h2>
+                <p className="text-xs text-muted-foreground">
+                  {esYearFormatter.format(weekDates[0])}
+                </p>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigateWeek("next")}
+                className="size-9 shrink-0 p-0"
+                aria-label="Semana siguiente"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+
+              <Button variant="outline" size="sm" onClick={goToToday} className="shrink-0 bg-transparent">
+                <CalendarDays className="size-4 mr-1.5" />
+                Hoy
+              </Button>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar actividades..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
               <Select value={filterTrainer} onValueChange={setFilterTrainer}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="sm:w-56">
                   <SelectValue placeholder="Entrenador" />
                 </SelectTrigger>
                 <SelectContent>
@@ -182,224 +303,62 @@ export default function ActivitiesPage() {
           </CardContent>
         </Card>
 
-        {/* Weekly Calendar */}
-        <div className="space-y-4">
-          {activitiesByDay.map((day, dayIndex) => {
-            return (
-              <Card key={day.date.toISOString()} id={`day-${dayIndex}`} className={isToday(day.date) ? "border-primary shadow-md" : ""}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`text-center ${isToday(day.date) ? "text-primary" : ""}`}>
-                        <div className="text-sm font-medium">
-                          {dayNames[dayIndex]}
-                        </div>
-                        <div
-                          className={`text-2xl font-bold ${isToday(day.date) ? "bg-primary text-primary-foreground rounded-full size-9 flex items-center justify-center" : ""}`}
-                        >
-                          {day.date.getDate()}
-                        </div>
-                      </div>
-                      {isToday(day.date) && (
-                        <Badge variant="default" className="text-xs">
-                          Hoy
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {day.activities.length} {day.activities.length === 1 ? "actividad" : "actividades"}
-                    </div>
-                  </div>
-
-                  {day.activities.length > 0 ? (
-                    <div className="space-y-3">
-                      {day.activities.map((activity: ActivityType) => {
-                        return (
-                          <Card
-                            key={activity.id}
-                            className={`border-l-4 ${activity.status === ActivityStatus.COMPLETED
-                              ? "border-l-gray-300 opacity-75"
-                              : "border-l-primary"
-                              }`}
-                          >
-                            <CardContent className="p-4 relative">
-                              {canManageActivities && activity.status !== ActivityStatus.COMPLETED && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 size-8 p-0">
-                                      <MoreVertical className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => router.push(`/activities/edit/${activity.id}`)}>
-                                      Editar
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
-                                      Tomar asistencia
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-error"
-                                      onClick={() => handleDeleteActivity(activity)}
-                                    >
-                                      Eliminar
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                              {isTrainer && activity.trainerName === trainerFullName && activity.status !== ActivityStatus.COMPLETED && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 size-8 p-0">
-                                      <MoreVertical className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleDetailsClick(activity)}>
-                                      Ver Detalles
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleAttendanceActivity(activity)}>
-                                      Tomar asistencia
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                              
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1 pr-10">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h3 className={`font-semibold text-base ${activity.status === ActivityStatus.COMPLETED ? "text-gray-600" : ""}`}>
-                                      {activity.name}
-                                    </h3>
-                                    {getActivityStatusBadge(activity)}
-                                    {/* <Badge variant="outline" className={`text-xs ${getCategoryColor(activity.category)}`}>
-                                    {activity.category}
-                                  </Badge> */}
-                                  </div>
-                                  <p className={`text-sm mb-2 ${activity.status === ActivityStatus.COMPLETED ? "text-gray-500" : "text-muted-foreground"}`}>
-                                    {activity.description}
-                                  </p>
-
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="size-4" />
-                                      <span>{activity.location}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="size-4" />
-                                      <span className="font-medium text-foreground">{formatTime(activity.date)}</span>
-                                      <span>({activity.duration}min)</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="size-6">
-                                    <AvatarFallback className="text-xs">
-                                      {activity.trainerName
-                                        .split(" ")
-                                        .map((n: string) => n[0])
-                                        .join("")}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm font-medium">{activity.trainerName}</span>
-                                </div>
-
-                                <div className="flex gap-2">
-                                  {user?.role === UserRole.CLIENT && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleClientPrimaryAction(activity)}
-                                      disabled={isClientActionDisabled(activity)}
-                                      className="text-xs"
-                                      variant={getClientActionVariant(activity)}
-                                    >
-                                      {getClientActionLabel(activity)}
-                                    </Button>
-                                  )}
-                                  {canManageActivities && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDetailsClick(activity)}
-                                      className="text-xs bg-transparent"
-                                    >
-                                      Ver Detalles
-                                    </Button>
-                                  )}
-                                  {isTrainer && activity.trainerName === trainerFullName && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDetailsClick(activity)}
-                                      className="text-xs bg-transparent"
-                                    >
-                                      Ver Detalles
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Capacity Bar */}
-                              <div className="mt-3">
-                                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                  <span>Capacidad</span>
-                                  <div className="flex items-center gap-1">
-                                    <Users className="size-3" />
-                                    <span>{activity.currentParticipants}/{activity.maxParticipants}</span>
-                                  </div>
-                                </div>
-                                <div className="w-full bg-muted rounded-full h-2">
-                                  <div
-                                    className={`h-2 rounded-full transition-all ${activity.currentParticipants >= activity.maxParticipants
-                                      ? "bg-destructive"
-                                      : activity.currentParticipants / activity.maxParticipants > 0.8
-                                        ? "bg-warning"
-                                        : "bg-primary"
-                                      }`}
-                                    style={{
-                                      width: `${(activity.currentParticipants / activity.maxParticipants) * 100}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="size-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No hay actividades programadas</p>
-                    </div>
+        {/* Calendario semanal */}
+        <div className="space-y-6">
+          {activitiesByDay.map((day, dayIndex) => (
+            <section key={day.date.toISOString()} id={`day-${dayIndex}`} className="scroll-mt-24">
+              <div className="mb-2 flex items-baseline justify-between border-b px-1 pb-2">
+                <div className="flex items-baseline gap-2">
+                  <h3
+                    className={cn(
+                      "text-sm font-semibold",
+                      isToday(day.date) && "text-primary",
+                    )}
+                  >
+                    {dayNames[dayIndex]} {day.date.getDate()}
+                  </h3>
+                  {isToday(day.date) && (
+                    <Badge variant="outline" className="border-primary text-xs text-primary">
+                      Hoy
+                    </Badge>
                   )}
-                </CardContent>
-              </Card>
-            )
-          })}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {day.activities.length} {day.activities.length === 1 ? "actividad" : "actividades"}
+                </span>
+              </div>
+
+              {day.activities.length > 0 ? (
+                <div className="space-y-3">{day.activities.map(renderActivityCard)}</div>
+              ) : (
+                <div className="rounded-xl border border-dashed py-6 text-center text-sm text-muted-foreground">
+                  Sin actividades programadas
+                </div>
+              )}
+            </section>
+          ))}
         </div>
 
-        {/* Weekly Summary */}
-
-        {user?.role === UserRole.ADMIN && <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-3">Resumen de la Semana</h3>
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-primary">{weekActivities.length}</div>
-                <div className="text-sm text-muted-foreground">Actividades</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-secondary">
-                  {weekActivities.reduce((sum: number, a: ActivityType) => sum + a.currentParticipants, 0)}
+        {/* Resumen semanal (admin) */}
+        {user?.role === UserRole.ADMIN && (
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="mb-3 font-semibold">Resumen de la Semana</h3>
+              <div className="grid grid-cols-2 divide-x">
+                <div className="px-4 py-2 text-center">
+                  <div className="text-2xl font-semibold">{weekActivities.length}</div>
+                  <div className="text-sm text-muted-foreground">Actividades</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Participantes</div>
+                <div className="px-4 py-2 text-center">
+                  <div className="text-2xl font-semibold">
+                    {weekActivities.reduce((sum: number, a: ActivityType) => sum + a.currentParticipants, 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Participantes</div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Dialogs */}
@@ -432,20 +391,22 @@ export default function ActivitiesPage() {
           _open={detailsDialog.open}
           onOpenChange={(open) => setDetailsDialog({ open, activity: null })}
           activityId={detailsDialog.activity.id}
-          {...(canManageActivities ? {
-            onEdit: () => {
-              setDetailsDialog({ open: false, activity: null })
-              if (detailsDialog.activity) {
-                router.push('/activities/edit/' + detailsDialog.activity.id)
+          {...(canManageActivities
+            ? {
+                onEdit: () => {
+                  setDetailsDialog({ open: false, activity: null })
+                  if (detailsDialog.activity) {
+                    router.push("/activities/edit/" + detailsDialog.activity.id)
+                  }
+                },
+                onDelete: () => {
+                  setDetailsDialog({ open: false, activity: null })
+                  if (detailsDialog.activity) {
+                    handleDeleteActivity(detailsDialog.activity)
+                  }
+                },
               }
-            },
-            onDelete: () => {
-              setDetailsDialog({ open: false, activity: null })
-              if (detailsDialog.activity) {
-                handleDeleteActivity(detailsDialog.activity)
-              }
-            }
-          } : {})}
+            : {})}
         />
       )}
 

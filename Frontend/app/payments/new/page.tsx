@@ -3,7 +3,6 @@
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogBody,
@@ -166,23 +165,21 @@ export default function NewPaymentPage() {
               </div>
 
               {selectedMode === "group" && (
-                <Card className="border-border/80">
-                  <CardContent className="space-y-2 p-4">
-                    <Label htmlFor="group-size">Cantidad de usuarios (DNIs)</Label>
-                    <Input
-                      id="group-size"
-                      type="number"
-                      min={2}
-                      step={1}
-                      value={groupSizeInput}
-                      onChange={(event) => setGroupSizeInput(event.target.value)}
-                      placeholder="Ej: 3"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Debes completar exactamente esa cantidad de DNIs para habilitar la confirmacion del pago.
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="space-y-2 rounded-xl border p-4">
+                  <Label htmlFor="group-size">Cantidad de usuarios (DNIs)</Label>
+                  <Input
+                    id="group-size"
+                    type="number"
+                    min={2}
+                    step={1}
+                    value={groupSizeInput}
+                    onChange={(event) => setGroupSizeInput(event.target.value)}
+                    placeholder="Ej: 3"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Debes completar exactamente esa cantidad de DNIs para habilitar la confirmación del pago.
+                  </p>
+                </div>
               )}
             </DialogBody>
 
