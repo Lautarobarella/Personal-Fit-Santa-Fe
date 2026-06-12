@@ -90,8 +90,14 @@ export function TakeAttendanceDialog({
     handleClose,
   } = useAttendanceActivityDialog(activityId, open, handleOpenChange, onAttendanceUpdated)
 
+  // Solo quedan en la cola los participantes sin estado definido (PENDING):
+  // quien ya fue marcado presente/ausente/tarde no debe volver a aparecer.
   const queuedAttendances = useMemo(
-    () => activityAttendances.filter((attendance) => !markedIds.includes(attendance.id)),
+    () =>
+      activityAttendances.filter(
+        (attendance) =>
+          attendance.status === AttendanceStatus.PENDING && !markedIds.includes(attendance.id),
+      ),
     [activityAttendances, markedIds],
   )
 
