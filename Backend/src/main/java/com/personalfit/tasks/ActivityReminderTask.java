@@ -30,39 +30,44 @@ public class ActivityReminderTask {
     @Autowired
     private FCMService fcmService;
 
+    /*
+     * DESHABILITADO a pedido: recordatorio al entrenador/admin 1 hora antes de
+     * su clase. Se conserva el código comentado para poder reactivarlo
+     * descomentando el bloque (incluida la anotación @Scheduled).
+     */
     // Run every 15 minutes
-    @Scheduled(cron = "0 */15 * * * *")
-    public void sendActivityReminders() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourLater = now.plusMinutes(60);
-        LocalDateTime oneHourFifteenLater = now.plusMinutes(75);
-
-        // Find activities starting between 60 and 75 minutes from now
-        List<Activity> upcomingActivities = activityRepository.findByDateBetween(oneHourLater, oneHourFifteenLater);
-
-        for (Activity activity : upcomingActivities) {
-            if (activity.getStatus() != ActivityStatus.CANCELLED) {
-                // Notify Trainer
-                if (activity.getTrainer() != null) {
-                    // Check if notification already exists to avoid duplicates (optional but good
-                    // practice)
-                    // For simplicity, we assume the window and cron schedule prevents most
-                    // duplicates
-
-                    Notification notification = new Notification();
-                    notification.setTitle("Recordatorio de Clase");
-                    notification.setMessage("Tu clase '" + activity.getName() + "' comienza en 1 hora.");
-                    notification.setStatus(NotificationStatus.UNREAD);
-                    notification.setCreatedAt(LocalDateTime.now());
-                    notification.setUser(activity.getTrainer());
-
-                    notificationRepository.save(notification);
-                    fcmService.sendNotificationAsync(activity.getTrainer().getId(),
-                            notification.getTitle(), notification.getMessage());
-                    log.info("Reminder sent to trainer {} for activity {}", activity.getTrainer().getEmail(),
-                            activity.getName());
-                }
-            }
-        }
-    }
+    // @Scheduled(cron = "0 */15 * * * *")
+    // public void sendActivityReminders() {
+    //     LocalDateTime now = LocalDateTime.now();
+    //     LocalDateTime oneHourLater = now.plusMinutes(60);
+    //     LocalDateTime oneHourFifteenLater = now.plusMinutes(75);
+    //
+    //     // Find activities starting between 60 and 75 minutes from now
+    //     List<Activity> upcomingActivities = activityRepository.findByDateBetween(oneHourLater, oneHourFifteenLater);
+    //
+    //     for (Activity activity : upcomingActivities) {
+    //         if (activity.getStatus() != ActivityStatus.CANCELLED) {
+    //             // Notify Trainer
+    //             if (activity.getTrainer() != null) {
+    //                 // Check if notification already exists to avoid duplicates (optional but good
+    //                 // practice)
+    //                 // For simplicity, we assume the window and cron schedule prevents most
+    //                 // duplicates
+    //
+    //                 Notification notification = new Notification();
+    //                 notification.setTitle("Recordatorio de Clase");
+    //                 notification.setMessage("Tu clase '" + activity.getName() + "' comienza en 1 hora.");
+    //                 notification.setStatus(NotificationStatus.UNREAD);
+    //                 notification.setCreatedAt(LocalDateTime.now());
+    //                 notification.setUser(activity.getTrainer());
+    //
+    //                 notificationRepository.save(notification);
+    //                 fcmService.sendNotificationAsync(activity.getTrainer().getId(),
+    //                         notification.getTitle(), notification.getMessage());
+    //                 log.info("Reminder sent to trainer {} for activity {}", activity.getTrainer().getEmail(),
+    //                         activity.getName());
+    //             }
+    //         }
+    //     }
+    // }
 }
