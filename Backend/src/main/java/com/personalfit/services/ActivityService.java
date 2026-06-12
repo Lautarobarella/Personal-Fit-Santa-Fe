@@ -389,51 +389,55 @@ public class ActivityService {
      * Cron Job: Class Reminders (Every 15 mins).
      * Notifies enrolled users exactly ONCE per class, 30 minutes before it
      * starts.
+     *
+     * DESHABILITADO a pedido: se decidió dejar de enviar estos recordatorios
+     * de clases próximas. Se conserva el código comentado para poder
+     * reactivarlo descomentando el bloque (incluida la anotación @Scheduled).
      */
-    @Scheduled(cron = "0 */15 * * * *")
-    public void sendClassReminders() {
-        try {
-            log.debug("Running job: Class Reminders");
-            // Truncate to the minute so consecutive runs tile the timeline with
-            // no millisecond gaps or overlaps at the window edges.
-            LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-
-            // Half-open window [now+30m, now+45m) aligned with the 15-minute
-            // cron: every class falls in exactly ONE run, so each user gets a
-            // single reminder, sent 30-44 minutes before start. The previous
-            // version scanned a 60-minute-wide window every 30 minutes, so the
-            // same class matched 2-3 consecutive runs and enrolled users
-            // received the same reminder several times.
-            LocalDateTime windowStart = now.plusMinutes(30);
-            LocalDateTime windowEnd = windowStart.plusMinutes(15);
-
-            List<Activity> upcomingActivities = activityRepository.findByDateBetween(windowStart, windowEnd)
-                    .stream()
-                    .filter(activity -> activity.getStatus() == ActivityStatus.ACTIVE)
-                    .filter(activity -> activity.getDate().isBefore(windowEnd))
-                    .collect(Collectors.toList());
-
-            if (upcomingActivities.isEmpty()) {
-                return;
-            }
-
-            for (Activity activity : upcomingActivities) {
-                List<Attendance> attendances = attendanceRepository.findByActivity(activity);
-                List<User> enrolledUsers = attendances.stream()
-                        .map(Attendance::getUser)
-                        .collect(Collectors.toList());
-
-                if (!enrolledUsers.isEmpty()) {
-                    notificationService.sendBulkClassReminder(enrolledUsers, activity.getName());
-
-                    log.info("Class reminders sent: activityId={}, recipients={}",
-                            activity.getId(), enrolledUsers.size());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Class Reminder Job failed", e);
-        }
-    }
+    // @Scheduled(cron = "0 */15 * * * *")
+    // public void sendClassReminders() {
+    //     try {
+    //         log.debug("Running job: Class Reminders");
+    //         // Truncate to the minute so consecutive runs tile the timeline with
+    //         // no millisecond gaps or overlaps at the window edges.
+    //         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+    //
+    //         // Half-open window [now+30m, now+45m) aligned with the 15-minute
+    //         // cron: every class falls in exactly ONE run, so each user gets a
+    //         // single reminder, sent 30-44 minutes before start. The previous
+    //         // version scanned a 60-minute-wide window every 30 minutes, so the
+    //         // same class matched 2-3 consecutive runs and enrolled users
+    //         // received the same reminder several times.
+    //         LocalDateTime windowStart = now.plusMinutes(30);
+    //         LocalDateTime windowEnd = windowStart.plusMinutes(15);
+    //
+    //         List<Activity> upcomingActivities = activityRepository.findByDateBetween(windowStart, windowEnd)
+    //                 .stream()
+    //                 .filter(activity -> activity.getStatus() == ActivityStatus.ACTIVE)
+    //                 .filter(activity -> activity.getDate().isBefore(windowEnd))
+    //                 .collect(Collectors.toList());
+    //
+    //         if (upcomingActivities.isEmpty()) {
+    //             return;
+    //         }
+    //
+    //         for (Activity activity : upcomingActivities) {
+    //             List<Attendance> attendances = attendanceRepository.findByActivity(activity);
+    //             List<User> enrolledUsers = attendances.stream()
+    //                     .map(Attendance::getUser)
+    //                     .collect(Collectors.toList());
+    //
+    //             if (!enrolledUsers.isEmpty()) {
+    //                 notificationService.sendBulkClassReminder(enrolledUsers, activity.getName());
+    //
+    //                 log.info("Class reminders sent: activityId={}, recipients={}",
+    //                         activity.getId(), enrolledUsers.size());
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         log.error("Class Reminder Job failed", e);
+    //     }
+    // }
 
     /**
      * Batch Activity Import.
