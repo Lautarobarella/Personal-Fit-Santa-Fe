@@ -5,12 +5,14 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTermsAndConditionsDialog } from "@/hooks/dashboard/use-terms-and-conditions-dialog"
+import { Check, ScrollText, X } from "lucide-react"
 
 interface TermsAndConditionsDialogProps {
   open: boolean
@@ -50,7 +52,7 @@ export function TermsAndConditionsDialog({
           key={index}
           className={`${line.trim() === '' ? 'mb-4' : 'mb-2'} leading-relaxed ${isDataLine ? 'font-semibold text-primary' : ''}`}
         >
-          {line || ' '}
+          {line || ' '}
         </p>
       )
     })
@@ -59,23 +61,24 @@ export function TermsAndConditionsDialog({
   return (
     <Dialog open={open} onOpenChange={(openState) => !openState && (viewMode === "readonly" ? onAccept() : handleReject())}>
       <DialogContent className="h-[90vh] w-[90vw] max-w-none lg:max-w-none">
-        <DialogHeader>
-          <DialogTitle className="text-center text-xl font-bold">
-            Términos y Condiciones
+        <DialogHeader className="pr-12">
+          <DialogTitle className="flex items-center gap-2">
+            <ScrollText className="size-5 shrink-0 text-primary" />
+            <span className="min-w-0">Términos y Condiciones</span>
           </DialogTitle>
           {viewMode === "default" && (
-            <p className="text-center text-sm text-muted-foreground">
+            <DialogDescription>
               {!hasScrolledToBottom ?
                 'Por favor, lea detenidamente y desplácese hasta el final para aceptar' :
                 'Ha leído completamente los términos y condiciones'
               }
-            </p>
+            </DialogDescription>
           )}
         </DialogHeader>
 
         <DialogBody className="flex min-h-0 flex-col overflow-hidden">
           <ScrollArea
-            className="flex-1 pr-4"
+            className="min-h-0 flex-1 rounded-xl border p-4"
             ref={scrollAreaRef}
             onScrollCapture={handleScroll}
           >
@@ -85,28 +88,30 @@ export function TermsAndConditionsDialog({
               </div>
             ) : (
               <div className="flex h-full items-center justify-center">
-                <p className="text-muted-foreground">Cargando términos y condiciones…</p>
+                <p className="text-sm text-muted-foreground">Cargando términos y condiciones…</p>
               </div>
             )}
           </ScrollArea>
         </DialogBody>
 
         {viewMode === "default" && (
-          <DialogFooter className="flex-row gap-4">
+          <DialogFooter className="flex-row items-center gap-2">
             <Button
               variant="destructive"
               onClick={handleReject}
-              className="flex-1"
+              className="min-w-0 flex-1"
               disabled={!user}
             >
+              <X className="mr-1.5 size-4 shrink-0 max-sm:hidden" />
               Rechazar
             </Button>
 
             <Button
               onClick={handleAccept}
               disabled={!hasScrolledToBottom || !user}
-              className="flex-1"
+              className="min-w-0 flex-1"
             >
+              <Check className="mr-1.5 size-4 shrink-0 max-sm:hidden" />
               Aceptar
             </Button>
           </DialogFooter>

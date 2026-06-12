@@ -35,12 +35,10 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="lg:max-w-lg">
-                <DialogHeader>
+                <DialogHeader className="pr-12">
                     <DialogTitle className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                            <Clock className="size-4 text-primary" />
-                        </span>
-                        Tiempos de Actividades
+                        <Clock className="size-5 shrink-0 text-primary" />
+                        <span className="min-w-0">Tiempos de Actividades</span>
                     </DialogTitle>
                     <DialogDescription>
                         Configura los tiempos mínimos de anticipación para inscripciones y desinscripciones.
@@ -49,11 +47,11 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
 
                 {loading ? (
                     <DialogBody>
-                        <div className="py-4 text-center text-muted-foreground">Cargando configuración…</div>
+                        <div className="py-8 text-center text-sm text-muted-foreground">Cargando configuración…</div>
                     </DialogBody>
                 ) : (
                     <>
-                        <DialogBody className="space-y-4">
+                        <DialogBody className="space-y-3">
                             {/* Tiempo de Inscripción */}
                             <div className="rounded-xl border p-4">
                                 <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
@@ -82,7 +80,7 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                             {/* Tiempo de Desinscripción */}
                             <div className="rounded-xl border p-4">
                                 <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
                                     Tiempo de Desinscripción
                                 </h4>
                                 <div className="space-y-2">
@@ -106,9 +104,12 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
 
                             {/* Ejemplo explicativo */}
                             <div className="rounded-xl border p-4">
-                                <h4 className="mb-2 text-sm font-semibold">Ejemplo de Funcionamiento</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    <strong>Actividad programada a las 9:00 AM:</strong>
+                                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    Ejemplo de Funcionamiento
+                                </h4>
+                                <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                                    <strong className="text-foreground">Actividad programada a las 9:00 AM:</strong>
                                     <br />
                                     • Con 24h de inscripción: disponible para inscripción desde las 9:00 AM del día anterior.
                                     <br />
@@ -117,21 +118,21 @@ export function ActivityTimesDialog({ open, onOpenChange }: ActivityTimesDialogP
                             </div>
                         </DialogBody>
 
-                        <DialogFooter>
+                        <DialogFooter className="flex-row items-center gap-2">
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 onClick={handleCancel}
                                 disabled={saving}
-                                className="flex-1"
+                                className="min-w-0 flex-1"
                             >
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="flex-1"
+                                className="min-w-0 flex-1"
                             >
-                                <Save className="size-4 mr-2" />
+                                <Save className="mr-2 size-4 shrink-0 max-sm:hidden" />
                                 {saving ? "Guardando…" : "Guardar"}
                             </Button>
                         </DialogFooter>

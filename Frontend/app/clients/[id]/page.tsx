@@ -3,12 +3,11 @@
 import { useClientEdit } from "@/hooks/clients/use-client-edit"
 import { UserRole } from "@/types"
 import { MobileHeader } from "@/components/ui/mobile-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { User, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { BottomNav } from "@/components/ui/bottom-nav"
 
 export default function EditClientPage() {
@@ -46,32 +45,35 @@ export default function EditClientPage() {
     <div className="min-h-screen bg-background mb-32">
       <MobileHeader title="Editar Cliente" showBack onBack={() => router.back()} />
 
-      <div className="container-centered py-6 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <User className="size-5" />
-              {selectedClient.firstName} {selectedClient.lastName}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p><span className="font-medium text-foreground">DNI:</span> {selectedClient.dni}</p>
-            <p><span className="font-medium text-foreground">Email:</span> {selectedClient.email}</p>
-            <p>
-              <span className="font-medium text-foreground">Fecha de nacimiento:</span>{" "}
-              <span> {formatDate(selectedClient.birthDate)}</span>
-            </p>
-          </CardContent>
-        </Card>
+      <div className="container-centered py-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Información del cliente */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-primary" />
+              <h3 className="text-base font-semibold">
+                {selectedClient.firstName} {selectedClient.lastName}
+              </h3>
+            </div>
+            <div className="space-y-2 rounded-xl border p-4 text-sm text-muted-foreground">
+              <p><span className="font-medium text-foreground">DNI:</span> {selectedClient.dni}</p>
+              <p className="break-all"><span className="font-medium text-foreground">Email:</span> {selectedClient.email}</p>
+              <p>
+                <span className="font-medium text-foreground">Fecha de nacimiento:</span>{" "}
+                <span> {formatDate(selectedClient.birthDate)}</span>
+              </p>
+            </div>
+          </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Datos editables</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Datos editables */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+              <h3 className="text-base font-semibold">Datos editables</h3>
+            </div>
+            <div className="space-y-4 rounded-xl border p-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefono</Label>
+                <Label htmlFor="phone">Teléfono</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -82,7 +84,7 @@ export default function EditClientPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="emergencyPhone">Telefono de emergencia</Label>
+                <Label htmlFor="emergencyPhone">Teléfono de emergencia</Label>
                 <Input
                   id="emergencyPhone"
                   type="tel"
@@ -93,28 +95,29 @@ export default function EditClientPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Direccion</Label>
+                <Label htmlFor="address">Dirección</Label>
                 <Textarea
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Calle, numero, ciudad"
+                  placeholder="Calle, número, ciudad"
                   rows={2}
                 />
               </div>
+            </div>
+          </section>
 
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 bg-transparent">
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  Guardar cambios
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+          {/* Acciones */}
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1 bg-transparent">
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
+              {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Guardar cambios
+            </Button>
+          </div>
+        </form>
       </div>
       <BottomNav />
     </div>

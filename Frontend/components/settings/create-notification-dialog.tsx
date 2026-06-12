@@ -52,10 +52,10 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="lg:max-w-md">
-                    <DialogHeader>
+                    <DialogHeader className="pr-12">
                         <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="size-4 text-destructive" />
-                            Acceso Restringido
+                            <AlertTriangle className="size-5 shrink-0 text-destructive" />
+                            <span className="min-w-0">Acceso Restringido</span>
                         </DialogTitle>
                     </DialogHeader>
                     <DialogBody>
@@ -66,8 +66,8 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                             </AlertDescription>
                         </Alert>
                     </DialogBody>
-                    <DialogFooter>
-                        <Button onClick={() => onOpenChange(false)}>
+                    <DialogFooter className="flex-row items-center gap-2">
+                        <Button onClick={() => onOpenChange(false)} className="min-w-0 flex-1">
                             Entendido
                         </Button>
                     </DialogFooter>
@@ -79,29 +79,28 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="lg:max-w-xl">
-                <DialogHeader>
+                <DialogHeader className="pr-12">
                     <DialogTitle className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                            <Bell className="size-4 text-primary" />
-                        </span>
-                        Crear Notificación
+                        <Bell className="size-5 shrink-0 text-primary" />
+                        <span className="min-w-0">Crear Notificación</span>
                     </DialogTitle>
                     <DialogDescription>
                         Crea una notificación que será visible para todos los usuarios en su bandeja de notificaciones.
                     </DialogDescription>
                 </DialogHeader>
 
-                <DialogBody className="space-y-4">
+                <DialogBody className="space-y-3">
                     {isProgressVisible ? (
                         <div className="divide-y rounded-xl border">
                             <div className="space-y-3 p-4">
                                 <h4 className="flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    <span className="min-w-0 flex-1">Progreso de envío</span>
                                     {progress.status === "completed" ? (
-                                        <CheckCircle2 className="size-4 text-success" />
+                                        <CheckCircle2 className="size-4 shrink-0 text-success" />
                                     ) : (
-                                        <Loader2 className="size-4 animate-spin text-primary" />
+                                        <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
                                     )}
-                                    Progreso de envío
                                 </h4>
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between gap-3 text-sm">
@@ -149,13 +148,13 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                     ) : (
                         <>
                             {/* Aviso de alcance */}
-                            <Alert>
-                                <Users className="size-4" />
-                                <AlertDescription>
-                                    Esta notificación será enviada a <strong>todos los usuarios</strong> (excepto administradores)
+                            <div className="flex items-start gap-2.5 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                                <Users className="mt-0.5 size-4 shrink-0" />
+                                <p className="min-w-0">
+                                    Esta notificación será enviada a <strong className="text-foreground">todos los usuarios</strong> (excepto administradores)
                                     y aparecerá en su sección de notificaciones.
-                                </AlertDescription>
-                            </Alert>
+                                </p>
+                            </div>
 
                             {/* Formulario */}
                             <div className="rounded-xl border p-4">
@@ -177,7 +176,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                                             maxLength={maxTitleLength}
                                             disabled={isSending}
                                         />
-                                        <p className="text-xs text-muted-foreground text-right">
+                                        <p className="text-right text-xs text-muted-foreground">
                                             {title.length}/{maxTitleLength}
                                         </p>
                                     </div>
@@ -197,7 +196,7 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                                             disabled={isSending}
                                             className="resize-none"
                                         />
-                                        <p className="text-xs text-muted-foreground text-right">
+                                        <p className="text-right text-xs text-muted-foreground">
                                             {message.length}/{maxMessageLength}
                                         </p>
                                     </div>
@@ -207,8 +206,11 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                             {/* Vista previa */}
                             {(title || message) && (
                                 <div className="rounded-xl border border-dashed p-4">
-                                    <h4 className="mb-2 text-sm font-semibold">Vista Previa</h4>
-                                    <div className="space-y-2">
+                                    <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                                        <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+                                        Vista Previa
+                                    </h4>
+                                    <div className="space-y-2 rounded-lg bg-muted/50 p-3">
                                         {title && (
                                             <div>
                                                 <p className="text-xs text-muted-foreground">Título:</p>
@@ -228,37 +230,32 @@ export function CreateNotificationDialog({ open, onOpenChange }: CreateNotificat
                     )}
                 </DialogBody>
 
-                <DialogFooter>
+                <DialogFooter className="flex-row items-center gap-2">
                     {progress.status === "completed" ? (
-                        <Button onClick={handleCancel} className="flex-1">
+                        <Button onClick={handleCancel} className="min-w-0 flex-1">
                             Cerrar
                         </Button>
                     ) : (
                         <>
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 onClick={handleCancel}
                                 disabled={isSending}
-                                className="flex-1"
+                                className="min-w-0 flex-1"
                             >
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={handleSend}
                                 disabled={isSending || !title.trim() || !message.trim()}
-                                className="flex-1 gap-2"
+                                className="min-w-0 flex-1 px-2"
                             >
                                 {isSending ? (
-                                    <>
-                                        <Loader2 className="size-4 animate-spin" />
-                                        Enviando…
-                                    </>
+                                    <Loader2 className="mr-1.5 size-4 shrink-0 animate-spin" />
                                 ) : (
-                                    <>
-                                        <Send className="size-4" />
-                                        Enviar Notificación
-                                    </>
+                                    <Send className="mr-1.5 size-4 shrink-0 max-sm:hidden" />
                                 )}
+                                {isSending ? "Enviando…" : "Enviar Notificación"}
                             </Button>
                         </>
                     )}

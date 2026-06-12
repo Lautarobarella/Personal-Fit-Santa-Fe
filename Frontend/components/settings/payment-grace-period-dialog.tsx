@@ -33,19 +33,17 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="lg:max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="pr-12">
           <DialogTitle className="flex items-center gap-2">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <Clock className="size-4 text-primary" />
-            </span>
-            Período de Gracia de Pago
+            <Clock className="size-5 shrink-0 text-primary" />
+            <span className="min-w-0">Período de Gracia de Pago</span>
           </DialogTitle>
           <DialogDescription>
             Configura el período de gracia para usuarios con pagos pendientes.
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody className="space-y-4">
+        <DialogBody className="space-y-3">
           {/* Configuración del Período de Gracia */}
           <div className="rounded-xl border p-4">
             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
@@ -68,18 +66,24 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
                   Número de días que un usuario con pago pendiente puede inscribirse a actividades.
                   Después de este tiempo, no podrá inscribirse hasta que su pago sea verificado.
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  <strong>Valor actual:</strong> {paymentGracePeriodDays} {paymentGracePeriodDays === 1 ? 'día' : 'días'}
-                </p>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Valor actual</p>
+                  <p className="text-xl font-semibold">
+                    {paymentGracePeriodDays} {paymentGracePeriodDays === 1 ? 'día' : 'días'}
+                  </p>
+                </div>
               </div>
             </form>
           </div>
 
           {/* Ejemplo explicativo */}
           <div className="rounded-xl border p-4">
-            <h4 className="mb-2 text-sm font-semibold">Ejemplo de Funcionamiento</h4>
-            <p className="text-sm text-muted-foreground">
-              <strong>Con período de gracia de 7 días:</strong>
+            <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+              <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+              Ejemplo de Funcionamiento
+            </h4>
+            <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+              <strong className="text-foreground">Con período de gracia de 7 días:</strong>
               <br />
               • Usuario realiza pago el día 1 de enero
               <br />
@@ -92,13 +96,13 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
           </div>
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className="flex-row items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={() => handleOpenChange(false)}
             disabled={isUpdatingPaymentGracePeriod}
-            className="flex-1"
+            className="min-w-0 flex-1"
           >
             Cancelar
           </Button>
@@ -106,9 +110,9 @@ export function PaymentGracePeriodDialog({ open, onOpenChange }: PaymentGracePer
             type="submit"
             disabled={isUpdatingPaymentGracePeriod}
             onClick={handleSubmit}
-            className="flex-1"
+            className="min-w-0 flex-1"
           >
-            <Save className="size-4 mr-2" />
+            <Save className="mr-2 size-4 shrink-0 max-sm:hidden" />
             {isUpdatingPaymentGracePeriod ? "Actualizando..." : "Guardar"}
           </Button>
         </DialogFooter>

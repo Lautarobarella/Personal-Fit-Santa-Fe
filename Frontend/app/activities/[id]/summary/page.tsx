@@ -6,14 +6,13 @@ import { getMuscleGroupLabel, MUSCLE_GROUP_OPTIONS } from "@/lib/muscle-groups"
 import { cn } from "@/lib/utils"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
-import { Check, ChevronsUpDown, ClipboardList, Dumbbell, Loader2 } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 
 interface ActivitySummaryPageProps {
   params: Promise<{
@@ -53,31 +52,35 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-safe-bottom">
       <MobileHeader title="Resumen de Actividad" showBack onBack={() => router.back()} />
 
-      <div className="container-centered py-6">
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ClipboardList className="size-5" />
-              {selectedActivity.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm text-muted-foreground">
-            <p>Entrenador: {selectedActivity.trainerName}</p>
-          </CardContent>
-        </Card>
+      <div className="container-centered py-6 space-y-6">
+        {/* Actividad */}
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-primary" />
+            <h3 className="text-base font-semibold">Actividad</h3>
+          </div>
+          <div className="rounded-xl border p-4">
+            <p className="font-semibold">{selectedActivity.name}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Entrenador: {selectedActivity.trainerName}
+            </p>
+          </div>
+        </section>
 
-        <Card className="mb-24">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Dumbbell className="size-5" />
-              {hasExistingSummary ? "Editar Resumen" : "Indicar Resumen"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* Resumen */}
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+            <h3 className="text-base font-semibold">
+              {hasExistingSummary ? "Editar resumen" : "Indicar resumen"}
+            </h3>
+          </div>
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-6 rounded-xl border p-4">
               <div className="space-y-2">
                 <Label>Grupo muscular trabajado</Label>
                 <Popover open={isMuscleGroupComboboxOpen} onOpenChange={setIsMuscleGroupComboboxOpen}>
@@ -144,7 +147,7 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="trainingDescription">Descripcion del entrenamiento</Label>
+                <Label htmlFor="trainingDescription">Descripción del entrenamiento</Label>
                 <Textarea
                   id="trainingDescription"
                   value={summaryForm.trainingDescription}
@@ -156,33 +159,33 @@ export default function ActivitySummaryPage({ params }: ActivitySummaryPageProps
                   }
                   rows={5}
                   maxLength={2500}
-                  placeholder="Contanos como fue el entrenamiento, ejercicios destacados o sensaciones."
+                  placeholder="Contanos cómo fue el entrenamiento, ejercicios destacados o sensaciones."
                 />
               </div>
 
               {!canSubmitSummary && (
                 <p className="text-sm text-destructive">
-                  Esta actividad aun no esta habilitada para resumen o no estas inscripto.
+                  Esta actividad aún no está habilitada para resumen o no estás inscripto.
                 </p>
               )}
+            </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  className="flex-1 bg-transparent"
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" className="flex-1" disabled={isSavingSummary || !canSubmitSummary}>
-                  {isSavingSummary && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  {hasExistingSummary ? "Actualizar resumen" : "Guardar resumen"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                className="flex-1 bg-transparent"
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="flex-1" disabled={isSavingSummary || !canSubmitSummary}>
+                {isSavingSummary && <Loader2 className="mr-2 size-4 animate-spin" />}
+                {hasExistingSummary ? "Actualizar resumen" : "Guardar resumen"}
+              </Button>
+            </div>
+          </form>
+        </section>
       </div>
 
       <BottomNav />

@@ -33,12 +33,10 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="lg:max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="pr-12">
           <DialogTitle className="flex items-center gap-2">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <DollarSign className="size-4 text-primary" />
-            </span>
-            Configurar Cuota Mensual
+            <DollarSign className="size-5 shrink-0 text-primary" />
+            <span className="min-w-0">Configurar Cuota Mensual</span>
           </DialogTitle>
           <DialogDescription>
             Establece el valor de la cuota mensual que se cobrará a los clientes.
@@ -47,11 +45,11 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
 
         {loading ? (
           <DialogBody>
-            <div className="py-4 text-center text-muted-foreground">Cargando configuración…</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">Cargando configuración…</div>
           </DialogBody>
         ) : (
           <>
-            <DialogBody className="space-y-4">
+            <DialogBody className="space-y-3">
               {/* Configuración de Cuota */}
               <div className="rounded-xl border p-4">
                 <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
@@ -78,9 +76,12 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
 
               {/* Información adicional */}
               <div className="rounded-xl border p-4">
-                <h4 className="mb-2 text-sm font-semibold">Información Importante</h4>
-                <p className="text-sm text-muted-foreground">
-                  <strong>Consideraciones:</strong>
+                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                  <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+                  Información Importante
+                </h4>
+                <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                  <strong className="text-foreground">Consideraciones:</strong>
                   <br />
                   • El valor se aplicará a todos los nuevos pagos generados.
                   <br />
@@ -91,21 +92,21 @@ export function MonthlyFeeDialog({ open, onOpenChange }: MonthlyFeeDialogProps) 
               </div>
             </DialogBody>
 
-            <DialogFooter>
+            <DialogFooter className="flex-row items-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="flex-1"
+                className="min-w-0 flex-1"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={loading || isSaving || !monthlyFeeInput.trim()}
-                className="flex-1"
+                className="min-w-0 flex-1"
               >
-                <Save className="size-4 mr-2" />
+                <Save className="mr-2 size-4 shrink-0 max-sm:hidden" />
                 {isSaving ? "Guardando…" : "Guardar"}
               </Button>
             </DialogFooter>

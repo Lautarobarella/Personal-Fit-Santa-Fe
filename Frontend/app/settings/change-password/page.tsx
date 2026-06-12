@@ -2,7 +2,6 @@
 
 import { useChangePassword } from "@/hooks/settings/use-change-password"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MobileHeader } from "@/components/ui/mobile-header"
@@ -28,19 +27,18 @@ export default function ChangePasswordPage() {
             />
 
             <div className="container-centered py-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <LockKeyhole className="size-5" />
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    <div className="rounded-xl border p-4">
+                        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
+                            <LockKeyhole className="size-5 shrink-0 text-primary" />
                             Cambiar Contraseña
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        </h2>
+
+                        <div className="space-y-4">
                             {/* Contraseña Actual */}
                             <div className="space-y-2">
                                 <Label htmlFor="current-password">
-                                    Contraseña Actual <span className="text-red-500">*</span>
+                                    Contraseña Actual <span className="text-destructive">*</span>
                                 </Label>
                                 <div className="relative">
                                     <Input
@@ -70,7 +68,7 @@ export default function ChangePasswordPage() {
                             {/* Nueva Contraseña */}
                             <div className="space-y-2">
                                 <Label htmlFor="new-password">
-                                    Nueva Contraseña <span className="text-red-500">*</span>
+                                    Nueva Contraseña <span className="text-destructive">*</span>
                                 </Label>
                                 <div className="relative">
                                     <Input
@@ -95,7 +93,7 @@ export default function ChangePasswordPage() {
                                         )}
                                     </button>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
                                     La contraseña debe tener al menos 6 caracteres
                                 </p>
                             </div>
@@ -103,7 +101,7 @@ export default function ChangePasswordPage() {
                             {/* Confirmar Nueva Contraseña */}
                             <div className="space-y-2">
                                 <Label htmlFor="confirm-password">
-                                    Confirmar Nueva Contraseña <span className="text-red-500">*</span>
+                                    Confirmar Nueva Contraseña <span className="text-destructive">*</span>
                                 </Label>
                                 <div className="relative">
                                     <Input
@@ -129,30 +127,30 @@ export default function ChangePasswordPage() {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            {/* Botones */}
-                            <div className="flex gap-3 pt-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={handleCancel}
-                                    disabled={isLoading}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    className="flex-1"
-                                    disabled={isLoading || !passwords.current || !passwords.new || !passwords.confirm}
-                                >
-                                    <LockKeyhole className="size-4 mr-2" />
-                                    {isLoading ? "Guardando..." : "Guardar"}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                    {/* Botones */}
+                    <div className="flex flex-row items-center gap-2 pt-1">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            className="min-w-0 flex-1"
+                            onClick={handleCancel}
+                            disabled={isLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="min-w-0 flex-1"
+                            disabled={isLoading || !passwords.current || !passwords.new || !passwords.confirm}
+                        >
+                            <LockKeyhole className="mr-2 size-4 shrink-0 max-sm:hidden" />
+                            {isLoading ? "Guardando..." : "Guardar"}
+                        </Button>
+                    </div>
+                </form>
             </div>
         </div>
     )

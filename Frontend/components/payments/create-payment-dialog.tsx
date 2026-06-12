@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -15,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatFileSize } from "@/lib/file-compression"
 import { MethodType, UserRole } from "@/lib/types"
 import { AlertCircle, Camera, Check, DollarSign, FileImage, Loader2, Upload, X } from "lucide-react"
-import { Card, CardContent } from "../ui/card"
 import { Textarea } from "../ui/textarea"
 import { useCreatePaymentDialog } from "@/hooks/payments/use-create-payment-dialog"
 
@@ -83,14 +83,13 @@ export function CreatePaymentDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-
-                <DialogHeader>
-                    <DialogTitle className="text-left flex items-center gap-2">
-                        <DollarSign className="size-5" />
-                        Crear Pago Mensual
+            <DialogContent>
+                <DialogHeader className="pr-12">
+                    <DialogTitle className="flex items-center gap-2">
+                        <DollarSign className="size-5 shrink-0 text-primary" />
+                        <span className="min-w-0">Crear Pago Mensual</span>
                     </DialogTitle>
-                    <DialogDescription className="text-left">
+                    <DialogDescription>
                         {isIndividualFlow
                             ? "Asigna un pago mensual individual"
                             : isGroupFlow && expectedDniCount
@@ -99,47 +98,46 @@ export function CreatePaymentDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <Card className="m-2">
-                    <CardContent className="p-6">
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* DNIs de Clientes */}
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Label>DNI de Clientes *</Label>
-                                    {!hasFixedDniCount && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={addDniField}
-                                            className="flex items-center gap-1"
-                                        >
-                                            <span className="text-lg">+</span>
-                                            Agregar DNI
-                                        </Button>
-                                    )}
-                                </div>
-                                {isGroupFlow && expectedDniCount && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Debes completar {expectedDniCount} DNI(s): {completedDniCount}/{expectedDniCount} cargados, {validUsersCount}/{expectedDniCount} validados.
-                                    </p>
+                <DialogBody className="space-y-3">
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                        {/* DNIs de Clientes */}
+                        <div className="rounded-xl border p-4">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                <h4 className="flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    DNI de Clientes <span className="text-destructive">*</span>
+                                </h4>
+                                {!hasFixedDniCount && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addDniField}
+                                        className="flex shrink-0 items-center gap-1"
+                                    >
+                                        <span className="text-lg">+</span>
+                                        Agregar DNI
+                                    </Button>
                                 )}
+                            </div>
+                            {isGroupFlow && expectedDniCount && (
+                                <p className="mb-3 text-xs text-muted-foreground">
+                                    Debes completar {expectedDniCount} DNI(s): {completedDniCount}/{expectedDniCount} cargados, {validUsersCount}/{expectedDniCount} validados.
+                                </p>
+                            )}
 
+                            <div className="space-y-3">
                                 {clientDnis.map((dni, index) => (
                                     <div key={dniFieldIds[index]} className="space-y-2">
                                         {/* Fila del input DNI y botón eliminar */}
                                         <div className="flex items-center gap-2">
-                                            <div className="flex-1 relative">
+                                            <div className="relative min-w-0 flex-1">
                                                 <Input
                                                     type="number"
                                                     maxLength={11}
                                                     className={`border ${validatedUsers[index]?.isValid
                                                         ? 'border-green-500 focus:ring-green-500'
-                                                        : validatedUsers[index]?.errorMessage
-                                                            ? 'border-border focus:ring-ring'
-                                                            : validatedUsers[index]?.isValidating
-                                                                ? 'border-blue-500 focus:ring-blue-500'
-                                                                : 'border-border'
+                                                        : 'border-border focus:ring-ring'
                                                         }`}
                                                     placeholder="Ej: 30123456"
                                                     inputMode="numeric"
@@ -153,8 +151,8 @@ export function CreatePaymentDialog({
                                                     }}
                                                 />
                                                 {validatedUsers[index]?.isValidating && (
-                                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                                        <Loader2 className="size-4 animate-spin text-blue-500" />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
                                                     </div>
                                                 )}
                                             </div>
@@ -165,7 +163,7 @@ export function CreatePaymentDialog({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => removeDniField(index)}
-                                                    className="text-red-600 hover:text-red-700 size-10 p-0 flex-shrink-0"
+                                                    className="size-10 shrink-0 p-0 text-destructive hover:text-destructive"
                                                 >
                                                     <X className="size-4" />
                                                 </Button>
@@ -177,7 +175,7 @@ export function CreatePaymentDialog({
                                             {/* Validación positiva */}
                                             {validatedUsers[index]?.isValid && (
                                                 <div className="flex items-center gap-1 text-sm text-green-600">
-                                                    <Check className="size-3" />
+                                                    <Check className="size-3 shrink-0" />
                                                     <span>{validatedUsers[index].name}</span>
                                                 </div>
                                             )}
@@ -185,15 +183,15 @@ export function CreatePaymentDialog({
                                             {/* Validación negativa */}
                                             {validatedUsers[index]?.errorMessage && !validatedUsers[index]?.isValidating && (
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <AlertCircle className="size-3 text-muted-foreground" />
+                                                    <AlertCircle className="size-3 shrink-0" />
                                                     <span>{validatedUsers[index].errorMessage}</span>
                                                 </div>
                                             )}
 
                                             {/* Estado de validación en progreso */}
                                             {validatedUsers[index]?.isValidating && (
-                                                <div className="flex items-center gap-1 text-sm text-blue-600">
-                                                    <Loader2 className="size-3 animate-spin" />
+                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                    <Loader2 className="size-3 shrink-0 animate-spin" />
                                                     <span>Verificando DNI…</span>
                                                 </div>
                                             )}
@@ -201,223 +199,247 @@ export function CreatePaymentDialog({
                                     </div>
                                 ))}
                             </div>
+                        </div>
 
-                            {/* Método de Pago */}
-                            <div className="space-y-2">
-                                <Label htmlFor="paymentMethod">Método de Pago *</Label>
-                                {user?.role === UserRole.ADMIN ? (
-                                    <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
-                                        <SelectTrigger id="paymentMethod">
-                                            <SelectValue placeholder="Selecciona método de pago" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
-                                            <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
-                                        <SelectTrigger id="paymentMethod">
-                                            <SelectValue placeholder="Selecciona método de pago" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
-                                            <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            </div>
+                        {/* Detalles del pago: método, montos y fechas */}
+                        <div className="rounded-xl border p-4">
+                            <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                                <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+                                Detalles del Pago
+                            </h4>
 
-                            {/* Monto Base Individual - Solo para múltiples usuarios */}
-                            {validatedUsers.filter(user => user.isValid).length > 1 && (
+                            <div className="space-y-4">
+                                {/* Método de Pago */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="baseAmount">Monto por Usuario ($) *</Label>
+                                    <Label htmlFor="paymentMethod">
+                                        Método de Pago <span className="text-destructive">*</span>
+                                    </Label>
+                                    {user?.role === UserRole.ADMIN ? (
+                                        <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                            <SelectTrigger id="paymentMethod">
+                                                <SelectValue placeholder="Selecciona método de pago" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                                <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Select value={paymentMethod || ""} onValueChange={(value: MethodType) => setPaymentMethod(value)}>
+                                            <SelectTrigger id="paymentMethod">
+                                                <SelectValue placeholder="Selecciona método de pago" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={MethodType.TRANSFER}>Transferencia</SelectItem>
+                                                <SelectItem value={MethodType.CASH}>Efectivo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+
+                                {/* Monto Base Individual - Solo para múltiples usuarios */}
+                                {validatedUsers.filter(user => user.isValid).length > 1 && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="baseAmount">
+                                            Monto por Usuario ($) <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            id="baseAmount"
+                                            type="text"
+                                            value={baseAmount}
+                                            readOnly
+                                            aria-readonly="true"
+                                            placeholder="Monto por usuario"
+                                            inputMode="numeric"
+                                            className="cursor-not-allowed bg-muted text-foreground"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Monto Total Calculado */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="amount">
+                                        {validatedUsers.filter(user => user.isValid).length > 1
+                                            ? "Monto Total ($)"
+                                            : "Monto ($)"
+                                        }{" "}
+                                        <span className="text-destructive">*</span>
+                                    </Label>
                                     <Input
-                                        id="baseAmount"
+                                        id="amount"
                                         type="text"
-                                        value={baseAmount}
+                                        value={amount}
                                         readOnly
                                         aria-readonly="true"
-                                        placeholder="Monto por usuario"
-                                        inputMode="numeric"
-                                        className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
+                                        className="cursor-not-allowed bg-muted text-foreground"
                                     />
+                                    {validatedUsers.filter(u => u.isValid).length > 1 && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {validatedUsers.filter(u => u.isValid).length} personas × ${baseAmount || "0"} = ${amount || "0"}
+                                        </p>
+                                    )}
                                 </div>
-                            )}
 
-                            {/* Monto Total Calculado */}
-                            <div className="space-y-2">
-                                <Label htmlFor="amount">
-                                    {validatedUsers.filter(user => user.isValid).length > 1
-                                        ? "Monto Total ($) *"
-                                        : "Monto ($) *"
-                                    }
-                                </Label>
-                                <Input
-                                    id="amount"
-                                    type="text"
-                                    value={amount}
-                                    readOnly
-                                    aria-readonly="true"
-                                    className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                />
-                                {validatedUsers.filter(u => u.isValid).length > 1 && (
-                                    <p className="text-sm text-gray-600">
-                                        {validatedUsers.filter(u => u.isValid).length} personas × ${baseAmount || "0"} = ${amount || "0"}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Fecha de inicio */}
-                            <div className="space-y-2">
-                                <Label htmlFor="startDate">Fecha de inicio *</Label>
-                                <Input
-                                    id="startDate"
-                                    type="text"
-                                    readOnly
-                                    value={startDate}
-                                    placeholder="Fecha de inicio"
-                                    className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                />
-                            </div>
-
-                            {/* Fecha de vencimiento */}
-                            <div className="space-y-2">
-                                <Label htmlFor="dueDate">Fecha de vencimiento *</Label>
-                                <Input
-                                    id="dueDate"
-                                    type="text"
-                                    readOnly
-                                    value={dueDate}
-                                    placeholder="Fecha de vencimiento"
-                                    className="bg-muted text-foreground cursor-not-allowed border border-gray-300"
-                                />
-                            </div>
-
-                            {/* Subir comprobante - Solo para transferencias */}
-                            {paymentMethod && paymentMethod === MethodType.TRANSFER && (
-                                <div className="space-y-4">
+                                {/* Fechas de inicio y vencimiento */}
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label className="flex items-center gap-2">
-                                            <FileImage className="size-4" />
-                                            Subir Comprobante *
+                                        <Label htmlFor="startDate">
+                                            Fecha de inicio <span className="text-destructive">*</span>
                                         </Label>
+                                        <Input
+                                            id="startDate"
+                                            type="text"
+                                            readOnly
+                                            value={startDate}
+                                            placeholder="Fecha de inicio"
+                                            className="cursor-not-allowed bg-muted text-foreground"
+                                        />
                                     </div>
-                                    <div className="space-y-4">
-                                        {!selectedFile ? (
-                                            <div className="border-2 border-dashed p-6 text-center rounded-lg">
-                                                <Upload className="size-12 mx-auto text-muted-foreground mb-4" />
-                                                <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
-                                                <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
-                                                <input
-                                                    ref={fileInputRef}
-                                                    type="file"
-                                                    accept="image/*,.pdf"
-                                                    aria-label="Seleccionar comprobante de pago"
-                                                    className="hidden"
-                                                    onChange={handleFileSelect}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <div className="relative border rounded-lg overflow-hidden">
-                                                    {selectedFile.type.startsWith('image/') ? (
-                                                        previewUrl ? (
-                                                            <img src={previewUrl} alt="Comprobante" className="w-full max-h-64 object-contain" />
-                                                        ) : (
-                                                            <div className="p-8 text-center text-sm text-muted-foreground">
-                                                                Procesando comprobante…
-                                                            </div>
-                                                        )
-                                                    ) : (
-                                                        <div className="p-8 text-center">
-                                                            <FileImage className="size-16 mx-auto text-muted-foreground mb-4" />
-                                                            <p className="font-medium">{selectedFile.name}</p>
-                                                            <p className="text-sm text-muted-foreground">Archivo PDF</p>
-                                                        </div>
-                                                    )}
-                                                    <Button size="sm" onClick={handleRemoveFile} className="absolute top-2 right-2" variant="destructive">
-                                                        <X className="size-4" />
-                                                    </Button>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground mt-2">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
-                                            </div>
-                                        )}
 
-                                        {/* Botones de subida - aparecen siempre */}
-                                        <div className="flex justify-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                type="button"
-                                                onClick={handleFilePickerOpen}
-                                                disabled={isCreating}
-                                            >
-                                                <Upload className="h-4 w-2" /> Archivo
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                type="button"
-                                                onClick={handleCameraCapture}
-                                                disabled={isCreating}
-                                            >
-                                                <Camera className="h-4 w-2" /> Cámara
-                                            </Button>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="dueDate">
+                                            Fecha de vencimiento <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            id="dueDate"
+                                            type="text"
+                                            readOnly
+                                            value={dueDate}
+                                            placeholder="Fecha de vencimiento"
+                                            className="cursor-not-allowed bg-muted text-foreground"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Subir comprobante - Solo para transferencias */}
+                        {paymentMethod && paymentMethod === MethodType.TRANSFER && (
+                            <div className="rounded-xl border p-4">
+                                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-primary" />
+                                    Subir Comprobante <span className="text-destructive">*</span>
+                                </h4>
+
+                                <div className="space-y-4">
+                                    {!selectedFile ? (
+                                        <div className="rounded-xl border-2 border-dashed p-6 text-center">
+                                            <Upload className="mx-auto mb-4 size-12 text-muted-foreground" />
+                                            <p className="mb-4 text-muted-foreground">Seleccioná o tomá una foto del comprobante</p>
+                                            <p className="mb-4 text-xs text-muted-foreground">Formatos soportados: JPG, PNG, WebP, PDF</p>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*,.pdf"
+                                                aria-label="Seleccionar comprobante de pago"
+                                                className="hidden"
+                                                onChange={handleFileSelect}
+                                            />
                                         </div>
+                                    ) : (
+                                        <div>
+                                            <div className="relative overflow-hidden rounded-xl border">
+                                                {selectedFile.type.startsWith('image/') ? (
+                                                    previewUrl ? (
+                                                        <img src={previewUrl} alt="Comprobante" className="max-h-64 w-full object-contain" />
+                                                    ) : (
+                                                        <div className="p-8 text-center text-sm text-muted-foreground">
+                                                            Procesando comprobante…
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div className="p-8 text-center">
+                                                        <FileImage className="mx-auto mb-4 size-16 text-muted-foreground" />
+                                                        <p className="font-medium">{selectedFile.name}</p>
+                                                        <p className="text-sm text-muted-foreground">Archivo PDF</p>
+                                                    </div>
+                                                )}
+                                                <Button size="sm" onClick={handleRemoveFile} className="absolute right-2 top-2" variant="destructive">
+                                                    <X className="size-4" />
+                                                </Button>
+                                            </div>
+                                            <p className="mt-2 text-sm text-muted-foreground">{selectedFile.name} ({formatFileSize(selectedFile.size)})</p>
+                                        </div>
+                                    )}
+
+                                    {/* Botones de subida - aparecen siempre */}
+                                    <div className="flex gap-3">
+                                        <Button
+                                            variant="outline"
+                                            type="button"
+                                            onClick={handleFilePickerOpen}
+                                            disabled={isCreating}
+                                            className="min-w-0 flex-1"
+                                        >
+                                            <Upload className="mr-1.5 size-4 shrink-0" />
+                                            Archivo
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            type="button"
+                                            onClick={handleCameraCapture}
+                                            disabled={isCreating}
+                                            className="min-w-0 flex-1"
+                                        >
+                                            <Camera className="mr-1.5 size-4 shrink-0" />
+                                            Cámara
+                                        </Button>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {/* Notas - Solo mostrar cuando hay un método seleccionado */}
-                            {paymentMethod && (
-                                <div className="space-y-2">
-                                    <Label>
-                                        {paymentMethod === MethodType.CASH ? "Notas *" : "Notas (opcional)"}
-                                    </Label>
-                                    <Textarea
-                                        rows={3}
-                                        className="border border-orange-600"
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        placeholder={
-                                            paymentMethod === MethodType.CASH
-                                                ? "Detalles de cuándo y cómo se realizó el pago en efectivo…"
-                                                : "Notas adicionales sobre el pago…"
-                                        }
-                                    />
-                                </div>
-                            )}
-                        </form>
-                    </CardContent>
-                </Card>
+                        {/* Notas - Solo mostrar cuando hay un método seleccionado */}
+                        {paymentMethod && (
+                            <div className="rounded-xl border p-4">
+                                <Label className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                                    <span className="h-5 w-1 rounded-full bg-muted-foreground/40" />
+                                    {paymentMethod === MethodType.CASH
+                                        ? <>Notas <span className="text-destructive">*</span></>
+                                        : "Notas (opcional)"}
+                                </Label>
+                                <Textarea
+                                    rows={3}
+                                    className="resize-none text-sm"
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    placeholder={
+                                        paymentMethod === MethodType.CASH
+                                            ? "Detalles de cuándo y cómo se realizó el pago en efectivo…"
+                                            : "Notas adicionales sobre el pago…"
+                                    }
+                                />
+                            </div>
+                        )}
+                    </form>
+                </DialogBody>
 
-                <DialogFooter className="flex gap-3">
-                    <div className="flex gap-2 justify-end mt-2 w-full">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            onClick={handleClose}
-                            disabled={isCreating}
-                            className="flex-1"
-                        >
-                            Cancelar
-                        </Button>
+                <DialogFooter className="flex-row items-center gap-3">
+                    <Button
+                        variant="outline"
+                        type="button"
+                        onClick={handleClose}
+                        disabled={isCreating}
+                        className="min-w-0 flex-1"
+                    >
+                        Cancelar
+                    </Button>
 
-                        <Button
-                            type="submit"
-                            disabled={isCreating || !canSubmitByDniCount}
-                            className="flex-1"
-                            onClick={handleSubmit}
-                        >
-                            {isCreating ? (
-                                <Loader2 className="animate-spin mr-1 size-4" />
-                            ) : (
-                                <Check className="mr-1 size-4" />
-                            )}
-                            {isCreating ? "Creando…" : "Aceptar"}
-                        </Button>
-                    </div>
+                    <Button
+                        type="submit"
+                        disabled={isCreating || !canSubmitByDniCount}
+                        className="min-w-0 flex-1"
+                        onClick={handleSubmit}
+                    >
+                        {isCreating ? (
+                            <Loader2 className="mr-1.5 size-4 shrink-0 animate-spin" />
+                        ) : (
+                            <Check className="mr-1.5 size-4 shrink-0 max-sm:hidden" />
+                        )}
+                        {isCreating ? "Creando…" : "Aceptar"}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
-        </Dialog >
+        </Dialog>
     )
 }
