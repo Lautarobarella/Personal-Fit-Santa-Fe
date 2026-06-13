@@ -52,13 +52,13 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="truncate font-semibold">{notification.title}</h3>
+              <div className="flex items-start gap-2">
+                <h3 className="min-w-0 break-words font-semibold leading-snug">{notification.title}</h3>
                 {notification.status === NotificationStatus.UNREAD && (
-                  <Badge variant="default" className="shrink-0 text-xs">Nueva</Badge>
+                  <Badge variant="default" className="mt-0.5 shrink-0 text-xs">Nueva</Badge>
                 )}
                 {notification.status === NotificationStatus.ARCHIVED && (
-                  <Badge variant="secondary" className="shrink-0 text-xs">Archivada</Badge>
+                  <Badge variant="secondary" className="mt-0.5 shrink-0 text-xs">Archivada</Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">{notification.message}</p>
