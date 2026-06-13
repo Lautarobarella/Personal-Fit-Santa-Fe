@@ -53,7 +53,9 @@ export function NotificationsList({ filterStatus = "all", searchTerm = "" }: Not
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-start gap-2">
-                <h3 className="min-w-0 break-words font-semibold leading-snug">{notification.title}</h3>
+                <h3 lang="es" className="min-w-0 hyphens-auto break-words font-semibold leading-snug">
+                  {notification.title}
+                </h3>
                 {notification.status === NotificationStatus.UNREAD && (
                   <Badge variant="default" className="mt-0.5 shrink-0 text-xs">Nueva</Badge>
                 )}
