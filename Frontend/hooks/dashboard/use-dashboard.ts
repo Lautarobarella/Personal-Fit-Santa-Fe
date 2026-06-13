@@ -463,7 +463,7 @@ export function useDashboard() {
       const nextClassValue = formatNextClass();
       const nextClassName = clientStats.nextClass?.name ?? "Sin clase";
       const diasRestantes = clientStats.remainingDays ?? 0;
-      const actividadesMes = clientStats.weeklyActivityCount ?? 0;
+      const clasesCompletadas = clientStats.completedClassesCount ?? 0;
       const faltasDelMes = 0;
 
       return [
@@ -476,10 +476,10 @@ export function useDashboard() {
           dynamicFontSize: "text-2xl"
         },
         {
-          title: "Actividades este mes",
-          value: actividadesMes.toString(),
+          title: "Clases completadas",
+          value: clasesCompletadas.toString(),
           icon: Activity,
-          description: "completadas",
+          description: "en total",
           color: "warning",
           dynamicFontSize: "text-2xl"
         },
@@ -586,8 +586,12 @@ export function useDashboard() {
       if (!hasActiveMembership) {
         return [{ type: "warning", message: "Realiza un pago para reactivar tu plan.", action: "Realizar pago", route: "/payments" }];
       }
+      const actividadesCompletadasDelMes = clientStats.weeklyActivityCount ?? 0
+      if (actividadesCompletadasDelMes <= 0) {
+        return []
+      }
       return [
-        { type: "info", message: `¡Felicidades! Completaste ${clientStats.weeklyActivityCount || 0} actividades este mes`, action: "Ver progreso", route: "/progress" },
+        { type: "info", message: `¡Felicitaciones! Completaste ${actividadesCompletadasDelMes} actividades este mes`, action: "Ver progreso", route: "/progress" },
       ];
     }
   }
