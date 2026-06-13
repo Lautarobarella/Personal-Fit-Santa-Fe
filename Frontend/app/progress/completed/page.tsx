@@ -37,6 +37,16 @@ export default function CompletedClassesPage() {
       <MobileHeader title="Clases Completadas" showBack onBack={() => router.push("/progress")} />
 
       <div className="container-centered py-6 pb-safe-bottom">
+        <div className="mb-3 flex items-baseline justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-primary" />
+            <h3 className="text-base font-semibold">Tus clases</h3>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {completedActivities.length} {completedActivities.length === 1 ? "completada" : "completadas"}
+          </span>
+        </div>
+
         {completedActivities.length === 0 ? (
           <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
             Aún no tenés clases completadas.
