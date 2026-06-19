@@ -150,7 +150,7 @@ export default function ClientsPage() {
                 />
 
                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <h3 className="truncate font-medium">{client.firstName + " " + client.lastName}</h3>
+                  <h3 className="min-w-0 break-words font-medium">{client.firstName + " " + client.lastName}</h3>
                   <Badge variant={client.status === "ACTIVE" ? "default" : "secondary"} className="shrink-0">
                     {client.role === UserRole.CLIENT
                       ? client.status === "ACTIVE"

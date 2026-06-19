@@ -141,10 +141,10 @@ export function ClientDetailsDialog({
                   fallbackClassName="text-lg"
                 />
                 <div className="min-w-0">
-                  <DialogTitle className="truncate text-xl">
+                  <DialogTitle className="break-words text-xl">
                     {selectedClient.firstName + " " + selectedClient.lastName}
                   </DialogTitle>
-                  <DialogDescription className="truncate">{selectedClient.email}</DialogDescription>
+                  <DialogDescription className="break-words">{selectedClient.email}</DialogDescription>
                   <Badge
                     className="mt-1.5"
                     variant={selectedClient.status === UserStatus.ACTIVE ? "success" : "secondary"}
@@ -216,7 +216,7 @@ export function ClientDetailsDialog({
                     </div>
                     <div className="flex items-center gap-3 py-2.5 text-sm">
                       <Mail className="size-4 shrink-0 text-muted-foreground" />
-                      <span>{selectedClient.email}</span>
+                      <span className="min-w-0 break-words">{selectedClient.email}</span>
                     </div>
                     <div className="flex items-center gap-3 py-2.5 text-sm">
                       <Phone className="size-4 shrink-0 text-muted-foreground" />
