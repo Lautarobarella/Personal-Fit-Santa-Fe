@@ -22,6 +22,7 @@ import {
   CakeIcon,
   Calendar,
   Clock,
+  Copy,
   CreditCard,
   Dice3,
   Edit,
@@ -42,6 +43,19 @@ interface ClientDetailsDialogProps {
   onDeactivate?: () => void
 }
 
+function CopyButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="ml-auto shrink-0 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:text-foreground"
+    >
+      <Copy className="size-4" />
+    </button>
+  )
+}
+
 export function ClientDetailsDialog({
   _open: isOpen,
   onOpenChange,
@@ -59,6 +73,7 @@ export function ClientDetailsDialog({
     paymentDetailsDialog,
     setPaymentDetailsDialog,
     handlePaymentDetailsClick,
+    copyToClipboard,
     loading,
     error,
     selectedClient,
@@ -213,14 +228,17 @@ export function ClientDetailsDialog({
                     <div className="flex items-center gap-3 py-2.5 text-sm">
                       <IdCard className="size-4 shrink-0 text-muted-foreground" />
                       <span>{selectedClient.dni}</span>
+                      <CopyButton onClick={() => copyToClipboard(selectedClient.dni, "DNI")} label="Copiar DNI" />
                     </div>
                     <div className="flex items-center gap-3 py-2.5 text-sm">
                       <Mail className="size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 break-words">{selectedClient.email}</span>
+                      <CopyButton onClick={() => copyToClipboard(selectedClient.email, "Email")} label="Copiar email" />
                     </div>
                     <div className="flex items-center gap-3 py-2.5 text-sm">
                       <Phone className="size-4 shrink-0 text-muted-foreground" />
                       <span>{selectedClient.phone}</span>
+                      <CopyButton onClick={() => copyToClipboard(selectedClient.phone, "Teléfono")} label="Copiar teléfono" />
                     </div>
                     {selectedClient.emergencyPhone && (
                       <div className="flex items-center gap-3 py-2.5 text-sm">

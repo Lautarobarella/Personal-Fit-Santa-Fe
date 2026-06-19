@@ -4,11 +4,13 @@ import { esShortDateYearFormatter, esShortDateYearTimeFormatter } from "@/lib/fo
 import { useAuth } from "@/contexts/auth-provider"
 import { usePaymentContext } from "@/contexts/payment-provider"
 import { useClients } from "@/hooks/clients/use-client"
+import { useToast } from "@/hooks/use-toast"
 import { AttendanceStatus, PaymentStatus } from "@/lib/types"
 import { useEffect, useMemo, useState } from "react"
 
 export function useClientDetailsDialog(userId: number, isOpen: boolean) {
   const { user } = useAuth()
+  const { toast } = useToast()
   const { payments } = usePaymentContext()
   const [activeTab, setActiveTab] = useState("profile")
   const [visibleSummaryActivityId, setVisibleSummaryActivityId] = useState<number | null>(null)
@@ -37,6 +39,23 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
 
   const handlePaymentDetailsClick = (paymentId: number) => {
     setPaymentDetailsDialog({ open: true, paymentId })
+  }
+
+  const copyToClipboard = async (value: string | number | null | undefined, label: string) => {
+    if (value === null || value === undefined || value === "") {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(String(value))
+      toast({ title: `${label} copiado`, description: "Se copió al portapapeles." })
+    } catch {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar al portapapeles.",
+        variant: "destructive",
+      })
+    }
   }
 
   const formatDate = (date: Date | string | null | undefined) => {
@@ -298,6 +317,7 @@ export function useClientDetailsDialog(userId: number, isOpen: boolean) {
     paymentDetailsDialog,
     setPaymentDetailsDialog,
     handlePaymentDetailsClick,
+    copyToClipboard,
     loading,
     error,
     selectedClient: syncedClient,
