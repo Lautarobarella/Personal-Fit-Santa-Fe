@@ -299,7 +299,7 @@ export function DetailsActivityDialog({
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">
+                            <p className="break-words text-sm font-medium">
                               {participant.firstName} {participant.lastName}
                             </p>
                             {participant.createdAt && (

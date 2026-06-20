@@ -193,7 +193,7 @@ export function TakeAttendanceDialog({
                             {`${attendance.firstName?.[0] ?? ""}${attendance.lastName?.[0] ?? ""}`}
                           </AvatarFallback>
                         </Avatar>
-                        <p className="min-w-0 truncate font-medium">
+                        <p className="min-w-0 break-words font-medium">
                           {attendance.firstName} {attendance.lastName}
                         </p>
                         {isUpdatingRow && (
