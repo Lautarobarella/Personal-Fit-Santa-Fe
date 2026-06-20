@@ -26,6 +26,8 @@ export function useClientsPage() {
     userId: number | null
   }>({ open: false, userId: null })
 
+  const [exportListOpen, setExportListOpen] = useState(false)
+
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean
     clientId: number | null
@@ -215,6 +217,8 @@ export function useClientsPage() {
     setStatusFilter,
     clientDetailsDialog,
     setClientDetailsDialog,
+    exportListOpen,
+    setExportListOpen,
     deleteDialog,
     setDeleteDialog,
     isDeleting,

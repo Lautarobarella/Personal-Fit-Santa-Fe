@@ -1,6 +1,7 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
+import { ExportClientsDialog } from "@/components/clients/export-clients-dialog"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useClientsPage } from "@/hooks/clients/use-clients-page"
 import { UserRole } from "@/types"
-import { Calendar, Loader2, Mail, MoreVertical, Phone, Plus, Search, UserCheck } from "lucide-react"
+import { Calendar, ClipboardList, Loader2, Mail, MoreVertical, Phone, Plus, Search, UserCheck } from "lucide-react"
 import Link from "next/link"
 
 export default function ClientsPage() {
@@ -38,6 +39,8 @@ export default function ClientsPage() {
     setStatusFilter,
     clientDetailsDialog,
     setClientDetailsDialog,
+    exportListOpen,
+    setExportListOpen,
     deleteDialog,
     setDeleteDialog,
     isDeleting,
@@ -136,6 +139,19 @@ export default function ClientsPage() {
           </div>
         </div>
 
+        {/* Exportar listado — varía según la solapa seleccionada */}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setExportListOpen(true)}
+            disabled={filteredClients.length === 0}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary disabled:pointer-events-none disabled:opacity-50"
+          >
+            <ClipboardList className="size-4" />
+            Generar listado
+          </button>
+        </div>
+
         {/* Client List — 1 columna en mobile, 2 en pantallas grandes */}
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
           {filteredClients.map((client) => (
@@ -166,9 +182,13 @@ export default function ClientsPage() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="shrink-0" aria-label="Opciones del cliente">
+                    <button
+                      type="button"
+                      aria-label="Opciones del cliente"
+                      className="shrink-0 text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary"
+                    >
                       <MoreVertical className="size-4" />
-                    </Button>
+                    </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => handleClientDetails(client.id)}>Ver Detalles</DropdownMenuItem>
@@ -246,6 +266,14 @@ export default function ClientsPage() {
           userId={clientDetailsDialog.userId}
         />
       )}
+
+      {/* Export client list dialog */}
+      <ExportClientsDialog
+        open={exportListOpen}
+        onOpenChange={setExportListOpen}
+        clients={filteredClients}
+        statusFilter={statusFilter}
+      />
 
       {/* Delete confirmation dialog */}
       <AlertDialog
