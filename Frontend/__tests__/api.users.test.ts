@@ -10,7 +10,9 @@ import {
   fetchPendingUserVerifications,
   approvePendingUser,
   rejectPendingUser,
+  uploadUserAvatar,
 } from '@/api/clients/usersApi'
+import { compressImage } from '@/lib/file-compression'
 
 jest.mock('@/api/JWTAuth/api', () => ({
   jwtPermissionsApi: {
@@ -19,6 +21,10 @@ jest.mock('@/api/JWTAuth/api', () => ({
     put: jest.fn(),
     delete: jest.fn(),
   },
+}))
+
+jest.mock('@/lib/file-compression', () => ({
+  compressImage: jest.fn(),
 }))
 
 jest.mock('@/lib/error-handler', () => ({
@@ -247,6 +253,64 @@ describe('usersApi', () => {
 
       expect(jwtPermissionsApi.post).toHaveBeenCalledWith('/api/users/public/register', userData, false)
       expect(result).toEqual(response)
+    })
+  })
+
+  // ---- uploadUserAvatar ----
+
+  describe('uploadUserAvatar', () => {
+    const makeFile = (name: string, sizeInBytes: number, type: string) =>
+      new File([new Uint8Array(sizeInBytes)], name, { type })
+
+    const getUploadedFile = () => {
+      const [url, formData] = (jwtPermissionsApi.post as jest.Mock).mock.calls[0]
+      expect(url).toBe('/api/users/1/avatar')
+      return formData.get('file') as File
+    }
+
+    it('sube la version comprimida cuando reduce el tamaño', async () => {
+      const original = makeFile('foto.jpg', 1000, 'image/jpeg')
+      const compressed = makeFile('foto.jpg', 300, 'image/jpeg')
+      ;(compressImage as jest.Mock).mockResolvedValueOnce({
+        compressedFile: compressed,
+        originalSize: 1000,
+        compressedSize: 300,
+        compressionRatio: 70,
+      })
+      ;(jwtPermissionsApi.post as jest.Mock).mockResolvedValueOnce({ success: true })
+
+      await uploadUserAvatar(1, original)
+
+      expect(compressImage).toHaveBeenCalledWith(original, expect.any(Object))
+      expect(getUploadedFile()).toBe(compressed)
+    })
+
+    it('sube el original si la compresion no reduce el tamaño', async () => {
+      const original = makeFile('foto.png', 300, 'image/png')
+      const compressed = makeFile('foto.png', 500, 'image/png')
+      ;(compressImage as jest.Mock).mockResolvedValueOnce({
+        compressedFile: compressed,
+        originalSize: 300,
+        compressedSize: 500,
+        compressionRatio: 0,
+      })
+      ;(jwtPermissionsApi.post as jest.Mock).mockResolvedValueOnce({ success: true })
+
+      await uploadUserAvatar(1, original)
+
+      expect(getUploadedFile()).toBe(original)
+    })
+
+    it('sube el original si la compresion falla', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+      const original = makeFile('foto.jpg', 1000, 'image/jpeg')
+      ;(compressImage as jest.Mock).mockRejectedValueOnce(new Error('canvas no soportado'))
+      ;(jwtPermissionsApi.post as jest.Mock).mockResolvedValueOnce({ success: true })
+
+      await uploadUserAvatar(1, original)
+
+      expect(getUploadedFile()).toBe(original)
+      consoleError.mockRestore()
     })
   })
 

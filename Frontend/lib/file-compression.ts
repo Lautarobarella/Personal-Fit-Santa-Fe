@@ -17,6 +17,27 @@ interface CompressedFile {
     compressionRatio: number;
 }
 
+const MIME_EXTENSIONS: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+};
+
+/**
+ * Ajusta la extensión del nombre de archivo al tipo MIME real del contenido.
+ * Necesario porque canvas.toBlob cae a image/png cuando el navegador no puede
+ * codificar el tipo original (ej: GIF, SVG, o WebP en Safari).
+ */
+function renameForMimeType(fileName: string, mimeType: string): string {
+    const extension = MIME_EXTENSIONS[mimeType];
+    if (!extension) {
+        return fileName;
+    }
+
+    const baseName = fileName.replace(/\.[^.]+$/, '');
+    return baseName + extension;
+}
+
 /**
  * Comprime una imagen manteniendo buena calidad visual
  */
@@ -33,6 +54,7 @@ export async function compressImage(
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
 
         img.onload = () => {
             // Calcular dimensiones manteniendo aspect ratio
@@ -53,6 +75,7 @@ export async function compressImage(
 
             // Dibujar imagen en canvas
             ctx?.drawImage(img, 0, 0, width, height);
+            URL.revokeObjectURL(objectUrl);
 
             // Comprimir iterativamente hasta alcanzar el tamaño deseado
             let quality = options.quality;
@@ -68,8 +91,14 @@ export async function compressImage(
 
                         // Si el tamaño es aceptable o la calidad ya es muy baja, usar este resultado
                         if (sizeKB <= options.maxSizeKB || quality <= 0.1) {
-                            const compressedFile = new File([blob], file.name, {
-                                type: file.type,
+                            // toBlob puede generar un tipo distinto al pedido (cae a image/png
+                            // si no puede codificar el original): respetar el tipo real del blob
+                            const outputType = blob.type || file.type;
+                            const outputName = outputType === file.type
+                                ? file.name
+                                : renameForMimeType(file.name, outputType);
+                            const compressedFile = new File([blob], outputName, {
+                                type: outputType,
                                 lastModified: Date.now(),
                             });
 
@@ -93,8 +122,11 @@ export async function compressImage(
             tryCompress();
         };
 
-        img.onerror = () => reject(new Error('Error al cargar imagen'));
-        img.src = URL.createObjectURL(file);
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Error al cargar imagen'));
+        };
+        img.src = objectUrl;
     });
 }
 

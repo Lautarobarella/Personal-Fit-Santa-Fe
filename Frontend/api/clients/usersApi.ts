@@ -1,7 +1,17 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildApiUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
+import { compressImage } from "@/lib/file-compression";
 import { TrainerDashboardStats, UserFormType, UserRole, WorkShift } from "@/lib/types";
+
+// Las fotos de perfil se muestran como máximo a ~900px (visor ampliado en retina),
+// por lo que 1024px conserva calidad visual de sobra con almacenamiento eficiente.
+const AVATAR_COMPRESSION_OPTIONS = {
+  maxSizeKB: 500,
+  quality: 0.85,
+  maxWidth: 1024,
+  maxHeight: 1024,
+};
 
 export async function fetchUsers() {
   try {
@@ -156,7 +166,26 @@ export async function rejectPendingUser(userId: number) {
 
 export async function uploadUserAvatar(userId: number, file: File) {
   const formData = new FormData();
-  formData.append("file", file);
+
+  let fileToUpload = file;
+  if (file.type.toLowerCase().startsWith("image/")) {
+    try {
+      const { compressedFile, compressedSize, originalSize } = await compressImage(
+        file,
+        AVATAR_COMPRESSION_OPTIONS
+      );
+
+      // Solo usamos la versión comprimida si realmente reduce el tamaño
+      if (compressedSize < originalSize) {
+        fileToUpload = compressedFile;
+      }
+    } catch (compressionError) {
+      console.error("Error al comprimir la foto de perfil:", compressionError);
+      // Si la compresión falla, se sube el archivo original para no bloquear al usuario
+    }
+  }
+
+  formData.append("file", fileToUpload);
 
   try {
     return await jwtPermissionsApi.post(`/api/users/${userId}/avatar`, formData);
