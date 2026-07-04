@@ -93,6 +93,7 @@ describe('usersApi', () => {
         lastName: 'Lopez',
         dni: 12345678,
         status: 'ACTIVE',
+        role: 'CLIENT',
       })
 
       const result = await fetchUserByDni(12345678)
@@ -103,6 +104,7 @@ describe('usersApi', () => {
         name: 'Maria Lopez',
         dni: 12345678,
         status: 'ACTIVE',
+        role: 'CLIENT',
       })
     })
 

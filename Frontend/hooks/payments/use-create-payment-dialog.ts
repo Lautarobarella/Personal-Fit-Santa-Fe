@@ -147,6 +147,9 @@ export function useCreatePaymentDialog(
 
       const { fetchUserByDni } = await import("@/api/clients/usersApi")
       const fetchedUser = await fetchUserByDni(dni)
+      if (fetchedUser.role !== UserRole.CLIENT) {
+        throw new Error("DNI no encontrado")
+      }
       const hasActivePlan = fetchedUser.status === "ACTIVE"
 
       setValidatedUsers((previous) => {

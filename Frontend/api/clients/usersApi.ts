@@ -1,7 +1,7 @@
 import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildApiUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
-import { TrainerDashboardStats, UserFormType, WorkShift } from "@/lib/types";
+import { TrainerDashboardStats, UserFormType, UserRole, WorkShift } from "@/lib/types";
 
 export async function fetchUsers() {
   try {
@@ -24,7 +24,7 @@ export async function fetchUserDetail(id: number) {
 /**
  * Busca un usuario por DNI para validación en pagos
  * @param dni DNI del usuario a buscar
- * @returns Promise<{id: number, name: string, dni: number, status: string}> datos básicos del usuario
+ * @returns Promise<{id: number, name: string, dni: number, status: string, role: UserRole}> datos básicos del usuario
  */
 export async function fetchUserByDni(dni: number) {
   try {
@@ -33,7 +33,8 @@ export async function fetchUserByDni(dni: number) {
       id: response.id,
       name: response.firstName + ' ' + response.lastName,
       dni: response.dni,
-      status: response.status
+      status: response.status,
+      role: response.role as UserRole
     };
   } catch (error) {
     // No mostrar toasts aquí para la validación, solo lanzar el error

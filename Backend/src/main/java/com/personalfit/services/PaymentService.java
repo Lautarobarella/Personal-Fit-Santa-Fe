@@ -109,6 +109,7 @@ public class PaymentService {
     public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file, String authenticatedUserEmail) {
         // 1. Resolve Target Users
         List<User> users = getUsersForPayment(paymentRequest);
+        validatePaymentTargetUsersAreClients(users);
 
         // 2. Business Validation: one pending payment max per client
         for (User user : users) {
@@ -401,6 +402,16 @@ public class PaymentService {
         }
 
         return users;
+    }
+
+    private void validatePaymentTargetUsersAreClients(List<User> users) {
+        for (User user : users) {
+            if (user == null || user.getRole() != UserRole.CLIENT) {
+                throw new BusinessRuleException(
+                        "DNI no encontrado",
+                        "/api/payments/new");
+            }
+        }
     }
 
     private void validateSinglePendingPaymentRule(User user) {

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -73,7 +74,6 @@ class PaymentServiceTest {
     void createPayment_withMultiplePaidUsers_activatesEveryLinkedUser() {
         User firstClient = buildClient(11L, 30111111);
         User secondClient = buildClient(12L, 30222222);
-        User admin = buildAdmin(1L, 30000001, ADMIN_EMAIL);
 
         PaymentRequestDTO request = PaymentRequestDTO.builder()
                 .clientDnis(List.of(firstClient.getDni(), secondClient.getDni()))
@@ -86,7 +86,6 @@ class PaymentServiceTest {
 
         when(userService.getUserByDni(firstClient.getDni())).thenReturn(firstClient);
         when(userService.getUserByDni(secondClient.getDni())).thenReturn(secondClient);
-        when(userService.getUserByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(firstClient, PaymentStatus.PENDING))
                 .thenReturn(Optional.empty());
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(secondClient, PaymentStatus.PENDING))
@@ -143,7 +142,6 @@ class PaymentServiceTest {
         mockCurrentTime(LocalDateTime.of(2026, 4, 21, 10, 0));
 
         User client = buildClient(41L, 30666666);
-        when(userService.getUserByEmail(CLIENT_EMAIL)).thenReturn(client);
 
         PaymentRequestDTO request = PaymentRequestDTO.builder()
                 .clientDni(client.getDni())
@@ -160,7 +158,6 @@ class PaymentServiceTest {
         mockCurrentTime(LocalDateTime.of(2026, 4, 21, 10, 0));
 
         User client = buildClient(42L, 30666667);
-        User admin = buildAdmin(2L, 30000002, ADMIN_EMAIL);
 
         PaymentRequestDTO request = PaymentRequestDTO.builder()
                 .clientDni(client.getDni())
@@ -169,7 +166,6 @@ class PaymentServiceTest {
                 .paymentStatus(PaymentStatus.PENDING)
                 .build();
 
-        when(userService.getUserByEmail(ADMIN_EMAIL)).thenReturn(admin);
         when(userService.getUserByDni(client.getDni())).thenReturn(client);
         when(paymentRepository.findTopByUserAndStatusOrderByCreatedAtDesc(client, PaymentStatus.PENDING))
                 .thenReturn(Optional.empty());
@@ -184,7 +180,6 @@ class PaymentServiceTest {
     @Test
     void createPayment_withExistingPendingPayment_throwsBusinessRuleException() {
         User client = buildClient(51L, 30777777);
-        when(userService.getUserByEmail(CLIENT_EMAIL)).thenReturn(client);
 
         Payment pendingPayment = Payment.builder()
                 .id(101L)
@@ -204,6 +199,23 @@ class PaymentServiceTest {
                 .thenReturn(Optional.of(pendingPayment));
 
         assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null, CLIENT_EMAIL));
+    }
+
+    @Test
+    void createPayment_withNonClientTarget_throwsBusinessRuleException() {
+        User trainer = buildUser(61L, 30888888, UserRole.TRAINER, UserStatus.ACTIVE, "trainer@personalfit.test");
+
+        PaymentRequestDTO request = PaymentRequestDTO.builder()
+                .clientDni(trainer.getDni())
+                .amount(30000.0)
+                .methodType(MethodType.CASH)
+                .paymentStatus(PaymentStatus.PAID)
+                .build();
+
+        when(userService.getUserByDni(trainer.getDni())).thenReturn(trainer);
+
+        assertThrows(BusinessRuleException.class, () -> paymentService.createPayment(request, null, ADMIN_EMAIL));
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     @Test
@@ -235,8 +247,8 @@ class PaymentServiceTest {
     private void mockCurrentTime(LocalDateTime now) {
         ZoneId zone = ZoneId.of("UTC");
         Instant instant = now.atZone(zone).toInstant();
-        when(clock.getZone()).thenReturn(zone);
-        when(clock.instant()).thenReturn(instant);
+        lenient().when(clock.getZone()).thenReturn(zone);
+        lenient().when(clock.instant()).thenReturn(instant);
     }
 
     private User buildClient(Long id, Integer dni) {
