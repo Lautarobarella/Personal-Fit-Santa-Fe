@@ -7,8 +7,10 @@ name: Release (build versionado + deploy)
 #      unico (feraleutnsantafe/personalfit) con tags prefijados:
 #        backend-vX.Y.Z  + backend-latest
 #        frontend-vX.Y.Z + frontend-latest
-#   3. Recien despues copia docker-compose.yml a la VPS por scp (la VPS NO
-#      tiene el codigo fuente, solo compose + .env) y hace pull + up -d.
+#   3. Recien despues se conecta a la VPS y hace docker compose pull + up -d.
+#      La VPS NO tiene el codigo fuente: solo docker-compose.yml y .env,
+#      administrados A MANO (si cambia el compose en el repo, hay que
+#      actualizarlo manualmente en la VPS).
 # Para rollback o promover una version ya buildeada sin rebuildear, usar el
 # workflow manual "Promote / Rollback" (promote.yml).
 on:
@@ -151,12 +153,8 @@ jobs:
       SSH_PORT: ${{ secrets.SSH_PORT }}
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      DEPLOY_DIR: /opt/Personal-Fit-Santa-Fe
 
     steps:
-      - name: Checkout repo (solo para docker-compose.yml)
-        uses: actions/checkout@v4
-
       - name: Sanity check de secrets SSH
         run: |
           for v in SSH_HOST SSH_PORT SSH_USERNAME SSH_PASSWORD; do
@@ -168,15 +166,6 @@ jobs:
 
       - name: Install sshpass (para autenticación por usuario+password)
         run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: Copiar docker-compose.yml a la VPS
-        run: |
-          if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
-            SSH_PORT=22
-          fi
-          echo "==> Copiando docker-compose.yml a ${DEPLOY_DIR}"
-          sshpass -p "${SSH_PASSWORD}" scp -o StrictHostKeyChecking=no -P "${SSH_PORT}" \
-            docker-compose.yml "${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}/docker-compose.yml"
 
       - name: Deploy (SSH + compose pull + up)
         run: |
