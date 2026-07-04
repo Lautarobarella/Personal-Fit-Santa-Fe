@@ -1,0 +1,84 @@
+name: Promote / Rollback (mover latest a una versión)
+
+# Workflow manual: desde GitHub -> Actions -> este workflow -> "Run workflow",
+# ingresas la version (ej: v1.0.0) y mueve los tags backend-latest y
+# frontend-latest del repo privado a esa version en Docker Hub SIN rebuildear,
+# y redeploya en la VPS.
+# Sirve tanto para rollback como para promover una version ya buildeada.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión a poner en producción (ej: v1.0.0)"
+        required: true
+        type: string
+
+env:
+  IMAGE: feraleutnsantafe/personalfit
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Verificar que la versión existe en Docker Hub
+        run: |
+          VERSION="${{ inputs.version }}"
+          for TAG in "backend-${VERSION}" "frontend-${VERSION}"; do
+            if ! docker buildx imagetools inspect "${IMAGE}:${TAG}" > /dev/null 2>&1; then
+              echo "ERROR: ${IMAGE}:${TAG} no existe en Docker Hub"; exit 1
+            fi
+            echo "✅ ${IMAGE}:${TAG} existe"
+          done
+
+      - name: Mover latest a ${{ inputs.version }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          docker buildx imagetools create -t "${IMAGE}:backend-latest" "${IMAGE}:backend-${VERSION}"
+          docker buildx imagetools create -t "${IMAGE}:frontend-latest" "${IMAGE}:frontend-${VERSION}"
+          echo "✅ backend-latest y frontend-latest ahora apuntan a ${VERSION}"
+
+  deploy:
+    needs: retag
+    environment: Production
+    runs-on: ubuntu-latest
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+      SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+
+    steps:
+      - name: Install sshpass (para autenticación por usuario+password)
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy (SSH + compose pull latest)
+        run: |
+          if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
+            SSH_PORT=22
+          fi
+
+          echo "Conectando a ${SSH_USERNAME}@${SSH_HOST}:${SSH_PORT} ..."
+          sshpass -p "${SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no -p "${SSH_PORT}" "${SSH_USERNAME}@${SSH_HOST}" bash -lc '
+            set -euo pipefail
+
+            DEPLOY_DIR=/opt/Personal-Fit-Santa-Fe
+            cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
+
+            echo "==> Pulleando imagenes desde Docker Hub"
+            docker compose pull
+
+            echo "==> docker compose up -d (sin borrar volumenes)"
+            docker compose up -d
+
+            echo "==> Estado final"
+            docker compose ps
+
+            echo "==> DEPLOY OK"
+          '

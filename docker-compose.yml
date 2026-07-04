@@ -1,3 +1,7 @@
+# Project name fijo: el volumen pgdata vive como <name>_pgdata en producción.
+# NO cambiar, o compose crearía un volumen nuevo vacío para postgres.
+name: personal-fit-santa-fe
+
 networks:
   personalfit-network:
     driver: bridge
@@ -20,9 +24,9 @@ services:
       - "127.0.0.1:5432:5432"
 
   personalfit-backend:
-    build:
-      context: .
-      dockerfile: Backend/Dockerfile
+    # Repo privado unico: los tags llevan prefijo backend-/frontend-.
+    # IMAGE_TAG=v1.0.0 pinea esa version; sin definir usa "latest".
+    image: feraleutnsantafe/personalfit:backend-${IMAGE_TAG:-latest}
     container_name: personalfit-backend
     restart: unless-stopped
     networks:
@@ -56,20 +60,9 @@ services:
       - ${FIREBASE_HOST_PATH:-/opt/firebase}:/opt/firebase:ro
 
   personalfit-frontend:
-    build:
-      context: .
-      dockerfile: Frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_IS_DOCKER: ${NEXT_PUBLIC_IS_DOCKER:-true}
-        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
-        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
-        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
-        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
-        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
-        NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${NEXT_PUBLIC_FIREBASE_VAPID_KEY}
+    # Las variables NEXT_PUBLIC_* quedan horneadas en la imagen durante el build
+    # en GitHub Actions (secrets del environment Production).
+    image: feraleutnsantafe/personalfit:frontend-${IMAGE_TAG:-latest}
     container_name: personalfit-frontend
     restart: unless-stopped
     networks:

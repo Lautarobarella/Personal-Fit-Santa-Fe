@@ -1,47 +1,160 @@
-name: Deploy to Host (simple SSH pull + compose)
+name: Release (build versionado + deploy)
 
+# Flujo: al pushear a main, se lee el archivo VERSION de la raiz del repo.
+#   1. Si esa version YA existe en Docker Hub -> el workflow FALLA (te olvidaste
+#      de bumpear VERSION) y GitHub te avisa por mail.
+#   2. Si no existe, buildea backend y frontend y las pushea al repo privado
+#      unico (feraleutnsantafe/personalfit) con tags prefijados:
+#        backend-vX.Y.Z  + backend-latest
+#        frontend-vX.Y.Z + frontend-latest
+#   3. Recien despues copia docker-compose.yml a la VPS por scp (la VPS NO
+#      tiene el codigo fuente, solo compose + .env) y hace pull + up -d.
+# Para rollback o promover una version ya buildeada sin rebuildear, usar el
+# workflow manual "Promote / Rollback" (promote.yml).
 on:
   push:
     branches:
       - main
 
+env:
+  IMAGE: feraleutnsantafe/personalfit
+
+# Evita dos releases pisandose entre si; el segundo espera al primero.
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
 jobs:
-  frontend-tests:
+  version:
+    name: Leer VERSION y verificar que no exista
     runs-on: ubuntu-latest
+    environment: Production
+    outputs:
+      version: ${{ steps.read.outputs.version }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Leer y validar archivo VERSION
+        id: read
+        run: |
+          if [ ! -f VERSION ]; then
+            echo "ERROR: no existe el archivo VERSION en la raiz del repo"; exit 1
+          fi
+          VERSION="$(tr -d ' \t\r\n' < VERSION)"
+          if ! echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERROR: VERSION invalida: '$VERSION' (formato esperado: v1.2.3)"; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "==> Version a publicar: $VERSION"
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('Frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Install dependencies (Frontend)
-        working-directory: Frontend
-        run: npm install --no-audit --no-fund
+      - name: Verificar que la version NO exista ya en Docker Hub
+        run: |
+          VERSION="${{ steps.read.outputs.version }}"
+          FAIL=0
+          for TAG in "backend-${VERSION}" "frontend-${VERSION}"; do
+            if docker buildx imagetools inspect "${IMAGE}:${TAG}" > /dev/null 2>&1; then
+              echo "ERROR: ${IMAGE}:${TAG} ya existe en Docker Hub"
+              FAIL=1
+            else
+              echo "OK: ${IMAGE}:${TAG} disponible"
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then
+            echo ""
+            echo "==> Te olvidaste de bumpear el archivo VERSION antes de pushear a main."
+            echo "==> Edita VERSION (actual: ${VERSION}), commitea y volve a pushear."
+            exit 1
+          fi
+
+  build-backend:
+    needs: version
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push backend (backend-${{ needs.version.outputs.version }} + backend-latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:backend-${{ needs.version.outputs.version }}
+            ${{ env.IMAGE }}:backend-latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  build-frontend:
+    needs: version
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push frontend (frontend-${{ needs.version.outputs.version }} + frontend-latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:frontend-${{ needs.version.outputs.version }}
+            ${{ env.IMAGE }}:frontend-latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_IS_DOCKER=true
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+            NEXT_PUBLIC_FIREBASE_VAPID_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
 
   deploy:
-    needs: frontend-tests
+    needs: [build-backend, build-frontend]
     environment: Production
     runs-on: ubuntu-latest
     env:
-      # Solo se requieren las credenciales SSH como secrets
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      
+      DEPLOY_DIR: /opt/Personal-Fit-Santa-Fe
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (solo para docker-compose.yml)
         uses: actions/checkout@v4
 
       - name: Sanity check de secrets SSH
@@ -56,7 +169,16 @@ jobs:
       - name: Install sshpass (para autenticación por usuario+password)
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Deploy simple (SSH + pull main + compose build)
+      - name: Copiar docker-compose.yml a la VPS
+        run: |
+          if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
+            SSH_PORT=22
+          fi
+          echo "==> Copiando docker-compose.yml a ${DEPLOY_DIR}"
+          sshpass -p "${SSH_PASSWORD}" scp -o StrictHostKeyChecking=no -P "${SSH_PORT}" \
+            docker-compose.yml "${SSH_USERNAME}@${SSH_HOST}:${DEPLOY_DIR}/docker-compose.yml"
+
+      - name: Deploy (SSH + compose pull + up)
         run: |
           if [ -z "${SSH_PORT}" ] || [ "${SSH_PORT}" = "null" ]; then
             SSH_PORT=22
@@ -70,12 +192,17 @@ jobs:
             echo "==> Entrando en $DEPLOY_DIR"
             cd "$DEPLOY_DIR" || { echo "ERROR: Directorio $DEPLOY_DIR no existe"; exit 2; }
 
-            echo "==> Actualizando rama main"
-            git checkout main
-            git pull origin main
+            echo "==> Pulleando imagenes nuevas desde Docker Hub"
+            docker compose pull
 
-            echo "==> docker compose up -d --build (sin borrar volúmenes)"
-            docker compose up -d --build
+            echo "==> docker compose up -d (sin borrar volumenes)"
+            docker compose up -d
+
+            echo "==> Limpiando imagenes viejas sin usar"
+            docker image prune -af
+
+            echo "==> Estado final"
+            docker compose ps
 
             echo "==> DEPLOY OK"
           '
