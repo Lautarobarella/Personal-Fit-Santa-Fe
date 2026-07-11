@@ -101,11 +101,11 @@ describe('Types & Enums - Contract Validation', () => {
   })
 
   describe('MuscleGroup', () => {
-    it('debe contener los 11 grupos musculares', () => {
+    it('debe contener los 12 grupos musculares', () => {
       const expectedGroups = [
         'PECHO', 'ESPALDA', 'BICEP', 'ABDOMINALES',
-        'ADUCTORES', 'CUADRICEPS', 'GEMELOS', 'ISQUIOS',
-        'HOMBROS', 'TRICEP', 'CARDIO_FUNCIONAL',
+        'ADUCTORES', 'CUADRICEPS', 'GEMELOS', 'GLUTEOS',
+        'ISQUIOS', 'HOMBROS', 'TRICEP', 'CARDIO_FUNCIONAL',
       ]
 
       expectedGroups.forEach(group => {
@@ -113,8 +113,8 @@ describe('Types & Enums - Contract Validation', () => {
       })
     })
 
-    it('debe tener exactamente 11 valores', () => {
-      expect(Object.keys(MuscleGroup)).toHaveLength(11)
+    it('debe tener exactamente 12 valores', () => {
+      expect(Object.keys(MuscleGroup)).toHaveLength(12)
     })
   })
 })

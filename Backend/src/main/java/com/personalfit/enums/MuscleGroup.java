@@ -8,6 +8,7 @@ public enum MuscleGroup {
     ADUCTORES,
     CUADRICEPS,
     GEMELOS,
+    GLUTEOS,
     ISQUIOS,
     HOMBROS,
     TRICEP,

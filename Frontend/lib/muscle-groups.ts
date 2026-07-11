@@ -8,6 +8,7 @@ export const MUSCLE_GROUP_OPTIONS: Array<{ value: MuscleGroup; label: string }> 
   { value: MuscleGroup.ADUCTORES, label: "Aductores" },
   { value: MuscleGroup.CUADRICEPS, label: "Cuadriceps" },
   { value: MuscleGroup.GEMELOS, label: "Gemelos" },
+  { value: MuscleGroup.GLUTEOS, label: "Glúteos" },
   { value: MuscleGroup.ISQUIOS, label: "Isquios" },
   { value: MuscleGroup.HOMBROS, label: "Hombros" },
   { value: MuscleGroup.TRICEP, label: "Triceps" },
