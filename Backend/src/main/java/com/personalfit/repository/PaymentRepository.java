@@ -1,6 +1,7 @@
 package com.personalfit.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         Optional<Payment> findByConfNumber(Long confNumber);
 
         List<Payment> findByStatus(PaymentStatus status);
+
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "LEFT JOIN FETCH p.users " +
+                        "LEFT JOIN FETCH p.paymentFile " +
+                        "WHERE p.paymentFile.id = :fileId")
+        Optional<Payment> findByPaymentFileIdWithUsers(@Param("fileId") Long fileId);
 
         // ===== USER QUERIES WITH OPTIMIZED FETCH JOINS =====
 
@@ -71,6 +78,20 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                         "JOIN p.users u " +
                         "WHERE p.id = :paymentId AND u.id = :userId")
         boolean existsByPaymentIdAndUserId(@Param("paymentId") Long paymentId, @Param("userId") Long userId);
+
+        @Query("SELECT DISTINCT u.id FROM Payment p " +
+                        "JOIN p.users u " +
+                        "WHERE u IN :users AND p.status = :status")
+        List<Long> findUserIdsWithPaymentStatus(@Param("users") Collection<User> users,
+                        @Param("status") PaymentStatus status);
+
+        @Query("SELECT DISTINCT u.id FROM Payment p " +
+                        "JOIN p.users u " +
+                        "WHERE u IN :users AND p.status = :status " +
+                        "AND p.expiresAt >= :expiration")
+        List<Long> findUserIdsWithPaymentStatusExpiringAtOrAfter(@Param("users") Collection<User> users,
+                        @Param("status") PaymentStatus status,
+                        @Param("expiration") LocalDateTime expiration);
 
         // ===== MULTI-USER QUERIES =====
 

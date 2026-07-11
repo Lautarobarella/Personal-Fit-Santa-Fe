@@ -60,8 +60,34 @@ public class SettingsService {
         }
     }
 
+    /**
+     * Strict variant for financial writes (payment creation): still creates the
+     * default setting when the key is missing, but propagates read/parse
+     * failures instead of silently falling back to the default amount, so no
+     * payment is persisted with a fee different from the configured one.
+     */
+    public Double getMonthlyFeeStrict() {
+        Settings setting = settingsRepository.findByKey(MONTHLY_FEE_KEY)
+                .orElseGet(this::createDefaultMonthlyFeeSetting);
+        Double fee;
+        try {
+            fee = Double.parseDouble(setting.getValue());
+        } catch (NumberFormatException e) {
+            throw new BusinessRuleException("La cuota mensual configurada es inválida.",
+                    "Api/Settings/getMonthlyFee");
+        }
+        // parseDouble acepta "NaN" e "Infinity": un pago nunca puede
+        // persistirse con un monto no finito o no positivo.
+        if (!Double.isFinite(fee) || fee <= 0) {
+            throw new BusinessRuleException("La cuota mensual configurada es inválida.",
+                    "Api/Settings/getMonthlyFee");
+        }
+        return fee;
+    }
+
     public Double setMonthlyFee(Double amount) {
-        if (amount == null || amount <= 0) {
+        // isFinite también excluye NaN, para el cual `amount <= 0` es falso
+        if (amount == null || !Double.isFinite(amount) || amount <= 0) {
             throw new BusinessRuleException("Monthly fee must be a positive number", "Api/Settings/setMonthlyFee");
         }
 

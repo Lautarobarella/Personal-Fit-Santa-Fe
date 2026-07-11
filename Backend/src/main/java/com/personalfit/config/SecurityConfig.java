@@ -54,9 +54,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/users/public/first-admin").permitAll()
                         .requestMatchers("/api/users/public/register").permitAll()
-                        .requestMatchers("/api/payments/files/**").permitAll() // Allow downloading payment receipts
-                        .requestMatchers("/payments/files/**").permitAll() // Allow access to payment files
-                        .requestMatchers("/api/files/**").permitAll() // Allow direct access to backend files
                         .requestMatchers(
                                 "/api/attendance/nfc/9551674a19bae81d4d27f5436470c9ee6ecd0b371088686f6afc58d6bf68df30")
                         .permitAll() // Allow NFC endpoint without auth

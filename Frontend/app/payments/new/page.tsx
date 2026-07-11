@@ -50,7 +50,7 @@ export default function NewPaymentPage() {
     return parsed
   }, [groupSizeInput])
 
-  const canCurrentUserCreatePayment = !!user
+  const canCurrentUserCreatePayment = user?.role === UserRole.CLIENT || user?.role === UserRole.ADMIN
 
   const canContinue = useMemo(() => {
     if (!canCurrentUserCreatePayment) {
@@ -66,20 +66,12 @@ export default function NewPaymentPage() {
 
   const handleCreatePayment = async (payment: {
     clientDnis: number[]
-    createdByDni: number
-    amount: number
-    createdAt: string
-    expiresAt: string
+    expectedMonthlyFee: number
     method: MethodType
     notes?: string
     file?: File
   }) => {
-    const isAutomaticPayment = user?.role === UserRole.ADMIN
-
-    await createPayment({
-      paymentData: payment,
-      isAutomaticPayment,
-    })
+    await createPayment(payment)
   }
 
   const handleModeDialogOpenChange = (open: boolean) => {

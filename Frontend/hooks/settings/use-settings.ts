@@ -55,18 +55,13 @@ export function useSettings() {
       setLoading(true)
       setError(null)
 
-      // If the user is not an ADMIN, try reading from localStorage to avoid 403
-      if (user && user.role !== 'ADMIN') {
-        const cachedParams = localStorage.getItem('globalSettings')
-        if (cachedParams) {
-          setSettings(JSON.parse(cachedParams))
-          return
-        }
-      }
-
+      // Every authenticated role can read /api/settings/all. Always refresh the
+      // server value so payment confirmation is bound to the current fee rather
+      // than to a potentially stale localStorage snapshot.
       const settingsData = await fetchAllSettings()
       
-      // Keep localStorage in sync when ADMIN fetches latest
+      // Keep the cache in sync for non-financial consumers, while payment
+      // creation always starts from this freshly fetched server snapshot.
       if (settingsData) {
         localStorage.setItem('globalSettings', JSON.stringify(settingsData))
       }

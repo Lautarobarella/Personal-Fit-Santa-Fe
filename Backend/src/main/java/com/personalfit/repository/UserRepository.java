@@ -2,13 +2,17 @@ package com.personalfit.repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
@@ -54,4 +58,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
         Optional<User> findByEmailAndDeletedAtIsNull(String email);
 
         Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+
+        /**
+         * Loads users by DNI acquiring a pessimistic write lock so concurrent
+         * admin batch-payment requests over the same clients serialize instead
+         * of both passing the eligibility validation. Rows are ordered by id so
+         * every transaction acquires the locks in the same canonical order,
+         * preventing deadlocks between overlapping batches.
+         */
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT u FROM User u WHERE u.dni IN :dnis AND u.deletedAt IS NULL ORDER BY u.id")
+        List<User> findAllByDniInAndDeletedAtIsNullForUpdate(@Param("dnis") Collection<Integer> dnis);
 }

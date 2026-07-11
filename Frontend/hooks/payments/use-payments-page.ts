@@ -154,9 +154,14 @@ export function usePaymentsPage() {
     if (user?.role !== UserRole.ADMIN) {
       return true
     }
+    const search = searchTerm.toLowerCase()
+    // En pagos grupales el nombre visible es el del primer pagador; buscar
+    // también en associatedUsers permite encontrar el pago por cualquiera
+    // de los clientes incluidos.
     return (
-      p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      formatDate(p.createdAt).toLowerCase().includes(searchTerm.toLowerCase())
+      (p.clientName ?? "").toLowerCase().includes(search) ||
+      (p.associatedUsers?.some((u: any) => (u.userName ?? "").toLowerCase().includes(search)) ?? false) ||
+      formatDate(p.createdAt).toLowerCase().includes(search)
     )
   })
 

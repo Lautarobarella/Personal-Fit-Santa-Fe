@@ -2,7 +2,7 @@ import { jwtPermissionsApi } from "@/api/JWTAuth/api";
 import { buildFileUrl } from "@/api/JWTAuth/config";
 import { handleApiError, handleValidationError, isValidationError } from "@/lib/error-handler";
 import { compressFile, validatePaymentFile } from "@/lib/file-compression";
-import { NewPaymentInput, PaymentStatus, PaymentType } from "@/lib/types";
+import { NewPaymentInput, PaymentType } from "@/lib/types";
 
 /**
  * Unified Payment API Wrapper
@@ -100,32 +100,15 @@ export async function fetchPaymentDetails(paymentId: number): Promise<PaymentTyp
  * 
  * Includes client-side compression logic to optimize upload bandwidth usage.
  * 
- * @param paymentData Form data including amount, notes, dates, etc.
- * @param isAutomaticPayment Boolean flag affecting the initial status (PAID vs PENDING)
+ * Identity, amount, status and dates are deliberately omitted. The backend
+ * derives them from the authenticated principal and current settings.
  */
-export async function createPayment(
-  paymentData: Omit<NewPaymentInput, 'paymentStatus'>,
-  isAutomaticPayment: boolean = false
-) {
-  const paymentStatus = isAutomaticPayment ? PaymentStatus.PAID : PaymentStatus.PENDING;
+export async function createPayment(paymentData: NewPaymentInput) {
   const formData = new FormData();
 
   const payment = {
-    // Dynamic handling: supports batch updates (clientDnis) or single user (clientDni)
-    ...(paymentData.clientDnis ? { clientDnis: paymentData.clientDnis } : { clientDni: paymentData.clientDni }),
-    createdByDni: paymentData.createdByDni,
-    amount: paymentData.amount,
-    // Format createdAt with the actual current time (local, no UTC conversion)
-    createdAt: (() => {
-      const now = new Date();
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      const [year, month, day] = paymentData.createdAt.split('-');
-      return `${year}-${month}-${day}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    })(),
-    // Backend now defines the final expiration rule (day 10 of next month).
-    // We still send the selected date as an informational value.
-    expiresAt: paymentData.expiresAt + "T00:00:00",
-    paymentStatus,
+    clientDnis: paymentData.clientDnis,
+    expectedMonthlyFee: paymentData.expectedMonthlyFee,
     methodType: paymentData.method,
     notes: paymentData.notes,
   };
@@ -133,24 +116,19 @@ export async function createPayment(
   // Append complex object as JSON blob part
   formData.append("payment", new Blob([JSON.stringify(payment)], { type: "application/json" }));
 
-  // File Processing Pipeline (Manual Payments Only)
-  if (paymentData.file && !isAutomaticPayment) {
+  // A receipt belongs to the operation independently of whether its creator is
+  // a client or an admin. Group transfers therefore upload one shared receipt.
+  if (paymentData.file) {
+    const validation = validatePaymentFile(paymentData.file);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+
     try {
-      // Step 1: Structural Validation (size, mime-type)
-      const validation = validatePaymentFile(paymentData.file);
-      if (!validation.isValid) {
-        throw new Error(validation.error);
-      }
-
-      // Step 2: Lossy Compression to reduce storage load
       const { compressedFile } = await compressFile(paymentData.file);
-
-      // Step 3: Append optimized binary
       formData.append("file", compressedFile);
     } catch (compressionError) {
       console.error('Error al comprimir archivo:', compressionError);
-      // Fallback Strategy: If compression fails (e.g. browser incompatibility), 
-      // upload the original file rather than blocking the user transaction.
       formData.append("file", paymentData.file);
     }
   }
@@ -163,6 +141,40 @@ export async function createPayment(
       handleValidationError(error);
     } else {
       handleApiError(error, 'Error al crear el pago');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Quick payment load for inactive clients (Admin only).
+ *
+ * Sends the selected client DNIs plus the monthly fee the admin saw when
+ * confirming: the backend re-validates eligibility (INACTIVE clients without
+ * a pending payment for the current month), computes the amount server-side
+ * from the configured monthly fee — rejecting the operation if it no longer
+ * matches the expected one —, forces PAID status and resolves the creator
+ * from the authenticated session.
+ *
+ * @param clientDnis         DNIs of the selected inactive clients
+ * @param expectedMonthlyFee Monthly fee shown to the admin in the dialog
+ */
+export async function createInactiveClientsPayment(
+  clientDnis: number[],
+  expectedMonthlyFee: number
+): Promise<{
+  success: boolean;
+  message: string;
+  paymentId: number;
+  clientCount: number;
+}> {
+  try {
+    return await jwtPermissionsApi.post('/api/payments/inactive-group', { clientDnis, expectedMonthlyFee });
+  } catch (error) {
+    if (isValidationError(error)) {
+      handleValidationError(error);
+    } else {
+      handleApiError(error, 'Error al generar los pagos');
     }
     throw error;
   }
@@ -211,5 +223,4 @@ export async function updatePaymentStatus(
 export function buildReceiptUrl(receiptId: number | null | undefined): string | null {
   return buildFileUrl(receiptId);
 }
-
 

@@ -8,23 +8,31 @@ import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.personalfit.dto.Payment.InactiveClientsPaymentRequestDTO;
+import com.personalfit.dto.Payment.ManualPaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
+import com.personalfit.enums.MethodType;
 import com.personalfit.enums.PaymentStatus;
 import com.personalfit.enums.UserRole;
 import com.personalfit.enums.UserStatus;
@@ -91,136 +99,246 @@ public class PaymentService {
     private Clock clock;
 
     /**
-     * Creates a new payment transaction.
-     * Supports both Single-User and Multi-User (Group) payments.
-     * 
-     * Process:
-     * 1. Persists the payment record with PENDING status.
-     * 2. Stores the optional receipt file if provided.
-     * 3. Calculates expiration date as day 10 of the following month.
-     * 4. Updates User status to ACTIVE if the payment is immediately marked as
-     * PAID.
-     * 
-     * @param paymentRequest DTO containing amount, method, and target users.
-     * @param file           Optional receipt file (image/pdf).
-     * @return The persisted Payment entity.
+     * Creates a standard individual or group payment without trusting financial
+     * or identity fields from the caller.
+     *
+     * CLIENT submissions must include the authenticated client, are always
+     * PENDING and never activate users. ADMIN submissions are auto-confirmed.
+     * Both flows calculate the amount from the current monthly fee.
      */
     @Transactional
-    public Payment createPayment(PaymentRequestDTO paymentRequest, MultipartFile file, String authenticatedUserEmail) {
-        // 1. Resolve Target Users
-        List<User> users = getUsersForPayment(paymentRequest);
+    public Payment createPayment(ManualPaymentRequestDTO request, MultipartFile file, String authenticatedUserEmail) {
+        final String path = "/api/payments/new";
+
+        User actor = userService.getUserByEmail(authenticatedUserEmail);
+        if (actor.getRole() != UserRole.CLIENT && actor.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("El rol autenticado no puede crear pagos.");
+        }
+
+        List<Integer> dnis = normalizeManualPaymentDnis(request.getClientDnis(), path);
+        if (actor.getRole() == UserRole.CLIENT && !dnis.contains(actor.getDni())) {
+            throw new BusinessRuleException(
+                    "El cliente autenticado debe formar parte del pago individual o grupal.", path);
+        }
+
+        List<User> users = userService.getUsersByDniForUpdate(dnis);
+        validateAllRequestedUsersWereFound(dnis, users, path);
         validatePaymentTargetUsersAreClients(users);
 
-        // 2. Business Validation: one pending payment max per client
         for (User user : users) {
             validateSinglePendingPaymentRule(user);
         }
 
-        // 3. Resolve Creator (Admin or Self)
-        User createdByUser = null;
-        if (paymentRequest.getCreatedByDni() != null) {
-            createdByUser = userService.getUserByDni(paymentRequest.getCreatedByDni());
-        }
-
-        // 4. Build Entity
         LocalDateTime createdAt = LocalDateTime.now(clock);
-        Payment payment = buildPayment(paymentRequest, createdAt);
-
-        if (createdByUser != null) {
-            payment.setCreatedBy(createdByUser);
+        if (actor.getRole() == UserRole.ADMIN) {
+            LocalDateTime targetExpiration = calculateNextExpirationDate(createdAt);
+            Set<Long> usersWithActivePaidMembership = new HashSet<>(
+                    paymentRepository.findUserIdsWithPaymentStatusExpiringAtOrAfter(
+                            users, PaymentStatus.PAID, targetExpiration));
+            List<String> alreadyPaid = users.stream()
+                    .filter(user -> usersWithActivePaidMembership.contains(user.getId()))
+                    .map(User::getFullName)
+                    .toList();
+            if (!alreadyPaid.isEmpty()) {
+                throw new BusinessRuleException(
+                        "Los siguientes clientes ya tienen una cuota paga para este período: "
+                                + String.join(", ", alreadyPaid),
+                        path);
+            }
         }
 
-        // 5. File Processing
+        Double monthlyFee = settingsService.getMonthlyFeeStrict();
+        if (Double.compare(monthlyFee, request.getExpectedMonthlyFee()) != 0) {
+            throw new BusinessRuleException(
+                    "La cuota mensual cambió desde que abriste el formulario. Verificá el nuevo monto e intentá nuevamente.",
+                    path);
+        }
+
+        validateReceiptRequirements(request, file, actor, path);
+
+        PaymentStatus status = actor.getRole() == UserRole.ADMIN ? PaymentStatus.PAID : PaymentStatus.PENDING;
+        PaymentRequestDTO serverOwnedRequest = PaymentRequestDTO.builder()
+                .amount(monthlyFee * users.size())
+                .methodType(request.getMethodType())
+                .paymentStatus(status)
+                .notes(normalizeNotes(request.getNotes()))
+                .build();
+        Payment payment = buildPayment(serverOwnedRequest, createdAt);
+        payment.setCreatedBy(actor);
+
+        if (status == PaymentStatus.PAID) {
+            payment.setVerifiedAt(createdAt);
+            payment.setVerifiedBy(actor);
+        }
+
         if (file != null && !file.isEmpty()) {
             PaymentFile paymentFile = processPaymentFile(file);
             payment.setPaymentFile(paymentFile);
         }
 
-        // 6. Link Users & Payment
         Set<User> paymentUsers = new HashSet<>();
         for (User user : users) {
             paymentUsers.add(user);
-
-            // Side Effect: Activate user if payment is inherently trusted/paid
             updateUserStatusIfPaid(user, payment);
         }
-
         payment.setUsers(paymentUsers);
 
-        // 7. Persist (Cascade will save relationships)
         Payment savedPayment = paymentRepository.save(payment);
 
         log.info("Payment created: id={}, users={}, amount={}, createdByUserId={}",
                 savedPayment.getId(), users.size(), savedPayment.getAmount(),
-                createdByUser != null ? createdByUser.getId() : null);
+                actor.getId());
 
         return savedPayment;
     }
 
     /**
-     * Batch Creation via Admin Panel.
-     * Optimized for processing multiple distinct payments in a single request.
-     * 
-     * Implementation Notes:
-     * - Skips invalid requests instead of aborting the entire batch.
-     * - Uses `saveAll` for JDBC batching performance.
-     * 
-     * @param paymentRequests List of individual payment DTOs.
-     * @return Count of successfully created payments.
+     * Quick payment load for inactive clients (Admin only).
+     * Reuses the existing group-payment flow: creates ONE payment linked to all
+     * selected clients, exactly like a manual group payment, so it feeds the
+     * same history, reports and monthly revenue calculations.
+     *
+     * Server-enforced rules (client input is not trusted):
+     * - Creator: resolved from the authenticated principal, never from the DTO.
+     * - Status: forced to PAID (admin-created payments are auto-confirmed),
+     *   which activates every linked client.
+     * - Amount: monthly fee (settings) x number of clients.
+     * - Eligibility re-validated per client under a pessimistic lock: must be
+     *   an INACTIVE client without pending payments. This also makes retries
+     *   idempotent-by-validation: once the payment is created the clients are
+     *   ACTIVE, so a duplicate confirmation is rejected.
+     *
+     * The operation is atomic: if any client is not eligible, no payment is
+     * created and the error details every offending client.
+     *
+     * @param request                DTOs with the target client DNIs.
+     * @param authenticatedUserEmail Email of the authenticated admin (principal).
+     * @return The persisted group Payment entity.
      */
     @Transactional
-    public Integer createBatchPayments(List<PaymentRequestDTO> paymentRequests, String authenticatedUserEmail) {
-        List<Payment> paymentsToSave = new ArrayList<>();
-        LocalDateTime createdAt = LocalDateTime.now(clock);
+    public Payment createInactiveClientsPayment(InactiveClientsPaymentRequestDTO request,
+            String authenticatedUserEmail) {
+        final String path = "/api/payments/inactive-group";
 
-        for (PaymentRequestDTO paymentRequest : paymentRequests) {
-            try {
-                // Resolve Users
-                List<User> users = getUsersForPayment(paymentRequest);
-
-                // Logic Constraint: Batch payments currently support 1 user per transaction row
-                if (users.size() != 1) {
-                    log.warn("Skipping multi-user batch row: requestedCount={}", users.size());
-                    continue;
-                }
-
-                User user = users.get(0);
-
-                // Validation: Must be a CLIENT
-                if (!user.getRole().equals(UserRole.CLIENT)) {
-                    log.warn("Skipping payment for non-client: userId={}, role={}", user.getId(), user.getRole());
-                    continue;
-                }
-
-                validateSinglePendingPaymentRule(user);
-
-                // Force PENDING status for manual entry safety
-                PaymentRequestDTO batchRequest = PaymentRequestDTO.builder()
-                        .clientId(paymentRequest.getClientId())
-                        .clientDni(paymentRequest.getClientDni())
-                        .amount(paymentRequest.getAmount())
-                        .methodType(paymentRequest.getMethodType())
-                        .paymentStatus(PaymentStatus.PENDING)
-                        .confNumber(paymentRequest.getConfNumber())
-                        .notes(paymentRequest.getNotes())
-                        .build();
-
-                Payment payment = buildPayment(batchRequest, createdAt);
-                payment.setUsers(Set.of(user));
-                paymentsToSave.add(payment);
-
-            } catch (Exception e) {
-                log.warn("Batch payment item skipped: cause={}", e.getMessage());
-            }
+        // 1. Resolve creator from the authenticated principal (never from the body)
+        User admin = userService.getUserByEmail(authenticatedUserEmail);
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new BusinessRuleException("Solo un administrador puede generar pagos de clientes inactivos.", path);
+        }
+        if (request.getMethodType() != null && request.getMethodType() != MethodType.CASH) {
+            throw new BusinessRuleException(
+                    "La carga rápida de clientes inactivos solo admite pagos en efectivo.", path);
         }
 
-        // Batch insert
-        List<Payment> savedPayments = paymentRepository.saveAll(paymentsToSave);
+        // 2. Normalize input: drop nulls and duplicates preserving order
+        List<Integer> dnis = request.getClientDnis() == null ? List.of()
+                : request.getClientDnis().stream()
+                        .filter(dni -> dni != null)
+                        .distinct()
+                        .collect(Collectors.toList());
 
-        log.info("Batch payments executed: {} success / {} requested",
-                savedPayments.size(), paymentRequests.size());
+        if (dnis.isEmpty()) {
+            throw new BusinessRuleException("Debe seleccionar al menos un cliente.", path);
+        }
 
-        return savedPayments.size();
+        // 3. Load clients with a pessimistic lock: concurrent admin requests over
+        // the same clients serialize, so the second one re-reads the post-commit
+        // status (ACTIVE) and fails validation instead of duplicating the payment.
+        List<User> users = userService.getUsersByDniForUpdate(dnis);
+
+        Set<Integer> foundDnis = users.stream().map(User::getDni).collect(Collectors.toSet());
+        List<Integer> missingDnis = dnis.stream().filter(dni -> !foundDnis.contains(dni)).toList();
+        if (!missingDnis.isEmpty()) {
+            // BusinessRuleException (400) en lugar de 404: el handler del
+            // frontend preserva el mensaje de los 400, así el admin ve qué
+            // DNI del lote causó el rechazo.
+            throw new BusinessRuleException(
+                    "No se encontraron clientes con los siguientes DNI: " + joinInts(missingDnis), path);
+        }
+
+        List<String> notClients = users.stream()
+                .filter(user -> user.getRole() != UserRole.CLIENT)
+                .map(User::getFullName)
+                .toList();
+        if (!notClients.isEmpty()) {
+            throw new BusinessRuleException(
+                    "Los siguientes usuarios no son clientes: " + String.join(", ", notClients), path);
+        }
+
+        // 4. Re-validate eligibility server-side (frontend state may be stale)
+        List<String> notInactive = users.stream()
+                .filter(user -> user.getStatus() != UserStatus.INACTIVE)
+                .map(User::getFullName)
+                .toList();
+        if (!notInactive.isEmpty()) {
+            throw new BusinessRuleException(
+                    "Los siguientes clientes ya no están inactivos: " + String.join(", ", notInactive), path);
+        }
+
+        // A PENDING payment is an unresolved financial operation and no job
+        // expires it. Block any such payment regardless of creation month; this
+        // matches /new and prevents a later approval from double-counting a fee
+        // loaded through this quick flow.
+        LocalDateTime createdAt = LocalDateTime.now(clock);
+        Set<Long> userIdsWithPending = new HashSet<>(paymentRepository.findUserIdsWithPaymentStatus(
+                users, PaymentStatus.PENDING));
+        List<String> withPending = users.stream()
+                .filter(user -> userIdsWithPending.contains(user.getId()))
+                .map(User::getFullName)
+                .toList();
+        if (!withPending.isEmpty()) {
+            throw new BusinessRuleException(
+                    "Los siguientes clientes ya tienen un pago pendiente sin resolver: "
+                            + String.join(", ", withPending),
+                    path);
+        }
+
+        // 5. Build the group payment reusing the standard flow (same expiration
+        // rule, same linkage) with server-computed values. The fee is read with
+        // the strict getter: a read/parse failure aborts the operation instead
+        // of silently billing the default amount.
+        Double monthlyFee = settingsService.getMonthlyFeeStrict();
+
+        // El monto SIEMPRE lo define el backend, pero la operación se rechaza
+        // si la cuota vigente no coincide con la que el admin vio al
+        // confirmar (otra sesión pudo haberla cambiado en el medio).
+        if (Double.compare(monthlyFee, request.getExpectedMonthlyFee()) != 0) {
+            throw new BusinessRuleException(
+                    "La cuota mensual cambió desde que abriste la confirmación. Verificá el nuevo monto e intentá nuevamente.",
+                    path);
+        }
+
+        Double amount = monthlyFee * users.size();
+        PaymentRequestDTO paymentRequest = PaymentRequestDTO.builder()
+                .amount(amount)
+                .methodType(MethodType.CASH)
+                .paymentStatus(PaymentStatus.PAID)
+                .notes(request.getNotes())
+                .build();
+
+        Payment payment = buildPayment(paymentRequest, createdAt);
+        payment.setCreatedBy(admin);
+        payment.setVerifiedAt(createdAt);
+        payment.setVerifiedBy(admin);
+
+        Set<User> paymentUsers = new HashSet<>();
+        for (User user : users) {
+            paymentUsers.add(user);
+            // Side effect shared with the group flow: PAID payments activate users
+            updateUserStatusIfPaid(user, payment);
+        }
+        payment.setUsers(paymentUsers);
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        log.info("Inactive-clients payment created: id={}, clients={}, amount={}, createdByUserId={}",
+                savedPayment.getId(), users.size(), savedPayment.getAmount(), admin.getId());
+
+        return savedPayment;
+    }
+
+    private String joinInts(List<Integer> values) {
+        return values.stream().map(String::valueOf).collect(Collectors.joining(", "));
     }
 
     /**
@@ -272,7 +390,14 @@ public class PaymentService {
      * User Profile History.
      * Returns full payment history for a specific client.
      */
-    public List<PaymentTypeDTO> getUserPayments(Long userId) {
+    @Transactional(readOnly = true)
+    public List<PaymentTypeDTO> getUserPayments(Long userId, String authenticatedUserEmail) {
+        User actor = userService.getUserByEmail(authenticatedUserEmail);
+        if (actor.getRole() != UserRole.ADMIN
+                && (actor.getRole() != UserRole.CLIENT || !actor.getId().equals(userId))) {
+            throw new AccessDeniedException("No tenés permisos para consultar el historial de este cliente.");
+        }
+
         LocalDateTime now = LocalDateTime.now(clock);
 
         // Optimized query to fetch payments with minimal N+1 issues
@@ -294,40 +419,67 @@ public class PaymentService {
     /**
      * Gets details of a specific payment.
      */
-    public PaymentTypeDTO getPaymentDetails(Long paymentId) {
+    @Transactional(readOnly = true)
+    public PaymentTypeDTO getPaymentDetails(Long paymentId, String authenticatedUserEmail) {
         Payment payment = getPaymentById(paymentId);
+        authorizePaymentAccess(payment, authenticatedUserEmail);
         return convertToPaymentTypeDTO(payment);
     }
 
-    /**
-     * Gets a payment with its associated file.
-     */
-    public Payment getPaymentWithFile(Long paymentId) {
-        return getPaymentById(paymentId);
+    @Transactional(readOnly = true)
+    public Payment getAuthorizedPaymentWithFile(Long paymentId, String authenticatedUserEmail) {
+        Payment payment = getPaymentById(paymentId);
+        authorizePaymentAccess(payment, authenticatedUserEmail);
+        return payment;
     }
 
     /**
      * Status Modification Workflow.
-     * Handles transitions: PENDING -> PAID, PAID -> REJECTED, etc.
+     * Handles the only supported review transitions: PENDING -> PAID/REJECTED.
      * 
      * Side Effects:
      * - Activates users upon approval (PAID).
      */
     @Transactional
-    public void updatePaymentStatus(Long paymentId, PaymentStatusUpdateDTO statusUpdate) {
+    public void updatePaymentStatus(Long paymentId, PaymentStatusUpdateDTO statusUpdate,
+            String authenticatedUserEmail) {
+        User reviewer = userService.getUserByEmail(authenticatedUserEmail);
+        if (reviewer.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Solo un administrador puede verificar pagos.");
+        }
+
         Payment payment = getPaymentById(paymentId);
-        PaymentStatus newStatus = PaymentStatus.valueOf(statusUpdate.getStatus().toUpperCase());
+        PaymentStatus newStatus;
+        try {
+            newStatus = PaymentStatus.valueOf(statusUpdate.getStatus().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            throw new BusinessRuleException("El estado debe ser PAID o REJECTED.",
+                    "/api/payments/pending/" + paymentId);
+        }
+        if (payment.getStatus() != PaymentStatus.PENDING
+                || (newStatus != PaymentStatus.PAID && newStatus != PaymentStatus.REJECTED)) {
+            throw new BusinessRuleException(
+                    "Solo los pagos pendientes pueden aprobarse o rechazarse.",
+                    "/api/payments/pending/" + paymentId);
+        }
+        if (newStatus == PaymentStatus.REJECTED
+                && (statusUpdate.getRejectionReason() == null || statusUpdate.getRejectionReason().isBlank())) {
+            throw new BusinessRuleException("El motivo de rechazo es obligatorio.",
+                    "/api/payments/pending/" + paymentId);
+        }
+
         LocalDateTime now = LocalDateTime.now(clock);
 
         payment.setStatus(newStatus);
         payment.setUpdatedAt(now);
+        payment.setVerifiedAt(now);
+        payment.setVerifiedBy(reviewer);
 
-        if (newStatus == PaymentStatus.REJECTED && statusUpdate.getRejectionReason() != null) {
-            payment.setRejectionReason(statusUpdate.getRejectionReason());
+        if (newStatus == PaymentStatus.REJECTED) {
+            payment.setRejectionReason(statusUpdate.getRejectionReason().trim());
         }
 
         if (newStatus == PaymentStatus.PAID) {
-            payment.setVerifiedAt(now);
             // Activate linked accounts
             if (payment.getUsers() != null) {
                 for (User user : payment.getUsers()) {
@@ -353,55 +505,86 @@ public class PaymentService {
      * File System Retrieval.
      * Reads bytes from the disk storage based on the file ID.
      */
-    public byte[] getFileContent(Long fileId) {
-        PaymentFile paymentFile = getPaymentFileById(fileId);
-
+    public byte[] getFileContent(PaymentFile paymentFile) {
         try {
             Path filePath = Paths.get(paymentFile.getFilePath());
             if (!Files.exists(filePath)) {
-                throw new FileException("File not found on disk", "/api/files/" + fileId);
+                throw new FileException("File not found on disk", "/api/payments/files/" + paymentFile.getId());
             }
             return Files.readAllBytes(filePath);
         } catch (IOException e) {
             log.error("IO Error reading file: {}", e.getMessage());
-            throw new FileException("Error reading file content", "/api/files/" + fileId);
+            throw new FileException("Error reading file content", "/api/payments/files/" + paymentFile.getId());
         }
     }
 
-    /**
-     * Gets information about a payment file.
-     */
-    public PaymentFile getPaymentFileInfo(Long fileId) {
-        return getPaymentFileById(fileId);
+    @Transactional(readOnly = true)
+    public PaymentFile getAuthorizedPaymentFile(Long fileId, String authenticatedUserEmail) {
+        Payment payment = paymentRepository.findByPaymentFileIdWithUsers(fileId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Payment file not found ID: " + fileId,
+                        "/api/payments/files/" + fileId));
+        authorizePaymentAccess(payment, authenticatedUserEmail);
+        return payment.getPaymentFile();
+    }
+
+    private void authorizePaymentAccess(Payment payment, String authenticatedUserEmail) {
+        User actor = userService.getUserByEmail(authenticatedUserEmail);
+        if (actor.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        boolean isCreator = payment.getCreatedBy() != null
+                && payment.getCreatedBy().getId().equals(actor.getId());
+        boolean isParticipant = payment.getUsers() != null
+                && payment.getUsers().stream().anyMatch(user -> user.getId().equals(actor.getId()));
+
+        if (actor.getRole() != UserRole.CLIENT || (!isCreator && !isParticipant)) {
+            throw new AccessDeniedException("No tenés permisos para acceder a este pago.");
+        }
     }
 
     // ===== PRIVATE HELPER METHODS =====
 
-    /**
-     * Resolver: Input DTO -> User Entities.
-     * Handles lookup by ClientID, Single DNI, or Multiple DNIs.
-     */
-    private List<User> getUsersForPayment(PaymentRequestDTO paymentRequest) {
-        List<User> users = new ArrayList<>();
-
-        if (paymentRequest.isMultipleUsersPayment()) {
-            for (Integer dni : paymentRequest.getClientDnis()) {
-                User user = userService.getUserByDni(dni);
-                users.add(user);
-            }
-        } else {
-            if (paymentRequest.getClientId() != null) {
-                User user = userService.getUserById(paymentRequest.getClientId());
-                users.add(user);
-            } else if (paymentRequest.getClientDni() != null) {
-                User user = userService.getUserByDni(paymentRequest.getClientDni());
-                users.add(user);
-            } else {
-                throw new BusinessRuleException("Target client identifier missing", "/api/payments/new");
-            }
+    private List<Integer> normalizeManualPaymentDnis(List<Integer> requestedDnis, String path) {
+        if (requestedDnis == null || requestedDnis.isEmpty()) {
+            throw new BusinessRuleException("Debe seleccionar al menos un cliente.", path);
+        }
+        if (requestedDnis.stream().anyMatch(java.util.Objects::isNull)) {
+            throw new BusinessRuleException("Todos los DNIs son obligatorios.", path);
         }
 
-        return users;
+        List<Integer> distinctDnis = requestedDnis.stream().distinct().toList();
+        if (distinctDnis.size() != requestedDnis.size()) {
+            throw new BusinessRuleException("No se permiten DNIs duplicados en un pago.", path);
+        }
+        return distinctDnis;
+    }
+
+    private void validateAllRequestedUsersWereFound(List<Integer> requestedDnis, List<User> users, String path) {
+        Set<Integer> foundDnis = users.stream().map(User::getDni).collect(Collectors.toSet());
+        List<Integer> missingDnis = requestedDnis.stream()
+                .filter(dni -> !foundDnis.contains(dni))
+                .toList();
+        if (!missingDnis.isEmpty()) {
+            throw new BusinessRuleException(
+                    "No se encontraron clientes con los siguientes DNI: " + joinInts(missingDnis), path);
+        }
+    }
+
+    private void validateReceiptRequirements(ManualPaymentRequestDTO request, MultipartFile file, User actor,
+            String path) {
+        if (request.getMethodType() == MethodType.TRANSFER && (file == null || file.isEmpty())) {
+            throw new BusinessRuleException("El comprobante es obligatorio para transferencias.", path);
+        }
+        if (actor.getRole() == UserRole.CLIENT && request.getMethodType() == MethodType.CASH
+                && (request.getNotes() == null || request.getNotes().isBlank())) {
+            throw new BusinessRuleException("Las notas son obligatorias para pagos en efectivo.", path);
+        }
+    }
+
+    private String normalizeNotes(String notes) {
+        return notes == null || notes.isBlank() ? null : notes.trim();
     }
 
     private void validatePaymentTargetUsersAreClients(List<User> users) {
@@ -468,10 +651,11 @@ public class PaymentService {
             String fileExtension = originalFilename != null && originalFilename.contains(".")
                     ? originalFilename.substring(originalFilename.lastIndexOf("."))
                     : "";
-            String uniqueFilename = "payment_" + System.currentTimeMillis() + fileExtension;
+            String uniqueFilename = "payment_" + UUID.randomUUID() + fileExtension;
 
             Path filePath = uploadDir.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            registerRollbackCleanup(filePath);
 
             PaymentFile paymentFile = PaymentFile.builder()
                     .fileName(originalFilename)
@@ -487,6 +671,26 @@ public class PaymentService {
             log.error("Storage error: {}", e.getMessage());
             throw new FileException("Failed to store payment file", "/api/payments/new");
         }
+    }
+
+    private void registerRollbackCleanup(Path filePath) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_COMMITTED) {
+                    return;
+                }
+                try {
+                    Files.deleteIfExists(filePath);
+                } catch (IOException cleanupError) {
+                    log.error("Could not remove rolled-back payment file: {}", filePath, cleanupError);
+                }
+            }
+        });
     }
 
     private void validateFile(MultipartFile file) {
@@ -520,45 +724,52 @@ public class PaymentService {
                         "/api/payments/info/" + paymentId));
     }
 
-    private PaymentFile getPaymentFileById(Long fileId) {
-        return paymentFileRepository.findById(fileId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "File record not found ID: " + fileId,
-                        "/api/files/" + fileId));
-    }
-
     private PaymentTypeDTO convertToPaymentTypeDTO(Payment payment) {
         List<PaymentTypeDTO.PaymentUserInfo> associatedUsers = new ArrayList<>();
 
-        if (payment.getCreatedBy() != null) {
+        // The creator counts as a payer only when it is actually one of the
+        // payment's linked users (e.g. a client loading their own payment).
+        // Payments created by an admin FOR other clients must keep the real
+        // clients as the visible payers, so listings, search and reports do
+        // not show the admin as if they were the paying client.
+        User createdBy = payment.getCreatedBy();
+        boolean creatorIsPayer = createdBy != null && payment.getUsers() != null
+                && payment.getUsers().stream().anyMatch(u -> u.getId().equals(createdBy.getId()));
+
+        if (creatorIsPayer) {
             associatedUsers.add(PaymentTypeDTO.PaymentUserInfo.builder()
-                    .userId(payment.getCreatedBy().getId())
-                    .userName(payment.getCreatedBy().getFullName())
-                    .userDni(payment.getCreatedBy().getDni())
+                    .userId(createdBy.getId())
+                    .userName(createdBy.getFullName())
+                    .userDni(createdBy.getDni())
                     .build());
         }
 
-        if (payment.getUsers() != null && !payment.getUsers().isEmpty()) {
-            for (User user : payment.getUsers()) {
-                if (payment.getCreatedBy() != null && user.getId().equals(payment.getCreatedBy().getId())) {
-                    continue;
-                }
+        // Orden estable por id: `users` es un Set, y sin orden el "cliente
+        // principal" de un pago grupal cambiaría entre lecturas.
+        List<User> linkedUsers = payment.getUsers() == null ? List.of()
+                : payment.getUsers().stream()
+                        .sorted(Comparator.comparing(User::getId))
+                        .toList();
 
-                associatedUsers.add(PaymentTypeDTO.PaymentUserInfo.builder()
-                        .userId(user.getId())
-                        .userName(user.getFullName())
-                        .userDni(user.getDni())
-                        .build());
+        for (User user : linkedUsers) {
+            if (creatorIsPayer && user.getId().equals(createdBy.getId())) {
+                continue;
             }
+
+            associatedUsers.add(PaymentTypeDTO.PaymentUserInfo.builder()
+                    .userId(user.getId())
+                    .userName(user.getFullName())
+                    .userDni(user.getDni())
+                    .build());
         }
 
         // Determine "Primary" Client for Display
         Long primaryClientId = null;
         String primaryClientName = null;
 
-        if (payment.getCreatedBy() != null) {
-            primaryClientId = payment.getCreatedBy().getId();
-            primaryClientName = payment.getCreatedBy().getFullName();
+        if (creatorIsPayer) {
+            primaryClientId = createdBy.getId();
+            primaryClientName = createdBy.getFullName();
         } else if (!associatedUsers.isEmpty()) {
             PaymentTypeDTO.PaymentUserInfo firstUser = associatedUsers.get(0);
             primaryClientId = firstUser.getUserId();
@@ -580,7 +791,9 @@ public class PaymentService {
                 .rejectionReason(payment.getRejectionReason())
                 .updatedAt(payment.getUpdatedAt())
                 .receiptId(payment.getPaymentFile() != null ? payment.getPaymentFile().getId() : null)
-                .receiptUrl(payment.getPaymentFile() != null ? "/api/files/" + payment.getPaymentFile().getId() : null)
+                .receiptUrl(payment.getPaymentFile() != null
+                        ? "/api/payments/files/" + payment.getPaymentFile().getId()
+                        : null)
                 .notes(payment.getNotes())
                 .build();
     }

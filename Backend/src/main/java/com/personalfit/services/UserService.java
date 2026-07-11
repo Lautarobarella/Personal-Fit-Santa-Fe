@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -204,6 +205,15 @@ public class UserService {
         return userRepository.findByDniAndDeletedAtIsNull(dni)
                 .orElseThrow(
                         () -> new EntityNotFoundException("User DNI: " + dni + " not found", "Api/User/getUserByDni"));
+    }
+
+    /**
+     * Loads users by DNI holding a pessimistic write lock for the current
+     * transaction. Used by admin batch-payment flows so two concurrent
+     * requests over the same clients serialize their eligibility checks.
+     */
+    public List<User> getUsersByDniForUpdate(Collection<Integer> dnis) {
+        return userRepository.findAllByDniInAndDeletedAtIsNullForUpdate(dnis);
     }
 
     /**

@@ -11,7 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,7 +21,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.personalfit.dto.Payment.PaymentRequestDTO;
+import com.personalfit.dto.Payment.InactiveClientsPaymentRequestDTO;
+import com.personalfit.dto.Payment.ManualPaymentRequestDTO;
 import com.personalfit.dto.Payment.PaymentStatusUpdateDTO;
 import com.personalfit.dto.Payment.PaymentTypeDTO;
 import com.personalfit.models.Payment;
@@ -54,14 +54,13 @@ public class PaymentController {
      * Main endpoint used by Frontend.
      */
     @PostMapping(value = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('CLIENT') or hasRole('TRAINER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> createPayment(
-            @RequestPart("payment") PaymentRequestDTO paymentRequest,
+            @Valid @RequestPart("payment") ManualPaymentRequestDTO paymentRequest,
             @RequestPart(value = "file", required = false) MultipartFile file,
             Authentication authentication) {
 
-        log.info("Creating new payment: Client={}, Amount={}",
-                paymentRequest.getClientDni(), paymentRequest.getAmount());
+        log.info("Creating new payment: requestedClients={}", paymentRequest.getClientDnis().size());
 
         Payment createdPayment = paymentService.createPayment(paymentRequest, file, authentication.getName());
 
@@ -74,24 +73,26 @@ public class PaymentController {
     }
 
     /**
-     * Create multiple payments in batch (Admin only).
+     * Quick payment load for inactive clients (Admin only).
+     * Creates ONE auto-confirmed group payment for the selected inactive
+     * clients; creator, amount and status are resolved server-side.
      */
-    @PostMapping("/batch")
-    @Transactional
+    @PostMapping("/inactive-group")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> createBatchPayments(
-            @Valid @RequestBody List<PaymentRequestDTO> paymentRequests,
+    public ResponseEntity<Map<String, Object>> createInactiveClientsPayment(
+            @Valid @RequestBody InactiveClientsPaymentRequestDTO request,
             Authentication authentication) {
 
-        log.info("Batch payment creation: {} items requested", paymentRequests.size());
+        log.info("Inactive-clients payment creation: {} clients requested",
+                request.getClientDnis() != null ? request.getClientDnis().size() : 0);
 
-        Integer createdCount = paymentService.createBatchPayments(paymentRequests, authentication.getName());
+        Payment payment = paymentService.createInactiveClientsPayment(request, authentication.getName());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Batch payments created successfully");
-        response.put("createdCount", createdCount);
-        response.put("requestedCount", paymentRequests.size());
+        response.put("message", "Pago generado exitosamente");
+        response.put("paymentId", payment.getId());
+        response.put("clientCount", payment.getUsers().size());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -125,8 +126,9 @@ public class PaymentController {
      */
     @GetMapping("/{userId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
-    public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long userId) {
-        List<PaymentTypeDTO> payments = paymentService.getUserPayments(userId);
+    public ResponseEntity<List<PaymentTypeDTO>> getUserPayments(@PathVariable Long userId,
+            Authentication authentication) {
+        List<PaymentTypeDTO> payments = paymentService.getUserPayments(userId, authentication.getName());
         return ResponseEntity.ok(payments);
     }
 
@@ -135,8 +137,9 @@ public class PaymentController {
      */
     @GetMapping("/info/{paymentId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
-    public ResponseEntity<PaymentTypeDTO> getPaymentDetails(@PathVariable Long paymentId) {
-        PaymentTypeDTO payment = paymentService.getPaymentDetails(paymentId);
+    public ResponseEntity<PaymentTypeDTO> getPaymentDetails(@PathVariable Long paymentId,
+            Authentication authentication) {
+        PaymentTypeDTO payment = paymentService.getPaymentDetails(paymentId, authentication.getName());
         return ResponseEntity.ok(payment);
     }
 
@@ -147,12 +150,13 @@ public class PaymentController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> updatePaymentStatus(
             @PathVariable Long paymentId,
-            @Valid @RequestBody PaymentStatusUpdateDTO statusUpdate) {
+            @Valid @RequestBody PaymentStatusUpdateDTO statusUpdate,
+            Authentication authentication) {
 
         log.info("Updating payment status: ID={}, New Status={}",
                 paymentId, statusUpdate.getStatus());
 
-        paymentService.updatePaymentStatus(paymentId, statusUpdate);
+        paymentService.updatePaymentStatus(paymentId, statusUpdate, authentication.getName());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -172,11 +176,11 @@ public class PaymentController {
      */
     @GetMapping("/files/{fileId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId, Authentication authentication) {
         log.debug("Downloading file: id={}", fileId);
 
-        byte[] fileContent = paymentService.getFileContent(fileId);
-        PaymentFile fileInfo = paymentService.getPaymentFileInfo(fileId);
+        PaymentFile fileInfo = paymentService.getAuthorizedPaymentFile(fileId, authentication.getName());
+        byte[] fileContent = paymentService.getFileContent(fileInfo);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + fileInfo.getFileName())
@@ -189,17 +193,17 @@ public class PaymentController {
      */
     @GetMapping("/getFile/{paymentId}")
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId) {
+    public ResponseEntity<byte[]> getPaymentFile(@PathVariable Long paymentId, Authentication authentication) {
         log.debug("Fetching file for payment: id={}", paymentId);
 
-        Payment payment = paymentService.getPaymentWithFile(paymentId);
+        Payment payment = paymentService.getAuthorizedPaymentWithFile(paymentId, authentication.getName());
 
         if (payment.getPaymentFile() == null) {
             return ResponseEntity.notFound().build();
         }
 
         PaymentFile file = payment.getPaymentFile();
-        byte[] fileContent = paymentService.getFileContent(file.getId());
+        byte[] fileContent = paymentService.getFileContent(file);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getFileName())

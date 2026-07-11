@@ -299,13 +299,8 @@ export interface PaymentUserInfo {
 }
 
 export interface NewPaymentInput {
-  clientDni?: number
-  clientDnis?: number[]
-  createdByDni?: number
-  amount: number
-  createdAt: string
-  expiresAt: string
-  paymentStatus: "PENDING" | "PAID"
+  clientDnis: number[]
+  expectedMonthlyFee: number
   method: MethodType
   notes?: string
   file?: File

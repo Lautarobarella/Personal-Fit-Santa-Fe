@@ -25,11 +25,8 @@ interface CreatePaymentDialogProps {
     paymentFlowMode?: "default" | "individual" | "group"
     expectedDniCount?: number
     onCreatePayment: (_payment: {
-        clientDnis: number[]  // Cambiado de clientDni a clientDnis (array)
-        createdByDni: number  // DNI del usuario que crea el pago
-        amount: number
-        createdAt: string
-        expiresAt: string
+        clientDnis: number[]
+        expectedMonthlyFee: number
         method: MethodType
         notes?: string // Notas adicionales del pago
         file?: File
@@ -49,7 +46,9 @@ export function CreatePaymentDialog({
         isGroupFlow,
         hasFixedDniCount,
         isCreating,
-        canSubmitByDniCount,
+        canSubmitPayment,
+        isAuthenticatedClientDniLocked,
+        monthlyFeeError,
         completedDniCount,
         validUsersCount,
         clientDnis,
@@ -99,6 +98,12 @@ export function CreatePaymentDialog({
                 </DialogHeader>
 
                 <DialogBody className="space-y-3">
+                    {monthlyFeeError && (
+                        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                            <AlertCircle className="size-4 shrink-0" />
+                            <span>{monthlyFeeError}</span>
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-3">
                         {/* DNIs de Clientes */}
                         <div className="rounded-xl border p-4">
@@ -143,6 +148,8 @@ export function CreatePaymentDialog({
                                                     inputMode="numeric"
                                                     pattern="[0-9]*"
                                                     value={dni}
+                                                    readOnly={isAuthenticatedClientDniLocked && index === 0}
+                                                    aria-readonly={isAuthenticatedClientDniLocked && index === 0}
                                                     onChange={(e) => {
                                                         const value = e.target.value
                                                         if (/^\d*$/.test(value) && value.length <= 11) {
@@ -427,7 +434,7 @@ export function CreatePaymentDialog({
 
                     <Button
                         type="submit"
-                        disabled={isCreating || !canSubmitByDniCount}
+                        disabled={isCreating || !canSubmitPayment}
                         className="min-w-0 flex-1"
                         onClick={handleSubmit}
                     >

@@ -2,6 +2,7 @@
 
 import {
   buildReceiptUrl,
+  createInactiveClientsPayment,
   createPayment,
   fetchAllPayments,
   fetchPaymentDetails,
@@ -90,9 +91,24 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   // ===============================
 
   const createPaymentMutation = useMutation({
-    mutationFn: (data: { paymentData: Omit<NewPaymentInput, 'paymentStatus'>, isAutomaticPayment: boolean }) =>
-      createPayment(data.paymentData, data.isAutomaticPayment),
+    mutationFn: (data: NewPaymentInput) => createPayment(data),
+    retry: false,
     onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] })
+    },
+  })
+
+  // Carga rápida de pagos para clientes inactivos (solo ADMIN). Invalida en
+  // onSettled: ante un error de elegibilidad (400) los datos locales pueden
+  // estar desactualizados y también hay que refrescarlos.
+  // retry: false — la mutación NO es idempotente: si el servidor confirmó el
+  // pago pero la respuesta se perdió, un reintento automático recibiría un 400
+  // (los clientes ya quedaron activos) y la UI reportaría un falso error.
+  const createInactivePaymentsMutation = useMutation({
+    mutationFn: (data: { clientDnis: number[]; expectedMonthlyFee: number }) =>
+      createInactiveClientsPayment(data.clientDnis, data.expectedMonthlyFee),
+    retry: false,
+    onSettled: async () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] })
     },
   })
@@ -288,11 +304,10 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
   // ===============================
 
   const createNewPayment = useCallback(async (
-    paymentData: Omit<NewPaymentInput, 'paymentStatus'>,
-    isAutomaticPayment: boolean = false
+    paymentData: NewPaymentInput,
   ): Promise<PaymentMutationResult> => {
     try {
-      await createPaymentMutation.mutateAsync({ paymentData, isAutomaticPayment })
+      await createPaymentMutation.mutateAsync(paymentData)
       return { success: true, message: "Pago creado exitosamente" }
     } catch (error) {
       return { success: false, message: "Error al crear el pago" }
@@ -370,6 +385,8 @@ export function usePayment(userId?: number, isAdmin?: boolean) {
     
     // Mutations
     createPayment: createPaymentMutation.mutateAsync, // Mantener compatibilidad
+    createInactiveClientsPayment: createInactivePaymentsMutation.mutateAsync,
+    isCreatingInactivePayments: createInactivePaymentsMutation.isPending,
     createNewPayment,
     updatePaymentStatus: updatePaymentMutation.mutateAsync, // Mantener compatibilidad
     updatePaymentStatusAction,

@@ -1,10 +1,12 @@
 "use client"
 
 import { ClientDetailsDialog } from "@/components/clients/details-client-dialog"
+import { CreateInactivePaymentsDialog } from "@/components/clients/create-inactive-payments-dialog"
 import { ExportClientsDialog } from "@/components/clients/export-clients-dialog"
 import { Badge } from "@/components/ui/badge"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import {
   AlertDialog,
@@ -21,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { useClientsPage } from "@/hooks/clients/use-clients-page"
 import { UserRole } from "@/types"
-import { Calendar, ClipboardList, Loader2, Mail, MoreVertical, Phone, Plus, Search, UserCheck } from "lucide-react"
+import { Banknote, Calendar, ClipboardList, Loader2, Mail, MoreVertical, Phone, Plus, Search, UserCheck } from "lucide-react"
 import Link from "next/link"
 
 export default function ClientsPage() {
@@ -47,6 +49,21 @@ export default function ClientsPage() {
     resetPasswordDialog,
     setResetPasswordDialog,
     isResettingPassword,
+    paymentSelectionMode,
+    selectedPaymentClients,
+    selectedPaymentClientIds,
+    eligiblePaymentClientsCount,
+    paymentConfirmOpen,
+    setPaymentConfirmOpen,
+    isCreatingInactivePayments,
+    monthlyFee,
+    isClientEligibleForPayment,
+    getPaymentIneligibilityReason,
+    startPaymentSelection,
+    cancelPaymentSelection,
+    togglePaymentClientSelection,
+    handleOpenPaymentConfirm,
+    handleConfirmCreatePayments,
     formatDate,
     handleClientDetails,
     handleOpenDeleteDialog,
@@ -76,6 +93,7 @@ export default function ClientsPage() {
 
   const activeClientsCount = clients.filter((c) => c.role === UserRole.CLIENT && c.status === "ACTIVE").length
   const inactiveClientsCount = clients.filter((c) => c.role === UserRole.CLIENT && c.status === "INACTIVE").length
+  const selectedPaymentClientIdSet = new Set(selectedPaymentClientIds)
 
   return (
     <div className="min-h-screen bg-background pb-safe-bottom">
@@ -139,18 +157,47 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        {/* Exportar listado — varía según la solapa seleccionada */}
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setExportListOpen(true)}
-            disabled={filteredClients.length === 0}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary disabled:pointer-events-none disabled:opacity-50"
-          >
-            <ClipboardList className="size-4" />
-            Generar listado
-          </button>
-        </div>
+        {/* Acciones de la solapa: carga rápida de pagos (solo ADMIN, en
+            Inactivos) y exportar listado */}
+        {paymentSelectionMode ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">
+              {selectedPaymentClients.length}{" "}
+              {selectedPaymentClients.length === 1 ? "seleccionado" : "seleccionados"}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={cancelPaymentSelection}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleOpenPaymentConfirm} disabled={selectedPaymentClients.length === 0}>
+                Continuar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-end gap-4">
+            {user.role === UserRole.ADMIN && statusFilter === "INACTIVE" && (
+              <button
+                type="button"
+                onClick={startPaymentSelection}
+                disabled={eligiblePaymentClientsCount === 0}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary disabled:pointer-events-none disabled:opacity-50"
+              >
+                <Banknote className="size-4" />
+                Cargar pago
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setExportListOpen(true)}
+              disabled={filteredClients.length === 0}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary disabled:pointer-events-none disabled:opacity-50"
+            >
+              <ClipboardList className="size-4" />
+              Generar listado
+            </button>
+          </div>
+        )}
 
         {/* Client List — 1 columna en mobile, 2 en pantallas grandes */}
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
@@ -158,6 +205,16 @@ export default function ClientsPage() {
             <div key={client.id} className="rounded-xl border p-4 transition-colors hover:bg-muted/40">
               {/* Encabezado: avatar + nombre + estado + menú */}
               <div className="flex items-center gap-3">
+                {paymentSelectionMode && (
+                  <Checkbox
+                    checked={selectedPaymentClientIdSet.has(client.id) && isClientEligibleForPayment(client)}
+                    onCheckedChange={() => togglePaymentClientSelection(client.id)}
+                    disabled={!isClientEligibleForPayment(client)}
+                    aria-label={`Seleccionar a ${client.firstName} ${client.lastName}`}
+                    title={getPaymentIneligibilityReason(client) ?? undefined}
+                    className="size-5 shrink-0"
+                  />
+                )}
                 <UserAvatar
                   userId={client.id}
                   firstName={client.firstName}
@@ -211,6 +268,10 @@ export default function ClientsPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+
+              {paymentSelectionMode && !isClientEligibleForPayment(client) && (
+                <p className="mt-2 text-xs text-muted-foreground">{getPaymentIneligibilityReason(client)}</p>
+              )}
 
               {/* Contacto: a ancho completo desde la izquierda; el mail envuelve
                   en vez de truncarse */}
@@ -273,6 +334,16 @@ export default function ClientsPage() {
         onOpenChange={setExportListOpen}
         clients={filteredClients}
         statusFilter={statusFilter}
+      />
+
+      {/* Confirmación de carga rápida de pagos para inactivos */}
+      <CreateInactivePaymentsDialog
+        open={paymentConfirmOpen}
+        onOpenChange={setPaymentConfirmOpen}
+        clients={selectedPaymentClients}
+        monthlyFee={monthlyFee}
+        isSubmitting={isCreatingInactivePayments}
+        onConfirm={handleConfirmCreatePayments}
       />
 
       {/* Delete confirmation dialog */}

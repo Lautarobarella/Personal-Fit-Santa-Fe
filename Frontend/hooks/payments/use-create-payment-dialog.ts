@@ -27,10 +27,7 @@ interface ValidatedUser {
 
 interface CreatePaymentArgs {
   clientDnis: number[]
-  createdByDni: number
-  amount: number
-  createdAt: string
-  expiresAt: string
+  expectedMonthlyFee: number
   method: MethodType
   notes?: string
   file?: File
@@ -52,7 +49,7 @@ export function useCreatePaymentDialog(
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
-  const { monthlyFee } = useSettings()
+  const { monthlyFee, loading: isLoadingSettings, error: settingsError } = useSettings()
   const { payments: clientPayments, isLoading: isLoadingPayments } = usePaymentContext()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dniFieldIdCounter = useRef(1)
@@ -85,6 +82,12 @@ export function useCreatePaymentDialog(
 
   const isIndividualFlow = paymentFlowMode === "individual"
   const isGroupFlow = paymentFlowMode === "group"
+  const isAuthenticatedClientDniLocked = user?.role === UserRole.CLIENT && (isIndividualFlow || isGroupFlow)
+  const hasValidMonthlyFee = !isLoadingSettings && !settingsError
+    && Number.isFinite(monthlyFee) && monthlyFee > 0
+  const monthlyFeeError = isLoadingSettings
+    ? "Cargando la cuota mensual…"
+    : settingsError || (!hasValidMonthlyFee ? "No se pudo obtener una cuota mensual válida." : null)
   const hasFixedDniCount = isIndividualFlow || (isGroupFlow && !!expectedDniCount && expectedDniCount > 0)
   const fixedDniCount = isIndividualFlow ? 1 : isGroupFlow && expectedDniCount ? expectedDniCount : 1
 
@@ -203,11 +206,11 @@ export function useCreatePaymentDialog(
   useEffect(() => {
     let validationTimeout: ReturnType<typeof setTimeout> | null = null
 
-    if (open && user && monthlyFee > 0) {
+    if (open && user && hasValidMonthlyFee) {
       const initialCount = hasFixedDniCount ? fixedDniCount : 1
       initializeDniInputs(initialCount)
 
-      if (!isGroupFlow && user.role === UserRole.CLIENT && user.dni) {
+      if (user.role === UserRole.CLIENT && user.dni) {
         const userDniString = user.dni.toString()
         setClientDnis((previous) => {
           const next = [...previous]
@@ -226,7 +229,7 @@ export function useCreatePaymentDialog(
         clearTimeout(validationTimeout)
       }
     }
-  }, [fixedDniCount, hasFixedDniCount, initializeDniInputs, isGroupFlow, monthlyFee, open, user, validateDni])
+  }, [fixedDniCount, hasFixedDniCount, hasValidMonthlyFee, initializeDniInputs, monthlyFee, open, user, validateDni])
 
   useEffect(() => {
     const validUsersCount = validatedUsers.filter((u) => u.isValid).length
@@ -283,6 +286,10 @@ export function useCreatePaymentDialog(
   }
 
   const updateDni = (index: number, value: string) => {
+    if (isAuthenticatedClientDniLocked && index === 0) {
+      return
+    }
+
     const newDnis = [...clientDnis]
     newDnis[index] = value
     setClientDnis(newDnis)
@@ -355,6 +362,12 @@ export function useCreatePaymentDialog(
     validUsersCount,
     validatingUsersCount,
   ])
+
+  const canSubmitPayment = canSubmitByDniCount
+    && hasValidMonthlyFee
+    && !!paymentMethod
+    && (paymentMethod !== MethodType.TRANSFER || !!selectedFile)
+    && !(user?.role === UserRole.CLIENT && paymentMethod === MethodType.CASH && !notes.trim())
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -450,6 +463,15 @@ export function useCreatePaymentDialog(
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!hasValidMonthlyFee) {
+      toast({
+        title: "Cuota no disponible",
+        description: monthlyFeeError || "No se pudo obtener una cuota mensual válida.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (clientDnis.some((dni) => !dni.trim())) {
       toast({ title: "Error", description: "Todos los campos de DNI son requeridos", variant: "destructive" })
       return
@@ -497,15 +519,6 @@ export function useCreatePaymentDialog(
         return
       }
 
-      if (paymentMethod === MethodType.TRANSFER && !selectedFile) {
-        toast({
-          title: "Error",
-          description: "Debes subir un comprobante para transferencias",
-          variant: "destructive",
-        })
-        return
-      }
-
       if (paymentMethod === MethodType.CASH && !notes.trim()) {
         toast({
           title: "Error",
@@ -514,6 +527,15 @@ export function useCreatePaymentDialog(
         })
         return
       }
+    }
+
+    if (paymentMethod === MethodType.TRANSFER && !selectedFile) {
+      toast({
+        title: "Error",
+        description: "Debes subir un comprobante para transferencias",
+        variant: "destructive",
+      })
+      return
     }
 
     const amountNum = Number.parseFloat(amount)
@@ -531,24 +553,9 @@ export function useCreatePaymentDialog(
     try {
       const validDnis = validUsers.map((u) => u.dni)
 
-      let createdByDni: number
-      if (user?.role === UserRole.CLIENT) {
-        createdByDni = user.dni
-      } else if (user?.role === UserRole.ADMIN) {
-        if (!user.dni) {
-          throw new Error("El administrador debe tener un DNI configurado para registrar el pago")
-        }
-        createdByDni = user.dni
-      } else {
-        throw new Error("Rol de usuario no válido")
-      }
-
       await onCreatePayment({
         clientDnis: validDnis,
-        createdByDni,
-        amount: amountNum,
-        createdAt: startDate,
-        expiresAt: dueDate,
+        expectedMonthlyFee: monthlyFee,
         method: paymentMethod as MethodType,
         notes: notes.trim() || undefined,
         file: selectedFile ?? undefined,
@@ -577,6 +584,9 @@ export function useCreatePaymentDialog(
     hasFixedDniCount,
     isCreating,
     canSubmitByDniCount,
+    canSubmitPayment,
+    isAuthenticatedClientDniLocked,
+    monthlyFeeError,
     completedDniCount,
     validUsersCount,
     clientDnis,
