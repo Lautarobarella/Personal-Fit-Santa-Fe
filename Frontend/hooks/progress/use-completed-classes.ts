@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation"
 import { useRequireAuth } from "@/hooks/use-require-auth"
 import { useToast } from "@/hooks/use-toast"
 import { fetchCurrentUserById } from "@/api/clients/usersApi"
-import { ActivityStatus, AttendanceStatus, UserRole } from "@/types"
+import { isFinalizedClientActivity } from "@/lib/activity-progress"
+import { UserRole } from "@/types"
 import type { UserDetailInfo } from "@/types"
 
 export function useCompletedClasses() {
@@ -47,12 +48,7 @@ export function useCompletedClasses() {
     if (!clientDetail) return []
 
     return clientDetail.listActivity
-      .filter(
-        (activity) =>
-          activity.activityStatus === ActivityStatus.COMPLETED &&
-          (activity.clientStatus === AttendanceStatus.PRESENT ||
-            activity.clientStatus === AttendanceStatus.LATE),
-      )
+      .filter(isFinalizedClientActivity)
       .sort((first, second) => {
         const firstTime = first.date ? new Date(first.date).getTime() : 0
         const secondTime = second.date ? new Date(second.date).getTime() : 0

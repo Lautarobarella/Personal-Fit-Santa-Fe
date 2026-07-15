@@ -1,7 +1,7 @@
 "use client"
 
 import { useCompletedClasses } from "@/hooks/progress/use-completed-classes"
-import { UserRole } from "@/types"
+import { AttendanceStatus, UserRole } from "@/types"
 import { BottomNav } from "@/components/ui/bottom-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,7 @@ export default function CompletedClassesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <MobileHeader title="Clases Completadas" showBack onBack={() => router.push("/progress")} />
+      <MobileHeader title="Clases Finalizadas" showBack onBack={() => router.push("/progress")} />
 
       <div className="container-centered py-6 pb-safe-bottom">
         <div className="mb-3 flex items-baseline justify-between gap-2 px-1">
@@ -43,13 +43,13 @@ export default function CompletedClassesPage() {
             <h3 className="text-base font-semibold">Tus clases</h3>
           </div>
           <span className="text-xs text-muted-foreground">
-            {completedActivities.length} {completedActivities.length === 1 ? "completada" : "completadas"}
+            {completedActivities.length} {completedActivities.length === 1 ? "finalizada" : "finalizadas"}
           </span>
         </div>
 
         {completedActivities.length === 0 ? (
           <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-            Aún no tenés clases completadas.
+            Aún no tenés clases finalizadas.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:items-start lg:gap-3">
@@ -65,8 +65,21 @@ export default function CompletedClassesPage() {
                       Entrenador: {activity.trainerName}
                     </p>
                   </div>
-                  <Badge variant="success" className="shrink-0">
-                    Completada
+                  <Badge
+                    variant={
+                      activity.clientStatus === AttendanceStatus.ABSENT
+                        ? "destructive"
+                        : activity.clientStatus === AttendanceStatus.LATE
+                          ? "warning"
+                          : "success"
+                    }
+                    className="shrink-0"
+                  >
+                    {activity.clientStatus === AttendanceStatus.ABSENT
+                      ? "Ausente"
+                      : activity.clientStatus === AttendanceStatus.LATE
+                        ? "Tarde"
+                        : "Presente"}
                   </Badge>
                 </div>
 

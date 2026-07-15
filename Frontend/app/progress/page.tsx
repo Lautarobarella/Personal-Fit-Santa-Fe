@@ -51,8 +51,8 @@ export default function ProgressPage() {
                   <Calendar className="size-5 text-primary" />
                 </span>
                 <div className="min-w-0">
-                  <p className="font-medium">Clases completadas</p>
-                  <p className="text-sm text-muted-foreground">Ver listado y resúmenes</p>
+                  <p className="font-medium">Clases finalizadas</p>
+                  <p className="text-sm text-muted-foreground">Ver asistencias y resúmenes</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
