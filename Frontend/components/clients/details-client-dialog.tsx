@@ -244,6 +244,7 @@ export function ClientDetailsDialog({
                       <div className="flex items-center gap-3 py-2.5 text-sm">
                         <Ambulance className="size-4 shrink-0 text-red-500" />
                         <span>{selectedClient.emergencyPhone}</span>
+                        <CopyButton onClick={() => copyToClipboard(selectedClient.emergencyPhone, "Teléfono de emergencia")} label="Copiar teléfono de emergencia" />
                       </div>
                     )}
                     <div className="flex items-center gap-3 py-2.5 text-sm">
