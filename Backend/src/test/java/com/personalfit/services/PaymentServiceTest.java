@@ -522,6 +522,130 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).save(any(Payment.class));
     }
 
+    // ===== Vencimiento automático de pagos =====
+
+    @Test
+    void checkPaidPayments_withHistoricalPendingPayment_expiresWithoutSideEffects() {
+        LocalDateTime now = LocalDateTime.of(2026, 4, 5, 10, 0);
+        User client = buildClient(11L, 30111111);
+        Payment pendingPayment = Payment.builder()
+                .id(100L)
+                .status(PaymentStatus.PENDING)
+                .expiresAt(now.minusDays(1))
+                .users(Set.of(client))
+                .build();
+        mockPendingExpirationQuery(List.of(pendingPayment));
+
+        paymentService.checkPaidPayments();
+
+        assertEquals(PaymentStatus.EXPIRED, pendingPayment.getStatus());
+        assertEquals(now, pendingPayment.getUpdatedAt());
+        assertNull(pendingPayment.getVerifiedAt());
+        assertNull(pendingPayment.getVerifiedBy());
+        verify(paymentRepository).saveAll(List.of(pendingPayment));
+        verify(userService, never()).updateUserStatus(any(User.class), any(UserStatus.class));
+        verify(notificationService, never()).createPaymentExpiredNotification(any(), any());
+    }
+
+    @Test
+    void checkPaidPayments_withCurrentAndFuturePendingPayments_keepsThemPending() {
+        LocalDateTime now = LocalDateTime.of(2026, 4, 5, 10, 0);
+        Payment currentPeriodPayment = Payment.builder()
+                .id(101L)
+                .status(PaymentStatus.PENDING)
+                .expiresAt(LocalDateTime.of(2026, 4, 10, 0, 0))
+                .build();
+        Payment futurePayment = Payment.builder()
+                .id(102L)
+                .status(PaymentStatus.PENDING)
+                .expiresAt(LocalDateTime.of(2026, 5, 10, 0, 0))
+                .build();
+        mockPendingExpirationQuery(List.of(currentPeriodPayment, futurePayment));
+
+        paymentService.checkPaidPayments();
+
+        assertEquals(PaymentStatus.PENDING, currentPeriodPayment.getStatus());
+        assertEquals(PaymentStatus.PENDING, futurePayment.getStatus());
+        assertNull(currentPeriodPayment.getUpdatedAt());
+        assertNull(futurePayment.getUpdatedAt());
+        verify(paymentRepository).findPendingPaymentsExpiringAtOrBefore(now);
+        verify(paymentRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void checkPaidPayments_withExpiredPendingGroup_expiresOnePaymentAndPreservesLinks() {
+        User firstClient = buildClient(11L, 30111111);
+        User secondClient = buildClient(12L, 30222222);
+        Set<User> linkedClients = Set.of(firstClient, secondClient);
+        Payment groupPayment = Payment.builder()
+                .id(103L)
+                .status(PaymentStatus.PENDING)
+                .expiresAt(LocalDateTime.of(2026, 4, 1, 0, 0))
+                .users(linkedClients)
+                .build();
+        mockPendingExpirationQuery(List.of(groupPayment));
+
+        paymentService.checkPaidPayments();
+
+        assertEquals(PaymentStatus.EXPIRED, groupPayment.getStatus());
+        assertEquals(linkedClients, groupPayment.getUsers());
+        verify(paymentRepository, times(1)).saveAll(List.of(groupPayment));
+        verify(userService, never()).updateUserStatus(any(User.class), any(UserStatus.class));
+    }
+
+    @Test
+    void checkPaidPayments_whenRunTwice_doesNotModifyAlreadyExpiredPendingPayment() {
+        LocalDateTime firstRun = LocalDateTime.of(2026, 4, 5, 10, 0);
+        Payment pendingPayment = Payment.builder()
+                .id(104L)
+                .status(PaymentStatus.PENDING)
+                .expiresAt(firstRun.minusDays(1))
+                .build();
+        mockPendingExpirationQuery(List.of(pendingPayment));
+
+        paymentService.checkPaidPayments();
+        mockCurrentTime(firstRun.plusDays(1));
+        paymentService.checkPaidPayments();
+
+        assertEquals(PaymentStatus.EXPIRED, pendingPayment.getStatus());
+        assertEquals(firstRun, pendingPayment.getUpdatedAt());
+        verify(paymentRepository, times(1)).saveAll(any());
+    }
+
+    @Test
+    void checkPaidPayments_afterExpiringHistoricalPendingPayment_unblocksInactiveGroupLoad() {
+        User admin = buildAdmin(1L, 20111111, ADMIN_EMAIL);
+        User client = buildClient(11L, 30111111);
+        Payment historicalPayment = Payment.builder()
+                .id(105L)
+                .status(PaymentStatus.PENDING)
+                .expiresAt(LocalDateTime.of(2026, 4, 1, 0, 0))
+                .users(Set.of(client))
+                .build();
+        mockPendingExpirationQuery(List.of(historicalPayment));
+
+        paymentService.checkPaidPayments();
+        verify(userService, never()).updateUserStatus(any(User.class), any(UserStatus.class));
+
+        InactiveClientsPaymentRequestDTO request = InactiveClientsPaymentRequestDTO.builder()
+                .clientDnis(List.of(client.getDni()))
+                .expectedMonthlyFee(25000.0)
+                .build();
+        when(userService.getUserByEmail(ADMIN_EMAIL)).thenReturn(admin);
+        when(userService.getUsersByDniForUpdate(List.of(client.getDni()))).thenReturn(List.of(client));
+        when(paymentRepository.findUserIdsWithPaymentStatus(List.of(client), PaymentStatus.PENDING))
+                .thenAnswer(invocation -> historicalPayment.getStatus() == PaymentStatus.PENDING
+                        ? List.of(client.getId())
+                        : List.of());
+        when(settingsService.getMonthlyFeeStrict()).thenReturn(25000.0);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Payment newPayment = paymentService.createInactiveClientsPayment(request, ADMIN_EMAIL);
+
+        assertEquals(PaymentStatus.PAID, newPayment.getStatus());
+        assertEquals(Set.of(client), newPayment.getUsers());
+    }
+
     // ===== Carga rápida de pagos para clientes inactivos =====
 
     @Test
@@ -856,6 +980,18 @@ class PaymentServiceTest {
 
         assertThrows(AccessDeniedException.class,
                 () -> paymentService.getAuthorizedPaymentFile(paymentFile.getId(), outsider.getEmail()));
+    }
+
+    private void mockPendingExpirationQuery(List<Payment> candidates) {
+        when(paymentRepository.findPendingPaymentsExpiringAtOrBefore(any(LocalDateTime.class)))
+                .thenAnswer(invocation -> {
+                    LocalDateTime cutoff = invocation.getArgument(0);
+                    return candidates.stream()
+                            .filter(payment -> payment.getStatus() == PaymentStatus.PENDING)
+                            .filter(payment -> payment.getExpiresAt() != null)
+                            .filter(payment -> !payment.getExpiresAt().isAfter(cutoff))
+                            .toList();
+                });
     }
 
     private void mockCurrentTime(LocalDateTime now) {

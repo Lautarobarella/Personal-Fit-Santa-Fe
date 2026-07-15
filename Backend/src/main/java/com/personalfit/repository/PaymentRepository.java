@@ -126,4 +126,14 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                         "WHERE p.status = 'PAID' " +
                         "AND p.expiresAt < :expirationCutoff")
         List<Payment> findPaidPaymentsExpiringBefore(@Param("expirationCutoff") LocalDateTime expirationCutoff);
+
+        /**
+         * Retrieves pending payments whose expiration instant has already arrived.
+         */
+        @Query("SELECT DISTINCT p FROM Payment p " +
+                        "LEFT JOIN FETCH p.users " +
+                        "WHERE p.status = 'PENDING' " +
+                        "AND p.expiresAt <= :expirationCutoff")
+        List<Payment> findPendingPaymentsExpiringAtOrBefore(
+                        @Param("expirationCutoff") LocalDateTime expirationCutoff);
 }

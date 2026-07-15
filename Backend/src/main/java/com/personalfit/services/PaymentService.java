@@ -801,9 +801,11 @@ public class PaymentService {
     /**
      * CRON JOB: Monthly Expiration Check.
      * Schedule: day 10 of every month at 00:00.
-     * 1. Expires only PAID payments due on or before the 10th.
-     * 2. Keeps PENDING payments unchanged.
-     * 3. Deactivates users only if they no longer have another active PAID payment.
+     * 1. Expires PENDING payments whose expiration instant has arrived, without
+     * changing users or verification data.
+     * 2. Expires PAID payments due on or before the 10th.
+     * 3. Deactivates users only for expired PAID payments and only when they no
+     * longer have another active PAID payment.
      */
     @Scheduled(cron = "0 0 0 10 * *")
     @Transactional
@@ -814,18 +816,28 @@ public class PaymentService {
             LocalDateTime now = LocalDateTime.now(clock);
             LocalDateTime expirationCutoff = now.toLocalDate().plusDays(1).atStartOfDay();
 
-            List<Payment> expiredPayments = paymentRepository.findPaidPaymentsExpiringBefore(expirationCutoff);
+            List<Payment> expiredPendingPayments = paymentRepository.findPendingPaymentsExpiringAtOrBefore(now);
+            List<Payment> expiredPaidPayments = paymentRepository.findPaidPaymentsExpiringBefore(expirationCutoff);
 
-            if (expiredPayments.isEmpty()) {
-                log.info("No paid payments to expire on this cycle");
+            if (expiredPendingPayments.isEmpty() && expiredPaidPayments.isEmpty()) {
+                log.info("No payments to expire on this cycle");
                 return;
             }
 
+            List<Payment> expiredPayments = new ArrayList<>(
+                    expiredPendingPayments.size() + expiredPaidPayments.size());
             Set<User> impactedUsers = new HashSet<>();
 
-            for (Payment payment : expiredPayments) {
+            for (Payment payment : expiredPendingPayments) {
                 payment.setStatus(PaymentStatus.EXPIRED);
                 payment.setUpdatedAt(now);
+                expiredPayments.add(payment);
+            }
+
+            for (Payment payment : expiredPaidPayments) {
+                payment.setStatus(PaymentStatus.EXPIRED);
+                payment.setUpdatedAt(now);
+                expiredPayments.add(payment);
 
                 if (payment.getUsers() != null && !payment.getUsers().isEmpty()) {
                     impactedUsers.addAll(payment.getUsers());
@@ -858,8 +870,8 @@ public class PaymentService {
                 }
             }
 
-            log.info("Monthly expiration job complete: expired={}, deactivated={}",
-                    expiredPayments.size(), usersWithExpiredMembership.size());
+            log.info("Monthly expiration job complete: expiredPending={}, expiredPaid={}, deactivated={}",
+                    expiredPendingPayments.size(), expiredPaidPayments.size(), usersWithExpiredMembership.size());
 
         } catch (Exception e) {
             log.error("Error during monthly expiration job", e);
