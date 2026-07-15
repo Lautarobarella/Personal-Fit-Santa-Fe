@@ -160,7 +160,9 @@ export function DetailsActivityDialog({
         <DialogHeader className="pr-14">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <DialogTitle className="truncate text-xl">{selectedActivity.name}</DialogTitle>
+              <DialogTitle className="break-words text-xl leading-tight">
+                {selectedActivity.name}
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 Detalles de la actividad {selectedActivity.name}
               </DialogDescription>

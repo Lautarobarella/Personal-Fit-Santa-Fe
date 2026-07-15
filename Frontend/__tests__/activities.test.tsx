@@ -116,6 +116,10 @@ describe('ActivitiesPage', () => {
     await act(async () => {
       render(<ActivitiesPage />)
     })
-    expect(screen.getByText('Yoga Matutino')).toBeInTheDocument()
+    const activityName = screen.getByText('Yoga Matutino')
+
+    expect(activityName).toBeInTheDocument()
+    expect(activityName).toHaveClass('break-words')
+    expect(activityName).not.toHaveClass('truncate')
   })
 })

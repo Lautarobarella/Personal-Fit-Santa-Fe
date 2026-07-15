@@ -130,7 +130,7 @@ export default function ActivitiesPage() {
             {/* Nombre y entrenador */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="truncate text-base font-semibold">{activity.name}</h3>
+                <h3 className="min-w-0 break-words text-base font-semibold">{activity.name}</h3>
                 {isCancelled && (
                   <Badge variant="destructive" className="shrink-0 text-[10px]">
                     Cancelada
